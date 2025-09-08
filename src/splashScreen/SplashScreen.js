@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import { View, StyleSheet, Image, Dimensions, Platform } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import BiLogo from "../../assets/icons/LogoWhite.svg";
 import Animated, {
@@ -86,12 +85,17 @@ const SplashScreen = () => {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <LinearGradient
-        colors={["#163b7c", "#1f3d6d", "#2a6f65", "#55b56c"]}
-        start={{ x: 0.6, y: 0.5 }}
-        end={{ x: 0.2, y: 0.8 }}
-        style={StyleSheet.absoluteFill}
+      
+      {/* Background Image */}
+      <Image 
+        source={require("../../assets/images/onboardingbg.png")} 
+        style={styles.backgroundImage}
+        resizeMode="cover"
       />
+      
+      {/* Overlay for better text visibility */}
+      <View style={styles.overlay} />
+      
       <View style={styles.centerWrapper}>
         {Array.from({ length: RING_COUNT }).map((_, index) => (
           <Ring key={index} index={index} progress={progress} />
@@ -109,10 +113,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#1f255e",
   },
+  backgroundImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: width,
+    height: height,
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.3)", // Semi-transparent overlay for better text visibility
+  },
   centerWrapper: {
     flex: 1,
     justifyContent: "center", // Center vertically
     alignItems: "center", // Center horizontally
+    zIndex: 1, // Ensure content is above background
   },
   ring: {
     position: "absolute",
@@ -121,6 +141,6 @@ const styles = StyleSheet.create({
     borderRadius: 75,
     borderWidth: 1,
     borderColor: "#BABECC66",
-    opacity:0.2
+    opacity: 0.2
   },
 });

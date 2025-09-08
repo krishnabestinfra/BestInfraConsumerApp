@@ -1,7 +1,7 @@
 import React from 'react';
 import { TextInput, View, Text, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../constants/colors';
-
+import User from '../../../assets/icons/user.svg';
 const Input = ({
   label,
   placeholder,
@@ -59,13 +59,7 @@ const Input = ({
         </Text>
       )}
       
-      <View style={getInputContainerStyle()}>
-        {leftIcon && (
-          <View style={styles.leftIcon}>
-            {leftIcon}
-          </View>
-        )}
-        
+      <View style={getInputContainerStyle()}>        
         <TextInput
           style={[getInputStyle(), inputStyle]}
           placeholder={placeholder}
@@ -115,16 +109,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 8,
     fontFamily: 'Manrope-Regular',
+    paddingHorizontal: 10,
   },
   // Variant styles
   defaultContainer: {
     borderWidth: Platform.OS === 'ios' ? 0.4 : 1,
-    borderColor: '#e9eaee',
-    backgroundColor: '#e9eaee',
+    borderColor: '#F8F8F8',
+    backgroundColor: '#F8F8F8',
   },
   outlinedContainer: {
     borderWidth: 1,
-    borderColor: '#e9eaee',
+    borderColor: '#F8F8F8',
     backgroundColor: 'transparent',
   },
   filledContainer: {
@@ -148,6 +143,7 @@ const styles = StyleSheet.create({
     color: '#6e6e6e',
     fontSize: 14,
     fontFamily: 'Manrope-Regular',
+    // marginLeft: 10,
   },
   defaultInput: {
     // Default styling

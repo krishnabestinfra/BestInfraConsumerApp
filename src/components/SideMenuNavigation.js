@@ -34,7 +34,7 @@ const SideMenuNavigation = ({ navigation }) => {
   await logoutUser();
   navigation.reset({
     index: 0,
-    routes: [{ name: "Login" }],
+    routes: [{ name: "Splash" }],
   });
 };
 

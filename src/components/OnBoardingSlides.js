@@ -52,31 +52,28 @@ const OnBoardingSlides = () => {
       >
         {/* Slide 1 */}
         <View style={styles.slide}>
-          <Text style={styles.title}>Bill Accurately.</Text>
-          <Text style={styles.title}>Operate Confidently.</Text>
+          <Text style={styles.title}>No More</Text>
+          <Text style={styles.title}>Billing Disputes</Text>
           <Text style={styles.description}>
-            Say goodbye to estimation errors. Our smart metering solutions
-            ensure transparent , compliant, and error-free billing — at scale.
+            Transparent and highly precise digital smart meter readings ensure truly accurate, error-free bills every month.
           </Text>
         </View>
 
         {/* Slide 2 */}
         <View style={styles.slide}>
-          <Text style={styles.title}>Bill Accurately.</Text>
-          <Text style={styles.title}>Operate Confidently.</Text>
+          <Text style={styles.title}>Track Your</Text>
+          <Text style={styles.title}>Energy Smarter</Text>
           <Text style={styles.description}>
-            Say goodbye to estimation errors. Our smart metering solutions
-            ensure transparent , compliant, and error-free billing — at scale.
+            Clear daily and detailed monthly insights helpyou easily control energy usage and consistantly save valuable energy costs.
           </Text>
         </View>
 
         {/* Slide 3 */}
         <View style={styles.slide}>
-          <Text style={styles.title}>Bill Accurately.</Text>
-          <Text style={styles.title}>Operate Confidently.</Text>
+          <Text style={styles.title}>Your Power.</Text>
+          <Text style={styles.title}>Your Control.</Text>
           <Text style={styles.description}>
-            Say goodbye to estimation errors. Our smart metering solutions
-            ensure transparent , compliant, and error-free billing — at scale.
+            Recharge instantly, securely check payments, and easily manage your account anytime, anywhere with ease.
           </Text>
         </View>
       </ScrollView>

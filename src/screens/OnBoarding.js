@@ -7,8 +7,9 @@ import {
   Pressable,
   Platform,
   ScrollView,
+  Image,
+  Dimensions,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import Arrow from "react-native-vector-icons/FontAwesome6";
 import BiLogo from "../../assets/icons/LogoWhite.svg";
@@ -16,6 +17,8 @@ import { COLORS } from "../constants/colors";
 import OnBoardingSlides from "../components/OnBoardingSlides";
 import RippleEffect from "../components/RippleEffect";
 import Button from "../components/global/Button";
+
+const { width, height } = Dimensions.get("window");
 
 const OnBoarding = ({ navigation }) => {
   const moveAnim = useRef(new Animated.Value(20)).current;
@@ -46,12 +49,16 @@ const OnBoarding = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <LinearGradient
-        colors={["#163b7c", "#1f3d6d", "#2a6f65", "#55b56c"]}
-        start={{ x: 0, y: 0.6}}
-        end={{ x: 0.5, y: 0.9 }}
-        style={StyleSheet.absoluteFill}
+      
+      {/* Background Image */}
+      <Image 
+        source={require("../../assets/images/Backgroundimage.png")} 
+        style={styles.backgroundImage}
+        resizeMode="cover"
       />
+      
+      {/* Overlay for better content visibility */}
+      <View style={styles.overlay} />
 
       <RippleEffect />
       <OnBoardingSlides />
@@ -66,6 +73,7 @@ const OnBoarding = ({ navigation }) => {
         </Animated.View>
       </View>
     
+
       <View style={styles.loginContainer}>
         <View style={styles.loginContent}>
           <Text style={styles.donthavetext}>
@@ -85,12 +93,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#1f255e",
   },
+  backgroundImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: width,
+    height: height,
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.2)", // Semi-transparent overlay for better content visibility
+  },
   /////// button \\\\\\
   ButtonBox: {
     width: "100%",
     height: 43,
     alignItems: "center",
     marginTop: 40,
+    zIndex: 1, // Ensure button is above background
   },
   buttonContainer: {
     width: "80%",
@@ -111,6 +135,7 @@ const styles = StyleSheet.create({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 1, // Ensure arrow is above background
   },
   ////// login container \\\\\\\
   loginContainer: {
@@ -119,6 +144,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     display: "flex",
     alignItems: "center",
+    zIndex: 1, // Ensure login container is above background
   },
   loginContent: {
     backgroundColor: "rgba(0, 0, 0, 0.1)",

@@ -12,6 +12,7 @@ import Input from "../components/global/Input";
 import { useState, useEffect } from "react";
 import Icon from 'react-native-vector-icons/AntDesign';
 import { z } from 'zod';
+import User from '../../assets/icons/user.svg';
 
 // Zod schema for login validation
 const loginSchema = z.object({
@@ -147,7 +148,7 @@ const LoginForm = ({
     <View style={styles.Container}>
       <View style={styles.inputBoxes}>
         <Input
-          placeholder="Enter your UID"
+          placeholder="Email / Phone Number"
           value={email}
           onChangeText={(value) => handleInputChange('uid', value)}
           onBlur={() => handleBlur('uid')}
@@ -157,10 +158,11 @@ const LoginForm = ({
           size="medium"
           style={styles.inputContainer}
           error={touched.uid ? errors.uid : null}
-          leftIcon={
-            <Tick 
-              size={16} 
-              fill={errors.uid ? COLORS.color_danger : COLORS.color_positive} 
+          rightIcon={
+            <User 
+              width={20} 
+              height={20} 
+              fill={COLORS.color_text_secondary} 
             />
           }
           disabled={isLoading}
@@ -176,12 +178,6 @@ const LoginForm = ({
           size="medium"
           style={styles.inputContainer}
           error={touched.password ? errors.password : null}
-          leftIcon={
-            <Tick 
-              size={16} 
-              fill={errors.password ? COLORS.color_danger : COLORS.color_positive} 
-            />
-          }
           rightIcon={
             <Pressable onPress={togglePasswordVisibility} disabled={isLoading}>
               <View style={styles.eyeIconContainer}>
@@ -263,7 +259,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 10,
     fontFamily: "Manrope-Medium",
   },
   rememberText: {

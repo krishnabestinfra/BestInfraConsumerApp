@@ -18,6 +18,8 @@ import LoginForm from "./LoginForm";
 import { storeUser } from "../utils/storage";
 import Button from "../components/global/Button";
 import Logo from "../components/global/Logo";
+import EmailLogin from "./EmailLogin";
+import MobileLogin from "./MobileLogin";
 
 const screenHeight = Dimensions.get("window").height;
 
@@ -101,10 +103,8 @@ const Login = ({ navigation }) => {
             </View>
             <View style={styles.TextContainer}>
               <Text style={styles.LoginText}>
-                Log in to access project dashboards. billing insights, and
-                real-time infrastructure updates
+              Access your smart meter data, monitor energy usage, and manage everything seamlessly — all within one secure platform.
               </Text>
-              <Text style={styles.allText}>--all in one place</Text>
             </View>
             <LoginForm
               email={email}
@@ -117,12 +117,28 @@ const Login = ({ navigation }) => {
               navigation={navigation}
               isLoading={isLoading}
             />
-            <View style={{ backgroundColor: "#fff" }}>
-              <View style={styles.straightLine}></View>
-              <View style={styles.orContainer}>
-                <Text style={styles.orText}>OR</Text>
-              </View>
-            </View>
+            {/* <EmailLogin
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              checked={checked}
+              setChecked={setChecked}
+              handleLogin={handleLogin}
+              navigation={navigation}
+              isLoading={isLoading}
+            /> */}
+            {/* <MobileLogin
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              checked={checked}
+              setChecked={setChecked}
+              handleLogin={handleLogin}
+              navigation={navigation}
+              isLoading={isLoading}
+            /> */}
 
         </ScrollView>
       </KeyboardAvoidingView>

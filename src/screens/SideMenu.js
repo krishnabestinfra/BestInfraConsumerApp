@@ -63,9 +63,7 @@ const SideMenu = ({ navigation }) => {
           <Notification width={18} height={18} fill="#000" />
         </Pressable>
       </View>
-      <View style={{display:"flex",justifyContent:"center",alignItems:"center"}}>
-        <Text style={{fontSize: 18,color: COLORS.secondaryFontColor,fontFamily: "Manrope-Medium"}}>Menu</Text>
-      </View>
+
       <View style={styles.MenuContainer}>
         <View style={styles.menubar}>
           <SideMenuNavigation navigation={navigation} activeItem={activeItem} handleMenuPress={handleMenuPress}/>
