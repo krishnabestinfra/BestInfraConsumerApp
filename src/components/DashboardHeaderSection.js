@@ -148,7 +148,7 @@ const DashboardHeaderSection = ({ navigation }) => {
         <View style={{ marginTop: 20 }}>
           <View style={styles.amountContainer}>
             <Text style={styles.dueText}>Due Amount: ₹3,180</Text>
-            <Text style={styles.dateText}>10/05/2025</Text>
+            <Text style={styles.dateText}>This Month</Text>
           </View>
           <View style={styles.greenBox}>
             <View
