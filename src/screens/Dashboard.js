@@ -12,8 +12,9 @@ import Arrow from "../../assets/icons/arrow.svg";
 import GroupedBarChart from "../components/GroupedBarChart";
 import DashboardHeaderSection from "../components/DashboardHeaderSection";
 import MeterStatus from "../components/MeterStatus";
+import Input from "../components/global/Input";
 
-const Dashboard = ({ navigation,route }) => {
+const Dashboard = ({ navigation, route }) => {
   const [selectedView, setSelectedView] = useState("daily");
   // const { userName } = route?.params || {};
   //  const { isGuest } = route.params || {};
@@ -25,7 +26,20 @@ const Dashboard = ({ navigation,route }) => {
     >
       <View style={styles.Container}>
         <StatusBar style="dark" />
-        <DashboardHeaderSection navigation={navigation}/>
+        <DashboardHeaderSection navigation={navigation} />
+
+        <View>
+          <View>
+            <Text>GMR AERO TOWER 2 INCOMER</Text>
+            <Text>18132429</Text>
+            <Text>UID: BI25GMRA014</Text>
+          </View>
+          <View>
+            <Text>Last Communication</Text>
+            <Text>07/09/2025 6:35 PM</Text>
+            </View>
+        </View>
+
         <View style={styles.whiteContainer}>
           <View
             style={{
@@ -59,8 +73,28 @@ const Dashboard = ({ navigation,route }) => {
                   Monthly
                 </Text>
               </TouchableOpacity>
+              <Text> / </Text>
+              <TouchableOpacity onPress={() => setSelectedView("monthly")}>
+                <Text
+                  style={
+                    selectedView === "monthly"
+                      ? styles.monthlyText
+                      : styles.dailyText
+                  }
+                >
+                  Pick Date
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
+
+          <View>
+            <Input
+              placeholder="07/09/2025" />
+            <Input
+              placeholder="15/09/2025" />
+          </View>
+
           <View style={styles.graphsContainer}>
             {selectedView === "daily" ? (
               <>
