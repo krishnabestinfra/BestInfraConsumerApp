@@ -1,0 +1,47 @@
+// src/constants/colors.js
+export const colors = {
+  "color_border": "rgba(233, 239, 255, 1)",
+  "color_dark_border": "rgba(9, 27, 59, 1)",
+  "color_background_secondary": "rgba(245, 248, 252, 1)",
+  "color_brand_blue": "rgba(22, 59, 124, 1)",
+  "color_grey": "rgba(126, 126, 126, 1)",
+  "color_accent": "rgba(71, 97, 137, 1)",
+  "color_text_primary": "rgba(38, 38, 38, 1)",
+  "color_text_secondary": "rgba(126, 126, 126, 1)",
+  "color_text_tertiary": "rgba(71, 97, 137, 1)",
+  "color_text_quaternary": "rgba(9, 27, 59, 1)",
+  "color_primary": "rgba(22, 59, 124, 1)",
+  "color_primary_dark": "rgba(4, 19, 40, 1)",
+  "color_primary_light": "rgba(0, 92, 142, 1)",
+  "color_primary_bg": "rgba(239, 239, 239, 1)",
+  "color_primary_deep": "rgba(32, 45, 89, 1)",
+  "color_primary_deep_light": "rgba(32, 45, 89, 0.05)",
+  "color_primary_bg_light": "rgba(220, 231, 236, 1)",
+  "color_primary_lightest": "rgba(245, 248, 252, 1)",
+  "color_primary_dark_light": "rgba(6, 21, 45, 1)",
+  "color_secondary": "rgba(85, 181, 108, 1)",
+  "color_secondary_light": "rgba(187, 225, 196, 1)",
+  "color_positive": "rgba(2, 148, 71, 1)",
+  "color_warning": "rgba(237, 140, 34, 1)",
+  "color_warning_alt": "rgba(255, 209, 8, 1)",
+  "color_danger": "rgba(220, 39, 44, 1)",
+  "color_danger_alt": "rgba(255, 124, 92, 1)",
+  "color_danger_light": "rgba(255, 124, 92, 0.05)",
+  "color_accent_light": "rgba(0, 209, 178, 0.05)",
+  "color_neutral": "rgba(126, 126, 126, 1)",
+  "color_neutral_dark": "rgba(60, 60, 60, 1)",
+  "color_neutral_darker": "rgba(38, 38, 38, 1)",
+  "color_neutral_light": "rgba(174, 189, 209, 1)",
+  "color_surface": "rgba(255, 255, 255, 1)",
+  "color_subinfo": "rgba(71, 97, 137, 1)",
+  "color_primary_border": "rgb(233, 239, 255)"
+};
+
+// Legacy COLORS object for backward compatibility
+export const COLORS = {
+  primaryDarkColor: colors.color_primary_deep,
+  primaryColor: colors.color_primary,
+  secondaryColor: colors.color_secondary,
+  primaryFontColor: colors.color_text_primary,
+  secondaryFontColor: colors.color_surface,
+};
