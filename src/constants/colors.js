@@ -34,7 +34,8 @@ export const colors = {
   "color_neutral_light": "rgba(174, 189, 209, 1)",
   "color_surface": "rgba(255, 255, 255, 1)",
   "color_subinfo": "rgba(71, 97, 137, 1)",
-  "color_primary_border": "rgb(233, 239, 255)"
+  "color_primary_border": "rgb(233, 239, 255)",
+  "color_secondary_light": '#eef8f0',
 };
 
 // Legacy COLORS object for backward compatibility
@@ -44,4 +45,5 @@ export const COLORS = {
   secondaryColor: colors.color_secondary,
   primaryFontColor: colors.color_text_primary,
   secondaryFontColor: colors.color_surface,
+  secondaryLightColor: colors.color_secondary_light,
 };

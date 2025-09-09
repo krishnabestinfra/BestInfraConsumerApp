@@ -14,7 +14,7 @@ import { Easing } from "react-native-reanimated";
 
 const { width, height } = Dimensions.get("window");
 
-const RING_COUNT = 100; 
+const RING_COUNT = 20; 
 const RING_DELAY = 800; 
 const ANIMATION_DURATION = 5000; 
 
