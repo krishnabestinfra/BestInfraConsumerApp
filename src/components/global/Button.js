@@ -136,9 +136,11 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: 'Manrope-Medium',
     textAlign: 'center',
+
   },
   smallText: {
     fontSize: 12,
+    fontFamily: 'Manrope-Regular',
   },
   mediumText: {
     fontSize: 14,

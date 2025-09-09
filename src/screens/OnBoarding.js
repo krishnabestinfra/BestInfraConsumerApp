@@ -1,18 +1,14 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Animated,
-  Pressable,
-  Platform,
-  ScrollView,
   Image,
   Dimensions,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import Arrow from "react-native-vector-icons/FontAwesome6";
-import BiLogo from "../../assets/icons/LogoWhite.svg";
 import { COLORS } from "../constants/colors";
 import OnBoardingSlides from "../components/OnBoardingSlides";
 import RippleEffect from "../components/RippleEffect";
@@ -40,11 +36,6 @@ const OnBoarding = ({ navigation }) => {
     ).start();
   }, [moveAnim]);
 
-  const handleScroll = (event) => {
-    const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.floor(contentOffsetX / width);
-    setActiveIndex(index); // Update active index based on scroll position
-  };
 
   return (
     <View style={styles.container}>
@@ -122,12 +113,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 4,
   },
-  getStartText: {
-    color: COLORS.secondaryFontColor,
-    textAlign: "center",
-    fontSize: 14,
-    fontFamily: "Manrope-Medium",
-  },
 
   /////Arrow \\\\\\
   arrowContainer: {
@@ -162,11 +147,5 @@ const styles = StyleSheet.create({
     padding: 10,
     width: "80%",
     borderRadius: 4,
-  },
-  loginText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 14,
-    textAlign: "center",
-    fontFamily: "Manrope-Medium",
   },
 });

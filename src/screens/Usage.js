@@ -34,7 +34,6 @@ const Usage = ({ navigation }) => {
       <View style={styles.textContainer}>
         <Text style={styles.usageText}> Welcome to Usage page</Text>
       </View>
-
     </ScrollView>
   );
 };
