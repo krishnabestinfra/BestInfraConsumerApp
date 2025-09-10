@@ -1,15 +1,3 @@
-// import React from 'react'
-// import { View, Text } from 'react-native'
-// const TicketDetails = () => {
-//   return (
-//     <View>
-//       <Text>TicketDetails</Text>
-//     </View>
-//   )
-// }
-
-// export default TicketDetails
-
 import { StyleSheet, Text, View, Pressable, ScrollView, Dimensions, StatusBar } from "react-native";
 import { COLORS } from "../constants/colors";
 import React, { useEffect, useRef, useState } from "react";
