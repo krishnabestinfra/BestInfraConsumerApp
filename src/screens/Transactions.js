@@ -1,12 +1,37 @@
-import { StyleSheet, Text, View, Pressable, ScrollView } from "react-native";
-import React from "react";
+import { StyleSheet, Text, View, Pressable, ScrollView, TouchableOpacity } from "react-native";
+import React, { useState } from "react";
 import { COLORS } from "../constants/colors";
 import Menu from "../../assets/icons/bars.svg";
 import Notification from "../../assets/icons/notification.svg";
 import BiLogo from "../../assets/icons/Logo.svg";
-
+import DatePicker from "../components/global/DatePicker";
+import Table from "../components/global/Table";
+import Button from "../components/global/Button";
 const Transactions = ({ navigation }) => {
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const tableData = [
+    {
+      id: 1,
+      transactionId: 298,
+      date: "07/09/2025",
+      status: "Done",
+    },
+    {
+      id: 2,
+      transactionId: 286,
+      date: "07/09/2025",
+      status: "Failed",
+    },
+    {
+      id: 3,
+      transactionId: 278,
+      date: "07/09/2025",
+      status: "Done",
+    },
+  ];
   return (
+    <>
     <ScrollView
       style={styles.Container}
       contentContainerStyle={{ paddingBottom: 30 }}
@@ -31,10 +56,59 @@ const Transactions = ({ navigation }) => {
           </Pressable>
         </View>
       </View>
-      <View style={styles.textContainer}>
-        <Text style={styles.usageText}> Welcome to Transactions page</Text>
+
+      <View style={styles.TransactionsContainer}>
+        <Text style={styles.ViewText}>View Transactions</Text>
+        <TouchableOpacity>
+          <Text style={styles.CreateText}>Pick Date</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.datePickerSection}>
+        <DatePicker
+          placeholder="Start Date"
+          value={startDate}
+          onChange={setStartDate}
+        />
+        <DatePicker
+          placeholder="End Date"
+          value={endDate}
+          onChange={setEndDate}
+        />
+      </View>
+
+      <View>
+        <Table
+          data={tableData}
+          loading={false}
+          emptyMessage="No transaction data available"
+          showSerial={true}
+          showPriority={false}
+          columns={[
+            { key: 'transactionId', title: 'Transaction ID', flex: 1.5 },
+            { key: 'date', title: 'Date', flex: 1 },
+            { key: 'status', title: 'Status', flex: 1 }
+          ]}
+        />
       </View>
     </ScrollView>
+     <View style={styles.buttonContainer}>
+     <View style={styles.buttonContainerInner}>
+       <Button title="View"
+         variant="outline"
+         size="medium"
+         style={styles.button}
+         textStyle={styles.forgotText}
+       />
+       <Button title="Download"
+         variant="primary"
+         size="medium"
+         style={styles.button}
+         textStyle={styles.forgotText}
+       />
+     </View>
+   </View>
+    </>
   );
 };
 
@@ -43,8 +117,6 @@ export default Transactions;
 const styles = StyleSheet.create({
   Container: {
     backgroundColor: COLORS.secondaryFontColor,
-    borderTopLeftRadius: 30,
-    borderBottomRightRadius: 30,
   },
   bluecontainer: {
     backgroundColor: "#eef8f0",
@@ -97,7 +169,60 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
     fontFamily: "Manrope-Medium",
     fontSize: 16,
-    textAlign: "center",
-    marginTop:30,
+    // textAlign: "center",
+    // marginTop:30,
   },
+  TransactionsContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    backgroundColor: COLORS.secondaryFontColor,
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderRadius: 8,
+    // iOS shadow
+    shadowColor: "rgba(0, 0, 0, 0.02)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    // Android shadow
+    elevation: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(186, 190, 204, 0.4)',
+  },
+  ViewText: {
+    color: COLORS.primaryFontColor,
+    fontFamily: "Manrope-Bold",
+    fontSize: 14,
+  },
+  CreateText: {
+    color: COLORS.secondaryColor,
+    fontFamily: "Manrope-Bold",
+    fontSize: 12,
+  },
+  datePickerSection: {
+    gap: 10,
+    padding: 20,
+  },
+  buttonContainer:{
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 20,
+    backgroundColor: COLORS.secondaryFontColor
+  },
+  buttonContainerInner:{
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  button:{
+    width: '48%',
+  }
 });

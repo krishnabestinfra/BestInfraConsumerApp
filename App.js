@@ -19,6 +19,10 @@ import { TabProvider } from "./src/context/TabContext";
 import ForgotPassword from "./src/auth/ForgotPassword";
 import ResetPassword from "./src/auth/ResetPassword";
 import GuestLogin from "./src/auth/GuestLogin";
+import TicketDetails from "./src/screens/TicketDetails";
+import PostPaidDashboard from "./src/screens/PostPaidDashboard";
+import PostPaidRechargePayments from "./src/screens/PostPaidRechargePayments";
+import PaymentStatus from "./src/screens/PaymentStatus";
 
 const Stack = createNativeStackNavigator();
 
@@ -134,6 +138,26 @@ export default function App() {
           <Stack.Screen
             name="GuestLogin"
             component={GuestLogin}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="TicketDetails"
+            component={TicketDetails}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PostPaidDashboard"
+            component={PostPaidDashboard}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PostPaidRechargePayments"
+            component={PostPaidRechargePayments}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PaymentStatus"
+            component={PaymentStatus}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>

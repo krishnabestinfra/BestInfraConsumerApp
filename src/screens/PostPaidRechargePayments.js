@@ -3,40 +3,18 @@ import { COLORS } from "../constants/colors";
 import React, { useState } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
-import RechargeRadioButton from "../components/global/RechargeRadioButton";
 import DashboardHeader from "../components/global/DashboardHeader";
 
 
-const Payments = ({ navigation }) => {
-  const [selectedOption, setSelectedOption] = useState("option3");
+const PostPaidRechargePayments = ({ navigation }) => {
+
+  const [selectedOption, setSelectedOption] = useState("option1");
   const [customAmount, setCustomAmount] = useState("");
-
-  const rechargeOptions = [
-    {
-      value: "option1",
-      label: "Option 1",
-      amount: "₹1,245"
-    },
-    {
-      value: "option2", 
-      label: "Option 2",
-      amount: "₹1,245"
-    },
-    {
-      value: "option3",
-      label: "Option 3", 
-      amount: "₹1,245"
-    }
-  ];
-
-  const handleOptionSelect = (value) => {
-    setSelectedOption(value);
-  };
 
   const handleCustomAmountChange = (text) => {
     setCustomAmount(text);
     if (text && text.length > 0) {
-      setSelectedOption("");
+      setSelectedOption("option2");
     }
   };
 
@@ -52,44 +30,63 @@ const Payments = ({ navigation }) => {
         <DashboardHeader navigation={navigation} variant="payments" />
 
         <View style={styles.contentSection}>
-          <View style={styles.inputContainer}>
-            <Input 
-              placeholder="Enter Custom Amount" 
-              value={customAmount}
-              onChangeText={handleCustomAmountChange}
-              keyboardType="numeric"
-            />
-          </View>
-          
-          <View style={styles.rechargeOptionsContainer}>
-            <View style={styles.rechargeHeader}>
-              <Text style={styles.rechargeHeading}>Recommended Options</Text>
-              <Text style={styles.rechargesubheading}>Optional</Text>
-            </View>
-            <View style={styles.radioGroup}>
-              {rechargeOptions.map((option) => (
-                <RechargeRadioButton
-                  key={option.value}
-                  label={option.label}
-                  amount={option.amount}
-                  value={option.value}
-                  selectedValue={selectedOption}
-                  onSelect={handleOptionSelect}
+          {/* Input Boxes Section */}
+          <View style={styles.inputSection}>
+            {/* Outstanding Amount */}
+            <View style={[
+              styles.amountCard1,
+              selectedOption === "option1" && styles.amountCardSelected1
+            ]}>
+              <View style={styles.amountCardHeader}>
+                <Text style={styles.amountCardTitle}>Outstanding Amount</Text>
+                <View style={[
+                  styles.statusDot,
+                  selectedOption === "option1" && styles.statusDotSelected
+                ]} />
+              </View>
+              <View style={styles.amountInputContainer}>
+                <Input
+                  placeholder="3180"
+                  value={selectedOption === "option1" ? "3180" : ""}
+                  editable={false}
+                  style={styles.amountInput}
                 />
-              ))}
+              </View>
+            </View>
+
+            {/* Overdue Amount */}
+            <View style={[
+              styles.amountCard2,
+              selectedOption === "option2" && styles.amountCardSelected2
+            ]}>
+              <View style={styles.amountCardHeader}>
+                <Text style={styles.amountCardTitle}>Overdue Amount</Text>
+                <View style={[
+                  styles.statusDot,
+                  selectedOption === "option2" && styles.statusDotSelected
+                ]} />
+              </View>
+              <View style={styles.amountInputContainer}>
+                <Input
+                  placeholder="Enter Custom Amount"
+                  value={selectedOption === "option2" ? customAmount : ""}
+                  onChangeText={handleCustomAmountChange}
+                  style={styles.amountInput}
+                />
+              </View>
             </View>
           </View>
         </View>
 
       </ScrollView>
       <View style={styles.buttonContainer}>
-        <Button title="Proceed to Recharge" variant="primary" size="medium" onPress={() => navigation.navigate("PostPaidRechargePayments")} />
+        <Button title="Proceed to Recharge" variant="primary" size="medium" onPress={() => navigation.navigate("PaymentStatus")} />
       </View>
     </>
   );
 };
 
-export default Payments;
+export default PostPaidRechargePayments;
 
 const styles = StyleSheet.create({
   Container: {
@@ -313,7 +310,7 @@ const styles = StyleSheet.create({
   },
   contentSection: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 24,
     paddingBottom: 20,
   },
   inputContainer: {
@@ -345,6 +342,69 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'stretch',
-    gap: 6,
+    gap: 12,
+  },
+  radioGroupContainer: {
+    marginBottom: 24,
+  },
+  inputSection: {
+    gap: 16,
+  },
+  amountCard1: {
+    backgroundColor: COLORS.secondaryFontColor,
+    borderRadius: 5,
+    padding: 16,
+    gap: 10,
+  },
+  amountCard2: {
+    backgroundColor: COLORS.secondaryFontColor,
+    borderRadius: 5,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#CAE8D1',
+    borderStyle: 'dashed',
+    gap: 10,
+  },
+  amountCardSelected1: {
+    borderColor: COLORS.secondaryColor,
+    borderWidth: 1.5,
+    shadowOpacity: 0.1,
+  },
+  amountCardSelected2: {
+    // borderColor: COLORS.secondaryColor,
+    // borderWidth: 3,
+    // borderStyle: 'dashed',
+    // elevation: 2,
+    // shadowOpacity: 0.1,
+  },
+  amountCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  amountCardTitle: {
+    fontSize: 14,
+    fontFamily: 'Manrope-Bold',
+    color: COLORS.primaryFontColor,
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#E5E5E5',
+  },
+  statusDotSelected: {
+    backgroundColor: COLORS.secondaryColor,
+  },
+  amountInputContainer: {
+    height: 50,
+  },
+  amountInput: {
+    backgroundColor: '#F8F8F8',
+    borderRadius: 6,
+    borderWidth: 0,
+    fontSize: 14,
+    fontFamily: 'Manrope-Medium',
+    color: COLORS.primaryFontColor,
   },
 });

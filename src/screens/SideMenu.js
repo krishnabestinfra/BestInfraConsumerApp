@@ -1,7 +1,6 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import React, { useState, useCallback } from "react";
 import { COLORS } from "../constants/colors";
-import { StatusBar } from "expo-status-bar";
 import Menu from "../../assets/icons/barsWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
 import BiLogo from "../../assets/icons/LogoWhite.svg";

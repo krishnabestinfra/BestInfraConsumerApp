@@ -7,17 +7,15 @@ const GroupedBarChart = () => {
   const { width } = Dimensions.get("window");
 
   const [chartData, setChartData] = useState({
-    green: [8, 7.5, 8, 5, 7.5, 7],
-    blue: [7, 7, 7, 9, 7.5, 8.5],
-    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
+    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun","July", "Aug","Sept","Oct"],
   });
 
   useEffect(() => {
     setTimeout(() => {
       setChartData({
-        green: [8, 7.5, 8, 5, 7.5, 7],
-        blue: [7, 7, 7, 9, 7.5, 8.5],
-        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+        blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
+        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun","July", "Aug","Sept","Oct"],
       });
     }, 3000);
   }, []);
@@ -29,7 +27,6 @@ const GroupedBarChart = () => {
           chart.setOption({
             xAxis: { data: ${JSON.stringify(chartData.labels)} },
             series: [
-              { data: ${JSON.stringify(chartData.green)} },
               { data: ${JSON.stringify(chartData.blue)} }
             ]
           });
@@ -59,7 +56,7 @@ const GroupedBarChart = () => {
       <script>
         window.chart = echarts.init(document.getElementById('main'));
         var option = {
-          grid: { left: 30, right: 20, bottom: 40, top: 20 },
+          grid: { left:30, right: 20, bottom: 50, top: 60 },
           tooltip: {},
           legend: { show: false },
           xAxis: {
@@ -69,7 +66,7 @@ const GroupedBarChart = () => {
             axisTick: { show: false },
             axisLabel: {
               color: '#333',
-              fontSize: 24
+              fontSize: 30
             }
           },
           yAxis: {
@@ -80,33 +77,12 @@ const GroupedBarChart = () => {
             axisLabel: { show: false }
           },
           series: [
-            {
-              name: 'Green',
-              type: 'bar',
-              data: ${JSON.stringify(chartData.green)},
-              barWidth: 40,
-              barGap: '40%',
-              itemStyle: {
-                color: '#55b56c',
-
-                // color: '#a0c4ff',
-                // color: '#cdb4db',
-                // color: '#d0f4de',
-                // color: '#ffc9de',
-                // color: '#bae6fd',
-                // color: '#ffdab9',
-                // color: '#e6f4d0',
-                // color: '#f9c6c9',
-                // color: '#40acff',
-
-                borderRadius: [4, 4, 0, 0]
-              }
-            },
+           
             {
               name: 'Blue',
               type: 'bar',
               data: ${JSON.stringify(chartData.blue)},
-              barWidth: 40,
+              barWidth: 55,
               barGap: '10%',
               itemStyle: {
                 color: '#163b7c',
@@ -134,7 +110,7 @@ const GroupedBarChart = () => {
   `;
 
   return (
-    <View style={{ height: 210, width: width - 40, marginHorizontal: 20 ,borderRadius:5}}>
+    <View style={{ height: 210, width: width - 40, marginHorizontal: 20 ,borderRadius:5, marginTop: 25}}>
       <WebView
         ref={webRef}
         originWhitelist={["*"]}
