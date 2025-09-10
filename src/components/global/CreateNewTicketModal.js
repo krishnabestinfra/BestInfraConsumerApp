@@ -30,7 +30,7 @@ const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
     'General Inquiry'
   ];
 
-  const handleSubmit = () => {
+  const handleSubmit = ( navigation ) => {
     const ticketData = {
       category: selectedCategory,
       description: description,
