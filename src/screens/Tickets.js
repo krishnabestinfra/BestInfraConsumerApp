@@ -9,6 +9,7 @@ import ProgressIcon from "../../assets/icons/progress.svg";
 import ResolvedIcon from "../../assets/icons/resolved.svg";
 import ClosedIcon from "../../assets/icons/closed.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
+import { LinearGradient } from "expo-linear-gradient";
 
 
 const Tickets = ({ navigation }) => {
@@ -71,36 +72,56 @@ const Tickets = ({ navigation }) => {
               <Text style={styles.TicketBoxtext}>Open Tickets</Text>
               <Text style={styles.TicketBoxNumber}>4</Text>
             </View>
-            <View style={styles.TicketBoxIcon}>
-              <OpenIcon width={16} height={16} fill="#55B56C" />
-            </View>
+                <LinearGradient
+                  colors={["#E6F6ED", "#C2EAD2"]}
+                  start={{  x: 0.5, y: 0.5  }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.TicketBoxIcon}
+                >
+                  <OpenIcon width={16} height={16} />
+              </LinearGradient>
           </View>
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>In Progress</Text>
               <Text style={styles.TicketBoxNumber}>4</Text>
             </View>
-            <View style={styles.TicketBoxIcon}>
-              <ProgressIcon width={16} height={16} fill="#55B56C" />
-            </View>
+              <LinearGradient
+                colors={["#E6F6ED", "#C2EAD2"]}
+                start={{  x: 0.5, y: 0.5  }}
+                end={{ x: 1, y: 1 }}
+                style={styles.TicketBoxIcon}
+              >
+                <ProgressIcon width={16} height={16} />
+              </LinearGradient>
           </View>
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>Resloved</Text>
               <Text style={styles.TicketBoxNumber}>3</Text>
             </View>
-            <View style={styles.TicketBoxIcon}>
-              <ResolvedIcon width={16} height={16} fill="#55B56C" />
-            </View>
+              <LinearGradient
+                colors={["#E6F6ED", "#C2EAD2"]}
+                start={{  x: 0.5, y: 0.5  }}
+                end={{ x: 1, y: 1 }}
+                style={styles.TicketBoxIcon}
+              >
+                <ResolvedIcon width={16} height={16} />
+              </LinearGradient>
           </View>
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>Closed</Text>
               <Text style={styles.TicketBoxNumber}>1</Text>
             </View>
-            <View style={styles.TicketBoxIcon}>
-              <ClosedIcon width={16} height={16} fill="#55B56C" />
-            </View>
+            <LinearGradient
+              colors={["#E6F6ED", "#C2EAD2"]}
+              start={{  x: 0.5, y: 0.5  }}
+              end={{ x: 1, y: 1 }}
+              style={styles.TicketBoxIcon}
+            >
+              <ClosedIcon width={16} height={16} />
+            </LinearGradient>
           </View>
         </View>
         <View style={styles.TicketContainerThree}>
@@ -110,16 +131,17 @@ const Tickets = ({ navigation }) => {
             emptyMessage="No ticket data available"
             showSerial={true}
             showPriority={true}
+            inlinePriority
             priorityField="issueType"
             priorityMapping={{
-              "Connection Issue": "high",
-              "Meter Issue": "medium",
-              "Billing Issue": "low",
-              "Technical Issue": "high"
+              "Connection Issue": "High",
+              // "Meter Issue": "medium",
+              // "Billing Issue": "low",
+              // "Technical Issue": "high"
             }}
             columns={[
               { key: 'ticketId', title: 'Ticket ID', flex: 1 },
-              { key: 'issueType', title: 'Issue Type', flex: 2 },
+              { key: 'issueType', title: 'Category', flex: 2 },
               { key: 'status', title: 'Status', flex: 1 }
             ]}
           />
@@ -388,13 +410,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   TicketBoxIcon: {
-    backgroundColor: '#BBE1C4',
+    // backgroundColor: '#BBE1C4',
     borderRadius: 50,
     // padding: 10,
     width: 34,
     height: 34,
     alignItems: "center",
     justifyContent: "center",
+    overflow: 'hidden',
+
+
   },
   TicketBoxTextContainer: {
     height: "100%",

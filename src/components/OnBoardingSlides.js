@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  Animated,
   Platform,
 } from "react-native";
 import { COLORS } from "../constants/colors";
@@ -18,18 +19,42 @@ const OnBoardingSlides = () => {
   const currentIndex = useRef(0);
   const slides = [0, 1, 2]; // Just placeholders for the static views
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      currentIndex.current = (currentIndex.current + 1) % slides.length;
-      setActiveIndex(currentIndex.current); // Update active index
-      scrollRef.current.scrollTo({
-        x: currentIndex.current * width,
-        animated: true,
-      });
-    }, 3000);
+  const animatedValues = useRef(slides.map(() => new Animated.Value(10))).current;
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     currentIndex.current = (currentIndex.current + 1) % slides.length;
+  //     setActiveIndex(currentIndex.current); // Update active index
+  //     scrollRef.current.scrollTo({
+  //       x: currentIndex.current * width,
+  //       animated: true,
+  //     });
+  //   }, 3000);
 
-    return () => clearInterval(interval);
-  }, []);
+  //   return () => clearInterval(interval);
+  // }, []);
+  useEffect(() => {
+  const interval = setInterval(() => {
+    currentIndex.current = (currentIndex.current + 1) % slides.length;
+    setActiveIndex(currentIndex.current);
+    scrollRef.current.scrollTo({
+      x: currentIndex.current * width,
+      animated: true,
+    });
+  }, 3000);
+
+  return () => clearInterval(interval);
+}, []);
+
+useEffect(() => {
+  animatedValues.forEach((anim, index) => {
+    Animated.timing(anim, {
+      toValue: index === activeIndex ? 25 : 10,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  });
+}, [activeIndex]);
+
 
   return (
     <View
@@ -81,11 +106,15 @@ const OnBoardingSlides = () => {
       {/* Active Dots */}
       <View style={styles.dotsContainer}>
         {slides.map((_, index) => (
-          <View
+          <Animated.View
             key={index}
             style={[
               styles.dot,
-              index === activeIndex ? styles.activeDot : null, // Style active dot
+              {
+                width: animatedValues[index],
+                backgroundColor: index === activeIndex ? "#fff" : "grey",
+              }
+              // index === activeIndex ? styles.activeDot : null, // Style active dot
             ]}
           />
         ))}
@@ -147,12 +176,11 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: "white",
     margin: 5,
   },
-  activeDot: {
-    backgroundColor: "#00e09f", // Active dot color
-  },
+  // activeDot: {
+  //   backgroundColor: "#00e09f", // Active dot color
+  // },
 });
 
 export default OnBoardingSlides;
