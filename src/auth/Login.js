@@ -43,7 +43,8 @@ const Login = ({ navigation }) => {
         };
         
         await storeUser(userData);
-        navigation.navigate("Dashboard");
+        navigation.navigate("PostPaidDashboard");
+        // navigation.navigate("Dashboard");
       } else {
         Alert.alert(
           "Login Failed",

@@ -4,6 +4,7 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    ActivityIndicator
   } from "react-native";
   import React, { useEffect, useRef, useState } from "react";
   import { StatusBar } from "expo-status-bar";
@@ -15,8 +16,11 @@ import {
   import DatePicker from "../components/global/DatePicker";
   import Meter from "../../assets/icons/meterWhite.svg";
   import DashboardHeader from "../components/global/DashboardHeader";
+  import { GLOBAL_API_URL } from "../constants/constants";
   
-  
+  // const API_URL = "https://api.bestinfra.app/v2gmr/api/consumers/BI25GMRA011";
+  const API_URL = `http://${GLOBAL_API_URL}:4256/api/consumers/BI25GMRA011`;
+
   const PostPaidDashboard = ({ navigation, route }) => {
     const [selectedView, setSelectedView] = useState("daily");
     const [startDate, setStartDate] = useState(new Date());
@@ -25,7 +29,9 @@ import {
     const [isTableLoading, setIsTableLoading] = useState(true);
     // const { userName } = route?.params || {};
     //  const { isGuest } = route.params || {};
-  
+  const [consumerData, setConsumerData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
     // Table data for meter status
     const meterStatusData = [
       {
@@ -51,24 +57,141 @@ import {
       }
     ];
   
-    // Load table data
-    useEffect(() => {
-      const loadTableData = async () => {
-        setIsTableLoading(true);
-        try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          setTableData(meterStatusData);
-        } catch (error) {
-          console.error('Error loading table data:', error);
-          setTableData([]);
-        } finally {
-          setIsTableLoading(false);
+
+    // Fetch API data
+  useEffect(() => {
+    const fetchConsumerData = async () => {
+      try {
+        setLoading(true);
+        console.log("🔄 Fetching consumer data from:", API_URL);
+        
+        const response = await fetch(API_URL, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      };
-  
+
+        const result = await response.json();
+        console.log("✅ API Response:", result);
+
+        // Handle nested data structure
+        const data = result.data || result;
+        setConsumerData(data);
+        
+        console.log("📊 Consumer Data Set:", data);
+      } catch (error) {
+        console.error("❌ API error:", error);
+        // Set fallback data
+        setConsumerData({
+          name: "Technific FMC",
+          meterSerialNumber: "23010587",
+          uniqueIdentificationNo: "BI25GMRA017",
+          readingDate: "9/10/2025, 7:30:02 PM",
+          totalOutstanding: 1658651.36,
+          dailyConsumption: 0,
+          monthlyConsumption: 194800
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConsumerData();
+  }, []);
+
+   // Load table data from API alerts
+   useEffect(() => {
+    const loadTableData = async () => {
+      setIsTableLoading(true);
+      try {
+        if (consumerData && consumerData.alerts && consumerData.alerts.length > 0) {
+          // Process API alerts data
+          const formattedAlerts = consumerData.alerts
+            .sort((a, b) => new Date(b.tamperDatetime) - new Date(a.tamperDatetime)) // Sort by date, latest first
+            .map((alert, index) => ({
+              id: alert.id || index + 1,
+              eventName: getTamperTypeText(alert.tamperType),
+              occurredOn: formatDateTime(alert.tamperDatetime),
+              status: alert.tamperStatus === 1 ? "Start" : "End",
+              isActive: alert.tamperStatus === 1,
+            }));
+          setTableData(formattedAlerts);
+        } else {
+          // Fallback to static data if no API alerts
+          setTableData(meterStatusData);
+        }
+      } catch (error) {
+        console.error('Error loading table data:', error);
+        setTableData(meterStatusData); // Fallback to static data
+      } finally {
+        setIsTableLoading(false);
+      }
+    };
+
+    if (consumerData) {
       loadTableData();
-    }, []);
+    }
+  }, [consumerData]);
+
+  // Helper function to map tamper type codes to readable text
+  const getTamperTypeText = (tamperType) => {
+    const tamperTypes = {
+      1: "Cover Tamper",
+      2: "Magnetic Tamper", 
+      3: "Reverse Current",
+      4: "Neutral Disconnect",
+      5: "Phase Disconnect",
+      6: "Neutral Reverse",
+      7: "Phase Reverse",
+      8: "Current Imbalance",
+      9: "Voltage Imbalance",
+      10: "Power Factor",
+      11: "Frequency",
+      12: "CT Bypass",
+      13: "CT Open",
+      14: "PT Bypass",
+      15: "PT Open"
+    };
+    return tamperTypes[tamperType] || `Tamper Type ${tamperType}`;
+  };
+
+  // Helper function to format datetime
+  const formatDateTime = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  // Helper function to get daily usage from chart data
+  const getDailyUsage = () => {
+    if (!consumerData?.chartData?.daily?.seriesData?.[0]?.data) return 0;
+    const dailyData = consumerData.chartData.daily.seriesData[0].data;
+    return dailyData[dailyData.length - 1] || 0; // Get last value
+  };
+
+  // Helper function to get monthly usage from chart data
+  const getMonthlyUsage = () => {
+    if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) return 0;
+    const monthlyData = consumerData.chartData.monthly.seriesData[0].data;
+    return monthlyData[monthlyData.length - 1] || 0; // Get last value
+  };
     return (
       <ScrollView
         style={styles.Container}
@@ -77,24 +200,44 @@ import {
       >
         <View style={styles.Container}>
           <StatusBar style="dark" />
-          <DashboardHeader navigation={navigation} />
+          <DashboardHeader 
+            navigation={navigation} 
+            showBalance={false}
+            consumerData={consumerData}
+            isLoading={loading}
+          />
   
           <View style={styles.meterContainer}>
-            <View style={styles.meterInfoContainer}>
-            <View style={{display: "flex", flexDirection: "row", alignItems: "center", gap: 10, width: "50%"}}>
-              <Meter width={30} height={30} />
-              <Text style={styles.meterConsumerText}>GMR AERO TOWER 2 INCOMER</Text>
-            </View>
-             <View style={{display: "flex", flexDirection: "column", alignItems: "flex-end"}}>
-             <Text style={styles.meterNumberText}>18132429</Text>
-              <Text style={styles.meterUIDText}>UID: BI25GMRA014</Text>
-             </View>
-   
-            </View>
-            <View style={styles.lastCommunicationContainer}>
-              <Text style={styles.lastCommunicationText}>Last Communication</Text>
-              <Text style={styles.lastCommunicationTimeText}>07/09/2025 6:35 PM</Text>
-              </View>
+            {loading ? (
+              <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+            ) : (
+              consumerData && (
+                <>
+                  <View style={styles.meterInfoContainer}>
+                    <View style={{display: "flex", flexDirection: "row", alignItems: "center", gap: 10, width: "50%"}}>
+                      <Meter width={30} height={30} />
+                      <Text style={styles.meterConsumerText}>
+                        {consumerData.name || "Loading..."}
+                      </Text>
+                    </View>
+                    <View style={{display: "flex", flexDirection: "column", alignItems: "flex-end"}}>
+                      <Text style={styles.meterNumberText}>
+                        {consumerData.meterSerialNumber || "Loading..."}
+                      </Text>
+                      <Text style={styles.meterUIDText}>
+                        UID: {consumerData.uniqueIdentificationNo || "Loading..."}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.lastCommunicationContainer}>
+                    <Text style={styles.lastCommunicationText}>Last Communication</Text>
+                    <Text style={styles.lastCommunicationTimeText}>
+                      {consumerData.readingDate || "Loading..."}
+                    </Text>
+                  </View>
+                </>
+              )
+            )}
           </View>
   
           <View style={styles.whiteContainer}>
@@ -162,7 +305,9 @@ import {
               {selectedView === "daily" ? (
                 <>
                   <Text style={styles.thismonthText}>
-                    Today's Usage: <Text style={styles.kwhText}>20kWh</Text>
+                    Today's Usage: <Text style={styles.kwhText}>
+                      {loading ? "Loading..." : getDailyUsage()}kWh
+                    </Text>
                   </Text>
                   <View
                     style={{
@@ -178,13 +323,19 @@ import {
                     <Text style={styles.lastText}>Yesterday.</Text>
                   </View>
                   <View style={{ display: "flex", alignItems: "center" }}>
-                    <GroupedBarChart viewType="daily" />
+                    <GroupedBarChart 
+                      viewType="daily" 
+                      data={consumerData}
+                      loading={loading}
+                    />
                   </View>
                 </>
               ) : (
                 <>
                   <Text style={styles.thismonthText}>
-                    This Month's Usage: <Text style={styles.kwhText}>620kWh</Text>
+                    This Month's Usage: <Text style={styles.kwhText}>
+                      {loading ? "Loading..." : getMonthlyUsage()}kWh
+                    </Text>
                   </Text>
                   <View
                     style={{
@@ -200,7 +351,11 @@ import {
                     <Text style={styles.lastText}>Last Month.</Text>
                   </View>
                   <View style={{ display: "flex", alignItems: "center" }}>
-                    <GroupedBarChart viewType="monthly" />
+                    <GroupedBarChart 
+                      viewType="monthly" 
+                      data={consumerData}
+                      loading={loading}
+                    />
                   </View>
                 </>
               )}
@@ -209,14 +364,15 @@ import {
           <Table 
             data={tableData}
             loading={isTableLoading}
-            emptyMessage="No meter status data available"
+            emptyMessage={consumerData?.alerts?.length === 0 ? "No tamper alerts available" : "No meter status data available"}
             showSerial={false}
             showPriority={false}
             priorityField="occurredOn"
             priorityMapping={{
-              "Connection Issue": "high",
-              "Meter Issue": "medium",
-              "Power Outage": "high"
+              "Cover Tamper": "high",
+              "CT Open": "high",
+              "Magnetic Tamper": "medium",
+              "Reverse Current": "high"
             }}
             columns={[
               { key: 'eventName', title: 'Event Name', flex: 1 },

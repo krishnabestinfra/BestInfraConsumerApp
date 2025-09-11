@@ -43,7 +43,8 @@ const SideMenuNavigation = ({ navigation }) => {
       <View style={styles.Topmenubar}>
         <Pressable
           style={styles.flex}
-          onPress={() => handleMenuPress("Dashboard")}
+          // onPress={() => handleMenuPress("Dashboard")}
+          onPress={() => handleMenuPress("PostPaidDashboard")}
         >
           {activeItem === "Dashboard" ? (
             <>

@@ -23,7 +23,10 @@ import AnimatedRings from './AnimatedRings';
 const DashboardHeader = ({ 
   navigation, 
   showRings = true,
-  variant = 'default' // 'default', 'payments', 'tickets', 'usage', 'invoices'
+  variant = 'default', // 'default', 'payments', 'tickets', 'usage', 'invoices'
+  showBalance = true, // Control balance section visibility
+  consumerData = null, // API consumer data
+  isLoading = false // Loading state
 }) => {
   const [userName, setUserName] = useState('');
 
@@ -135,25 +138,36 @@ const DashboardHeader = ({
       <View style={styles.ProfileBox}>
         <View>
           <View style={styles.greetingContainer}>
-            <Text style={styles.hiText}>Hi, {userName} </Text>
+            <Text style={styles.hiText}>
+              Hi, {isLoading ? "Loading..." : (consumerData?.name || userName)}
+            </Text>
             <Hand width={30} height={30} fill="#55B56C" />
           </View>
           <Text style={styles.stayingText}>Staying efficient today?</Text>
         </View>
-        <View>
-          <Text style={styles.balanceText}>Balance</Text>
-          <View style={styles.balanceContainer}>
-            <Text style={styles.amountText}>₹1,245</Text>
-            <View style={styles.plusBox}>
-              <Plus width={20} height={20} fill="#55B56C" />
+
+        {/* Conditionally render balance section */}
+        {showBalance && (
+          <View>
+            <Text style={styles.balanceText}>Balance</Text>
+            <View style={styles.balanceContainer}>
+              <Text style={styles.amountText}>
+                {isLoading ? "Loading..." : (consumerData?.totalOutstanding ? `₹${consumerData.totalOutstanding.toLocaleString()}` : "₹1,245")}
+              </Text>
+              <View style={styles.plusBox}>
+                <Plus width={20} height={20} fill="#55B56C" />
+              </View>
             </View>
           </View>
-        </View>
+        )}
+
       </View>
       
       <View style={styles.amountSection}>
         <View style={styles.amountContainer}>
-          <Text style={styles.dueText}>Due Amount: ₹3,180</Text>
+          <Text style={styles.dueText}>
+            Due Amount: {isLoading ? "Loading..." : (consumerData?.totalOutstanding ? `₹${consumerData.totalOutstanding.toLocaleString()}` : "₹3,180")}
+          </Text>
           <Text style={styles.dateText}>This Month</Text>
         </View>
         <View style={styles.greenBox}>

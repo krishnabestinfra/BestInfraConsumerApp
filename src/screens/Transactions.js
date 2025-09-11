@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, TouchableOpacity } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { COLORS } from "../constants/colors";
 import Menu from "../../assets/icons/bars.svg";
 import Notification from "../../assets/icons/notification.svg";
@@ -7,29 +7,57 @@ import BiLogo from "../../assets/icons/Logo.svg";
 import DatePicker from "../components/global/DatePicker";
 import Table from "../components/global/Table";
 import Button from "../components/global/Button";
+import { getUser } from "../utils/storage";
+import { GLOBAL_API_URL } from "../constants/constants";
+
 const Transactions = ({ navigation }) => {
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
-  const tableData = [
-    {
-      id: 1,
-      transactionId: 298,
-      date: "07/09/2025",
-      status: "Done",
-    },
-    {
-      id: 2,
-      transactionId: 286,
-      date: "07/09/2025",
-      status: "Failed",
-    },
-    {
-      id: 3,
-      transactionId: 278,
-      date: "07/09/2025",
-      status: "Done",
-    },
-  ];
+  const [tableData, setTableData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch payment history from API
+  useEffect(() => {
+    const fetchPaymentHistory = async () => {
+      try {
+        setIsLoading(true);
+        const user = await getUser();
+        
+        if (user && user.uid) {
+          // Using the UID as the consumer identifier
+          const response = await fetch(`http://${GLOBAL_API_URL}:4256/api/consumers/BI25GMRA013`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data && data.data.paymentHistory) {
+              // Transform payment history data for the table
+              const transformedData = data.data.paymentHistory.map((payment, index) => ({
+                id: index + 1,
+                transactionId: payment.transactionId || 'N/A',
+                date: payment.paymentDate || 'N/A',
+                // amount: payment.creditAmount ? `₹${payment.creditAmount}` : 'N/A',
+                // paymentMode: payment.paymentMode || 'N/A',
+                status: payment.creditAmount > 0 ? 'Success' : 'Failed'
+              }));
+              setTableData(transformedData);
+            } else {
+              setTableData([]);
+            }
+          } else {
+            console.error('Failed to fetch payment history:', response.status);
+            setTableData([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching payment history:', error);
+        setTableData([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPaymentHistory();
+  }, []);
   return (
     <>
     <ScrollView
@@ -80,13 +108,15 @@ const Transactions = ({ navigation }) => {
       <View>
         <Table
           data={tableData}
-          loading={false}
+          loading={isLoading}
           emptyMessage="No transaction data available"
           showSerial={true}
           showPriority={false}
           columns={[
-            { key: 'transactionId', title: 'Transaction ID', flex: 1.5 },
-            { key: 'date', title: 'Date', flex: 1 },
+            { key: 'transactionId', title: 'Transaction ID', flex: 2 },
+            { key: 'date', title: 'Date', flex: 1.2 },
+            // { key: 'amount', title: 'Amount', flex: 1 },
+            // { key: 'paymentMode', title: 'Mode', flex: 1 },
             { key: 'status', title: 'Status', flex: 1 }
           ]}
         />
