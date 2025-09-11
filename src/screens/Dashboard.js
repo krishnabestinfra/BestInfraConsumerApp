@@ -14,6 +14,8 @@ import DashboardHeader from "../components/global/DashboardHeader";
 import Table from "../components/global/Table";
 import DatePicker from "../components/global/DatePicker";
 import Meter from "../../assets/icons/meterWhite.svg";
+import LastCommunicationIcon from "../../assets/icons/signal.svg";
+
 
 
 const Dashboard = ({ navigation, route }) => {
@@ -89,7 +91,10 @@ const Dashboard = ({ navigation, route }) => {
  
           </View>
           <View style={styles.lastCommunicationContainer}>
-            <Text style={styles.lastCommunicationText}>Last Communication</Text>
+            <View style={styles.lastCommunicationLeft}>
+             <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
+             <Text style={styles.lastCommunicationText}>Last Communication</Text>
+            </View>
             <Text style={styles.lastCommunicationTimeText}>07/09/2025 6:35 PM</Text>
             </View>
         </View>
@@ -300,6 +305,26 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+
+  lastCommunicationLeft: {
+  flexDirection: "row",
+  alignItems: "center",
+},
+
+LastCommunicationIcon: {
+  marginRight: 5,
+},
+lastCommunicationText: {
+  color: COLORS.primaryFontColor,
+  fontSize: 10,
+  fontFamily: "Manrope-Regular",
+},
+lastCommunicationTimeText: {
+  color: COLORS.primaryFontColor,
+  fontSize: 10,
+  fontFamily: "Manrope-Regular",
+},
+
   meterConsumerText:{
     color: COLORS.secondaryFontColor,
     fontSize: 14,
