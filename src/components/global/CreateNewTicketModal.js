@@ -184,11 +184,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 1,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: COLORS.primaryFontColor,
-  },
+
   modalText: {
     marginTop: 15,
     fontSize: 14,

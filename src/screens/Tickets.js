@@ -10,6 +10,10 @@ import ResolvedIcon from "../../assets/icons/resolved.svg";
 import ClosedIcon from "../../assets/icons/closed.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
 import { LinearGradient } from "expo-linear-gradient";
+import BottomSheet from "@gorhom/bottom-sheet";
+
+import CreateNewTicket from "../components/global/CreateNewTicket";
+
 
 
 const Tickets = ({ navigation }) => {
@@ -44,6 +48,9 @@ const Tickets = ({ navigation }) => {
       status: "Resolved",
     },
   ];
+  const handleCreateTicket = (ticketData) => {
+  console.log("New Ticket Created:", ticketData);
+  };
 
   return (
     <>
@@ -146,13 +153,11 @@ const Tickets = ({ navigation }) => {
             ]}
           />
         </View>
+        <CreateNewTicket 
+        onSubmit={handleCreateTicket}
+        onClose={() => setShowModal(false)}    />
       </ScrollView>
 
-      {/* Create New Ticket Modal */}
-      <CreateNewTicketModal
-        visible={showModal}
-        onClose={handleCloseModal}
-      />
     </>
   );
 };
