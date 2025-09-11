@@ -52,7 +52,7 @@ const Tickets = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
 
-        <DashboardHeader navigation={navigation} variant="tickets" />
+        <DashboardHeader navigation={navigation} variant="tickets" showBalance={true} />
         <View style={styles.TicketContainer}>
           <Text style={styles.usageText}>Tickets</Text>
           <Button

@@ -1,8 +1,9 @@
 import React, { useRef, useEffect, useState } from "react";
-import { View, Dimensions } from "react-native";
+import { View, Dimensions, Text, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
+import { COLORS } from "../constants/colors";
 
-const GroupedBarChart = () => {
+const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) => {
   const webRef = useRef();
   const { width } = Dimensions.get("window");
 
@@ -11,14 +12,26 @@ const GroupedBarChart = () => {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun","July", "Aug","Sept","Oct"],
   });
 
+  // Process API data for chart
   useEffect(() => {
-    setTimeout(() => {
+    if (data && data.chartData) {
+      const chartType = viewType === "daily" ? data.chartData.daily : data.chartData.monthly;
+      
+      if (chartType && chartType.seriesData && chartType.seriesData.length > 0) {
+        const seriesData = chartType.seriesData[0]; // Get first series
+        setChartData({
+          blue: seriesData.data || [],
+          labels: chartType.xAxisData || [],
+        });
+      }
+    } else if (!loading) {
+      // Fallback to default data if no API data
       setChartData({
         blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
         labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun","July", "Aug","Sept","Oct"],
       });
-    }, 3000);
-  }, []);
+    }
+  }, [data, viewType, loading]);
 
   useEffect(() => {
     if (webRef.current) {
@@ -108,6 +121,31 @@ const GroupedBarChart = () => {
     </body>
     </html>
   `;
+
+  if (loading) {
+    return (
+      <View style={{ 
+        height: 210, 
+        width: width - 40, 
+        marginHorizontal: 20, 
+        borderRadius: 5, 
+        marginTop: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#eef8f0'
+      }}>
+        <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+        <Text style={{ 
+          marginTop: 10, 
+          color: COLORS.primaryFontColor,
+          fontFamily: 'Manrope-Regular',
+          fontSize: 14
+        }}>
+          Loading chart data...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={{ height: 210, width: width - 40, marginHorizontal: 20 ,borderRadius:5, marginTop: 25}}>

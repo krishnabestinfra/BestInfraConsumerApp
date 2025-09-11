@@ -74,7 +74,7 @@ const Dashboard = ({ navigation, route }) => {
     >
       <View style={styles.Container}>
         <StatusBar style="dark" />
-        <DashboardHeader navigation={navigation} />
+        <DashboardHeader navigation={navigation} showBalance={true} />
 
         <View style={styles.meterContainer}>
           <View style={styles.meterInfoContainer}>
