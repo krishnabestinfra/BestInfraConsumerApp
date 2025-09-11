@@ -86,7 +86,6 @@ const TicketDetails = ({ navigation }) => {
     useEffect(() => {
         (async () => {
             const user = await getUser();
-            console.log("🟡 Logged in user from storage:", user);
         })();
     }, []);
 

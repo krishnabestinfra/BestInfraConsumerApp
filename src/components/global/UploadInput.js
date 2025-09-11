@@ -24,7 +24,6 @@ const UploadInput = ({
     
     // Placeholder for actual file upload logic
     // In a real app, you would use a library like react-native-image-picker
-    console.log('Upload triggered', { multiple, accept, maxFiles });
     
     // For demo purposes, simulate file selection
     if (onChange) {

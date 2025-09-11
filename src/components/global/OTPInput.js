@@ -130,7 +130,7 @@ const OTPInput = ({
         }
       }
     } catch (error) {
-      console.log('Clipboard access not available');
+      console.error('Clipboard access not available', error);
     }
   };
 
