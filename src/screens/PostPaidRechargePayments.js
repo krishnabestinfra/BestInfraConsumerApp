@@ -1,15 +1,19 @@
 import { StyleSheet, Text, View, ScrollView, StatusBar } from "react-native";
 import { COLORS } from "../constants/colors";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
 import DashboardHeader from "../components/global/DashboardHeader";
+import { getUser } from "../utils/storage";
+import { GLOBAL_API_URL } from "../constants/constants";
 
 
 const PostPaidRechargePayments = ({ navigation }) => {
 
   const [selectedOption, setSelectedOption] = useState("option1");
   const [customAmount, setCustomAmount] = useState("");
+  const [outstandingAmount, setOutstandingAmount] = useState("NA");
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleCustomAmountChange = (text) => {
     setCustomAmount(text);
@@ -17,6 +21,44 @@ const PostPaidRechargePayments = ({ navigation }) => {
       setSelectedOption("option2");
     }
   };
+
+  // Fetch outstanding amount from API
+  useEffect(() => {
+    const fetchOutstandingAmount = async () => {
+      try {
+        setIsLoading(true);
+        const user = await getUser();
+        
+        if (user && user.uid) {
+          // Using the UID as the consumer identifier
+          const response = await fetch(`http://${GLOBAL_API_URL}:4256/api/consumers/BI25GMRA012`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data && data.data.totalOutstanding !== undefined) {
+              // Format the number with commas for better readability
+              const formattedAmount = data.data.totalOutstanding.toLocaleString('en-IN', {
+                maximumFractionDigits: 2
+              });
+              setOutstandingAmount(formattedAmount);
+            } else {
+              setOutstandingAmount("NA");
+            }
+          } else {
+            console.error('Failed to fetch outstanding amount:', response.status);
+            setOutstandingAmount("NA");
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching outstanding amount:', error);
+        setOutstandingAmount("NA");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOutstandingAmount();
+  }, []);
 
   return (
     <>
@@ -27,7 +69,7 @@ const PostPaidRechargePayments = ({ navigation }) => {
       >
 
         <StatusBar barStyle="dark-content" />
-        <DashboardHeader navigation={navigation} variant="payments" />
+        <DashboardHeader navigation={navigation} variant="payments" showBalance={false} />
 
         <View style={styles.contentSection}>
           {/* Input Boxes Section */}
@@ -46,8 +88,8 @@ const PostPaidRechargePayments = ({ navigation }) => {
               </View>
               <View style={styles.amountInputContainer}>
                 <Input
-                  placeholder="3180"
-                  value={selectedOption === "option1" ? "3180" : ""}
+                  placeholder={isLoading ? "Loading..." : outstandingAmount}
+                  value={selectedOption === "option1" ? (isLoading ? "Loading..." : outstandingAmount) : ""}
                   editable={false}
                   style={styles.amountInput}
                 />

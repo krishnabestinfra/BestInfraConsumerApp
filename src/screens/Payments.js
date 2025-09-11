@@ -49,7 +49,7 @@ const Payments = ({ navigation }) => {
       >
 
         <StatusBar barStyle="dark-content" />
-        <DashboardHeader navigation={navigation} variant="payments" />
+        <DashboardHeader navigation={navigation} variant="payments" showBalance={true} />
 
         <View style={styles.contentSection}>
           <View style={styles.inputContainer}>
