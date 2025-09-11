@@ -68,7 +68,7 @@ useEffect(() => {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        scrollEnabled={false} // disables manual swipe
+        scrollEnabled={true} // disables manual swipe
         onScroll={(event) => {
           const contentOffsetX = event.nativeEvent.contentOffset.x;
           const index = Math.round(contentOffsetX / width); // Use Math.round to handle fractional values

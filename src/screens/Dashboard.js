@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
     fontSize: 14,
     fontFamily: "Manrope-Bold",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   dailyText: {
     color: COLORS.primaryFontColor,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   },
 
   meterContainer:{
-    padding: 20
+    padding: 10
   },
   meterInfoContainer:{
     backgroundColor: COLORS.primaryColor,
