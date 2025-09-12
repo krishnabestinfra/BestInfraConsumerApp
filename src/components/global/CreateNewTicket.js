@@ -54,12 +54,13 @@ const CreateNewTicket = ({ onSubmit, onClose, title = "Create New Ticket"  }) =>
   };
 
   return (
+    
     <View style = {styles.NewTicketContainer}>
       <View style ={styles.header}>
             <Text style={styles.NewticketTitle}>{title}</Text>
         {onClose && (
           <TouchableOpacity style={styles.closeButton}>
-            <CloseIcon width={16} height={16} fill="#55B56C" />
+            <CloseIcon width={16} height={16} />
           </TouchableOpacity>
         )}
       </View>
@@ -182,7 +183,6 @@ closeButton: {
   cancelButton: {
     flex: 1,
   },
-
 });
 
 export default CreateNewTicket;

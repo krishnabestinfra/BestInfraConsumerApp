@@ -1,6 +1,6 @@
-import { StyleSheet, Text, View, ScrollView } from "react-native";
+import { StyleSheet, Text, View, ScrollView, Dimensions } from "react-native";
 import { COLORS } from "../constants/colors";
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import Button from "../components/global/Button";
 import Table from "../components/global/Table";
 import CreateNewTicketModal from "../components/global/CreateNewTicketModal";
@@ -10,22 +10,34 @@ import ResolvedIcon from "../../assets/icons/resolved.svg";
 import ClosedIcon from "../../assets/icons/closed.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
 import { LinearGradient } from "expo-linear-gradient";
-import BottomSheet from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import CreateNewTicket from "../components/global/CreateNewTicket";
 
 
 
 const Tickets = ({ navigation }) => {
-  const [showModal, setShowModal] = useState(false);
+  const bottomSheetRef = useRef(null);
+  const snapPoints = ['100%']; // Nearly full screen
 
-  const handleOpenModal = () => {
-    setShowModal(true);
-  };
+  const handleOpenBottomSheet = useCallback(() => {
+    bottomSheetRef.current?.expand();
+  }, []);
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
+  const handleCloseBottomSheet = useCallback(() => {
+    bottomSheetRef.current?.close();
+  }, []);
+
+  // const [showModal, setShowModal] = useState(false);
+
+  // const handleOpenModal = () => {
+  //   setShowModal(true);
+  // };
+
+  // const handleCloseModal = () => {
+  //   setShowModal(false);
+  // };
 
   const tableData = [
     {
@@ -53,7 +65,8 @@ const Tickets = ({ navigation }) => {
   };
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+
       <ScrollView
         style={styles.Container}
         contentContainerStyle={{ paddingBottom: 30 }}
@@ -68,7 +81,8 @@ const Tickets = ({ navigation }) => {
             variant="primary"
             size="small"
             textStyle={styles.forgotText}
-            onPress={handleOpenModal}
+            // onPress={handleOpenModal}
+            onPress={handleOpenBottomSheet}
             // onPress={() => navigation.navigate('TicketDetails')}
           />
         </View>
@@ -153,12 +167,30 @@ const Tickets = ({ navigation }) => {
             ]}
           />
         </View>
-        <CreateNewTicket 
+        {/* <CreateNewTicket 
         onSubmit={handleCreateTicket}
-        onClose={() => setShowModal(false)}    />
+        onClose={() => setShowModal(false)}    /> */}
       </ScrollView>
-
-    </>
+        <BottomSheet
+        ref={bottomSheetRef}
+        snapPoints={snapPoints}
+        index={-1} 
+        handleComponent={null}
+        enablePanDownToClose={false}
+        backgroundStyle={styles.bottomSheetBackground}
+        handleIndicatorStyle={styles.bottomSheetIndicator}
+      enableHandlePanningGesture={false} 
+      enableContentPanningGesture={false}
+      >
+        <BottomSheetView style={styles.bottomSheetContent}>
+          <CreateNewTicket 
+            onSubmit={handleCreateTicket}
+            onClose={handleCloseBottomSheet}
+            title="Create New Ticket"
+          />
+        </BottomSheetView>
+      </BottomSheet>
+    </GestureHandlerRootView>
   );
 };
 
@@ -402,7 +434,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor,
     width: "43%",
     height: 80,
-
   },
   TicketBoxtext: {
     color: COLORS.primaryFontColor,
@@ -434,4 +465,7 @@ const styles = StyleSheet.create({
   TicketContainerThree: {
     marginTop: 15,
   },
+bottomSheetBackground:{
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+},
 });
