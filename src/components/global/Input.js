@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { TextInput, View, Text, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import User from '../../../assets/icons/user.svg';
-const Input = ({
+
+const Input = React.memo(({
   label,
   placeholder,
   value,
@@ -27,7 +28,7 @@ const Input = ({
   onBlur,
   ...props
 }) => {
-  const getInputContainerStyle = () => {
+  const getInputContainerStyle = useMemo(() => {
     const baseStyle = [styles.inputContainer, styles[`${variant}Container`], styles[size]];
     
     if (error) {
@@ -35,9 +36,9 @@ const Input = ({
     }
 
     return baseStyle;
-  };
+  }, [variant, size, error]);
 
-  const getInputStyle = () => {
+  const getInputStyle = useMemo(() => {
     const baseStyle = [styles.input, styles[`${variant}Input`], styles[`${size}Input`]];
     
     if (multiline) {
@@ -49,7 +50,25 @@ const Input = ({
     }
 
     return baseStyle;
-  };
+  }, [variant, size, multiline, editable]);
+
+  const handleChangeText = useCallback((text) => {
+    if (onChangeText) {
+      onChangeText(text);
+    }
+  }, [onChangeText]);
+
+  const handleFocus = useCallback((event) => {
+    if (onFocus) {
+      onFocus(event);
+    }
+  }, [onFocus]);
+
+  const handleBlur = useCallback((event) => {
+    if (onBlur) {
+      onBlur(event);
+    }
+  }, [onBlur]);
 
   return (
     <View style={[styles.container, style]}>
@@ -59,13 +78,13 @@ const Input = ({
         </Text>
       )}
       
-      <View style={getInputContainerStyle()}>        
+      <View style={getInputContainerStyle}>        
         <TextInput
-          style={[getInputStyle(), inputStyle]}
+          style={[getInputStyle, inputStyle]}
           placeholder={placeholder}
           placeholderTextColor="#6E6E6E"
           value={value}
-          onChangeText={onChangeText}
+          onChangeText={handleChangeText}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -73,8 +92,8 @@ const Input = ({
           multiline={multiline}
           numberOfLines={numberOfLines}
           editable={editable}
-          onFocus={onFocus}
-          onBlur={onBlur}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           {...props}
         />
         
@@ -92,7 +111,9 @@ const Input = ({
       )}
     </View>
   );
-};
+});
+
+Input.displayName = 'Input';
 
 const styles = StyleSheet.create({
   container: {

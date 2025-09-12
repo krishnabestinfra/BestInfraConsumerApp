@@ -15,7 +15,8 @@ const GuestLogin = () => {
 
   const handleContinueAsGuest = () => {
     // Navigate to home or dashboard (replace 'Home' with your actual screen)
-    navigation.navigate("Dashboard", { isGuest: true });
+    // navigation.navigate("Dashboard", { isGuest: true });
+    navigation.navigate("PostPaidDashboard", { isGuest: true });
   };
 
   return (

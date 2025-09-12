@@ -81,7 +81,7 @@ const SideMenuNavigation = ({ navigation }) => {
             Dashboard
           </Text>
         </Pressable>
-        <Pressable style={styles.flex} onPress={() => handleMenuPress("Usage")}>
+        {/* <Pressable style={styles.flex} onPress={() => handleMenuPress("Usage")}>
           {activeItem === "Usage" ? (
             <>
               <ActiveUsage
@@ -113,19 +113,19 @@ const SideMenuNavigation = ({ navigation }) => {
           >
             Usage
           </Text>
-        </Pressable>
+        </Pressable> */}
         <Pressable
           style={styles.flex}
-          onPress={() => handleMenuPress("Payments")}
+          onPress={() => handleMenuPress("PostPaidRechargePayments")}
         >
-          {activeItem === "Payments" ? (
+          {activeItem === "PostPaidRechargePayments" ? (
             <>
               <ActivePayments
                 width={18}
                 height={18}
                 style={[
                   styles.iconStyle,
-                  activeItem === "Payments" && styles.activeIcon,
+                  activeItem === "PostPaidRechargePayments" && styles.activeIcon,
                 ]}
               />
             </>
@@ -136,7 +136,7 @@ const SideMenuNavigation = ({ navigation }) => {
                 height={18}
                 style={[
                   styles.iconStyle,
-                  activeItem === "Payments" && styles.activeIcon,
+                  activeItem === "PostPaidRechargePayments" && styles.activeIcon,
                 ]}
               />
             </>
@@ -144,7 +144,7 @@ const SideMenuNavigation = ({ navigation }) => {
           <Text
             style={[
               styles.menuText,
-              activeItem === "Payments" && styles.activeText,
+              activeItem === "PostPaidRechargePayments" && styles.activeText,
             ]}
           >
             Payments
@@ -224,7 +224,7 @@ const SideMenuNavigation = ({ navigation }) => {
         </Pressable>
       </View>
       <View style={styles.Bottommenubar}>
-        <Pressable
+        {/* <Pressable
           style={styles.flex}
           onPress={() => handleMenuPress("Settings")}
         >
@@ -259,7 +259,7 @@ const SideMenuNavigation = ({ navigation }) => {
           >
             Settings
           </Text>
-        </Pressable>
+        </Pressable> */}
         <Button
           title="Logout"
           variant="ghost"

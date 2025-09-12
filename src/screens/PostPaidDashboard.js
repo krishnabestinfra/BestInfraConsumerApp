@@ -15,12 +15,12 @@ import {
   import Input from "../components/global/Input";
   import DatePicker from "../components/global/DatePicker";
   import Meter from "../../assets/icons/meterWhite.svg";
-  import DashboardHeader from "../components/global/DashboardHeader";
+import DashboardHeader from "../components/global/DashboardHeader";
   import LastCommunicationIcon from "../../assets/icons/signal.svg";
-  import { GLOBAL_API_URL } from "../constants/constants";
+import { GLOBAL_API_URL } from "../constants/constants";
+import { getUser, getToken } from "../utils/storage";
   
-  // const API_URL = "https://api.bestinfra.app/v2gmr/api/consumers/BI25GMRA011";
-  const API_URL = `http://${GLOBAL_API_URL}:4256/api/consumers/BI25GMRA011`;
+  // Dynamic API URL will be set based on authenticated user
 
   const PostPaidDashboard = ({ navigation, route }) => {
     const [selectedView, setSelectedView] = useState("daily");
@@ -64,6 +64,18 @@ import {
     const fetchConsumerData = async () => {
       try {
         setLoading(true);
+        
+        // Get authenticated user data
+        const user = await getUser();
+        const token = await getToken();
+        
+        if (!user || !user.identifier) {
+          console.error("No authenticated user found");
+          setLoading(false);
+          return;
+        }
+
+        const API_URL = `http://${GLOBAL_API_URL}:4256/api/consumers/${user.identifier}`;
         console.log("🔄 Fetching consumer data from:", API_URL);
         
         const response = await fetch(API_URL, {
@@ -72,6 +84,7 @@ import {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Cache-Control': 'no-cache',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
           },
         });
 
@@ -218,7 +231,7 @@ import {
                     <View style={{display: "flex", flexDirection: "row", alignItems: "center", gap: 10, width: "50%"}}>
                       <Meter width={30} height={30} />
                       <Text style={styles.meterConsumerText}>
-                        {consumerData.name || "Loading..."}
+                        {consumerData.name || consumerData.consumerName || "Loading..."}
                       </Text>
                     </View>
                     <View style={{display: "flex", flexDirection: "column", alignItems: "flex-end"}}>
@@ -278,7 +291,7 @@ import {
                     Monthly
                   </Text>
                 </TouchableOpacity>
-                <Text> / </Text>
+                {/* <Text> / </Text>
                 <TouchableOpacity onPress={() => setSelectedView("monthly")}>
                   <Text
                     style={
@@ -289,7 +302,7 @@ import {
                   >
                     Pick Date
                   </Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </View>
   
