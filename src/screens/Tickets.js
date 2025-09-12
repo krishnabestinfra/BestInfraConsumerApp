@@ -118,27 +118,27 @@ const Tickets = ({ navigation }) => {
   //   setShowModal(false);
   // };
 
-  const tableData = [
-    {
-      id: 1,
-      ticketId: 298,
-      issueType: "Connection Issue",
-      status: "Open",
+  // const tableData = [
+  //   {
+  //     id: 1,
+  //     ticketId: 298,
+  //     issueType: "Connection Issue",
+  //     status: "Open",
 
-    },
-    {
-      id: 2,
-      ticketId: 286,
-      issueType: "Meter Issue",
-      status: "Closed",
-    },
-    {
-      id: 3,
-      ticketId: 278,
-      issueType: "Meter Issue",
-      status: "Resolved",
-    },
-  ];
+  //   },
+  //   {
+  //     id: 2,
+  //     ticketId: 286,
+  //     issueType: "Meter Issue",
+  //     status: "Closed",
+  //   },
+  //   {
+  //     id: 3,
+  //     ticketId: 278,
+  //     issueType: "Meter Issue",
+  //     status: "Resolved",
+  //   },
+  // ];
   const handleCreateTicket = (ticketData) => {
   console.log("New Ticket Created:", ticketData);
   };
