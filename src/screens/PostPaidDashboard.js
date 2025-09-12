@@ -16,6 +16,7 @@ import {
   import DatePicker from "../components/global/DatePicker";
   import Meter from "../../assets/icons/meterWhite.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
+  import LastCommunicationIcon from "../../assets/icons/signal.svg";
 import { GLOBAL_API_URL } from "../constants/constants";
 import { getUser, getToken } from "../utils/storage";
   
@@ -242,12 +243,16 @@ import { getUser, getToken } from "../utils/storage";
                       </Text>
                     </View>
                   </View>
+
                   <View style={styles.lastCommunicationContainer}>
-                    <Text style={styles.lastCommunicationText}>Last Communication</Text>
-                    <Text style={styles.lastCommunicationTimeText}>
-                      {consumerData.readingDate || "Loading..."}
-                    </Text>
-                  </View>
+                      <View style={styles.lastCommunicationLeft}>
+                      <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
+                      <Text style={styles.lastCommunicationText}>Last Communication</Text>
+                      </View>
+                      <Text style={styles.lastCommunicationTimeText}>
+                        {consumerData.readingDate || "Loading..."}
+                      </Text>                  
+                    </View>
                 </>
               )
             )}
@@ -406,7 +411,7 @@ import { getUser, getToken } from "../utils/storage";
       borderTopLeftRadius: 30,
     },
     whiteContainer: {
-      // padding: 20,
+      padding: 10,
       paddingHorizontal: 20,
       paddingBottom: 20,
     },
@@ -414,7 +419,7 @@ import { getUser, getToken } from "../utils/storage";
       color: COLORS.primaryFontColor,
       fontSize: 14,
       fontFamily: "Manrope-Bold",
-      marginBottom: 20,
+      marginBottom: 10,
     },
     dailyText: {
       color: COLORS.primaryFontColor,
@@ -489,7 +494,7 @@ import { getUser, getToken } from "../utils/storage";
     },
   
     meterContainer:{
-      padding: 20
+      padding: 10
     },
     meterInfoContainer:{
       backgroundColor: COLORS.primaryColor,
@@ -501,15 +506,61 @@ import { getUser, getToken } from "../utils/storage";
       justifyContent: "space-between",
       alignItems: "center",
     },
-    lastCommunicationContainer:{
-      backgroundColor: COLORS.secondaryLightColor, 
-      borderRadius: 5,
-      padding: 10,
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-    },
+
+  lastCommunicationContainer:{
+    backgroundColor: COLORS.secondaryLightColor, 
+    borderRadius: 5,
+    padding: 10,
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  lastCommunicationLeft: {
+  flexDirection: "row",
+  alignItems: "center",
+},
+
+LastCommunicationIcon: {
+  marginRight: 5,
+},
+lastCommunicationText: {
+  color: COLORS.primaryFontColor,
+  fontSize: 10,
+  fontFamily: "Manrope-Regular",
+},
+lastCommunicationTimeText: {
+  color: COLORS.primaryFontColor,
+  fontSize: 10,
+  fontFamily: "Manrope-Regular",
+},
+
+  meterConsumerText:{
+    color: COLORS.secondaryFontColor,
+    fontSize: 14,
+    fontFamily: "Manrope-Bold",
+  },
+  meterNumberText:{
+    color: COLORS.secondaryFontColor,
+    fontSize: 14,
+    fontFamily: "Manrope-Bold",
+  },
+  meterUIDText:{
+    color: '#E9EAEE',
+    fontSize: 10,
+    fontFamily: "Manrope-Regular",
+  },
+  lastCommunicationText:{
+    color: COLORS.primaryFontColor,
+    fontSize: 10,
+    fontFamily: "Manrope-Regular",
+  },
+  lastCommunicationTimeText:{
+    color: COLORS.primaryFontColor,
+    fontSize: 10,
+    fontFamily: "Manrope-Regular",
+  },
     meterConsumerText:{
       color: COLORS.secondaryFontColor,
       fontSize: 14,
@@ -522,16 +573,6 @@ import { getUser, getToken } from "../utils/storage";
     },
     meterUIDText:{
       color: '#E9EAEE',
-      fontSize: 10,
-      fontFamily: "Manrope-Regular",
-    },
-    lastCommunicationText:{
-      color: COLORS.primaryFontColor,
-      fontSize: 10,
-      fontFamily: "Manrope-Regular",
-    },
-    lastCommunicationTimeText:{
-      color: COLORS.primaryFontColor,
       fontSize: 10,
       fontFamily: "Manrope-Regular",
     },

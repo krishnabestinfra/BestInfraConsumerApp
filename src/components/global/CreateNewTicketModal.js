@@ -49,6 +49,7 @@ const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
     if (onClose) {
       onClose();
     }
+  
   };
 
   const handleCancel = () => {
@@ -146,11 +147,19 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
+    display:"flex",
+    justifyContent:"end",
+    alignItems:"end",
+    position:'relative'
+
   },
   modalWrapper: {
-    position: "absolute", // ✅ required
+     position: "absolute", // ✅ required
     top: height / 2 - 300, // (400 modal height / 2)
     left: width / 2 - 200, // (300 modal width / 2)
+    display:"flex",
+    justifyContent:"flex-start",
+    alignItems:"flex-start",
   },
   modalContainer: {
     width: 400,
@@ -175,11 +184,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 1,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: COLORS.primaryFontColor,
-  },
+
   modalText: {
     marginTop: 15,
     fontSize: 14,

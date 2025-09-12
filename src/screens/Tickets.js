@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View, ScrollView } from "react-native";
+import { StyleSheet, Text, View, ScrollView, Dimensions } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/colors";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Button from "../components/global/Button";
 import Table from "../components/global/Table";
 import CreateNewTicketModal from "../components/global/CreateNewTicketModal";
@@ -14,10 +14,26 @@ import { LinearGradient } from "expo-linear-gradient";
 import { fetchConsumerData, syncConsumerData, fetchTicketStats, fetchTicketsTable } from "../services/apiService";
 import { getUser } from "../utils/storage";
 import { getCachedConsumerData } from "../utils/cacheManager";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+import CreateNewTicket from "../components/global/CreateNewTicket";
+
 
 
 const Tickets = ({ navigation }) => {
-  const [showModal, setShowModal] = useState(false);
+  const bottomSheetRef = useRef(null);
+  const snapPoints = ['100%']; // Nearly full screen
+
+  const handleOpenBottomSheet = useCallback(() => {
+    bottomSheetRef.current?.expand();
+  }, []);
+
+  const handleCloseBottomSheet = useCallback(() => {
+    bottomSheetRef.current?.close();
+  }, []);
+
+  // const [showModal, setShowModal] = useState(false);
   const [consumerData, setConsumerData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [ticketStats, setTicketStats] = useState({
@@ -94,17 +110,42 @@ const Tickets = ({ navigation }) => {
     }, [])
   );
 
-  const handleOpenModal = () => {
-    setShowModal(true);
-  };
+  // const handleOpenModal = () => {
+  //   setShowModal(true);
+  // };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
+  // const handleCloseModal = () => {
+  //   setShowModal(false);
+  // };
 
+  const tableData = [
+    {
+      id: 1,
+      ticketId: 298,
+      issueType: "Connection Issue",
+      status: "Open",
+
+    },
+    {
+      id: 2,
+      ticketId: 286,
+      issueType: "Meter Issue",
+      status: "Closed",
+    },
+    {
+      id: 3,
+      ticketId: 278,
+      issueType: "Meter Issue",
+      status: "Resolved",
+    },
+  ];
+  const handleCreateTicket = (ticketData) => {
+  console.log("New Ticket Created:", ticketData);
+  };
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+
       <ScrollView
         style={styles.Container}
         contentContainerStyle={{ paddingBottom: 30 }}
@@ -125,7 +166,8 @@ const Tickets = ({ navigation }) => {
             variant="primary"
             size="small"
             textStyle={styles.forgotText}
-            onPress={handleOpenModal}
+            // onPress={handleOpenModal}
+            onPress={handleOpenBottomSheet}
             // onPress={() => navigation.navigate('TicketDetails')}
           />
         </View>
@@ -218,14 +260,30 @@ const Tickets = ({ navigation }) => {
             ]}
           />
         </View>
+        {/* <CreateNewTicket 
+        onSubmit={handleCreateTicket}
+        onClose={() => setShowModal(false)}    /> */}
       </ScrollView>
-
-      {/* Create New Ticket Modal */}
-      <CreateNewTicketModal
-        visible={showModal}
-        onClose={handleCloseModal}
-      />
-    </>
+        <BottomSheet
+        ref={bottomSheetRef}
+        snapPoints={snapPoints}
+        index={-1} 
+        handleComponent={null}
+        enablePanDownToClose={false}
+        backgroundStyle={styles.bottomSheetBackground}
+        handleIndicatorStyle={styles.bottomSheetIndicator}
+      enableHandlePanningGesture={false} 
+      enableContentPanningGesture={false}
+      >
+        <BottomSheetView style={styles.bottomSheetContent}>
+          <CreateNewTicket 
+            onSubmit={handleCreateTicket}
+            onClose={handleCloseBottomSheet}
+            title="Create New Ticket"
+          />
+        </BottomSheetView>
+      </BottomSheet>
+    </GestureHandlerRootView>
   );
 };
 
@@ -469,7 +527,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor,
     width: "43%",
     height: 80,
-
   },
   TicketBoxtext: {
     color: COLORS.primaryFontColor,
@@ -501,4 +558,7 @@ const styles = StyleSheet.create({
   TicketContainerThree: {
     marginTop: 15,
   },
+bottomSheetBackground:{
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+},
 });
