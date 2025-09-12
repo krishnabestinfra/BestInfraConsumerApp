@@ -6,6 +6,8 @@ import Button from "../components/global/Button";
 import DashboardHeader from "../components/global/DashboardHeader";
 import { getUser } from "../utils/storage";
 import { GLOBAL_API_URL } from "../constants/constants";
+import { fetchConsumerData, syncConsumerData } from "../services/apiService";
+import { getCachedConsumerData } from "../utils/cacheManager";
 
 
 const PostPaidRechargePayments = ({ navigation }) => {
@@ -14,6 +16,8 @@ const PostPaidRechargePayments = ({ navigation }) => {
   const [customAmount, setCustomAmount] = useState("");
   const [outstandingAmount, setOutstandingAmount] = useState("NA");
   const [isLoading, setIsLoading] = useState(true);
+  const [consumerData, setConsumerData] = useState(null);
+  const [isConsumerLoading, setIsConsumerLoading] = useState(true);
 
   const handleCustomAmountChange = (text) => {
     setCustomAmount(text);
@@ -22,22 +26,40 @@ const PostPaidRechargePayments = ({ navigation }) => {
     }
   };
 
-  // Fetch outstanding amount from API
+  // Fetch consumer data and outstanding amount with caching
   useEffect(() => {
-    const fetchOutstandingAmount = async () => {
+    const fetchData = async () => {
       try {
+        setIsConsumerLoading(true);
         setIsLoading(true);
         const user = await getUser();
         
-        if (user && user.uid) {
-          // Using the UID as the consumer identifier
-          const response = await fetch(`http://${GLOBAL_API_URL}:4256/api/consumers/BI25GMRA012`);
+        if (user && user.identifier) {
+          // Try to get cached data first for instant display
+          const cachedResult = await getCachedConsumerData(user.identifier);
+          if (cachedResult.success) {
+            setConsumerData(cachedResult.data);
+            
+            // Extract outstanding amount from cached data
+            if (cachedResult.data && cachedResult.data.totalOutstanding !== undefined) {
+              const formattedAmount = cachedResult.data.totalOutstanding.toLocaleString('en-IN', {
+                maximumFractionDigits: 2
+              });
+              setOutstandingAmount(formattedAmount);
+            }
+            
+            setIsConsumerLoading(false);
+            setIsLoading(false);
+          }
           
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && data.data.totalOutstanding !== undefined) {
-              // Format the number with commas for better readability
-              const formattedAmount = data.data.totalOutstanding.toLocaleString('en-IN', {
+          // Fetch fresh data
+          const result = await fetchConsumerData(user.identifier);
+          if (result.success) {
+            setConsumerData(result.data);
+            
+            // Extract outstanding amount from fresh data
+            if (result.data && result.data.totalOutstanding !== undefined) {
+              const formattedAmount = result.data.totalOutstanding.toLocaleString('en-IN', {
                 maximumFractionDigits: 2
               });
               setOutstandingAmount(formattedAmount);
@@ -45,19 +67,24 @@ const PostPaidRechargePayments = ({ navigation }) => {
               setOutstandingAmount("NA");
             }
           } else {
-            console.error('Failed to fetch outstanding amount:', response.status);
             setOutstandingAmount("NA");
           }
+          
+          // Background sync
+          syncConsumerData(user.identifier).catch(error => {
+            console.error('Background sync failed:', error);
+          });
         }
       } catch (error) {
-        console.error('Error fetching outstanding amount:', error);
+        console.error('Error fetching consumer data:', error);
         setOutstandingAmount("NA");
       } finally {
+        setIsConsumerLoading(false);
         setIsLoading(false);
       }
     };
 
-    fetchOutstandingAmount();
+    fetchData();
   }, []);
 
   return (
@@ -69,7 +96,13 @@ const PostPaidRechargePayments = ({ navigation }) => {
       >
 
         <StatusBar barStyle="dark-content" />
-        <DashboardHeader navigation={navigation} variant="payments" showBalance={false} />
+        <DashboardHeader 
+          navigation={navigation} 
+          variant="payments" 
+          showBalance={false}
+          consumerData={consumerData}
+          isLoading={isConsumerLoading}
+        />
 
         <View style={styles.contentSection}>
           {/* Input Boxes Section */}

@@ -25,7 +25,8 @@ const SplashScreen = () => {
       const user = await getUser();
       setTimeout(() => {
         if (user) {
-          navigation.replace("Dashboard");
+          // navigation.replace("Dashboard");
+          navigation.replace("PostPaidDashboard");
         } else {
           navigation.replace("OnBoarding");
         }

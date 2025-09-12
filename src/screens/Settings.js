@@ -20,7 +20,7 @@ const Settings = ({ navigation }) => {
           >
             <Menu width={18} height={18} fill="#202d59" />
           </Pressable>
-          <Pressable onPress={() => navigation.navigate("Dashboard")}>
+          <Pressable onPress={() => navigation.navigate("PostPaidDashboard")}>
             <BiLogo width={45} height={45} />
           </Pressable>
           <Pressable

@@ -305,8 +305,8 @@ const styles = StyleSheet.create({
     // marginTop: 4,
     // alignSelf: 'flex-start',
     position:"absolute",
-    right:10,
-    top:-1
+    right:30,
+    top:15
   },
   priorityTagText: {
     fontFamily: "Manrope-Bold",
