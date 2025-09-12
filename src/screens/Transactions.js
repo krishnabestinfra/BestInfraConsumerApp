@@ -23,9 +23,9 @@ const Transactions = ({ navigation }) => {
         setIsLoading(true);
         const user = await getUser();
         
-        if (user && user.uid) {
-          // Using the UID as the consumer identifier
-          const response = await fetch(`http://${GLOBAL_API_URL}:4256/api/consumers/BI25GMRA013`);
+        if (user && user.identifier) {
+          // Using the authenticated user's identifier
+          const response = await fetch(`http://${GLOBAL_API_URL}:4256/api/consumers/${user.identifier}`);
           
           if (response.ok) {
             const data = await response.json();

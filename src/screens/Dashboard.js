@@ -5,7 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
 import Arrow from "../../assets/icons/arrow.svg";
@@ -15,18 +15,75 @@ import Table from "../components/global/Table";
 import DatePicker from "../components/global/DatePicker";
 import Meter from "../../assets/icons/meterWhite.svg";
 import LastCommunicationIcon from "../../assets/icons/signal.svg";
+import { fetchConsumerData, syncConsumerData } from "../services/apiService";
+import { getUser } from "../utils/storage";
+import { getCachedConsumerData } from "../utils/cacheManager";
+import { cacheManager } from "../utils/cacheManager";
+import { useLoading } from "../utils/loadingManager";
+import { InstantLoader } from "../utils/loadingManager";
 
 
 
-const Dashboard = ({ navigation, route }) => {
+const Dashboard = React.memo(({ navigation, route }) => {
   const [selectedView, setSelectedView] = useState("daily");
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [tableData, setTableData] = useState([]);
   const [isTableLoading, setIsTableLoading] = useState(true);
+  const [consumerData, setConsumerData] = useState(null);
+  const { isLoading, setLoading } = useLoading('dashboard_loading', true);
 
-  // Table data for meter status
-  const meterStatusData = [
+  // Fetch consumer data with caching
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const user = await getUser();
+        
+        if (user && user.identifier) {
+          // Check preloaded data first (ultra-fast)
+          const preloadedData = await cacheManager.getCachedData('consumer_data', user.identifier);
+          if (preloadedData.success) {
+            setConsumerData(preloadedData.data);
+            setLoading(false, 50);
+            console.log('⚡ Dashboard: Using preloaded data');
+          } else {
+            // Try cached data
+            const cachedResult = await getCachedConsumerData(user.identifier);
+            if (cachedResult.success) {
+              setConsumerData(cachedResult.data);
+              setLoading(false, 100);
+              console.log('⚡ Dashboard: Using cached data');
+            }
+          }
+          
+          // Fetch fresh data (will use cache if available, otherwise fetch from API)
+          const result = await fetchConsumerData(user.identifier);
+          if (result.success) {
+            setConsumerData(result.data);
+          }
+          
+          // Background sync for future updates
+          syncConsumerData(user.identifier).then((syncResult) => {
+            if (syncResult.success) {
+              setConsumerData(syncResult.data);
+            }
+          }).catch(error => {
+            console.error('Background sync failed:', error);
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching consumer data:', error);
+      } finally {
+        setLoading(false, 50);
+      }
+    };
+
+    fetchData();
+  }, [setLoading]);
+
+  // Table data for meter status - memoized for performance
+  const meterStatusData = useMemo(() => [
     {
       id: 1,
       eventName: "B_PH CT Open",
@@ -48,7 +105,7 @@ const Dashboard = ({ navigation, route }) => {
       status: "Start",
       isActive: false
     }
-  ];
+  ], []);
 
   // Load table data
   useEffect(() => {
@@ -69,20 +126,28 @@ const Dashboard = ({ navigation, route }) => {
     loadTableData();
   }, []);
   return (
-    <ScrollView
-      style={styles.Container}
-      contentContainerStyle={{ paddingBottom: 30 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.Container}>
-        <StatusBar style="dark" />
-        <DashboardHeader navigation={navigation} showBalance={true} />
+    <InstantLoader dataKey="dashboard_data" onDataReady={(data) => setConsumerData(data.data)}>
+      <ScrollView
+        style={styles.Container}
+        contentContainerStyle={{ paddingBottom: 30 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.Container}>
+          <StatusBar style="dark" />
+          <DashboardHeader 
+            navigation={navigation} 
+            showBalance={false}
+            consumerData={consumerData}
+            isLoading={isLoading}
+          />
 
         <View style={styles.meterContainer}>
           <View style={styles.meterInfoContainer}>
           <View style={styles.meterInfoRow}>
             <Meter width={30} height={30} />
-            <Text style={styles.meterConsumerText}>GMR AERO TOWER 2 INCOMER</Text>
+            <Text style={styles.meterConsumerText}>
+              {isLoading ? "Loading..." : (consumerData?.name || "GMR AERO TOWER 2 INCOMER")}
+            </Text>
           </View>
            <View style={styles.meterInfoColumn}>
            <Text style={styles.meterNumberText}>18132429</Text>
@@ -126,7 +191,7 @@ const Dashboard = ({ navigation, route }) => {
                   Monthly
                 </Text>
               </TouchableOpacity>
-              <Text> / </Text>
+              {/* <Text> / </Text>
               <TouchableOpacity onPress={() => setSelectedView("monthly")}>
                 <Text
                   style={
@@ -137,7 +202,7 @@ const Dashboard = ({ navigation, route }) => {
                 >
                   Pick Date
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
 
@@ -210,8 +275,11 @@ const Dashboard = ({ navigation, route }) => {
         />
       </View>
     </ScrollView>
+    </InstantLoader>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
 
 export default Dashboard;
 

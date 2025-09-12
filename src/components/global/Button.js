@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { COLORS } from '../../constants/colors';
 
-const Button = ({
+const Button = React.memo(({
   title,
   onPress,
   variant = 'primary', // 'primary', 'secondary', 'outline', 'ghost' ,'primary-outline', 'disabled'
@@ -14,7 +14,7 @@ const Button = ({
   children,
   ...props
 }) => {
-  const getButtonStyle = () => {
+  const getButtonStyle = useMemo(() => {
     const baseStyle = [styles.button, styles[size]];
     
     switch (variant) {
@@ -39,9 +39,9 @@ const Button = ({
     }
 
     return baseStyle;
-  };
+  }, [variant, size, disabled]);
 
-  const getTextStyle = () => {
+  const getTextStyle = useMemo(() => {
     const baseTextStyle = [styles.text, styles[`${size}Text`]];
     
     switch (variant) {
@@ -66,12 +66,18 @@ const Button = ({
     }
 
     return baseTextStyle;
-  };
+  }, [variant, size, disabled]);
+
+  const handlePress = useCallback(() => {
+    if (!disabled && !loading && onPress) {
+      onPress();
+    }
+  }, [disabled, loading, onPress]);
 
   return (
     <Pressable
-      style={[getButtonStyle(), style]}
-      onPress={onPress}
+      style={[getButtonStyle, style]}
+      onPress={handlePress}
       disabled={disabled || loading}
       {...props}
     >
@@ -83,12 +89,14 @@ const Button = ({
       ) : (
         <>
           {children}
-          {title && <Text style={[getTextStyle(), textStyle]}>{title}</Text>}
+          {title && <Text style={[getTextStyle, textStyle]}>{title}</Text>}
         </>
       )}
     </Pressable>
   );
-};
+});
+
+Button.displayName = 'Button';
 
 const styles = StyleSheet.create({
   button: {

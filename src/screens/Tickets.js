@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, ScrollView } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/colors";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Button from "../components/global/Button";
 import Table from "../components/global/Table";
 import CreateNewTicketModal from "../components/global/CreateNewTicketModal";
@@ -10,10 +11,88 @@ import ResolvedIcon from "../../assets/icons/resolved.svg";
 import ClosedIcon from "../../assets/icons/closed.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
 import { LinearGradient } from "expo-linear-gradient";
+import { fetchConsumerData, syncConsumerData, fetchTicketStats, fetchTicketsTable } from "../services/apiService";
+import { getUser } from "../utils/storage";
+import { getCachedConsumerData } from "../utils/cacheManager";
 
 
 const Tickets = ({ navigation }) => {
   const [showModal, setShowModal] = useState(false);
+  const [consumerData, setConsumerData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [ticketStats, setTicketStats] = useState({
+    total: 0,
+    open: 0,
+    inProgress: 0,
+    resolved: 0,
+    closed: 0
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [tableData, setTableData] = useState([]);
+  const [tableLoading, setTableLoading] = useState(true);
+
+  // Fetch data function
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setStatsLoading(true);
+      setTableLoading(true);
+      const user = await getUser();
+      
+      if (user && user.identifier) {
+        // Try to get cached data first for instant display
+        const cachedResult = await getCachedConsumerData(user.identifier);
+        if (cachedResult.success) {
+          setConsumerData(cachedResult.data);
+          setIsLoading(false);
+        }
+        
+        // Fetch fresh data
+        const result = await fetchConsumerData(user.identifier);
+        if (result.success) {
+          setConsumerData(result.data);
+        }
+        
+        // Fetch ticket statistics
+        const statsResult = await fetchTicketStats(user.identifier);
+        if (statsResult.success) {
+          setTicketStats(statsResult.data);
+        }
+        
+        // Fetch tickets table data
+        const tableResult = await fetchTicketsTable(user.identifier);
+        if (tableResult.success) {
+          setTableData(tableResult.data || []);
+        } else {
+          console.error('Failed to fetch tickets table:', tableResult.message);
+          setTableData([]); // Set empty array on failure
+        }
+        
+        // Background sync
+        syncConsumerData(user.identifier).catch(error => {
+          console.error('Background sync failed:', error);
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching consumer data:', error);
+    } finally {
+      setIsLoading(false);
+      setStatsLoading(false);
+      setTableLoading(false);
+    }
+  };
+
+  // Fetch consumer data with caching
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, [])
+  );
 
   const handleOpenModal = () => {
     setShowModal(true);
@@ -23,27 +102,6 @@ const Tickets = ({ navigation }) => {
     setShowModal(false);
   };
 
-  const tableData = [
-    {
-      id: 1,
-      ticketId: 298,
-      issueType: "Connection Issue",
-      status: "Open",
-
-    },
-    {
-      id: 2,
-      ticketId: 286,
-      issueType: "Meter Issue",
-      status: "Closed",
-    },
-    {
-      id: 3,
-      ticketId: 278,
-      issueType: "Meter Issue",
-      status: "Resolved",
-    },
-  ];
 
   return (
     <>
@@ -53,7 +111,13 @@ const Tickets = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
 
-        <DashboardHeader navigation={navigation} variant="tickets" showBalance={true} />
+        <DashboardHeader 
+          navigation={navigation} 
+          variant="tickets" 
+          showBalance={false}
+          consumerData={consumerData}
+          isLoading={isLoading}
+        />
         <View style={styles.TicketContainer}>
           <Text style={styles.usageText}>Tickets</Text>
           <Button
@@ -70,7 +134,9 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>Open Tickets</Text>
-              <Text style={styles.TicketBoxNumber}>4</Text>
+              <Text style={styles.TicketBoxNumber}>
+                {statsLoading ? "..." : ticketStats.open}
+              </Text>
             </View>
                 <LinearGradient
                   colors={["#E6F6ED", "#C2EAD2"]}
@@ -84,7 +150,9 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>In Progress</Text>
-              <Text style={styles.TicketBoxNumber}>4</Text>
+              <Text style={styles.TicketBoxNumber}>
+                {statsLoading ? "..." : ticketStats.inProgress}
+              </Text>
             </View>
               <LinearGradient
                 colors={["#E6F6ED", "#C2EAD2"]}
@@ -97,8 +165,10 @@ const Tickets = ({ navigation }) => {
           </View>
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
-              <Text style={styles.TicketBoxtext}>Resloved</Text>
-              <Text style={styles.TicketBoxNumber}>3</Text>
+              <Text style={styles.TicketBoxtext}>Resolved</Text>
+              <Text style={styles.TicketBoxNumber}>
+                {statsLoading ? "..." : ticketStats.resolved}
+              </Text>
             </View>
               <LinearGradient
                 colors={["#E6F6ED", "#C2EAD2"]}
@@ -112,7 +182,9 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>Closed</Text>
-              <Text style={styles.TicketBoxNumber}>1</Text>
+              <Text style={styles.TicketBoxNumber}>
+                {statsLoading ? "..." : ticketStats.closed}
+              </Text>
             </View>
             <LinearGradient
               colors={["#E6F6ED", "#C2EAD2"]}
@@ -127,21 +199,21 @@ const Tickets = ({ navigation }) => {
         <View style={styles.TicketContainerThree}>
           <Table
             data={tableData}
-            loading={false}
-            emptyMessage="No ticket data available"
+            loading={tableLoading}
+            emptyMessage="No tickets available"
             showSerial={true}
-            showPriority={true}
+            showPriority={false}
             inlinePriority
-            priorityField="issueType"
+            priorityField="category"
             priorityMapping={{
-              "Connection Issue": "High",
-              // "Meter Issue": "medium",
-              // "Billing Issue": "low",
-              // "Technical Issue": "high"
+              "BILLING": "Low",
+              "METER": "High",
+              "CONNECTION": "High",
+              "TECHNICAL": "High"
             }}
             columns={[
-              { key: 'ticketId', title: 'Ticket ID', flex: 1 },
-              { key: 'issueType', title: 'Category', flex: 2 },
+              { key: 'ticketNumber', title: 'Ticket ID', flex: 1 },
+              { key: 'category', title: 'Category', flex: 2 },
               { key: 'status', title: 'Status', flex: 1 }
             ]}
           />
