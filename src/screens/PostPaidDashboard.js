@@ -6,7 +6,7 @@ import {
     TouchableOpacity,
     ActivityIndicator
   } from "react-native";
-  import React, { useEffect, useRef, useState } from "react";
+  import React, { useEffect, useState, useCallback } from "react";
   import { StatusBar } from "expo-status-bar";
   import { COLORS } from "../constants/colors";
   import Arrow from "../../assets/icons/arrow.svg";
@@ -19,6 +19,8 @@ import DashboardHeader from "../components/global/DashboardHeader";
   import LastCommunicationIcon from "../../assets/icons/signal.svg";
 import { GLOBAL_API_URL } from "../constants/constants";
 import { getUser, getToken } from "../utils/storage";
+import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
+// import { GestureHandlerRootView } from 'react-native-gesture-handler';
   
   // Dynamic API URL will be set based on authenticated user
 
@@ -32,6 +34,10 @@ import { getUser, getToken } from "../utils/storage";
     //  const { isGuest } = route.params || {};
   const [consumerData, setConsumerData] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Bottom sheet state
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
 
     // Table data for meter status
     const meterStatusData = [
@@ -206,7 +212,26 @@ import { getUser, getToken } from "../utils/storage";
     const monthlyData = consumerData.chartData.monthly.seriesData[0].data;
     return monthlyData[monthlyData.length - 1] || 0; // Get last value
   };
-    return (
+
+  // Bottom sheet handlers
+  const handleConsumerPress = useCallback(() => {
+    console.log('🖱️ Consumer pressed, UID:', consumerData?.uniqueIdentificationNo);
+    if (consumerData?.uniqueIdentificationNo) {
+      setSelectedConsumerUid(consumerData.uniqueIdentificationNo);
+      setBottomSheetVisible(true);
+      console.log('✅ Bottom sheet opened');
+    } else {
+      console.log('❌ No consumer UID available');
+    }
+  }, [consumerData?.uniqueIdentificationNo]);
+
+  const handleBottomSheetClose = useCallback(() => {
+    setBottomSheetVisible(false);
+    setSelectedConsumerUid(null);
+  }, []);
+
+  return (
+    <>
       <ScrollView
         style={styles.Container}
         contentContainerStyle={{ paddingBottom: 30 }}
@@ -227,7 +252,11 @@ import { getUser, getToken } from "../utils/storage";
             ) : (
               consumerData && (
                 <>
-                  <View style={styles.meterInfoContainer}>
+                  <TouchableOpacity 
+                    style={styles.meterInfoContainer}
+                    onPress={handleConsumerPress}
+                    // activeOpacity={0.7}
+                  >
                     <View style={{display: "flex", flexDirection: "row", alignItems: "center", gap: 10, width: "50%"}}>
                       <Meter width={30} height={30} />
                       <Text style={styles.meterConsumerText}>
@@ -235,6 +264,9 @@ import { getUser, getToken } from "../utils/storage";
                       </Text>
                     </View>
                     <View style={{display: "flex", flexDirection: "column", alignItems: "flex-end"}}>
+                    <Text style={styles.meterNumberText}>
+                      Meter SL No
+                    </Text>
                       <Text style={styles.meterNumberText}>
                         {consumerData.meterSerialNumber || "Loading..."}
                       </Text>
@@ -242,7 +274,10 @@ import { getUser, getToken } from "../utils/storage";
                         UID: {consumerData.uniqueIdentificationNo || "Loading..."}
                       </Text>
                     </View>
-                  </View>
+                    <View style={styles.tapIndicator}>
+                      <Text style={styles.tapIndicatorText}>Tap for details</Text>
+                    </View>
+                  </TouchableOpacity>
 
                   <View style={styles.lastCommunicationContainer}>
                       <View style={styles.lastCommunicationLeft}>
@@ -306,7 +341,7 @@ import { getUser, getToken } from "../utils/storage";
               </View>
             </View>
   
-            <View style={styles.datePickerSection}>
+            {/* <View style={styles.datePickerSection}>
               <DatePicker
                 placeholder="Start Date"
                 value={startDate}
@@ -317,7 +352,7 @@ import { getUser, getToken } from "../utils/storage";
                 value={endDate}
                 onChange={setEndDate}
               />
-            </View>
+            </View> */}
   
             <View style={styles.graphsContainer}>
               {selectedView === "daily" ? (
@@ -379,7 +414,10 @@ import { getUser, getToken } from "../utils/storage";
               )}
             </View>
           </View>
-          <Table 
+          <View style={styles.tableContainer}>
+            <Text style={styles.tableTitle}>Alerts</Text>
+            </View>
+            <Table 
             data={tableData}
             loading={isTableLoading}
             emptyMessage={consumerData?.alerts?.length === 0 ? "No tamper alerts available" : "No meter status data available"}
@@ -398,10 +436,20 @@ import { getUser, getToken } from "../utils/storage";
               { key: 'status', title: 'Status', flex: 1 }
             ]}
           />
+          
+          
         </View>
       </ScrollView>
-    );
-  };
+
+      {/* Consumer Details Bottom Sheet */}
+      <ConsumerDetailsBottomSheet
+        visible={bottomSheetVisible}
+        consumerUid={selectedConsumerUid}
+        onClose={handleBottomSheetClose}
+      />
+    </>
+  );
+};
   
   export default PostPaidDashboard;
   
@@ -505,6 +553,21 @@ import { getUser, getToken } from "../utils/storage";
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
+      position: "relative",
+    },
+    tapIndicator: {
+      position: "absolute",
+      bottom: 5,
+      left: 5,
+      backgroundColor: "rgba(255, 255, 255, 0.2)",
+      paddingHorizontal: 10,
+      paddingVertical: 2,
+      borderRadius: 10,
+    },
+    tapIndicatorText: {
+      fontSize: 7,
+      fontFamily: "Manrope-SemiBold",
+      color: COLORS.secondaryFontColor,
     },
 
   lastCommunicationContainer:{
@@ -574,13 +637,27 @@ lastCommunicationTimeText: {
     meterUIDText:{
       color: '#E9EAEE',
       fontSize: 10,
-      fontFamily: "Manrope-Regular",
+      fontFamily: "Manrope-Bold",
+      backgroundColor: COLORS.secondaryColor,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      borderRadius: 5,
+      color: COLORS.secondaryFontColor,
     },
     datePickerSection: {
       marginBottom: 20,
       gap: 10,
     },
     datePickerLabel: {
+      fontSize: 16,
+      fontFamily: 'Manrope-SemiBold',
+      color: COLORS.primaryFontColor,
+      marginBottom: 10,
+    },
+    tableContainer: {
+      paddingHorizontal: 20,
+    },
+    tableTitle: {
       fontSize: 16,
       fontFamily: 'Manrope-SemiBold',
       color: COLORS.primaryFontColor,

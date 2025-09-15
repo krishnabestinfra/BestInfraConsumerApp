@@ -21,5 +21,11 @@
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
     </activity>
+    <!-- Razorpay Payment Activity -->
+    <activity 
+      android:name="com.razorpay.CheckoutActivity" 
+      android:exported="true" 
+      android:theme="@style/CheckoutTheme"
+      android:screenOrientation="portrait" />
   </application>
 </manifest>

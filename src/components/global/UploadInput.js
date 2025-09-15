@@ -272,6 +272,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   text: {
+    fontSize: 9,
     color: COLORS.primaryFontColor,
     fontFamily: 'Manrope-Regular',
   },
