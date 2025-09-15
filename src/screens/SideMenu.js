@@ -6,7 +6,7 @@ import Notification from "../../assets/icons/notification.svg";
 import BiLogo from "../../assets/icons/LogoWhite.svg";
 import Dashboard from "./Dashboard";
 import Usage from "./Usage";
-import Payments from "./Payments";
+import PostPaidRechargePayments from "./PostPaidRechargePayments";
 import Transactions from "./Transactions";
 import Tickets from "./Tickets";
 import Settings from "./Settings";
@@ -35,8 +35,8 @@ const SideMenu = ({ navigation }) => {
         return <Dashboard />;
       case "Usage":
         return <Usage />;
-      case "Payments":
-        return <Payments />;
+      case "PostPaidRechargePayments":
+        return <PostPaidRechargePayments />;
       case "Transactions":
         return <Transactions />;
       case "Tickets":
@@ -72,8 +72,8 @@ const SideMenu = ({ navigation }) => {
           <SideMenuNavigation navigation={navigation} activeItem={activeItem} handleMenuPress={handleMenuPress}/>
         </View>
         <View style={styles.componentsbar}>
-          <View style={styles.DashComponentsbar}>
-            <ScrollView scrollEnabled={false}>
+          <ScrollView style={styles.DashComponentsbar}>
+            <View>
               <Pressable
                 onPress={() => {
                   navigation.navigate(activeItem);
@@ -81,13 +81,13 @@ const SideMenu = ({ navigation }) => {
               >
                 {renderContent()}
               </Pressable>
-            </ScrollView>
-          </View>
-          <View style={styles.LoginComponentsbar}>
+            </View>
+          </ScrollView>
+          <ScrollView style={styles.LoginComponentsbar}>
             <BlurView intensity={50} tint="dark" style={styles.blurContainer}>
-              <ScrollView scrollEnabled={false}>{renderContent()}</ScrollView>
+              <View>{renderContent()}</View>
             </BlurView>
-          </View>
+          </ScrollView>
         </View>
       </View>
     </View>
@@ -152,32 +152,36 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   menubar: {
-    width: "50%",
+    width: "45%",
     paddingLeft: 30,
     paddingTop: 30,
     display: "flex",
     justifyContent: "space-between",
+    height:"87%"
   },
   componentsbar: {
     position: "relative",
-    height: "100%",
+    height: "75%",
   },
   DashComponentsbar: {
-    height: 670,
+    top:40,
+    height: "100%",
     backgroundColor: "#eef8f0",
     borderTopLeftRadius: 30,
+     borderBottomLeftRadius: 30,
     zIndex: 999,
+    // bottom:70,
     marginLeft: 60,
     elevation: 10,
   },
   LoginComponentsbar: {
     position: "absolute",
-    height: 620,
+    height: "85%",
     left: 25,
-    top: 50,
+    top: 80,
     backgroundColor: "#eef8f0",
     borderTopLeftRadius: 30,
-    borderBottomLeftRadius: 0,
+    borderBottomLeftRadius: 30,
     elevation: 10,
     opacity: 0.3,
   },

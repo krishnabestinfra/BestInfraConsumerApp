@@ -34,6 +34,11 @@ const DashboardHeader = React.memo(({
   const [userName, setUserName] = useState('');
   const [cachedConsumerData, setCachedConsumerData] = useState(null);
   const { isLoading: isUserLoading, setLoading: setUserLoading } = useLoading('user_loading', true);
+  const [notificationCount, setNotificationCount] = useState(3); 
+  const notification = () => {
+  setNotificationCount(prev => prev + 1);
+};
+
 
   useEffect(() => {
     const loadUser = async () => {
@@ -186,10 +191,17 @@ const DashboardHeader = React.memo(({
         </View>
         
         <Pressable
-          style={styles.bellIcon}
+          style={styles.bellWrapper}
           onPress={() => navigation.navigate('Profile')}
         >
+          <View style={styles.bellIcon}>
           <Notification width={18} height={18} fill="#202d59" />
+          </View>
+          {notificationCount > 0 &&(
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{notificationCount}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
       
@@ -243,7 +255,7 @@ const DashboardHeader = React.memo(({
             </View>
           </View>
           <View style={styles.paynowbox}>
-            <Text style={styles.paynowText}>Pay Now</Text>
+            <Text style={styles.paynowText}>Pay Now 3</Text>
           </View>
         </View>
       </View>
@@ -297,6 +309,32 @@ const styles = StyleSheet.create({
     elevation: 5,
     zIndex: 2,
   },
+
+  bellWrapper: {
+  position: 'relative',
+},
+badge: {
+  position: 'absolute',
+  right: 0,
+  // top: 4,
+  bottom:33,
+  backgroundColor: 'red',
+  width: 23,
+  height: 23,
+  borderRadius: 15,
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderWidth: 1,
+  borderColor: '#fff',
+  zIndex: 2,
+
+},
+badgeText: {
+  color: '#fff',
+  fontSize: 12,
+  fontFamily:'Manrope-Medium'
+},
+
   ProfileBox: {
     display: 'flex',
     justifyContent: 'space-between',
