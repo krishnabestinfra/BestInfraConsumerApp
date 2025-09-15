@@ -43,7 +43,11 @@ const SideMenuNavigation = ({ navigation }) => {
       <View style={styles.Topmenubar}>
         <Pressable
           style={styles.flex}
-          onPress={() => handleMenuPress("Dashboard")}
+          // onPress={() => handleMenuPress("Dashboard")}
+          onPress={() =>{
+              setActiveItem("Dashboard");
+              navigation.navigate("PostPaidDashboard");
+            }}
         >
           {activeItem === "Dashboard" ? (
             <>
@@ -77,7 +81,7 @@ const SideMenuNavigation = ({ navigation }) => {
             Dashboard
           </Text>
         </Pressable>
-        <Pressable style={styles.flex} onPress={() => handleMenuPress("Usage")}>
+        {/* <Pressable style={styles.flex} onPress={() => handleMenuPress("Usage")}>
           {activeItem === "Usage" ? (
             <>
               <ActiveUsage
@@ -109,19 +113,19 @@ const SideMenuNavigation = ({ navigation }) => {
           >
             Usage
           </Text>
-        </Pressable>
+        </Pressable> */}
         <Pressable
           style={styles.flex}
-          onPress={() => handleMenuPress("Payments")}
+          onPress={() => handleMenuPress("PostPaidRechargePayments")}
         >
-          {activeItem === "Payments" ? (
+          {activeItem === "PostPaidRechargePayments" ? (
             <>
               <ActivePayments
                 width={18}
                 height={18}
                 style={[
                   styles.iconStyle,
-                  activeItem === "Payments" && styles.activeIcon,
+                  activeItem === "PostPaidRechargePayments" && styles.activeIcon,
                 ]}
               />
             </>
@@ -132,7 +136,7 @@ const SideMenuNavigation = ({ navigation }) => {
                 height={18}
                 style={[
                   styles.iconStyle,
-                  activeItem === "Payments" && styles.activeIcon,
+                  activeItem === "PostPaidRechargePayments" && styles.activeIcon,
                 ]}
               />
             </>
@@ -140,7 +144,7 @@ const SideMenuNavigation = ({ navigation }) => {
           <Text
             style={[
               styles.menuText,
-              activeItem === "Payments" && styles.activeText,
+              activeItem === "PostPaidRechargePayments" && styles.activeText,
             ]}
           >
             Payments
@@ -218,9 +222,45 @@ const SideMenuNavigation = ({ navigation }) => {
             Tickets
           </Text>
         </Pressable>
+        <Pressable
+          style={styles.flex}
+          onPress={() => handleMenuPress("DG")}
+        >
+          {activeItem === "DG" ? (
+            <>
+              <ActiveTickets
+                width={18}
+                height={18}
+                style={[
+                  styles.iconStyle,
+                  activeItem === "DG" && styles.activeIcon,
+                ]}
+              />
+            </>
+          ) : (
+            <>
+              <TicketsIcon
+                width={18}
+                height={18}
+                style={[
+                  styles.iconStyle,
+                  activeItem === "DG" && styles.activeIcon,
+                ]}
+              />
+            </>
+          )}
+          <Text
+            style={[
+              styles.menuText,
+              activeItem === "DG" && styles.activeText,
+            ]}
+          >
+            Diesel Generator
+          </Text>
+        </Pressable>
       </View>
       <View style={styles.Bottommenubar}>
-        <Pressable
+        {/* <Pressable
           style={styles.flex}
           onPress={() => handleMenuPress("Settings")}
         >
@@ -255,7 +295,7 @@ const SideMenuNavigation = ({ navigation }) => {
           >
             Settings
           </Text>
-        </Pressable>
+        </Pressable> */}
         <Button
           title="Logout"
           variant="ghost"

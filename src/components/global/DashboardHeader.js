@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import GlobeShield from '../../../assets/icons/globe-shield.svg';
@@ -16,29 +16,90 @@ import Plus from '../../../assets/icons/plus.svg';
 import Menu from '../../../assets/icons/bars.svg';
 import WalletActive from '../../../assets/icons/wallet.svg';
 import Notification from '../../../assets/icons/notification.svg';
-import { getUser } from '../../utils/storage';
+import { getUser, getConsumerDisplayName, cleanupStoredUserData } from '../../utils/storage';
+import { getCachedConsumerData, backgroundSyncConsumerData } from '../../utils/cacheManager';
+import { cacheManager } from '../../utils/cacheManager';
+import { useLoading } from '../../utils/loadingManager';
 import Logo from './Logo';
 import AnimatedRings from './AnimatedRings';
 
-const DashboardHeader = ({ 
+const DashboardHeader = React.memo(({ 
   navigation, 
   showRings = true,
-  variant = 'default' // 'default', 'payments', 'tickets', 'usage', 'invoices'
+  variant = 'default', // 'default', 'payments', 'tickets', 'usage', 'invoices'
+  showBalance = true, // Control balance section visibility
+  consumerData = null, // API consumer data
+  isLoading = false // Loading state
 }) => {
   const [userName, setUserName] = useState('');
+  const [cachedConsumerData, setCachedConsumerData] = useState(null);
+  const { isLoading: isUserLoading, setLoading: setUserLoading } = useLoading('user_loading', true);
 
   useEffect(() => {
     const loadUser = async () => {
-      const user = await getUser();
-      if (user) {
-        setUserName(user.name);
+      try {
+        setUserLoading(true);
+        // Clean up any stored UIDs in user data
+        await cleanupStoredUserData();
+        const user = await getUser();
+        
+        if (user && user.identifier) {
+          // Check preloaded data first (ultra-fast)
+          const preloadedData = await cacheManager.getCachedData('consumer_data', user.identifier);
+          if (preloadedData.success) {
+            setCachedConsumerData(preloadedData.data);
+            setUserName(preloadedData.data.name || user.name || 'Consumer');
+            setUserLoading(false, 50); // Minimum 50ms loading time
+            console.log('⚡ DashboardHeader: Using preloaded data');
+          } else {
+            // Try cached data
+            const cachedResult = await getCachedConsumerData(user.identifier);
+            if (cachedResult.success) {
+              setCachedConsumerData(cachedResult.data);
+              setUserName(cachedResult.data.name || user.name || 'Consumer');
+              setUserLoading(false, 100);
+              console.log('⚡ DashboardHeader: Using cached data');
+            } else if (user.name) {
+              setUserName(user.name);
+              setUserLoading(false, 50);
+            }
+          }
+          
+          // Background sync to get fresh data
+          backgroundSyncConsumerData(user.identifier).then((result) => {
+            if (result.success) {
+              setCachedConsumerData(result.data);
+              setUserName(result.data.name || user.name || 'Consumer');
+            }
+          }).catch(error => {
+            console.error('Background sync failed:', error);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setUserLoading(false, 50);
       }
     };
     loadUser();
-  }, []);
+  }, [setUserLoading]);
 
-  // Navigation configuration - single source of truth
-  const navigationItems = [
+  // Refresh user data when consumerData changes
+  useEffect(() => {
+    if (consumerData && consumerData.name) {
+      setUserName(consumerData.name);
+    }
+  }, [consumerData]);
+
+  // Get the display name with proper fallback logic - memoized for performance
+  const getDisplayName = useCallback(() => {
+    // Use cached data first, then API data, then stored name
+    const dataSource = cachedConsumerData || consumerData;
+    return getConsumerDisplayName(dataSource, userName, isLoading || isUserLoading);
+  }, [cachedConsumerData, consumerData, userName, isLoading, isUserLoading]);
+
+  // Navigation configuration - memoized for performance
+  const navigationItems = useMemo(() => [
     {
       key: 'payments',
       label: 'Recharge',
@@ -71,17 +132,17 @@ const DashboardHeader = ({
       activeIcon: ActiveUsageIcon,
       iconSize: { width: 20, height: 20 }
     }
-  ];
+  ], []);
 
-  // Handle navigation press
-  const handleNavigationPress = (item) => {
+  // Handle navigation press - memoized for performance
+  const handleNavigationPress = useCallback((item) => {
     if (item.route) {
       navigation.navigate(item.route);
     }
-  };
+  }, [navigation]);
 
-  // Render individual navigation item
-  const renderNavigationItem = (item) => {
+  // Render individual navigation item - memoized for performance
+  const renderNavigationItem = useCallback((item) => {
     const isActive = variant === item.key;
     const IconComponent = isActive ? item.activeIcon : item.icon;
     const iconColor = isActive ? COLORS.secondaryFontColor : '#55B56C';
@@ -107,7 +168,7 @@ const DashboardHeader = ({
         </Text>
       </Pressable>
     );
-  };
+  }, [variant, handleNavigationPress]);
 
   return (
     <View style={styles.bluecontainer}>
@@ -135,25 +196,36 @@ const DashboardHeader = ({
       <View style={styles.ProfileBox}>
         <View>
           <View style={styles.greetingContainer}>
-            <Text style={styles.hiText}>Hi, {userName} </Text>
+            <Text style={styles.hiText}>
+              Hi, {getDisplayName()}
+            </Text>
             <Hand width={30} height={30} fill="#55B56C" />
           </View>
           <Text style={styles.stayingText}>Staying efficient today?</Text>
         </View>
-        <View>
-          <Text style={styles.balanceText}>Balance</Text>
-          <View style={styles.balanceContainer}>
-            <Text style={styles.amountText}>₹1,245</Text>
-            <View style={styles.plusBox}>
-              <Plus width={20} height={20} fill="#55B56C" />
+
+        {/* Conditionally render balance section */}
+        {showBalance && (
+          <View>
+            <Text style={styles.balanceText}>Balance</Text>
+            <View style={styles.balanceContainer}>
+              <Text style={styles.amountText}>
+                {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ? `₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString()}` : "₹1,245")}
+              </Text>
+              <View style={styles.plusBox}>
+                <Plus width={20} height={20} fill="#55B56C" />
+              </View>
             </View>
           </View>
-        </View>
+        )}
+
       </View>
       
       <View style={styles.amountSection}>
         <View style={styles.amountContainer}>
-          <Text style={styles.dueText}>Due Amount: ₹3,180</Text>
+          <Text style={styles.dueText}>
+            Due Amount: {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ? `₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString()}` : "₹3,180")}
+          </Text>
           <Text style={styles.dateText}>This Month</Text>
         </View>
         <View style={styles.greenBox}>
@@ -182,7 +254,7 @@ const DashboardHeader = ({
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   bluecontainer: {
@@ -381,5 +453,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope-Bold',
   },
 });
+
+DashboardHeader.displayName = 'DashboardHeader';
 
 export default DashboardHeader;

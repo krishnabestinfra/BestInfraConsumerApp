@@ -1,6 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useEffect } from 'react';
+import { Alert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 
 const UploadInput = ({
   label,
@@ -19,29 +22,24 @@ const UploadInput = ({
   disabled = false,
   ...props
 }) => {
-  const handleUpload = () => {
-    if (disabled) return;
-    
-    // Placeholder for actual file upload logic
-    // In a real app, you would use a library like react-native-image-picker
-    console.log('Upload triggered', { multiple, accept, maxFiles });
-    
-    // For demo purposes, simulate file selection
-    if (onChange) {
-      const mockFile = {
-        uri: 'file://mock-image.jpg',
-        name: 'mock-image.jpg',
-        type: 'image/jpeg',
-        size: 1024,
-      };
-      
-      if (multiple) {
-        onChange([...value, mockFile]);
-      } else {
-        onChange([mockFile]);
-      }
-    }
-  };
+
+const handleUpload = async () => {
+  if (disabled) return;
+
+  const hasPermission = await requestPermissions();
+  if (!hasPermission) return;
+
+  Alert.alert(
+    'Upload Image',
+    'Choose an option',
+    [
+      { text: 'Take a Photo', onPress: () => openCamera() },
+      { text: 'Choose from Library', onPress: () => openImageLibrary() },
+      { text: 'Cancel', style: 'cancel' }
+    ]
+  );
+};
+
 
   const removeFile = (index) => {
     if (disabled) return;
@@ -49,6 +47,73 @@ const UploadInput = ({
     const newFiles = value.filter((_, i) => i !== index);
     onChange(newFiles);
   };
+
+  const requestPermissions = async () => {
+  if (disabled) return false;
+
+  const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
+  const libraryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+  if (cameraStatus.status !== 'granted' || libraryStatus.status !== 'granted') {
+    alert('Permissions for camera and library are required.');
+    return false;
+  }
+  return true;
+};
+
+const openCamera = async () => {
+  try {
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      handleSelectedFiles(result.assets);
+    }
+  } catch (error) {
+    console.log('Error opening camera:', error);
+    alert('An error occurred while accessing the camera.');
+  }
+};
+
+const openImageLibrary = async () => {
+  try {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: multiple,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      handleSelectedFiles(result.assets);
+    }
+  } catch (error) {
+    console.log('Error opening library:', error);
+    alert('An error occurred while accessing the library.');
+  }
+};
+
+const handleSelectedFiles = (assets) => {
+  let selectedFiles = assets.map(asset => ({
+    uri: asset.uri,
+    name: asset.fileName || asset.uri.split('/').pop(),
+    type: asset.type || 'image/jpeg',
+    size: asset.fileSize || 0,
+  }));
+
+  if (!multiple) {
+    selectedFiles = selectedFiles.slice(0, 1);
+  }
+
+  if (value.length + selectedFiles.length > maxFiles) {
+    alert(`You can upload up to ${maxFiles} files.`);
+    selectedFiles = selectedFiles.slice(0, maxFiles - value.length);
+  }
+
+  onChange([...value, ...selectedFiles]);
+};
+
 
   const getContainerStyle = () => {
     const baseStyle = [styles.inputContainer, styles[`${variant}Container`], styles[size]];
@@ -158,7 +223,7 @@ const UploadInput = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: 10,
   },
   label: {
     fontSize: 14,
@@ -170,7 +235,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontFamily: 'Manrope-Regular',
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderStyle: 'dashed',
   },
   // Variant styles
@@ -181,8 +246,7 @@ const styles = StyleSheet.create({
   },
   outlinedContainer: {
     borderWidth: 2,
-    borderColor: '#E5E5E5',
-    backgroundColor: '#FAFAFA',
+    borderColor: '#c3f7cfff',
   },
   filledContainer: {
     borderWidth: 0,
@@ -208,6 +272,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   text: {
+    fontSize: 9,
     color: COLORS.primaryFontColor,
     fontFamily: 'Manrope-Regular',
   },
@@ -222,6 +287,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: '#6E6E6E',
+    fontSize:20,
   },
   fileNames: {
     fontSize: 12,
@@ -233,11 +299,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    backgroundColor: COLORS.primaryColor,
+    // backgroundColor: COLORS.primaryColor,
   },
   browseButtonText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 14,
+    color: COLORS.secondaryColor,
+    fontSize: 17,
+    fontWeight:"700",
     fontFamily: 'Manrope-Medium',
   },
   // Files preview

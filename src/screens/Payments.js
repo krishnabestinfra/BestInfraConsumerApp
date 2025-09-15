@@ -1,17 +1,58 @@
 import { StyleSheet, Text, View, ScrollView, StatusBar } from "react-native";
 import { COLORS } from "../constants/colors";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
 import RechargeRadioButton from "../components/global/RechargeRadioButton";
 import DashboardHeader from "../components/global/DashboardHeader";
+import { fetchConsumerData, syncConsumerData } from "../services/apiService";
+import { getUser } from "../utils/storage";
+import { getCachedConsumerData } from "../utils/cacheManager";
 
 
-const Payments = ({ navigation }) => {
+const Payments = React.memo(({ navigation }) => {
   const [selectedOption, setSelectedOption] = useState("option3");
   const [customAmount, setCustomAmount] = useState("");
+  const [consumerData, setConsumerData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const rechargeOptions = [
+  // Fetch consumer data with caching
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const user = await getUser();
+        
+        if (user && user.identifier) {
+          // Try to get cached data first for instant display
+          const cachedResult = await getCachedConsumerData(user.identifier);
+          if (cachedResult.success) {
+            setConsumerData(cachedResult.data);
+            setIsLoading(false);
+          }
+          
+          // Fetch fresh data
+          const result = await fetchConsumerData(user.identifier);
+          if (result.success) {
+            setConsumerData(result.data);
+          }
+          
+          // Background sync
+          syncConsumerData(user.identifier).catch(error => {
+            console.error('Background sync failed:', error);
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching consumer data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const rechargeOptions = useMemo(() => [
     {
       value: "option1",
       label: "Option 1",
@@ -27,18 +68,18 @@ const Payments = ({ navigation }) => {
       label: "Option 3", 
       amount: "₹1,245"
     }
-  ];
+  ], []);
 
-  const handleOptionSelect = (value) => {
+  const handleOptionSelect = useCallback((value) => {
     setSelectedOption(value);
-  };
+  }, []);
 
-  const handleCustomAmountChange = (text) => {
+  const handleCustomAmountChange = useCallback((text) => {
     setCustomAmount(text);
     if (text && text.length > 0) {
       setSelectedOption("");
     }
-  };
+  }, []);
 
   return (
     <>
@@ -49,7 +90,13 @@ const Payments = ({ navigation }) => {
       >
 
         <StatusBar barStyle="dark-content" />
-        <DashboardHeader navigation={navigation} variant="payments" />
+        <DashboardHeader 
+          navigation={navigation} 
+          variant="payments" 
+          showBalance={false}
+          consumerData={consumerData}
+          isLoading={isLoading}
+        />
 
         <View style={styles.contentSection}>
           <View style={styles.inputContainer}>
@@ -87,7 +134,9 @@ const Payments = ({ navigation }) => {
       </View>
     </>
   );
-};
+});
+
+Payments.displayName = 'Payments';
 
 export default Payments;
 

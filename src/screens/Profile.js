@@ -33,7 +33,7 @@ const Profile = ({ navigation }) => {
         >
           <Menu width={18} height={18} fill="#202d59" />
         </Pressable>
-        <Pressable onPress={() => navigation.navigate("Dashboard")}>
+        <Pressable onPress={() => navigation.navigate("PostPaidDashboard")}>
           {/* <Image icon={BiLogo} size={45} /> */}
           <Logo variant="white" size="medium" />
         </Pressable>

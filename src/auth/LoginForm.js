@@ -16,16 +16,15 @@ import User from '../../assets/icons/user.svg';
 
 // Zod schema for login validation
 const loginSchema = z.object({
-  uid: z
+  identifier: z
     .string()
-    .min(3, "UID must be at least 3 characters")
-    .max(50, "UID must not exceed 50 characters")
-    .regex(/^[a-zA-Z0-9_]+$/, "UID must contain only letters, numbers, and underscores"),
+    .min(3, "Identifier must be at least 3 characters")
+    .max(50, "Identifier must not exceed 50 characters")
+    .regex(/^[a-zA-Z0-9_]+$/, "Identifier must contain only letters, numbers, and underscores"),
   password: z
     .string()
-    .min(6, "Password must be at least 6 characters")
+    .min(1, "Password is required")
     .max(100, "Password must not exceed 100 characters")
-    .regex(/(?=.*[a-zA-Z])(?=.*\d)/, "Password must contain at least one letter and one number")
 });
 
 const LoginForm = ({
@@ -44,17 +43,15 @@ const LoginForm = ({
   const [showPassword, setShowPassword] = useState(false);
   const [hasAnyInput, setHasAnyInput] = useState(false);
 
-  // Dummy credentials for testing
-  const dummyCredentials = {
-    uid: "user123",
-    password: "pass123"
-  };
+  // Demo credentials available for testing:
+  // Username: demo, test, admin, user, or BI25GMRA001-BI25GMRA020
+  // Password: demo123, test123, admin123, user123, or demo123 respectively
 
   // Check if any input is entered
   useEffect(() => {
-    const hasUid = email && email.trim().length > 0;
+    const hasIdentifier = email && email.trim().length > 0;
     const hasPassword = password && password.trim().length > 0;
-    setHasAnyInput(hasUid || hasPassword);
+    setHasAnyInput(hasIdentifier || hasPassword);
   }, [email, password]);
 
   const handleInputChange = (field, value) => {
@@ -64,7 +61,7 @@ const LoginForm = ({
     }
     
     switch (field) {
-      case 'uid':
+      case 'identifier':
         setEmail(value);
         break;
       case 'password':
@@ -75,8 +72,8 @@ const LoginForm = ({
 
   const validateField = (field, value) => {
     try {
-      if (field === 'uid') {
-        loginSchema.shape.uid.parse(value);
+      if (field === 'identifier') {
+        loginSchema.shape.identifier.parse(value);
       } else if (field === 'password') {
         loginSchema.shape.password.parse(value);
       }
@@ -94,7 +91,7 @@ const LoginForm = ({
     
     let value;
     switch (field) {
-      case 'uid':
+      case 'identifier':
         value = email;
         break;
       case 'password':
@@ -113,10 +110,10 @@ const LoginForm = ({
 
   const handleLoginWithValidation = async () => {
     // Mark all fields as touched
-    setTouched({ uid: true, password: true });
+    setTouched({ identifier: true, password: true });
     
     // Validate entire form using Zod
-    const formData = { uid: email, password };
+    const formData = { identifier: email, password };
     
     try {
       loginSchema.parse(formData);
@@ -133,12 +130,6 @@ const LoginForm = ({
     }
   };
 
-  const fillDummyCredentials = () => {
-    setEmail(dummyCredentials.uid);
-    setPassword(dummyCredentials.password);
-    setErrors({});
-    setTouched({});
-  };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -148,16 +139,16 @@ const LoginForm = ({
     <View style={styles.Container}>
       <View style={styles.inputBoxes}>
         <Input
-          placeholder="Email / Phone Number"
+          placeholder="User Name"
           value={email}
-          onChangeText={(value) => handleInputChange('uid', value)}
-          onBlur={() => handleBlur('uid')}
+          onChangeText={(value) => handleInputChange('identifier', value)}
+          onBlur={() => handleBlur('identifier')}
           autoCapitalize="none"
-          keyboardType="email-address"
+          keyboardType="default"
           variant="default"
           size="medium"
           style={styles.inputContainer}
-          error={touched.uid ? errors.uid : null}
+          error={touched.identifier ? errors.identifier : null}
           rightIcon={
             <User 
               width={20} 
@@ -229,14 +220,6 @@ const LoginForm = ({
         disabled={isLoading || !hasAnyInput}
       />
 
-      <Button 
-        title="Fill Dummy Credentials" 
-        variant="outline" 
-        size="small"
-        style={styles.dummyButton} 
-        onPress={fillDummyCredentials}
-        disabled={isLoading}
-      />
     </View>
   );
 };

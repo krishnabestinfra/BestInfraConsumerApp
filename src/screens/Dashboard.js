@@ -5,7 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
 import Arrow from "../../assets/icons/arrow.svg";
@@ -14,17 +14,76 @@ import DashboardHeader from "../components/global/DashboardHeader";
 import Table from "../components/global/Table";
 import DatePicker from "../components/global/DatePicker";
 import Meter from "../../assets/icons/meterWhite.svg";
+import LastCommunicationIcon from "../../assets/icons/signal.svg";
+import { fetchConsumerData, syncConsumerData } from "../services/apiService";
+import { getUser } from "../utils/storage";
+import { getCachedConsumerData } from "../utils/cacheManager";
+import { cacheManager } from "../utils/cacheManager";
+import { useLoading } from "../utils/loadingManager";
+import { InstantLoader } from "../utils/loadingManager";
 
 
-const Dashboard = ({ navigation, route }) => {
+
+const Dashboard = React.memo(({ navigation, route }) => {
   const [selectedView, setSelectedView] = useState("daily");
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [tableData, setTableData] = useState([]);
   const [isTableLoading, setIsTableLoading] = useState(true);
+  const [consumerData, setConsumerData] = useState(null);
+  const { isLoading, setLoading } = useLoading('dashboard_loading', true);
 
-  // Table data for meter status
-  const meterStatusData = [
+  // Fetch consumer data with caching
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const user = await getUser();
+        
+        if (user && user.identifier) {
+          // Check preloaded data first (ultra-fast)
+          const preloadedData = await cacheManager.getCachedData('consumer_data', user.identifier);
+          if (preloadedData.success) {
+            setConsumerData(preloadedData.data);
+            setLoading(false, 50);
+            console.log('⚡ Dashboard: Using preloaded data');
+          } else {
+            // Try cached data
+            const cachedResult = await getCachedConsumerData(user.identifier);
+            if (cachedResult.success) {
+              setConsumerData(cachedResult.data);
+              setLoading(false, 100);
+              console.log('⚡ Dashboard: Using cached data');
+            }
+          }
+          
+          // Fetch fresh data (will use cache if available, otherwise fetch from API)
+          const result = await fetchConsumerData(user.identifier);
+          if (result.success) {
+            setConsumerData(result.data);
+          }
+          
+          // Background sync for future updates
+          syncConsumerData(user.identifier).then((syncResult) => {
+            if (syncResult.success) {
+              setConsumerData(syncResult.data);
+            }
+          }).catch(error => {
+            console.error('Background sync failed:', error);
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching consumer data:', error);
+      } finally {
+        setLoading(false, 50);
+      }
+    };
+
+    fetchData();
+  }, [setLoading]);
+
+  // Table data for meter status - memoized for performance
+  const meterStatusData = useMemo(() => [
     {
       id: 1,
       eventName: "B_PH CT Open",
@@ -46,7 +105,7 @@ const Dashboard = ({ navigation, route }) => {
       status: "Start",
       isActive: false
     }
-  ];
+  ], []);
 
   // Load table data
   useEffect(() => {
@@ -67,29 +126,41 @@ const Dashboard = ({ navigation, route }) => {
     loadTableData();
   }, []);
   return (
-    <ScrollView
-      style={styles.Container}
-      contentContainerStyle={{ paddingBottom: 30 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.Container}>
-        <StatusBar style="dark" />
-        <DashboardHeader navigation={navigation} />
+    <InstantLoader dataKey="dashboard_data" onDataReady={(data) => setConsumerData(data.data)}>
+      <ScrollView
+        style={styles.Container}
+        contentContainerStyle={{ paddingBottom: 30 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.Container}>
+          <StatusBar style="dark" />
+          <DashboardHeader 
+            navigation={navigation} 
+            showBalance={false}
+            consumerData={consumerData}
+            isLoading={isLoading}
+          />
 
         <View style={styles.meterContainer}>
           <View style={styles.meterInfoContainer}>
           <View style={styles.meterInfoRow}>
             <Meter width={30} height={30} />
-            <Text style={styles.meterConsumerText}>GMR AERO TOWER 2 INCOMER</Text>
+            <Text style={styles.meterConsumerText}>
+              {isLoading ? "Loading..." : (consumerData?.name || "GMR AERO TOWER 2 INCOMER")}
+            </Text>
           </View>
            <View style={styles.meterInfoColumn}>
+           <Text style={styles.meterNumberText}>Meter SL No</Text>
            <Text style={styles.meterNumberText}>18132429</Text>
             <Text style={styles.meterUIDText}>UID: BI25GMRA014</Text>
            </View>
  
           </View>
           <View style={styles.lastCommunicationContainer}>
-            <Text style={styles.lastCommunicationText}>Last Communication</Text>
+            <View style={styles.lastCommunicationLeft}>
+             <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
+             <Text style={styles.lastCommunicationText}>Last Communication</Text>
+            </View>
             <Text style={styles.lastCommunicationTimeText}>07/09/2025 6:35 PM</Text>
             </View>
         </View>
@@ -121,7 +192,7 @@ const Dashboard = ({ navigation, route }) => {
                   Monthly
                 </Text>
               </TouchableOpacity>
-              <Text> / </Text>
+              {/* <Text> / </Text>
               <TouchableOpacity onPress={() => setSelectedView("monthly")}>
                 <Text
                   style={
@@ -132,11 +203,11 @@ const Dashboard = ({ navigation, route }) => {
                 >
                   Pick Date
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
           </View>
 
-          <View style={styles.datePickerSection}>
+          {/* <View style={styles.datePickerSection}>
             <DatePicker
               placeholder="Start Date"
               value={startDate}
@@ -147,7 +218,7 @@ const Dashboard = ({ navigation, route }) => {
               value={endDate}
               onChange={setEndDate}
             />
-          </View>
+          </View> */}
 
           <View style={styles.graphsContainer}>
             {selectedView === "daily" ? (
@@ -185,6 +256,9 @@ const Dashboard = ({ navigation, route }) => {
             )}
           </View>
         </View>
+        <View style={styles.tableContainer}>
+          <Text style={styles.tableTitle}>Alerts</Text>
+          </View>
         <Table 
           data={tableData}
           loading={isTableLoading}
@@ -203,10 +277,14 @@ const Dashboard = ({ navigation, route }) => {
             { key: 'status', title: 'Status', flex: 1 }
           ]}
         />
+        
       </View>
     </ScrollView>
+    </InstantLoader>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
 
 export default Dashboard;
 
@@ -224,7 +302,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
     fontSize: 14,
     fontFamily: "Manrope-Bold",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   dailyText: {
     color: COLORS.primaryFontColor,
@@ -279,7 +357,7 @@ const styles = StyleSheet.create({
   },
 
   meterContainer:{
-    padding: 20
+    padding: 10
   },
   meterInfoContainer:{
     backgroundColor: COLORS.primaryColor,
@@ -300,6 +378,26 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+
+  lastCommunicationLeft: {
+  flexDirection: "row",
+  alignItems: "center",
+},
+
+LastCommunicationIcon: {
+  marginRight: 5,
+},
+lastCommunicationText: {
+  color: COLORS.primaryFontColor,
+  fontSize: 10,
+  fontFamily: "Manrope-Regular",
+},
+lastCommunicationTimeText: {
+  color: COLORS.primaryFontColor,
+  fontSize: 10,
+  fontFamily: "Manrope-Regular",
+},
+
   meterConsumerText:{
     color: COLORS.secondaryFontColor,
     fontSize: 14,
@@ -364,5 +462,14 @@ const styles = StyleSheet.create({
   chartContainer: {
     display: "flex",
     alignItems: "center"
+  },
+  tableContainer: {
+    paddingHorizontal: 20,
+  },
+  tableTitle: {
+    fontSize: 16,
+    fontFamily: 'Manrope-SemiBold',
+    color: COLORS.primaryFontColor,
+    marginBottom: 10,
   }
 });

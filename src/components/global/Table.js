@@ -4,6 +4,12 @@ import { COLORS } from "../../constants/colors";
 
 const { width: screenWidth } = Dimensions.get('window');
 
+const COLUMN_WIDTHS = {
+  serial: 50,
+  default: 1,
+};
+
+
 const Table = ({ 
   data = [], 
   columns = [], // Dynamic column configuration
@@ -18,7 +24,8 @@ const Table = ({
   statusStyle = {},
   onRowPress = null,
   loading = false,
-  emptyMessage = "No data available"
+  emptyMessage = "No data available",
+  inlinePriority = false,
 }) => {
   // Priority Tag Component with different levels
   const PriorityTag = ({ priority, text }) => {
@@ -66,7 +73,8 @@ const Table = ({
       return keys.map((key, index) => ({
         key: key,
         title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-        flex: 1
+          flex: COLUMN_WIDTHS.default,
+
       }));
     }
     return [
@@ -118,7 +126,11 @@ const Table = ({
       {/* Header Row */}
       <View style={[styles.headerRow, headerStyle]}>
         {showSerial && (
-          <Text style={[styles.headerText, styles.serialColumn]}>S.No</Text>
+          // <Text style={[styles.headerText, styles.serialColumn]}>S.No</Text>
+          <View style={[styles.columnContainer, styles.serialColumn]}>
+          <Text style={styles.headerText}>S.No</Text>
+        </View>
+
         )}
         {tableColumns.map((column, index) => (
           <View 
@@ -154,9 +166,9 @@ const Table = ({
           onTouchEnd={() => handleRowPress(item)}
         >
           {showSerial && (
-            <Text style={[styles.dataText, styles.serialColumn, textStyle]}>
-              {index + 1}
-            </Text>
+            <View style={[styles.columnContainer, styles.serialColumn]}>
+              <Text style={[styles.dataText, textStyle]}>{index + 1}</Text>
+            </View>
           )}
           {tableColumns.map((column, colIndex) => {
             const value = item[column.key];
@@ -173,20 +185,22 @@ const Table = ({
                   hasPriority && styles.priorityCell
                 ]}
               >
-                <Text 
-                  style={[
-                    styles.dataText,
-                    textStyle,
-                    hasPriority && styles.priorityText
-                  ]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {value}
-                </Text>
-                {hasPriority && (
-                  <PriorityTag priority={priorityLevel} />
-                )}
+              {isPriorityField && hasPriority ? (
+                inlinePriority ? (
+                  <View style={styles.inlinePriorityWrapper}>
+                    <Text style={[styles.dataText, textStyle]}>{value}</Text>
+                    <PriorityTag priority={priorityLevel} />
+                  </View>
+                ) : (
+                  <>
+                    <Text style={[styles.dataText, textStyle]}>{value}</Text>
+                    <PriorityTag priority={priorityLevel} />
+                  </>
+                )
+              ) : (
+                <Text style={[styles.dataText, textStyle]}>{value}</Text>
+              )}
+
               </View>
             );
           })}
@@ -211,6 +225,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 48,
   },
+
+  columnContainer: {
+  paddingRight: 8,
+
+},
+
   headerText: {
     color: COLORS.secondaryFontColor,
     fontFamily: "Manrope-SemiBold",
@@ -245,7 +265,9 @@ const styles = StyleSheet.create({
     textAlign: "left",
     lineHeight: 16,
     flex: 1,
+    marginRight:4,
   },
+
   // Status Text Styling
   statusText: {
     fontFamily: "Manrope-Medium",
@@ -264,17 +286,27 @@ const styles = StyleSheet.create({
   // Serial Number Column
   serialColumn: {
     width: 50,
-    paddingRight: 8,
     textAlign: 'center',
     flex: 0,
   },
   // Priority Tag Base Styles
+
+    inlinePriorityWrapper: {
+    flexDirection: "row",
+    // alignItems: "center",
+    // backgroundColor:"red",
+    height:23
+  },
+
   priorityTag: {
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    marginTop: 4,
-    alignSelf: 'flex-start',
+    // marginTop: 4,
+    // alignSelf: 'flex-start',
+    position:"absolute",
+    right:30,
+    top:15
   },
   priorityTagText: {
     fontFamily: "Manrope-Bold",
@@ -283,7 +315,7 @@ const styles = StyleSheet.create({
   },
   // High Priority (Red)
   priorityTagHigh: {
-    backgroundColor: '#FF4444',
+    backgroundColor: '#ff9c9c',
   },
   priorityTagTextHigh: {
     color: '#FFFFFF',
