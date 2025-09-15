@@ -150,6 +150,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
             </Text>
           </View>
            <View style={styles.meterInfoColumn}>
+           <Text style={styles.meterNumberText}>Meter SL No</Text>
            <Text style={styles.meterNumberText}>18132429</Text>
             <Text style={styles.meterUIDText}>UID: BI25GMRA014</Text>
            </View>
@@ -206,7 +207,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
             </View>
           </View>
 
-          <View style={styles.datePickerSection}>
+          {/* <View style={styles.datePickerSection}>
             <DatePicker
               placeholder="Start Date"
               value={startDate}
@@ -217,7 +218,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
               value={endDate}
               onChange={setEndDate}
             />
-          </View>
+          </View> */}
 
           <View style={styles.graphsContainer}>
             {selectedView === "daily" ? (
@@ -255,6 +256,9 @@ const Dashboard = React.memo(({ navigation, route }) => {
             )}
           </View>
         </View>
+        <View style={styles.tableContainer}>
+          <Text style={styles.tableTitle}>Alerts</Text>
+          </View>
         <Table 
           data={tableData}
           loading={isTableLoading}
@@ -273,6 +277,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
             { key: 'status', title: 'Status', flex: 1 }
           ]}
         />
+        
       </View>
     </ScrollView>
     </InstantLoader>
@@ -457,5 +462,14 @@ lastCommunicationTimeText: {
   chartContainer: {
     display: "flex",
     alignItems: "center"
+  },
+  tableContainer: {
+    paddingHorizontal: 20,
+  },
+  tableTitle: {
+    fontSize: 16,
+    fontFamily: 'Manrope-SemiBold',
+    color: COLORS.primaryFontColor,
+    marginBottom: 10,
   }
 });

@@ -23,6 +23,7 @@ import TicketDetails from "./src/screens/TicketDetails";
 import PostPaidDashboard from "./src/screens/PostPaidDashboard";
 import PostPaidRechargePayments from "./src/screens/PostPaidRechargePayments";
 import PaymentStatus from "./src/screens/PaymentStatus";
+import DgScreen from "./src/screens/DgScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -158,6 +159,11 @@ export default function App() {
           <Stack.Screen
             name="PaymentStatus"
             component={PaymentStatus}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="DG"
+            component={DgScreen}
             options={{ headerShown: false }}
           />
         </Stack.Navigator>

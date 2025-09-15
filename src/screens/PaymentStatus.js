@@ -1,11 +1,86 @@
-import { StyleSheet, Text, View, Pressable, ScrollView, Dimensions, TouchableOpacity, StatusBar } from "react-native";
+import { StyleSheet, Text, View, Pressable, ScrollView, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, Alert } from "react-native";
 import { COLORS } from "../constants/colors";
 import React, { useEffect, useRef, useState } from "react";
 import Button from "../components/global/Button";
 import SuccessIcon from "../../assets/icons/checkmark.svg";
+import { getPaymentStatus, formatAmount, formatPaymentDate } from "../services/paymentService";
 
-const PaymentStatus = ({ navigation }) => {
+const PaymentStatus = ({ navigation, route }) => {
+  const { billId, paymentData: initialPaymentData, success } = route?.params || {};
+  const [paymentDetails, setPaymentDetails] = useState(initialPaymentData || null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Fetch payment details on component mount
+  useEffect(() => {
+    const fetchPaymentDetails = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        if (billId) {
+          const result = await getPaymentStatus(billId);
+          if (result.success) {
+            setPaymentDetails(result.data);
+          } else {
+            setError(result.message);
+          }
+        } else if (initialPaymentData) {
+          setPaymentDetails(initialPaymentData);
+        } else {
+          setError('No payment information available');
+        }
+      } catch (error) {
+        console.error('Error fetching payment details:', error);
+        setError('Failed to fetch payment details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPaymentDetails();
+  }, [billId, initialPaymentData]);
+
+  // Handle invoice download
+  const handleInvoiceDownload = () => {
+    Alert.alert(
+      "Download Invoice",
+      "Invoice download feature will be available soon.",
+      [{ text: "OK" }]
+    );
+  };
+
+  // Handle navigation to dashboard
+  const handleGoToDashboard = () => {
+    navigation.navigate("Dashboard");
+  };
+
+  // Render loading state
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+        <Text style={styles.loadingText}>Loading payment details...</Text>
+      </View>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Error: {error}</Text>
+        <Button 
+          title="Go to Dashboard" 
+          variant="primary" 
+          size="medium" 
+          onPress={handleGoToDashboard} 
+        />
+      </View>
+    );
+  }
+
+  // Render payment success state
   return (
     <>
       <ScrollView
@@ -18,19 +93,32 @@ const PaymentStatus = ({ navigation }) => {
           <View style={styles.successContainer}>
             <SuccessIcon width={60} height={60} style={styles.successIcon} />
             <Text style={styles.successText}>Payment Confirmation</Text>
-            <Text style={styles.successDescription}>Transaction is successfully completed.</Text>
+            <Text style={styles.successDescription}>
+              {success !== false ? "Transaction is successfully completed." : "Payment details loaded."}
+            </Text>
           </View>
           <View style={styles.amountContainer}>
             <View style={styles.amountSubContainer}>
               <Text style={styles.amountText}>Amount Paid</Text>
-              <Text style={styles.amountValueText}>Rs. 560000</Text>
+              <Text style={styles.amountValueText}>
+                {paymentDetails ? formatAmount(paymentDetails.amount || paymentDetails.total_amount) : "Rs. 0"}
+              </Text>
             </View>
             <View style={styles.billingAddressContainer}>
               <View style={{width:"40%"}}>
-                <Text style={styles.billingAddressText}>Billing Address</Text>
+                <Text style={styles.billingAddressText}>Transaction Details</Text>
               </View>
               <View style={styles.billingAddressValueContainer}>
-                <Text style={styles.billingAddressValueText}>#209, 2nd Floor, B-Block, Besides Sarath City Capital Mall, Kondaput, Hitech City, Hyderabad, Telangana, India, PIN:500084</Text>
+                <Text style={styles.billingAddressValueText}>
+                  {paymentDetails ? (
+                    `Transaction ID: ${paymentDetails.transaction_id || paymentDetails.razorpay_payment_id || 'N/A'}\n` +
+                    `Payment Date: ${formatPaymentDate(paymentDetails.created_at || paymentDetails.payment_date || new Date())}\n` +
+                    `Status: ${paymentDetails.status || 'Completed'}\n` +
+                    `Bill ID: ${paymentDetails.bill_id || billId || 'N/A'}`
+                  ) : (
+                    "Transaction details not available"
+                  )}
+                </Text>
               </View>
             </View>
           </View>
@@ -38,8 +126,10 @@ const PaymentStatus = ({ navigation }) => {
         </View>
       </ScrollView>
       <View style={styles.buttonContainer}>
-        <Text style={styles.getInvoiceText}>Get Invoice</Text>
-        <Button title="Go to Dashboard" variant="primary" size="medium" onPress={() => navigation.navigate("Dashboard")} />
+        <TouchableOpacity onPress={handleInvoiceDownload}>
+          <Text style={styles.getInvoiceText}>Get Invoice</Text>
+        </TouchableOpacity>
+        <Button title="Go to Dashboard" variant="primary" size="medium" onPress={handleGoToDashboard} />
       </View>
     </>
   );
@@ -146,5 +236,33 @@ const styles = StyleSheet.create({
   },
   billingAddressValueContainer:{
     width:"60%"
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.secondaryFontColor,
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Manrope-Regular',
+    color: COLORS.primaryFontColor,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.secondaryFontColor,
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    fontFamily: 'Manrope-Regular',
+    color: '#FF6B6B',
+    marginBottom: 20,
+    textAlign: 'center',
   },
 });

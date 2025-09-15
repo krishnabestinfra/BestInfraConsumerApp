@@ -1,13 +1,20 @@
-import { StyleSheet, Text, View, ScrollView, StatusBar } from "react-native";
+import { StyleSheet, Text, View, ScrollView, StatusBar, Alert, ActivityIndicator } from "react-native";
 import { COLORS } from "../constants/colors";
 import React, { useState, useEffect } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
 import DashboardHeader from "../components/global/DashboardHeader";
+import DirectRazorpayPayment from "../components/DirectRazorpayPayment";
 import { getUser } from "../utils/storage";
 import { GLOBAL_API_URL } from "../constants/constants";
 import { fetchConsumerData, syncConsumerData } from "../services/apiService";
 import { getCachedConsumerData } from "../utils/cacheManager";
+import { 
+  processRazorpayPayment, 
+  handlePaymentSuccess, 
+  handlePaymentError, 
+  formatAmount 
+} from "../services/paymentService";
 
 
 const PostPaidRechargePayments = ({ navigation }) => {
@@ -18,11 +25,97 @@ const PostPaidRechargePayments = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [consumerData, setConsumerData] = useState(null);
   const [isConsumerLoading, setIsConsumerLoading] = useState(true);
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [orderData, setOrderData] = useState(null);
 
   const handleCustomAmountChange = (text) => {
     setCustomAmount(text);
     if (text && text.length > 0) {
       setSelectedOption("option2");
+    }
+  };
+
+  // Get the payment amount based on selected option
+  const getPaymentAmount = () => {
+    if (selectedOption === "option1") {
+      // Outstanding amount
+      return consumerData?.totalOutstanding || 0;
+    } else {
+      // Custom amount
+      const amount = parseFloat(customAmount) || 0;
+      return amount * 100; // Convert to paise
+    }
+  };
+
+  // Validate payment amount
+  const validatePaymentAmount = () => {
+    const amount = getPaymentAmount();
+    if (amount <= 0) {
+      Alert.alert("Invalid Amount", "Please enter a valid payment amount.");
+      return false;
+    }
+    if (amount < 100) { // Minimum ₹1
+      Alert.alert("Minimum Amount", "Minimum payment amount is ₹1.");
+      return false;
+    }
+    return true;
+  };
+
+  // Handle payment processing
+  const handlePayment = async () => {
+    try {
+      if (!validatePaymentAmount()) {
+        return;
+      }
+
+      setIsPaymentProcessing(true);
+
+      const paymentAmount = getPaymentAmount();
+      const paymentData = {
+        amount: paymentAmount,
+        currency: 'INR',
+        description: `Energy Bill Payment - ${selectedOption === "option1" ? "Outstanding Amount" : "Custom Amount"}`,
+        consumer_id: consumerData?.uniqueIdentificationNo || consumerData?.identifier,
+        consumer_name: consumerData?.name || consumerData?.consumerName,
+        email: consumerData?.email || 'customer@bestinfra.com',
+        contact: consumerData?.contact || '9876543210',
+        bill_type: selectedOption === "option1" ? "outstanding" : "custom",
+        custom_amount: selectedOption === "option2" ? customAmount : null,
+      };
+
+      await processRazorpayPayment(paymentData, navigation, setShowPaymentModal, setOrderData);
+
+    } catch (error) {
+      console.error('❌ Payment error:', error);
+      
+      Alert.alert(
+        "Payment Failed", 
+        error.message || "An error occurred while processing payment. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsPaymentProcessing(false);
+    }
+  };
+
+  // Handle payment success
+  const onPaymentSuccess = async (paymentResponse) => {
+    try {
+      await handlePaymentSuccess(paymentResponse, navigation, setShowPaymentModal);
+    } catch (error) {
+      Alert.alert("Payment Verification Failed", error.message);
+    }
+  };
+
+  // Handle payment error
+  const onPaymentError = (error) => {
+    try {
+      handlePaymentError(error, setShowPaymentModal);
+      setOrderData(null); // Clear order data on error
+    } catch (err) {
+      Alert.alert("Payment Error", err.message);
+      setOrderData(null); // Clear order data on error
     }
   };
 
@@ -155,8 +248,32 @@ const PostPaidRechargePayments = ({ navigation }) => {
 
       </ScrollView>
       <View style={styles.buttonContainer}>
-        <Button title="Proceed to Recharge" variant="primary" size="medium" onPress={() => navigation.navigate("PaymentStatus")} />
+        <Button 
+          title={isPaymentProcessing ? "Processing Payment..." : "Proceed to Recharge"} 
+          variant="primary" 
+          size="medium" 
+          onPress={handlePayment}
+          disabled={isPaymentProcessing || isLoading}
+        />
+        {isPaymentProcessing && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={COLORS.secondaryColor} />
+            <Text style={styles.loadingText}>Please wait while we process your payment...</Text>
+          </View>
+        )}
       </View>
+
+      {/* Razorpay WebView Modal */}
+      <DirectRazorpayPayment
+        visible={showPaymentModal && orderData !== null}
+        onClose={() => {
+          setShowPaymentModal(false);
+          setOrderData(null);
+        }}
+        onSuccess={onPaymentSuccess}
+        onError={onPaymentError}
+        orderData={orderData}
+      />
     </>
   );
 };
@@ -480,6 +597,18 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     fontSize: 14,
     fontFamily: 'Manrope-Medium',
+    color: COLORS.primaryFontColor,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 12,
+    fontFamily: 'Manrope-Regular',
     color: COLORS.primaryFontColor,
   },
 });

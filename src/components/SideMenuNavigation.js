@@ -222,6 +222,42 @@ const SideMenuNavigation = ({ navigation }) => {
             Tickets
           </Text>
         </Pressable>
+        <Pressable
+          style={styles.flex}
+          onPress={() => handleMenuPress("DG")}
+        >
+          {activeItem === "DG" ? (
+            <>
+              <ActiveTickets
+                width={18}
+                height={18}
+                style={[
+                  styles.iconStyle,
+                  activeItem === "DG" && styles.activeIcon,
+                ]}
+              />
+            </>
+          ) : (
+            <>
+              <TicketsIcon
+                width={18}
+                height={18}
+                style={[
+                  styles.iconStyle,
+                  activeItem === "DG" && styles.activeIcon,
+                ]}
+              />
+            </>
+          )}
+          <Text
+            style={[
+              styles.menuText,
+              activeItem === "DG" && styles.activeText,
+            ]}
+          >
+            Diesel Generator
+          </Text>
+        </Pressable>
       </View>
       <View style={styles.Bottommenubar}>
         {/* <Pressable
