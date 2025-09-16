@@ -109,6 +109,7 @@ const Transactions = ({ navigation }) => {
         <Table
           data={tableData}
           loading={isLoading}
+          skeletonLines={tableData.length > 0 ? tableData.length : 5}
           emptyMessage="No transaction data available"
           showSerial={true}
           showPriority={false}

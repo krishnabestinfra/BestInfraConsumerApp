@@ -242,6 +242,7 @@ const Tickets = ({ navigation }) => {
           <Table
             data={tableData}
             loading={tableLoading}
+            skeletonLines={3}
             emptyMessage="No tickets available"
             showSerial={true}
             showPriority={false}

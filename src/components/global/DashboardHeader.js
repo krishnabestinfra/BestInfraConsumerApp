@@ -255,7 +255,7 @@ const DashboardHeader = React.memo(({
             </View>
           </View>
           <View style={styles.paynowbox}>
-            <Text style={styles.paynowText}>Pay Now 3</Text>
+            <Text style={styles.paynowText}>Pay Now</Text>
           </View>
         </View>
       </View>
