@@ -20,6 +20,8 @@ import DashboardHeader from "../components/global/DashboardHeader";
 import { GLOBAL_API_URL } from "../constants/constants";
 import { getUser, getToken } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
+import { useLoading, SkeletonLoader } from '../utils/loadingManager';
+
 // import { GestureHandlerRootView } from 'react-native-gesture-handler';
   
   // Dynamic API URL will be set based on authenticated user
@@ -33,7 +35,7 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
     // const { userName } = route?.params || {};
     //  const { isGuest } = route.params || {};
   const [consumerData, setConsumerData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { isLoading, setLoading } = useLoading('consumerData', true);
   
   // Bottom sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
@@ -243,12 +245,12 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
             navigation={navigation} 
             showBalance={false}
             consumerData={consumerData}
-            isLoading={loading}
+            isLoading={isLoading}
           />
   
           <View style={styles.meterContainer}>
-            {loading ? (
-              <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+            {isLoading ? (
+              <SkeletonLoader lines={4} showAvatar={true} style={{ margin: 16 }} />
             ) : (
               consumerData && (
                 <>
@@ -355,11 +357,11 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
             </View> */}
   
             <View style={styles.graphsContainer}>
-              {selectedView === "daily" ? (
+            {selectedView === "daily" ? (
                 <>
                   <Text style={styles.thismonthText}>
                     Today's Usage: <Text style={styles.kwhText}>
-                      {loading ? "Loading..." : getDailyUsage()}kWh
+                      {isLoading ? "Loading..." : getDailyUsage()}kWh
                     </Text>
                   </Text>
                   <View
@@ -376,18 +378,22 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
                     <Text style={styles.lastText}>Yesterday.</Text>
                   </View>
                   <View style={{ display: "flex", alignItems: "center" }}>
-                    <GroupedBarChart 
-                      viewType="daily" 
-                      data={consumerData}
-                      loading={loading}
-                    />
+                      {isLoading ? (
+                        <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
+                      ) : (                    
+                        <GroupedBarChart 
+                          viewType="daily" 
+                          data={consumerData}
+                          loading={isLoading}
+                        />
+                      )}
                   </View>
                 </>
               ) : (
                 <>
                   <Text style={styles.thismonthText}>
                     This Month's Usage: <Text style={styles.kwhText}>
-                      {loading ? "Loading..." : getMonthlyUsage()}kWh
+                      {isLoading ? "Loading..." : getMonthlyUsage()}kWh
                     </Text>
                   </Text>
                   <View
@@ -404,11 +410,15 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
                     <Text style={styles.lastText}>Last Month.</Text>
                   </View>
                   <View style={{ display: "flex", alignItems: "center" }}>
-                    <GroupedBarChart 
-                      viewType="monthly" 
-                      data={consumerData}
-                      loading={loading}
-                    />
+                    {isLoading ? (
+                      <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
+                    ) : (
+                      <GroupedBarChart 
+                        viewType="monthly" 
+                        data={consumerData}
+                        loading={isLoading}
+                      />
+                    )}
                   </View>
                 </>
               )}
@@ -420,6 +430,7 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
             <Table 
             data={tableData}
             loading={isTableLoading}
+            skeletonLines={4}
             emptyMessage={consumerData?.alerts?.length === 0 ? "No tamper alerts available" : "No meter status data available"}
             showSerial={false}
             showPriority={false}
