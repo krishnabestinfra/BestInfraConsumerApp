@@ -260,10 +260,11 @@ const PostPaidDashboard = ({ navigation, route }) => {
           />
 
           <View style={styles.meterContainer}>
-            {isLoading ? (
-              <SkeletonLoader lines={4} showAvatar={true} style={{ margin: 16 }} />
-            ) : (
-              consumerData && (
+                {/* {isLoading ? (
+                  <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+                ) : ( */}
+                  consumerData && (
+
                 <>
                   <TouchableOpacity
                     style={styles.meterInfoContainer}
@@ -305,7 +306,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   </View>
                 </>
               )
-            )}
+            {/* )} */}
           </View>
 
           <View style={styles.graphSection}>
@@ -445,7 +446,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
           <Table
             data={tableData}
             loading={isTableLoading}
-            skeletonLines={4}
+            skeletonLines={5}
             emptyMessage={consumerData?.alerts?.length === 0 ? "No tamper alerts available" : "No meter status data available"}
             showSerial={false}
             showPriority={false}

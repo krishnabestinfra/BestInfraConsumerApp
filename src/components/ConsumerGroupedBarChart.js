@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View, Dimensions, Text, ActivityIndicator, ScrollView } from "react-native";
 import { BarChart as GiftedBarChart } from "react-native-gifted-charts";
 import { COLORS } from "../constants/colors";
+import { SkeletonLoader } from "../utils/loadingManager";
+
 
 const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = false, onBarPress = null }) => {
   const { width } = Dimensions.get("window");
@@ -68,32 +70,13 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
   const barWidth = 30;
   const spacing = 11.5;
   const chartWidth = (barWidth + spacing) * 8; // Width for exactly 10 bars
-  const needsScrolling = chartWidth > screenWidth - 80; // Check if scrolling is needed
+  const needsScrolling = chartWidth > screenWidth - 80; // Check if scrolling is neede
 
   if (loading) {
-    return (
-      <View style={{ 
-        height: 20, 
-        width: width - 40, 
-        marginHorizontal: 20, 
-        borderRadius: 5, 
-        marginTop: 25,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#eef8f0'
-      }}>
-        <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-        <Text style={{ 
-          marginTop: 10, 
-          color: COLORS.primaryFontColor,
-          fontFamily: 'Manrope-Regular',
-          fontSize: 14
-        }}>
-          Loading chart data...
-        </Text>
-      </View>
-    );
-  }
+  return (
+    <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
+  );
+}
 
   // Render chart - no scrolling needed for 10 bars
   const renderChart = () => (
