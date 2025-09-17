@@ -50,15 +50,15 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
     spacing: 2, // Increased spacing between bars
     labelTextStyle: {
       color: '#333',
-      fontSize: 8,
+      fontSize: 7,
       fontFamily: 'Manrope-Medium',
-      transform: [{ rotate: '-60deg' }], 
+      transform: [{ rotate: '-60deg' }],
     },
     // Add top label component with proper positioning
     topLabelComponent: () => (
       <Text style={{
         color: '#333',
-        fontSize: 8,
+        fontSize: 7,
         fontFamily: 'Manrope-Medium',
       }}>
         {chartData.blue[index] || 0}
@@ -67,8 +67,8 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
   }));
 
   // Calculate width for 10 bars with proper spacing
-  const barWidth = 35;
-  const spacing = 15;
+  const barWidth = 30;
+  const spacing = 11.5;
   const chartWidth = (barWidth + spacing) * 8; // Width for exactly 10 bars
   const needsScrolling = chartWidth > screenWidth - 80; // Check if scrolling is neede
 
@@ -112,7 +112,7 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
         color: '#333',
         fontSize: 12,
         fontFamily: 'Manrope-Regular',
-        transform: [{ rotate: '-25deg' }], 
+        // transform: [{ rotate: '-25deg' }], 
         textAlign: 'right',
       }}
       // Custom spacing for better grouped bar appearance
@@ -152,13 +152,12 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, alignItems: 'center' }}
-          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: 0, alignItems: 'center' }}
         >
           {renderChart()}
         </ScrollView>
       ) : (
-        <View style={{ paddingHorizontal: 16, alignItems: 'center' }}>
+        <View style={{ paddingHorizontal: 0, alignItems: 'center' }}>
           {renderChart()}
         </View>
       )}

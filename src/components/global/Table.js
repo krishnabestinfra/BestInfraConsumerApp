@@ -231,7 +231,8 @@ const Table = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
+    padding:16,
+    // paddingHorizontal: 16,
     paddingBottom: 20,
   },
   headerRow: {
