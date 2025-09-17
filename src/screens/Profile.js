@@ -173,7 +173,7 @@ export default Profile;
 
 const styles = StyleSheet.create({
   Container: {
-    backgroundColor: COLORS.primaryColor,
+    backgroundColor: COLORS.primaryDarkColor,
     height: "100%",
   },
   TopMenu: {

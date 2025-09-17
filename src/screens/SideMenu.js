@@ -98,7 +98,7 @@ export default SideMenu;
 
 const styles = StyleSheet.create({
   Container: {
-    backgroundColor: COLORS.primaryColor,
+    backgroundColor: COLORS.primaryDarkColor,
     height: "100%",
   },
   TopMenu: {
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 75,
-    paddingBottom: 45,
+    paddingBottom: 35,
     paddingHorizontal: 30,
   },
   barsIcon: {
@@ -141,18 +141,18 @@ const styles = StyleSheet.create({
     verticalAlign: "middle",
     justifyContent: "center",
     // iOS shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.25,
+    // shadowRadius: 3.84,
     // Android shadow
-    elevation: 5,
+    // elevation: 5,
   },
   MenuContainer: {
     flexDirection: "row",
   },
   menubar: {
-    width: "45%",
+    // width: "45%",
     paddingLeft: 30,
     paddingTop: 30,
     display: "flex",
@@ -161,14 +161,14 @@ const styles = StyleSheet.create({
   },
   componentsbar: {
     position: "relative",
-    height: "75%",
+    height: "77%",
   },
   DashComponentsbar: {
     top:40,
     height: "100%",
     backgroundColor: "#eef8f0",
-    borderTopLeftRadius: 30,
-     borderBottomLeftRadius: 30,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
     zIndex: 999,
     // bottom:70,
     marginLeft: 60,
@@ -180,8 +180,8 @@ const styles = StyleSheet.create({
     left: 25,
     top: 80,
     backgroundColor: "#eef8f0",
-    borderTopLeftRadius: 30,
-    borderBottomLeftRadius: 30,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
     elevation: 10,
     opacity: 0.3,
   },

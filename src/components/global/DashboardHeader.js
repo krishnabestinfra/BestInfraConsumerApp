@@ -255,9 +255,9 @@ const DashboardHeader = React.memo(({
               <Text style={styles.avoidText}>Avoid service disruption.</Text>
             </View>
           </View>
-          <View style={styles.paynowbox}>
+          <Pressable style={styles.paynowbox} onPress={() => navigation.navigate('PostPaidRechargePayments')}>
             <Text style={styles.paynowText}>Pay Now</Text>
-          </View>
+          </Pressable>
         </View>
       </View>
       
@@ -272,7 +272,7 @@ const DashboardHeader = React.memo(({
 const styles = StyleSheet.create({
   bluecontainer: {
     backgroundColor: '#eef8f0',
-    padding: 15,
+    padding: 16,
   },
   TopMenu: {
     display: 'flex',
@@ -316,24 +316,22 @@ const styles = StyleSheet.create({
 },
 badge: {
   position: 'absolute',
-  right: 0,
-  // top: 4,
-  bottom:33,
+  right: -3,
+  top: -3,
   backgroundColor: 'red',
-  width: 23,
-  height: 23,
+  width: 22,
+  height: 22,
   borderRadius: 15,
   alignItems: 'center',
   justifyContent: 'center',
   borderWidth: 1,
   borderColor: '#fff',
   zIndex: 2,
-
 },
 badgeText: {
   color: '#fff',
-  fontSize: 12,
-  fontFamily:'Manrope-Medium'
+  fontSize: 10,
+  fontFamily:'Manrope-Regular'
 },
 
   ProfileBox: {
@@ -391,7 +389,7 @@ badgeText: {
     borderTopRightRadius: 16,
     borderRadius: 8,
     alignItems: 'center',
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
   },
   dueText: {
     color: COLORS.secondaryFontColor,
