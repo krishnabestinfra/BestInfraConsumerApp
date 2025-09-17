@@ -1,4 +1,4 @@
-import {
+  import {
     View,
     Text,
     StyleSheet,
@@ -11,15 +11,16 @@ import {
   import { COLORS } from "../constants/colors";
   import Arrow from "../../assets/icons/arrow.svg";
   import GroupedBarChart from "../components/GroupedBarChart";
+  import ConsumerGroupedBarChart from "../components/ConsumerGroupedBarChart";
   import Table from "../components/global/Table";
   import Input from "../components/global/Input";
   import DatePicker from "../components/global/DatePicker";
   import Meter from "../../assets/icons/meterWhite.svg";
-import DashboardHeader from "../components/global/DashboardHeader";
+  import DashboardHeader from "../components/global/DashboardHeader";
   import LastCommunicationIcon from "../../assets/icons/signal.svg";
-import { GLOBAL_API_URL } from "../constants/constants";
-import { getUser, getToken } from "../utils/storage";
-import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
+  import { GLOBAL_API_URL } from "../constants/constants";
+  import { getUser, getToken } from "../utils/storage";
+  import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 
 // import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -232,6 +233,16 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
     setSelectedConsumerUid(null);
   }, []);
 
+  // Handle bar press from chart - navigate to dedicated table page
+  const handleBarPress = useCallback((barData) => {
+    console.log('📊 Bar pressed:', barData);
+    navigation.navigate('ConsumerDataTable', { 
+      consumerData, 
+      loading: isLoading,
+      viewType: selectedView
+    });
+  }, [navigation, consumerData, isLoading, selectedView]);
+
   return (
     <>
       <ScrollView
@@ -386,10 +397,11 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
                       {isLoading ? (
                         <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
                       ) : (                    
-                        <GroupedBarChart 
+                        <ConsumerGroupedBarChart 
                           viewType="daily" 
                           data={consumerData}
                           loading={isLoading}
+                      onBarPress={handleBarPress}
                         />
                       )}
                   </View>
@@ -418,10 +430,11 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
                     {isLoading ? (
                       <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
                     ) : (
-                      <GroupedBarChart 
+                      <ConsumerGroupedBarChart 
                         viewType="monthly" 
                         data={consumerData}
                         loading={isLoading}
+                      onBarPress={handleBarPress}
                       />
                     )}
                   </View>
@@ -692,6 +705,33 @@ lastCommunicationTimeText: {
       fontFamily: 'Manrope-SemiBold',
       color: COLORS.primaryFontColor,
       marginBottom: 10,
+    },
+    viewTableButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.secondaryFontColor,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+      marginTop: 15,
+      borderWidth: 1,
+      borderColor: COLORS.secondaryColor,
+    },
+    viewTableButtonText: {
+      fontSize: 14,
+      fontFamily: 'Manrope-SemiBold',
+      color: COLORS.secondaryColor,
+      marginRight: 8,
+    },
+    chartInstructionText: {
+      fontSize: 11,
+      fontFamily: 'Manrope-Regular',
+      color: COLORS.primaryFontColor,
+      opacity: 0.7,
+      textAlign: 'center',
+      marginTop: 8,
+      marginBottom: 5,
     }
   });
   

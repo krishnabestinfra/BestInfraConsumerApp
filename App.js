@@ -16,6 +16,8 @@ import Transactions from "./src/screens/Transactions";
 import Tickets from "./src/screens/Tickets";
 import Settings from "./src/screens/Settings";
 import { TabProvider } from "./src/context/TabContext";
+import { AppProvider } from "./src/context/AppContext";
+import { NotificationsProvider } from "./src/context/NotificationsContext";
 import ForgotPassword from "./src/auth/ForgotPassword";
 import ResetPassword from "./src/auth/ResetPassword";
 import GuestLogin from "./src/auth/GuestLogin";
@@ -24,6 +26,8 @@ import PostPaidDashboard from "./src/screens/PostPaidDashboard";
 import PostPaidRechargePayments from "./src/screens/PostPaidRechargePayments";
 import PaymentStatus from "./src/screens/PaymentStatus";
 import DgScreen from "./src/screens/DgScreen";
+import ConsumerDataTable from "./src/screens/ConsumerDataTable";
+import Invoices from "./src/screens/Invoices";
 
 const Stack = createNativeStackNavigator();
 
@@ -65,12 +69,14 @@ export default function App() {
   }
 
   return (
-    <TabProvider>
-      <NavigationContainer linking={linking}>
-        <Stack.Navigator
-          initialRouteName="Splash"
-          screenOptions={{ headerShown: false }}
-        >
+    <AppProvider>
+      <NotificationsProvider>
+        <TabProvider>
+          <NavigationContainer linking={linking}>
+            <Stack.Navigator
+              initialRouteName="Splash"
+              screenOptions={{ headerShown: false }}
+            >
           <Stack.Screen
             name="Splash"
             component={SplashScreen}
@@ -166,9 +172,21 @@ export default function App() {
             component={DgScreen}
             options={{ headerShown: false }}
           />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </TabProvider>
+          <Stack.Screen
+            name="ConsumerDataTable"
+            component={ConsumerDataTable}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Invoices"
+            component={Invoices}
+            options={{ headerShown: false }}
+          />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </TabProvider>
+      </NotificationsProvider>
+    </AppProvider>
   );
 }
 

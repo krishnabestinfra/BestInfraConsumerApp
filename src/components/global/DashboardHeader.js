@@ -7,9 +7,10 @@ import InvoicesIcon from '../../../assets/icons/invoices.svg';
 import TicketsIcon from '../../../assets/icons/tickets.svg';
 import UsageIcon from '../../../assets/icons/usage.svg';
 // White icons for active states
-// import ActiveRechargeIcon from '../../../assets/icons/activePayments.svg';
+import ActiveRechargeIcon from '../../../assets/icons/activePayments.svg';
 import ActiveTicketsIcon from '../../../assets/icons/ticketsWhite.svg';
-import ActiveUsageIcon from '../../../assets/icons/activeUsage.svg';
+import ActiveInvoiceIcon from '../../../assets/icons/activeUsageIcon.svg';
+import ActiveUsageIcon from '../../../assets/icons/activeInvoice.svg';
 import Hand from '../../../assets/icons/hand.svg';
 import Arrow from '../../../assets/icons/arrow.svg';
 import Plus from '../../../assets/icons/plus.svg';
@@ -20,6 +21,7 @@ import { getUser, getConsumerDisplayName, cleanupStoredUserData } from '../../ut
 import { getCachedConsumerData, backgroundSyncConsumerData } from '../../utils/cacheManager';
 import { cacheManager } from '../../utils/cacheManager';
 import { useLoading } from '../../utils/loadingManager';
+import { useNotifications } from '../../context/NotificationsContext';
 import Logo from './Logo';
 import AnimatedRings from './AnimatedRings';
 
@@ -34,10 +36,9 @@ const DashboardHeader = React.memo(({
   const [userName, setUserName] = useState('');
   const [cachedConsumerData, setCachedConsumerData] = useState(null);
   const { isLoading: isUserLoading, setLoading: setUserLoading } = useLoading('user_loading', true);
-  const [notificationCount, setNotificationCount] = useState(3); 
-  const notification = () => {
-  setNotificationCount(prev => prev + 1);
-};
+  
+  // Get notification data from context
+  const { unreadCount, isLoading: isNotificationsLoading } = useNotifications();
 
 
   useEffect(() => {
@@ -108,7 +109,7 @@ const DashboardHeader = React.memo(({
     {
       key: 'payments',
       label: 'Recharge',
-      route: 'Payments',
+      route: 'PostPaidRechargePayments',
       icon: RechargeIcon,
       activeIcon: WalletActive,
       iconSize: { width: 20, height: 20 }
@@ -116,9 +117,9 @@ const DashboardHeader = React.memo(({
     {
       key: 'invoices',
       label: 'Invoices',
-      // route: 'Invoices',
+      route: 'Invoices',
       icon: InvoicesIcon,
-      activeIcon: InvoicesIcon, // Use same icon for now
+      activeIcon: ActiveInvoiceIcon , // Use same icon for now
       iconSize: { width: 20, height: 20 }
     },
     {
@@ -134,7 +135,7 @@ const DashboardHeader = React.memo(({
       label: 'Usage',
       route: 'Usage',
       icon: UsageIcon,
-      activeIcon: ActiveUsageIcon,
+      activeIcon: ActiveUsageIcon ,
       iconSize: { width: 20, height: 20 }
     }
   ], []);
@@ -197,9 +198,9 @@ const DashboardHeader = React.memo(({
           <View style={styles.bellIcon}>
           <Notification width={18} height={18} fill="#202d59" />
           </View>
-          {notificationCount > 0 &&(
+          {unreadCount > 0 && (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{notificationCount}</Text>
+              <Text style={styles.badgeText}>{unreadCount}</Text>
             </View>
           )}
         </Pressable>
