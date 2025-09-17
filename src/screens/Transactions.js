@@ -123,6 +123,7 @@ const Transactions = ({ navigation }) => {
         />
       </View>
     </ScrollView>
+    {tableData.length > 0 && (
      <View style={styles.buttonContainer}>
      <View style={styles.buttonContainerInner}>
        <Button title="View"
@@ -139,6 +140,7 @@ const Transactions = ({ navigation }) => {
        />
      </View>
    </View>
+    )}
     </>
   );
 };

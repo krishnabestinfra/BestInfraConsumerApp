@@ -265,40 +265,45 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
             ) : (
               consumerData && (
                 <>
-                  <TouchableOpacity 
-                    style={styles.meterInfoContainer}
-                    onPress={handleConsumerPress}
-                    // activeOpacity={0.7}
-                  >
-                    <View style={{display: "flex", flexDirection: "row", alignItems: "center", gap: 10, width: "50%"}}>
-                      <Meter width={30} height={30} />
-                      <Text style={styles.meterConsumerText}>
-                        {consumerData.name || consumerData.consumerName || "Loading..."}
-                      </Text>
-                    </View>
-                    <View style={{display: "flex", flexDirection: "column", alignItems: "flex-end"}}>
-                    <Text style={styles.meterNumberText}>
-                      Meter SL No
-                    </Text>
-                      <Text style={styles.meterNumberText}>
-                        {consumerData.meterSerialNumber || "Loading..."}
-                      </Text>
-                      <Text style={styles.meterUIDText}>
-                        UID: {consumerData.uniqueIdentificationNo || "Loading..."}
-                      </Text>
-                    </View>
-                    <View style={styles.tapIndicator}>
-                      <Text style={styles.tapIndicatorText}>Tap for details</Text>
-                    </View>
-                  </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.meterInfoContainer}
+                        onPress={handleConsumerPress}
+                      >
+                        {/* Left side container */}
+                        <View style={styles.leftContainer}>
+                          <View style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 10 }}>
+                            <Meter width={30} height={30} />
+                            <Text style={styles.meterConsumerText}>
+                              {consumerData.name || consumerData.consumerName || "Loading..."}
+                            </Text>
+                          </View>
+                          <View style={styles.meterSLnum}>
+                            <Text style={styles.meterNumberText}>
+                              Meter SL No:
+                            {/* </Text>
+                            <Text style={styles.meterNumberText}> */}
+                              {consumerData.meterSerialNumber || "Loading..."}
+                            </Text>
+                          </View>
+                        </View>
 
+                        {/* Right side container */}
+                        <View style={styles.rightContainer}>
+                          <View style={styles.tapIndicator}>
+                            <Text style={styles.tapIndicatorText}>Tap for details</Text>
+                          </View>
+                          <Text style={styles.meterUIDText}>
+                            UID: {consumerData.uniqueIdentificationNo || "Loading..."}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
                   <View style={styles.lastCommunicationContainer}>
                       <View style={styles.lastCommunicationLeft}>
                       <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
                       <Text style={styles.lastCommunicationText}>Last Communication</Text>
                       </View>
                       <Text style={styles.lastCommunicationTimeText}>
-                        {consumerData.readingDate || "Loading..."}
+                        {consumerData.readingDate? formatDateTime (consumerData.readingDate) : "Loading..."}
                       </Text>                  
                     </View>
                 </>
@@ -306,7 +311,7 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
             )}
           </View>
   
-          <View style={styles.whiteContainer}>
+          <View style={styles.graphSection}>
             <View
               style={{
                 display: "flex",
@@ -482,7 +487,7 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
       backgroundColor: COLORS.secondaryFontColor,
       borderTopLeftRadius: 30,
     },
-    whiteContainer: {
+    graphSection: {
       padding: 10,
       paddingHorizontal: 20,
       paddingBottom: 20,
@@ -564,35 +569,75 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
       borderWidth: 1.2,
       borderColor: "#ffffff50",
     },
-  
     meterContainer:{
-      padding: 10
+      padding:12,
+      // backgroundColor:"red"
     },
-    meterInfoContainer:{
-      backgroundColor: COLORS.primaryColor,
-      borderRadius: 5,
-      paddingVertical: 15,
-      paddingHorizontal: 15,
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      position: "relative",
-    },
-    tapIndicator: {
-      position: "absolute",
-      bottom: 5,
-      left: 5,
-      backgroundColor: "rgba(255, 255, 255, 0.2)",
-      paddingHorizontal: 10,
-      paddingVertical: 2,
-      borderRadius: 10,
-    },
-    tapIndicatorText: {
-      fontSize: 7,
-      fontFamily: "Manrope-SemiBold",
-      color: COLORS.secondaryFontColor,
-    },
+  meterInfoContainer:{
+  backgroundColor: COLORS.primaryColor,
+  borderRadius: 5,
+  paddingVertical: 2,
+  paddingHorizontal: 20, 
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center", 
+},
+
+
+leftContainer: {
+  flexDirection: "column",
+  justifyContent: "flex-start",
+  flex: 1,  
+  marginRight: 10,
+},
+  meterConsumerText:{
+    color: COLORS.secondaryFontColor,
+    // width:"70%",
+    fontSize: 14,
+    fontFamily: "Manrope-Bold",
+  },
+
+meterSLnum: {
+  // marginTop: 5,
+  paddingHorizontal:20,
+  marginHorizontal:20,
+},
+meterNumberText:{
+    color: COLORS.secondaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+},
+
+rightContainer: {
+  flexDirection: "column",
+  alignItems: "flex-end",
+  justifyContent: "flex-start",
+  paddingVertical:25
+
+},
+
+tapIndicator: {
+  backgroundColor: "rgba(255, 255, 255, 0.2)",
+  paddingHorizontal: 10,
+  paddingVertical: 2,
+  borderRadius: 10,
+  marginBottom: 5,
+},
+
+tapIndicatorText: {
+  fontSize: 7,
+  fontFamily: "Manrope-SemiBold",
+  color: COLORS.secondaryFontColor,
+},
+
+meterUIDText: {
+  color: COLORS.secondaryFontColor,
+  fontSize: 10,
+  fontFamily: "Manrope-Medium",
+  paddingHorizontal: 5,
+  paddingVertical: 2,
+},
+
 
   lastCommunicationContainer:{
     backgroundColor: COLORS.secondaryLightColor, 
@@ -622,22 +667,16 @@ lastCommunicationTimeText: {
   fontSize: 10,
   fontFamily: "Manrope-Regular",
 },
-
-  meterConsumerText:{
-    color: COLORS.secondaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Bold",
-  },
-  meterNumberText:{
-    color: COLORS.secondaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Bold",
-  },
-  meterUIDText:{
-    color: '#E9EAEE',
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-  },
+  // meterNumberText:{
+  //   color: COLORS.secondaryFontColor,
+  //   fontSize: 14,
+  //   fontFamily: "Manrope-Bold",
+  // // },
+  // meterUIDText:{
+  //   color: '#E9EAEE',
+  //   fontSize: 10,
+  //   fontFamily: "Manrope-Regular",
+  // },
   lastCommunicationText:{
     color: COLORS.primaryFontColor,
     fontSize: 10,
@@ -648,26 +687,6 @@ lastCommunicationTimeText: {
     fontSize: 10,
     fontFamily: "Manrope-Regular",
   },
-    meterConsumerText:{
-      color: COLORS.secondaryFontColor,
-      fontSize: 14,
-      fontFamily: "Manrope-Bold",
-    },
-    meterNumberText:{
-      color: COLORS.secondaryFontColor,
-      fontSize: 14,
-      fontFamily: "Manrope-Bold",
-    },
-    meterUIDText:{
-      color: '#E9EAEE',
-      fontSize: 10,
-      fontFamily: "Manrope-Bold",
-      backgroundColor: COLORS.secondaryColor,
-      paddingHorizontal: 5,
-      paddingVertical: 2,
-      borderRadius: 5,
-      color: COLORS.secondaryFontColor,
-    },
     datePickerSection: {
       marginBottom: 20,
       gap: 10,
