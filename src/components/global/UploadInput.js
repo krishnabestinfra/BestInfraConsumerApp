@@ -235,8 +235,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontFamily: 'Manrope-Regular',
     paddingHorizontal: 12,
-    paddingVertical: 16,
+    paddingVertical: 8,
     borderStyle: 'dashed',
+    // backgroundColor:"red"
   },
   // Variant styles
   defaultContainer: {
@@ -254,13 +255,13 @@ const styles = StyleSheet.create({
   },
   // Size styles
   small: {
-    minHeight: 60,
+    minHeight: 40,
   },
   medium: {
-    minHeight: 80,
+    minHeight: 60,
   },
   large: {
-    minHeight: 100,
+    minHeight: 80,
   },
   content: {
     flexDirection: 'row',
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: '#6E6E6E',
-    fontSize:20,
+    fontSize:14,
   },
   fileNames: {
     fontSize: 12,
@@ -303,9 +304,9 @@ const styles = StyleSheet.create({
   },
   browseButtonText: {
     color: COLORS.secondaryColor,
-    fontSize: 17,
-    fontWeight:"700",
-    fontFamily: 'Manrope-Medium',
+    fontSize: 14,
+    // fontWeight:"600",
+    fontFamily: 'Manrope-Bold',
   },
   // Files preview
   filesPreview: {

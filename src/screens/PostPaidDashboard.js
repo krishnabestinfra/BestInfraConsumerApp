@@ -1,4 +1,4 @@
-import {
+  import {
     View,
     Text,
     StyleSheet,
@@ -11,15 +11,18 @@ import {
   import { COLORS } from "../constants/colors";
   import Arrow from "../../assets/icons/arrow.svg";
   import GroupedBarChart from "../components/GroupedBarChart";
+  import ConsumerGroupedBarChart from "../components/ConsumerGroupedBarChart";
   import Table from "../components/global/Table";
   import Input from "../components/global/Input";
   import DatePicker from "../components/global/DatePicker";
   import Meter from "../../assets/icons/meterWhite.svg";
-import DashboardHeader from "../components/global/DashboardHeader";
+  import DashboardHeader from "../components/global/DashboardHeader";
   import LastCommunicationIcon from "../../assets/icons/signal.svg";
-import { GLOBAL_API_URL } from "../constants/constants";
-import { getUser, getToken } from "../utils/storage";
-import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
+  import { GLOBAL_API_URL } from "../constants/constants";
+  import { getUser, getToken } from "../utils/storage";
+  import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
+import { useLoading, SkeletonLoader } from '../utils/loadingManager';
+
 // import { GestureHandlerRootView } from 'react-native-gesture-handler';
   
   // Dynamic API URL will be set based on authenticated user
@@ -33,7 +36,7 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
     // const { userName } = route?.params || {};
     //  const { isGuest } = route.params || {};
   const [consumerData, setConsumerData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { isLoading, setLoading } = useLoading('consumerData', true);
   
   // Bottom sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
@@ -230,6 +233,16 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
     setSelectedConsumerUid(null);
   }, []);
 
+  // Handle bar press from chart - navigate to dedicated table page
+  const handleBarPress = useCallback((barData) => {
+    console.log('📊 Bar pressed:', barData);
+    navigation.navigate('ConsumerDataTable', { 
+      consumerData, 
+      loading: isLoading,
+      viewType: selectedView
+    });
+  }, [navigation, consumerData, isLoading, selectedView]);
+
   return (
     <>
       <ScrollView
@@ -243,49 +256,54 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
             navigation={navigation} 
             showBalance={false}
             consumerData={consumerData}
-            isLoading={loading}
+            isLoading={isLoading}
           />
   
           <View style={styles.meterContainer}>
-            {loading ? (
-              <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+            {isLoading ? (
+              <SkeletonLoader lines={4} showAvatar={true} style={{ margin: 16 }} />
             ) : (
               consumerData && (
                 <>
-                  <TouchableOpacity 
-                    style={styles.meterInfoContainer}
-                    onPress={handleConsumerPress}
-                    // activeOpacity={0.7}
-                  >
-                    <View style={{display: "flex", flexDirection: "row", alignItems: "center", gap: 10, width: "50%"}}>
-                      <Meter width={30} height={30} />
-                      <Text style={styles.meterConsumerText}>
-                        {consumerData.name || consumerData.consumerName || "Loading..."}
-                      </Text>
-                    </View>
-                    <View style={{display: "flex", flexDirection: "column", alignItems: "flex-end"}}>
-                    <Text style={styles.meterNumberText}>
-                      Meter SL No
-                    </Text>
-                      <Text style={styles.meterNumberText}>
-                        {consumerData.meterSerialNumber || "Loading..."}
-                      </Text>
-                      <Text style={styles.meterUIDText}>
-                        UID: {consumerData.uniqueIdentificationNo || "Loading..."}
-                      </Text>
-                    </View>
-                    <View style={styles.tapIndicator}>
-                      <Text style={styles.tapIndicatorText}>Tap for details</Text>
-                    </View>
-                  </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={styles.meterInfoContainer}
+                        onPress={handleConsumerPress}
+                      >
+                        {/* Left side container */}
+                        <View style={styles.leftContainer}>
+                          <View style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 10 }}>
+                            <Meter width={30} height={30} />
+                            <Text style={styles.meterConsumerText}>
+                              {consumerData.name || consumerData.consumerName || "Loading..."}
+                            </Text>
+                          </View>
+                          <View style={styles.meterSLnum}>
+                            <Text style={styles.meterNumberText}>
+                              Meter SL No:
+                            {/* </Text>
+                            <Text style={styles.meterNumberText}> */}
+                              {consumerData.meterSerialNumber || "Loading..."}
+                            </Text>
+                          </View>
+                        </View>
 
+                        {/* Right side container */}
+                        <View style={styles.rightContainer}>
+                          <View style={styles.tapIndicator}>
+                            <Text style={styles.tapIndicatorText}>Tap for details</Text>
+                          </View>
+                          <Text style={styles.meterUIDText}>
+                            UID: {consumerData.uniqueIdentificationNo || "Loading..."}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
                   <View style={styles.lastCommunicationContainer}>
                       <View style={styles.lastCommunicationLeft}>
                       <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
                       <Text style={styles.lastCommunicationText}>Last Communication</Text>
                       </View>
                       <Text style={styles.lastCommunicationTimeText}>
-                        {consumerData.readingDate || "Loading..."}
+                        {consumerData.readingDate? formatDateTime (consumerData.readingDate) : "Loading..."}
                       </Text>                  
                     </View>
                 </>
@@ -293,7 +311,7 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
             )}
           </View>
   
-          <View style={styles.whiteContainer}>
+          <View style={styles.graphSection}>
             <View
               style={{
                 display: "flex",
@@ -355,11 +373,11 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
             </View> */}
   
             <View style={styles.graphsContainer}>
-              {selectedView === "daily" ? (
+            {selectedView === "daily" ? (
                 <>
                   <Text style={styles.thismonthText}>
                     Today's Usage: <Text style={styles.kwhText}>
-                      {loading ? "Loading..." : getDailyUsage()}kWh
+                      {isLoading ? "Loading..." : getDailyUsage()}kWh
                     </Text>
                   </Text>
                   <View
@@ -376,18 +394,23 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
                     <Text style={styles.lastText}>Yesterday.</Text>
                   </View>
                   <View style={{ display: "flex", alignItems: "center" }}>
-                    <GroupedBarChart 
-                      viewType="daily" 
-                      data={consumerData}
-                      loading={loading}
-                    />
+                      {isLoading ? (
+                        <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
+                      ) : (                    
+                        <ConsumerGroupedBarChart 
+                          viewType="daily" 
+                          data={consumerData}
+                          loading={isLoading}
+                      onBarPress={handleBarPress}
+                        />
+                      )}
                   </View>
                 </>
               ) : (
                 <>
                   <Text style={styles.thismonthText}>
                     This Month's Usage: <Text style={styles.kwhText}>
-                      {loading ? "Loading..." : getMonthlyUsage()}kWh
+                      {isLoading ? "Loading..." : getMonthlyUsage()}kWh
                     </Text>
                   </Text>
                   <View
@@ -404,11 +427,16 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
                     <Text style={styles.lastText}>Last Month.</Text>
                   </View>
                   <View style={{ display: "flex", alignItems: "center" }}>
-                    <GroupedBarChart 
-                      viewType="monthly" 
-                      data={consumerData}
-                      loading={loading}
-                    />
+                    {isLoading ? (
+                      <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
+                    ) : (
+                      <ConsumerGroupedBarChart 
+                        viewType="monthly" 
+                        data={consumerData}
+                        loading={isLoading}
+                      onBarPress={handleBarPress}
+                      />
+                    )}
                   </View>
                 </>
               )}
@@ -420,6 +448,7 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
             <Table 
             data={tableData}
             loading={isTableLoading}
+            skeletonLines={4}
             emptyMessage={consumerData?.alerts?.length === 0 ? "No tamper alerts available" : "No meter status data available"}
             showSerial={false}
             showPriority={false}
@@ -458,7 +487,7 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
       backgroundColor: COLORS.secondaryFontColor,
       borderTopLeftRadius: 30,
     },
-    whiteContainer: {
+    graphSection: {
       padding: 10,
       paddingHorizontal: 20,
       paddingBottom: 20,
@@ -540,35 +569,75 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
       borderWidth: 1.2,
       borderColor: "#ffffff50",
     },
-  
     meterContainer:{
-      padding: 10
+      padding:12,
+      // backgroundColor:"red"
     },
-    meterInfoContainer:{
-      backgroundColor: COLORS.primaryColor,
-      borderRadius: 5,
-      paddingVertical: 15,
-      paddingHorizontal: 15,
-      display: "flex",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      position: "relative",
-    },
-    tapIndicator: {
-      position: "absolute",
-      bottom: 5,
-      left: 5,
-      backgroundColor: "rgba(255, 255, 255, 0.2)",
-      paddingHorizontal: 10,
-      paddingVertical: 2,
-      borderRadius: 10,
-    },
-    tapIndicatorText: {
-      fontSize: 7,
-      fontFamily: "Manrope-SemiBold",
-      color: COLORS.secondaryFontColor,
-    },
+  meterInfoContainer:{
+  backgroundColor: COLORS.primaryColor,
+  borderRadius: 5,
+  paddingVertical: 2,
+  paddingHorizontal: 20, 
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center", 
+},
+
+
+leftContainer: {
+  flexDirection: "column",
+  justifyContent: "flex-start",
+  flex: 1,  
+  marginRight: 10,
+},
+  meterConsumerText:{
+    color: COLORS.secondaryFontColor,
+    // width:"70%",
+    fontSize: 14,
+    fontFamily: "Manrope-Bold",
+  },
+
+meterSLnum: {
+  // marginTop: 5,
+  paddingHorizontal:20,
+  marginHorizontal:20,
+},
+meterNumberText:{
+    color: COLORS.secondaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+},
+
+rightContainer: {
+  flexDirection: "column",
+  alignItems: "flex-end",
+  justifyContent: "flex-start",
+  paddingVertical:25
+
+},
+
+tapIndicator: {
+  backgroundColor: "rgba(255, 255, 255, 0.2)",
+  paddingHorizontal: 10,
+  paddingVertical: 2,
+  borderRadius: 10,
+  marginBottom: 5,
+},
+
+tapIndicatorText: {
+  fontSize: 7,
+  fontFamily: "Manrope-SemiBold",
+  color: COLORS.secondaryFontColor,
+},
+
+meterUIDText: {
+  color: COLORS.secondaryFontColor,
+  fontSize: 10,
+  fontFamily: "Manrope-Medium",
+  paddingHorizontal: 5,
+  paddingVertical: 2,
+},
+
 
   lastCommunicationContainer:{
     backgroundColor: COLORS.secondaryLightColor, 
@@ -598,22 +667,16 @@ lastCommunicationTimeText: {
   fontSize: 10,
   fontFamily: "Manrope-Regular",
 },
-
-  meterConsumerText:{
-    color: COLORS.secondaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Bold",
-  },
-  meterNumberText:{
-    color: COLORS.secondaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Bold",
-  },
-  meterUIDText:{
-    color: '#E9EAEE',
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-  },
+  // meterNumberText:{
+  //   color: COLORS.secondaryFontColor,
+  //   fontSize: 14,
+  //   fontFamily: "Manrope-Bold",
+  // // },
+  // meterUIDText:{
+  //   color: '#E9EAEE',
+  //   fontSize: 10,
+  //   fontFamily: "Manrope-Regular",
+  // },
   lastCommunicationText:{
     color: COLORS.primaryFontColor,
     fontSize: 10,
@@ -624,26 +687,6 @@ lastCommunicationTimeText: {
     fontSize: 10,
     fontFamily: "Manrope-Regular",
   },
-    meterConsumerText:{
-      color: COLORS.secondaryFontColor,
-      fontSize: 14,
-      fontFamily: "Manrope-Bold",
-    },
-    meterNumberText:{
-      color: COLORS.secondaryFontColor,
-      fontSize: 14,
-      fontFamily: "Manrope-Bold",
-    },
-    meterUIDText:{
-      color: '#E9EAEE',
-      fontSize: 10,
-      fontFamily: "Manrope-Bold",
-      backgroundColor: COLORS.secondaryColor,
-      paddingHorizontal: 5,
-      paddingVertical: 2,
-      borderRadius: 5,
-      color: COLORS.secondaryFontColor,
-    },
     datePickerSection: {
       marginBottom: 20,
       gap: 10,
@@ -662,6 +705,33 @@ lastCommunicationTimeText: {
       fontFamily: 'Manrope-SemiBold',
       color: COLORS.primaryFontColor,
       marginBottom: 10,
+    },
+    viewTableButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: COLORS.secondaryFontColor,
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+      marginTop: 15,
+      borderWidth: 1,
+      borderColor: COLORS.secondaryColor,
+    },
+    viewTableButtonText: {
+      fontSize: 14,
+      fontFamily: 'Manrope-SemiBold',
+      color: COLORS.secondaryColor,
+      marginRight: 8,
+    },
+    chartInstructionText: {
+      fontSize: 11,
+      fontFamily: 'Manrope-Regular',
+      color: COLORS.primaryFontColor,
+      opacity: 0.7,
+      textAlign: 'center',
+      marginTop: 8,
+      marginBottom: 5,
     }
   });
   

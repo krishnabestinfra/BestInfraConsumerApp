@@ -7,9 +7,10 @@ import InvoicesIcon from '../../../assets/icons/invoices.svg';
 import TicketsIcon from '../../../assets/icons/tickets.svg';
 import UsageIcon from '../../../assets/icons/usage.svg';
 // White icons for active states
-// import ActiveRechargeIcon from '../../../assets/icons/activePayments.svg';
+import ActiveRechargeIcon from '../../../assets/icons/activePayments.svg';
 import ActiveTicketsIcon from '../../../assets/icons/ticketsWhite.svg';
-import ActiveUsageIcon from '../../../assets/icons/activeUsage.svg';
+import ActiveInvoiceIcon from '../../../assets/icons/activeUsageIcon.svg';
+import ActiveUsageIcon from '../../../assets/icons/activeInvoice.svg';
 import Hand from '../../../assets/icons/hand.svg';
 import Arrow from '../../../assets/icons/arrow.svg';
 import Plus from '../../../assets/icons/plus.svg';
@@ -20,6 +21,7 @@ import { getUser, getConsumerDisplayName, cleanupStoredUserData } from '../../ut
 import { getCachedConsumerData, backgroundSyncConsumerData } from '../../utils/cacheManager';
 import { cacheManager } from '../../utils/cacheManager';
 import { useLoading } from '../../utils/loadingManager';
+import { useNotifications } from '../../context/NotificationsContext';
 import Logo from './Logo';
 import AnimatedRings from './AnimatedRings';
 
@@ -34,6 +36,10 @@ const DashboardHeader = React.memo(({
   const [userName, setUserName] = useState('');
   const [cachedConsumerData, setCachedConsumerData] = useState(null);
   const { isLoading: isUserLoading, setLoading: setUserLoading } = useLoading('user_loading', true);
+  
+  // Get notification data from context
+  const { unreadCount, isLoading: isNotificationsLoading } = useNotifications();
+
 
   useEffect(() => {
     const loadUser = async () => {
@@ -103,7 +109,7 @@ const DashboardHeader = React.memo(({
     {
       key: 'payments',
       label: 'Recharge',
-      route: 'Payments',
+      route: 'PostPaidRechargePayments',
       icon: RechargeIcon,
       activeIcon: WalletActive,
       iconSize: { width: 20, height: 20 }
@@ -111,9 +117,9 @@ const DashboardHeader = React.memo(({
     {
       key: 'invoices',
       label: 'Invoices',
-      // route: 'Invoices',
+      route: 'Invoices',
       icon: InvoicesIcon,
-      activeIcon: InvoicesIcon, // Use same icon for now
+      activeIcon: ActiveInvoiceIcon , // Use same icon for now
       iconSize: { width: 20, height: 20 }
     },
     {
@@ -129,7 +135,7 @@ const DashboardHeader = React.memo(({
       label: 'Usage',
       route: 'Usage',
       icon: UsageIcon,
-      activeIcon: ActiveUsageIcon,
+      activeIcon: ActiveUsageIcon ,
       iconSize: { width: 20, height: 20 }
     }
   ], []);
@@ -186,10 +192,17 @@ const DashboardHeader = React.memo(({
         </View>
         
         <Pressable
-          style={styles.bellIcon}
+          style={styles.bellWrapper}
           onPress={() => navigation.navigate('Profile')}
         >
+          <View style={styles.bellIcon}>
           <Notification width={18} height={18} fill="#202d59" />
+          </View>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
       
@@ -210,7 +223,7 @@ const DashboardHeader = React.memo(({
             <Text style={styles.balanceText}>Balance</Text>
             <View style={styles.balanceContainer}>
               <Text style={styles.amountText}>
-                {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ? `₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString()}` : "₹1,245")}
+                {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ? `₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹1,245")}
               </Text>
               <View style={styles.plusBox}>
                 <Plus width={20} height={20} fill="#55B56C" />
@@ -224,7 +237,7 @@ const DashboardHeader = React.memo(({
       <View style={styles.amountSection}>
         <View style={styles.amountContainer}>
           <Text style={styles.dueText}>
-            Due Amount: {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ? `₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString()}` : "₹3,180")}
+            Due Amount: {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ?`₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹3,180")}
           </Text>
           <Text style={styles.dateText}>This Month</Text>
         </View>
@@ -297,6 +310,32 @@ const styles = StyleSheet.create({
     elevation: 5,
     zIndex: 2,
   },
+
+  bellWrapper: {
+  position: 'relative',
+},
+badge: {
+  position: 'absolute',
+  right: 0,
+  // top: 4,
+  bottom:33,
+  backgroundColor: 'red',
+  width: 23,
+  height: 23,
+  borderRadius: 15,
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderWidth: 1,
+  borderColor: '#fff',
+  zIndex: 2,
+
+},
+badgeText: {
+  color: '#fff',
+  fontSize: 12,
+  fontFamily:'Manrope-Medium'
+},
+
   ProfileBox: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -381,7 +420,7 @@ const styles = StyleSheet.create({
   },
   shieldIcon: {
     marginHorizontal: 12,
-    marginTop: 6,
+    marginTop: 10,
   },
   payText: {
     color: COLORS.secondaryFontColor,
@@ -397,6 +436,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryFontColor,
     fontSize: 10,
     fontFamily: 'Manrope-Regular',
+    marginBottom:10,
   },
   paynowbox: {
     backgroundColor: COLORS.secondaryFontColor,
@@ -405,6 +445,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     display: 'flex',
     justifyContent: 'center',
+    marginHorizontal:12,
+    
   },
   paynowText: {
     color: COLORS.primaryFontColor,

@@ -175,7 +175,9 @@ export const useLoading = (key, initialLoading = false) => {
  * Skeleton Loading Component
  */
 export const SkeletonLoader = memo(({ 
-  lines = 3, 
+  variant = "lines", // "lines" | "barchart" | "table" | "card"
+  lines = 3,
+  columns = 3,         
   style,
   showAvatar = false 
 }) => {
@@ -192,13 +194,71 @@ export const SkeletonLoader = memo(({
     ));
   };
 
-  return (
-    <View style={[styles.skeletonContainer, style]}>
-      {showAvatar && <View style={styles.skeletonAvatar} />}
-      {renderSkeletonLines()}
+  //   const renderCardSkeleton = () => (
+  //   <View style={[styles.cardSkeleton, style]}>
+  //     <View style={styles.skeletonAvatar} />
+  //     <View style={styles.skeletonLine} />
+  //     <View style={[styles.skeletonLine, { width: "60%" }]} />
+  //   </View>
+  // );
+
+
+  const renderBarChartSkeleton = () => (
+    <View style={[styles.chartContainer, style]}>
+      {Array.from({ length: lines }).map((_, index) => (
+        <View
+          key={index}
+          style={[
+            styles.chartBar,
+            {
+              height: 60 + Math.random() * 100,
+              width: 20,
+            },
+          ]}
+        />
+      ))}
     </View>
   );
+
+  const renderTableSkeleton = () => (
+    <View style={[styles.tableContainer, style]}>
+      {/* Header */}
+      <View style={styles.tableHeader}>
+        {Array.from({ length: columns }).map((_, colIndex) => (
+          <View key={colIndex} style={styles.headerCell} />
+        ))}
+      </View>
+
+      {/* Rows */}
+      {Array.from({ length: lines }).map((_, rowIndex) => (
+        <View key={rowIndex} style={styles.tableRow}>
+          {Array.from({ length: columns }).map((_, colIndex) => (
+            <View key={colIndex} style={styles.tableCell} />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+
+    switch (variant) {
+    case "barchart":
+      return renderBarChartSkeleton();
+    case "table":
+      return renderTableSkeleton();
+    // case "card":
+    //   return renderCardSkeleton();
+    default:
+      return renderSkeletonLines();
+  }
 });
+
+
+  // return (
+  //   <View style={[styles.skeletonContainer, style]}>
+  //     {showAvatar && <View style={styles.skeletonAvatar} />}
+  //     {renderSkeletonLines()}
+  //   </View>
+  // );
 
 /**
  * Progress Loading Component
@@ -367,7 +427,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   skeletonLineShort: {
-    width: '60%',
+    width: '100%',
   },
   skeletonAvatar: {
     width: 40,
@@ -376,6 +436,50 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     marginBottom: 12,
   },
+  chartContainer: {
+  height: 210,
+  marginHorizontal: 20,
+  marginTop: 25,
+  borderRadius: 5,
+  backgroundColor: "#eef8f0",
+  flexDirection: "row",
+  alignItems: "flex-end",
+  justifyContent: "space-between", // <-- ensures equal spacing
+  paddingHorizontal: 10,
+
+  },
+    chartBar: {
+  backgroundColor: "#e0e0e0",
+  borderRadius: 6,
+  marginHorizontal: 4
+
+  },
+
+tableContainer: {
+  marginTop: 0,
+  borderColor: "#eee",
+  borderRadius: 6,
+  overflow: "hidden",
+  gap:3,
+},
+tableRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  paddingVertical: 12,
+  paddingHorizontal: 12,
+  borderColor: "#f0f0f0",
+  backgroundColor: "#F8F9FA",
+
+},
+tableCell: {
+  flex: 1,
+  height:15,
+  backgroundColor: "#e0e0e0",
+  borderRadius: 4,
+  marginHorizontal: 6,
+  width:5,
+},
+
   progressContainer: {
     width: 200,
     marginTop: 20,

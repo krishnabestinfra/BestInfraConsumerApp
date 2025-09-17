@@ -109,6 +109,7 @@ const Transactions = ({ navigation }) => {
         <Table
           data={tableData}
           loading={isLoading}
+          skeletonLines={tableData.length > 0 ? tableData.length : 5}
           emptyMessage="No transaction data available"
           showSerial={true}
           showPriority={false}
@@ -122,6 +123,7 @@ const Transactions = ({ navigation }) => {
         />
       </View>
     </ScrollView>
+    {tableData.length > 0 && (
      <View style={styles.buttonContainer}>
      <View style={styles.buttonContainerInner}>
        <Button title="View"
@@ -138,6 +140,7 @@ const Transactions = ({ navigation }) => {
        />
      </View>
    </View>
+    )}
     </>
   );
 };

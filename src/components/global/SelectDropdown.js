@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import DropdownIcon from '../../../assets/icons/dropDown.svg';
 
 const SelectDropdown = ({
   label,
@@ -71,9 +72,7 @@ const SelectDropdown = ({
           <Text style={getTextStyle()}>
             {value || placeholder}
           </Text>
-          <Text style={[styles.arrow, isOpen && styles.arrowOpen]}>
-            ▼
-          </Text>
+          <DropdownIcon width={16} height={16} />
         </TouchableOpacity>
 
         {isOpen && options.length > 0 && (

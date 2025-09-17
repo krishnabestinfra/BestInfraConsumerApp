@@ -5,6 +5,7 @@ import { COLORS } from '../../constants/colors';
 const NotificationCard = ({
   title,
   description,
+  message, // New prop for notification message
   subDescription,
   icon,
   variant = 'default', // 'default', 'warning', 'success', 'info'
@@ -17,8 +18,39 @@ const NotificationCard = ({
   iconStyle,
   iconContainerStyle,
   disabled = false,
+  isRead = true, // New prop for read status
+  sentAt, // New prop for timestamp
+  showTimestamp = true, // New prop to control timestamp display
   ...props
 }) => {
+  // Format timestamp to human-readable format
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return '';
+    
+    const now = new Date();
+    const notificationTime = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - notificationTime) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return 'Just now';
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes}m ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours}h ago`;
+    } else if (diffInSeconds < 604800) {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days}d ago`;
+    } else {
+      return notificationTime.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+  };
+
   const getVariantStyles = () => {
     switch (variant) {
       case 'warning':
@@ -50,25 +82,42 @@ const NotificationCard = ({
 
   const variantStyles = getVariantStyles();
 
+  // Use message if description is not provided
+  const displayDescription = description || message;
+
   const cardElement = (
-    <View style={[styles.container, containerStyle, style]} {...props}>
+    <View style={[
+      styles.container, 
+      containerStyle, 
+      style, 
+      !isRead && styles.unreadContainer
+    ]} {...props}>
       <View style={styles.contentContainer}>
         <View style={styles.textContainer}>
-          <Text style={[
-            styles.title,
-            { color: variantStyles.titleColor },
-            titleStyle
-          ]}>
-            {title}
-          </Text>
-          {description && (
+          <View style={styles.titleRow}>
+            <Text style={[
+              styles.title,
+              { color: variantStyles.titleColor },
+              titleStyle,
+              !isRead && styles.unreadTitle
+            ]}>
+              {title}
+            </Text>
+            {!isRead && <View style={styles.unreadDot} />}
+          </View>
+          {displayDescription && (
             <Text style={[styles.description, descriptionStyle]}>
-              {description}
+              {displayDescription}
             </Text>
           )}
           {subDescription && (
             <Text style={[styles.description, subDescriptionStyle]}>
               {subDescription}
+            </Text>
+          )}
+          {showTimestamp && (sentAt || formatTimestamp(sentAt)) && (
+            <Text style={[styles.timestamp, { color: variantStyles.titleColor }]}>
+              {formatTimestamp(sentAt)}
             </Text>
           )}
         </View>
@@ -133,6 +182,33 @@ const styles = StyleSheet.create({
   },
   pressable: {
     // Pressable styling
+  },
+  unreadContainer: {
+    backgroundColor: '#F8F9FF',
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primaryColor,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  unreadTitle: {
+    fontFamily: 'Manrope-Bold',
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primaryColor,
+    marginLeft: 8,
+  },
+  timestamp: {
+    fontSize: 10,
+    fontFamily: 'Manrope-Regular',
+    opacity: 0.7,
+    marginTop: 4,
   },
 });
 
