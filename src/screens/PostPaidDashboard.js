@@ -238,10 +238,10 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
     console.log('📊 Bar pressed:', barData);
     navigation.navigate('ConsumerDataTable', { 
       consumerData, 
-      loading,
+      loading: isLoading,
       viewType: selectedView
     });
-  }, [navigation, consumerData, loading, selectedView]);
+  }, [navigation, consumerData, isLoading, selectedView]);
 
   return (
     <>
