@@ -146,7 +146,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
           <View style={styles.meterInfoRow}>
             <Meter width={30} height={30} />
             <Text style={styles.meterConsumerText}>
-              {isLoading ? "Loading..." : (consumerData?.name || "GMR AERO TOWER 2 INCOMER")}
+              {consumerData?.name || "GMR AERO TOWER 2 INCOMER"}
             </Text>
           </View>
            <View style={styles.meterInfoColumn}>

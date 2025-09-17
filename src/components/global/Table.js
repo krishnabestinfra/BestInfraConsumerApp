@@ -238,21 +238,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryColor,
     borderRadius: 5,
     flexDirection: "row",
-    paddingVertical: 12,
     paddingHorizontal: 16,
     alignItems: "center",
     minHeight: 48,
+    display:"flex",
+    justifyContent:"center",
   },
   columnContainer: {
     paddingRight: 8,
   },
   headerText: {
     color: COLORS.secondaryFontColor,
-    fontFamily: "Manrope-SemiBold",
-    fontSize: 13,
+    fontFamily: "Manrope-Medium",
+    fontSize: 12,
     textAlign: "left",
     fontWeight: "600",
-    flex: 1,
+    // flex: 1,
   },
   headerTextResponsive: {
     fontSize: screenWidth < 400 ? 11 : 13,
@@ -268,17 +269,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 2,
     minHeight: 48,
+    
   },
   pressableRow: {
     // Optional styling for pressable rows
   },
   dataText: {
     color: COLORS.primaryFontColor,
-    fontFamily: "Manrope-Regular",
-    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+    fontSize: 10,
     textAlign: "left",
     lineHeight: 16,
-    flex: 1,
+    // flex: 1,
     marginRight: 4,
   },
   statusText: {
