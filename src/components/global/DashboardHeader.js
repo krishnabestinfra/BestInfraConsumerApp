@@ -222,7 +222,7 @@ const DashboardHeader = React.memo(({
             <Text style={styles.balanceText}>Balance</Text>
             <View style={styles.balanceContainer}>
               <Text style={styles.amountText}>
-                {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ? `₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString()}` : "₹1,245")}
+                {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ? `₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹1,245")}
               </Text>
               <View style={styles.plusBox}>
                 <Plus width={20} height={20} fill="#55B56C" />
@@ -236,7 +236,7 @@ const DashboardHeader = React.memo(({
       <View style={styles.amountSection}>
         <View style={styles.amountContainer}>
           <Text style={styles.dueText}>
-            Due Amount: {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ? `₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString()}` : "₹3,180")}
+            Due Amount: {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ?`₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹3,180")}
           </Text>
           <Text style={styles.dateText}>This Month</Text>
         </View>
@@ -419,7 +419,7 @@ badgeText: {
   },
   shieldIcon: {
     marginHorizontal: 12,
-    marginTop: 6,
+    marginTop: 10,
   },
   payText: {
     color: COLORS.secondaryFontColor,
@@ -435,6 +435,7 @@ badgeText: {
     color: COLORS.secondaryFontColor,
     fontSize: 10,
     fontFamily: 'Manrope-Regular',
+    marginBottom:10,
   },
   paynowbox: {
     backgroundColor: COLORS.secondaryFontColor,
@@ -443,6 +444,8 @@ badgeText: {
     borderRadius: 5,
     display: 'flex',
     justifyContent: 'center',
+    marginHorizontal:12,
+    
   },
   paynowText: {
     color: COLORS.primaryFontColor,

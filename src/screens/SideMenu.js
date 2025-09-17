@@ -72,7 +72,7 @@ const SideMenu = ({ navigation }) => {
           <SideMenuNavigation navigation={navigation} activeItem={activeItem} handleMenuPress={handleMenuPress}/>
         </View>
         <View style={styles.componentsbar}>
-          <ScrollView style={styles.DashComponentsbar}>
+          <ScrollView scrollEnabled={false} style={styles.DashComponentsbar}>
             <View>
               <Pressable
                 onPress={() => {
@@ -83,7 +83,7 @@ const SideMenu = ({ navigation }) => {
               </Pressable>
             </View>
           </ScrollView>
-          <ScrollView style={styles.LoginComponentsbar}>
+          <ScrollView scrollEnabled={false} style={styles.LoginComponentsbar}>
             <BlurView intensity={50} tint="dark" style={styles.blurContainer}>
               <View>{renderContent()}</View>
             </BlurView>

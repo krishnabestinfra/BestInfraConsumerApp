@@ -352,8 +352,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: COLORS.secondaryFontColor,
-
+    // backgroundColor: COLORS.secondaryFontColor,
     // iOS shadow
     shadowColor: "rgba(0, 0, 0, 0.02)",
     shadowOffset: { width: 0, height: 2 },
