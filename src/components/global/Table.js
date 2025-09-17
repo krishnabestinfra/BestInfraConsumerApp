@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, Dimensions } from "react-native";
 import React from "react";
 import { COLORS } from "../../constants/colors";
+import { SkeletonLoader } from "../../utils/loadingManager";
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -9,25 +10,25 @@ const COLUMN_WIDTHS = {
   default: 1,
 };
 
-
 const Table = ({ 
   data = [], 
-  columns = [], // Dynamic column configuration
-  showSerial = false, // Show S.No column (renamed for clarity)
-  showPriority = false, // Show priority tags
-  priorityField = null, // Field to check for priority
-  priorityMapping = {}, // Mapping of values to priority levels
-  containerStyle = {},
-  headerStyle = {},
-  rowStyle = {},
-  textStyle = {},
-  statusStyle = {},
-  onRowPress = null,
-  loading = false,
-  emptyMessage = "No data available",
-  inlinePriority = false,
+  columns = [], 
+  showSerial = false, 
+  showPriority = false, 
+  priorityField = null, 
+  priorityMapping = {}, 
+  containerStyle = {}, 
+  headerStyle = {}, 
+  rowStyle = {}, 
+  textStyle = {}, 
+  statusStyle = {}, 
+  onRowPress = null, 
+  loading = false, 
+  emptyMessage = "No data available", 
+  inlinePriority = false, 
+  skeletonLines = 4,
 }) => {
-  // Priority Tag Component with different levels
+
   const PriorityTag = ({ priority, text }) => {
     const getPriorityStyle = (priority) => {
       switch (priority?.toLowerCase()) {
@@ -64,17 +65,14 @@ const Table = ({
     );
   };
 
-  // Get default columns if none provided
   const getDefaultColumns = () => {
     if (data.length > 0) {
       const firstItem = data[0];
       const keys = Object.keys(firstItem);
-      
-      return keys.map((key, index) => ({
+      return keys.map((key) => ({
         key: key,
         title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-          flex: COLUMN_WIDTHS.default,
-
+        flex: COLUMN_WIDTHS.default,
       }));
     }
     return [
@@ -86,35 +84,11 @@ const Table = ({
 
   const tableColumns = columns.length > 0 ? columns : getDefaultColumns();
 
-  // Calculate priority level for a value
   const getPriorityLevel = (value) => {
     if (!showPriority || !priorityField || !priorityMapping) return null;
     return priorityMapping[value] || null;
   };
 
-  // Render loading state
-  if (loading) {
-    return (
-      <View style={[styles.container, containerStyle]}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  // Render empty state
-  if (!data || data.length === 0) {
-    return (
-      <View style={[styles.container, containerStyle]}>
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>{emptyMessage}</Text>
-        </View>
-      </View>
-    );
-  }
-
-  // Handle row press
   const handleRowPress = (item) => {
     if (onRowPress) {
       onRowPress(item);
@@ -126,11 +100,9 @@ const Table = ({
       {/* Header Row */}
       <View style={[styles.headerRow, headerStyle]}>
         {showSerial && (
-          // <Text style={[styles.headerText, styles.serialColumn]}>S.No</Text>
           <View style={[styles.columnContainer, styles.serialColumn]}>
-          <Text style={styles.headerText}>S.No</Text>
-        </View>
-
+            <Text style={styles.headerText}>S.No</Text>
+          </View>
         )}
         {tableColumns.map((column, index) => (
           <View 
@@ -141,10 +113,7 @@ const Table = ({
             ]}
           >
             <Text 
-              style={[
-                styles.headerText, 
-                styles.headerTextResponsive
-              ]}
+              style={[styles.headerText, styles.headerTextResponsive]}
               numberOfLines={1}
               ellipsizeMode="tail"
             >
@@ -153,59 +122,70 @@ const Table = ({
           </View>
         ))}
       </View>
-      
-      {/* Data Rows */}
-      {data.map((item, index) => (
-        <View 
-          key={item.id || index} 
-          style={[
-            styles.dataRow, 
-            rowStyle,
-            onRowPress && styles.pressableRow
-          ]}
-          onTouchEnd={() => handleRowPress(item)}
-        >
-          {showSerial && (
-            <View style={[styles.columnContainer, styles.serialColumn]}>
-              <Text style={[styles.dataText, textStyle]}>{index + 1}</Text>
-            </View>
-          )}
-          {tableColumns.map((column, colIndex) => {
-            const value = item[column.key];
-            const isPriorityField = priorityField === column.key;
-            const priorityLevel = getPriorityLevel(value);
-            const hasPriority = isPriorityField && priorityLevel;
-            
-            return (
-              <View 
-                key={column.key} 
-                style={[
-                  { flex: column.flex || 1, paddingRight: 8 },
-                  colIndex === tableColumns.length - 1 && { paddingRight: 0 },
-                  hasPriority && styles.priorityCell
-                ]}
-              >
-              {isPriorityField && hasPriority ? (
-                inlinePriority ? (
-                  <View style={styles.inlinePriorityWrapper}>
-                    <Text style={[styles.dataText, textStyle]}>{value}</Text>
-                    <PriorityTag priority={priorityLevel} />
-                  </View>
-                ) : (
-                  <>
-                    <Text style={[styles.dataText, textStyle]}>{value}</Text>
-                    <PriorityTag priority={priorityLevel} />
-                  </>
-                )
-              ) : (
-                <Text style={[styles.dataText, textStyle]}>{value}</Text>
-              )}
 
-              </View>
-            );
-          })}
+      {/* Body: SkeletonLoader when loading, else data rows */}
+      {loading ? (
+        <SkeletonLoader
+          variant="table"
+          lines={skeletonLines}
+          columns={tableColumns.length + (showSerial ? 1 : 0)}
+        />
+      ) : data.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>{emptyMessage}</Text>
         </View>
-      ))}
+      ) : (
+        data.map((item, index) => (
+          <View 
+            key={item.id || index} 
+            style={[
+              styles.dataRow, 
+              rowStyle,
+              onRowPress && styles.pressableRow
+            ]}
+            onTouchEnd={() => handleRowPress(item)}
+          >
+            {showSerial && (
+              <View style={[styles.columnContainer, styles.serialColumn]}>
+                <Text style={[styles.dataText, textStyle]}>{index + 1}</Text>
+              </View>
+            )}
+            {tableColumns.map((column, colIndex) => {
+              const value = item[column.key];
+              const isPriorityField = priorityField === column.key;
+              const priorityLevel = getPriorityLevel(value);
+              const hasPriority = isPriorityField && priorityLevel;
+              
+              return (
+                <View 
+                  key={column.key} 
+                  style={[
+                    { flex: column.flex || 1, paddingRight: 8 },
+                    colIndex === tableColumns.length - 1 && { paddingRight: 0 },
+                    hasPriority && styles.priorityCell
+                  ]}
+                >
+                  {isPriorityField && hasPriority ? (
+                    inlinePriority ? (
+                      <View style={styles.inlinePriorityWrapper}>
+                        <Text style={[styles.dataText, textStyle]}>{value}</Text>
+                        <PriorityTag priority={priorityLevel} />
+                      </View>
+                    ) : (
+                      <>
+                        <Text style={[styles.dataText, textStyle]}>{value}</Text>
+                        <PriorityTag priority={priorityLevel} />
+                      </>
+                    )
+                  ) : (
+                    <Text style={[styles.dataText, textStyle]}>{value}</Text>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        ))
+      )}
     </View>
   );
 };
@@ -215,7 +195,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  // Header Row Styling
   headerRow: {
     backgroundColor: COLORS.secondaryColor,
     borderRadius: 5,
@@ -225,11 +204,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 48,
   },
-
   columnContainer: {
-  paddingRight: 8,
-},
-
+    paddingRight: 8,
+  },
   headerText: {
     color: COLORS.secondaryFontColor,
     fontFamily: "Manrope-SemiBold",
@@ -243,7 +220,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     numberOfLines: 1,
   },
-  // Data Row Styling
   dataRow: {
     backgroundColor: "#F8F9FA",
     flexDirection: "row",
@@ -255,7 +231,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   pressableRow: {
-    // Add pressable styling if needed
+    // Optional styling for pressable rows
   },
   dataText: {
     color: COLORS.primaryFontColor,
@@ -264,10 +240,8 @@ const styles = StyleSheet.create({
     textAlign: "left",
     lineHeight: 16,
     flex: 1,
-    marginRight:4,
+    marginRight: 4,
   },
-
-  // Status Text Styling
   statusText: {
     fontFamily: "Manrope-Medium",
     fontSize: 12,
@@ -282,69 +256,56 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
     fontWeight: "400",
   },
-  // Serial Number Column
   serialColumn: {
     width: 50,
-    textAlign: 'center',
+    textAlign: "center",
     flex: 0,
   },
-  // Priority Tag Base Styles
-
-    inlinePriorityWrapper: {
+  inlinePriorityWrapper: {
     flexDirection: "row",
-    // alignItems: "center",
-    // backgroundColor:"red",
-    height:23
+    height: 23,
   },
-
   priorityTag: {
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    // marginTop: 4,
-    // alignSelf: 'flex-start',
-    position:"absolute",
-    right:30,
-    top:15
+    position: "absolute",
+    right: 30,
+    top: 15,
   },
   priorityTagText: {
     fontFamily: "Manrope-Bold",
     fontSize: 10,
-    textAlign: 'center',
+    textAlign: "center",
   },
-  // High Priority (Red)
   priorityTagHigh: {
-    backgroundColor: '#ff9c9c',
+    backgroundColor: "#ff9c9c",
   },
   priorityTagTextHigh: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
-  // Medium Priority (Orange)
   priorityTagMedium: {
-    backgroundColor: '#FF8C00',
+    backgroundColor: "#FF8C00",
   },
   priorityTagTextMedium: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
-  // Low Priority (Green)
   priorityTagLow: {
-    backgroundColor: '#28A745',
+    backgroundColor: "#28A745",
   },
   priorityTagTextLow: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   priorityCell: {
-    // backgroundColor: '#FFF5F5',
+    // Optional styling for priority cells
   },
   priorityText: {
-    // color: '#FF4444',
     fontFamily: "Manrope-Medium",
   },
-  // Loading and Empty States
   loadingContainer: {
     padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingText: {
     color: COLORS.primaryFontColor,
@@ -353,14 +314,14 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     padding: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyText: {
     color: COLORS.color_text_secondary,
     fontFamily: "Manrope-Regular",
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
 

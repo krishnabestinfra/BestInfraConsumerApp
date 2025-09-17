@@ -262,6 +262,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
         <Table 
           data={tableData}
           loading={isTableLoading}
+          skeletonLines={3}
           emptyMessage="No meter status data available"
           showSerial={false}
           showPriority={false}
