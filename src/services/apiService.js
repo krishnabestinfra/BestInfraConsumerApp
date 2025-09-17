@@ -198,3 +198,77 @@ export const clearAllCache = () => {
 export const hasValidCache = async (identifier) => {
   return await cacheManager.hasValidCache('consumer_data', identifier);
 };
+
+// ==================== NOTIFICATIONS API ====================
+
+/**
+ * Fetch notifications for a specific consumer
+ */
+export const fetchNotifications = async (uid) => {
+  try {
+    const url = `${BASE_URL}/notifications?uid=${uid}`;
+    console.log(`🔔 Fetching notifications for UID: ${uid}`);
+    return await makeRequest(url);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    return { success: false, message: error.message };
+  }
+};
+
+/**
+ * Mark a notification as read
+ */
+export const markNotificationAsRead = async (notificationId) => {
+  try {
+    const url = `${BASE_URL}/notifications/${notificationId}/read`;
+    const token = await getToken();
+    
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ Marked notification ${notificationId} as read`);
+    return data;
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+    return { success: false, message: error.message };
+  }
+};
+
+/**
+ * Mark all notifications as read for a consumer
+ */
+export const markAllNotificationsAsRead = async (uid) => {
+  try {
+    const url = `${BASE_URL}/notifications/${uid}/read-all`;
+    const token = await getToken();
+    
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ Marked all notifications as read for UID: ${uid}`);
+    return data;
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
+    return { success: false, message: error.message };
+  }
+};

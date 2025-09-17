@@ -228,7 +228,6 @@ const styles = StyleSheet.create({
 
   columnContainer: {
   paddingRight: 8,
-
 },
 
   headerText: {
