@@ -260,9 +260,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
           />
 
           <View style={styles.meterContainer}>
-                {/* {isLoading ? (
+                {isLoading ? (
                   <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-                ) : ( */}
+                ) : (
                   consumerData && (
 
                 <>
@@ -276,10 +276,10 @@ const PostPaidDashboard = ({ navigation, route }) => {
                         <Meter width={30} height={30} style={{ marginTop: 5 }} />
                         <View style={styles.meterConsumerRow}>
                           <Text style={styles.meterConsumerText}>
-                            {consumerData.name || consumerData.consumerName || "Loading..."}
+                            {consumerData?.name || consumerData?.consumerName || "Loading..."}
                           </Text>
                           <Text style={styles.meterNumberText}>
-                            Meter SL No: {consumerData.meterSerialNumber || "Loading..."}
+                            Meter SL No: {consumerData?.meterSerialNumber || "Loading..."}
                           </Text>
                         </View>
                       </View>
@@ -291,7 +291,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                         <Text style={styles.tapIndicatorText}>Tap for details</Text>
                       </View>
                       <Text style={styles.meterUIDText}>
-                        UID: {consumerData.uniqueIdentificationNo || "Loading..."}
+                        UID: {consumerData?.uniqueIdentificationNo || "Loading..."}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -301,12 +301,12 @@ const PostPaidDashboard = ({ navigation, route }) => {
                       <Text style={styles.lastCommunicationText}>Last Communication</Text>
                     </View>
                     <Text style={styles.lastCommunicationTimeText}>
-                      {consumerData.readingDate ? formatDateTime(consumerData.readingDate) : "Loading..."}
+                      {consumerData?.readingDate ? formatDateTime(consumerData.readingDate) : "Loading..."}
                     </Text>
                   </View>
                 </>
               )
-            {/* )} */}
+            )}
           </View>
 
           <View style={styles.graphSection}>
