@@ -6,6 +6,7 @@ import {
   ScrollView,
   Dimensions,
   StatusBar,
+  TouchableOpacity,
 } from "react-native";
 import { COLORS } from "../constants/colors";
 import React, { useEffect, useRef, useState } from "react";
@@ -30,6 +31,7 @@ import { Easing } from "react-native-reanimated";
 import { getUser } from "../utils/storage";
 import Logo from "../components/global/Logo";
 import TicketChatBox from "../components/TicketChatBox";
+import DropdownIcon from "../../assets/icons/dropDown.svg";
 
 const { width, height } = Dimensions.get("window");
 
@@ -61,6 +63,8 @@ const Ring = ({ index, progress }) => {
 const TicketDetails = ({ navigation }) => {
   const progress = useSharedValue(0);
   const [userName, setUserName] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+
 
   const loopAnimation = () => {
     progress.value = 0;
@@ -119,12 +123,28 @@ const TicketDetails = ({ navigation }) => {
       </View>
 
       <View style={styles.TicketDetailsContainer}>
-        <View style={styles.TicketDetailsHeader}>
-          <Text style={styles.TicketDetailsText}>Ticket Details</Text>
-          <View style={styles.HighTextBox}>
-            <Text style={styles.HighText}>High</Text>
-          </View>
-        </View>
+        <TouchableOpacity 
+            style={styles.TicketDetailsHeader} 
+            onPress={() => setIsExpanded(!isExpanded)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.TicketDetailsText}>Ticket Details</Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={styles.HighTextBox}>
+                <Text style={styles.HighText}>High</Text>
+              </View>
+                <DropdownIcon
+                  width={14}
+                  height={14}
+                  style={{
+                    marginLeft: 8,
+                    transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
+                  }}
+                />
+            </View>
+          </TouchableOpacity>
+            {isExpanded && (
+
         <View style={styles.TicketDetailsMainContainer}>
           <View style={styles.TicketDetailsMainItem}>
             <Text style={styles.TicketDetailsMainText}>Ticket ID</Text>
@@ -155,6 +175,7 @@ const TicketDetails = ({ navigation }) => {
             </Text>
           </View>
         </View>
+         )}
       </View>
       <View style={styles.TicketChatContainer}>
         <TicketChatBox />
@@ -362,7 +383,6 @@ const styles = StyleSheet.create({
   TicketDetailsContainer: {
     backgroundColor: COLORS.secondaryFontColor,
     borderRadius: 5,
-    // Remove flex: 1 to allow it to take natural height
     // flex: 1, 
     marginBottom: 10, // Add some margin bottom to separate from chat container
   },
@@ -373,8 +393,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#F8F8F8",
-    paddingBottom: 10,
-    padding: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
   },
   TicketDetailsText: {
     color: COLORS.primaryFontColor,

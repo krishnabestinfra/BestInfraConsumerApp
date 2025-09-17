@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Dimensions } from "react-native";
-import React from "react";
+import React, {useState} from "react";
 import { COLORS } from "../../constants/colors";
 import { SkeletonLoader } from "../../utils/loadingManager";
 
@@ -15,7 +15,7 @@ const Table = ({
   columns = [], 
   showSerial = false, 
   showPriority = false, 
-  priorityField = null, 
+  priorityField = null,   
   priorityMapping = {}, 
   containerStyle = {}, 
   headerStyle = {}, 
@@ -28,6 +28,15 @@ const Table = ({
   inlinePriority = false, 
   skeletonLines = 4,
 }) => {
+
+        const [currentPage, setCurrentPage] = useState(1); 
+  const rowsPerPage = 5; 
+  const totalPages = Math.ceil(data.length / rowsPerPage); 
+
+  const paginatedData = data.slice(
+      (currentPage - 1) * rowsPerPage,
+      currentPage * rowsPerPage
+    );
 
   const PriorityTag = ({ priority, text }) => {
     const getPriorityStyle = (priority) => {
@@ -135,7 +144,8 @@ const Table = ({
           <Text style={styles.emptyText}>{emptyMessage}</Text>
         </View>
       ) : (
-        data.map((item, index) => (
+
+          paginatedData.map((item, index) => (
           <View 
             key={item.id || index} 
             style={[
@@ -147,7 +157,9 @@ const Table = ({
           >
             {showSerial && (
               <View style={[styles.columnContainer, styles.serialColumn]}>
-                <Text style={[styles.dataText, textStyle]}>{index + 1}</Text>
+                <Text style={[styles.dataText, textStyle]}>
+                  {(currentPage - 1) * rowsPerPage + index + 1}
+                </Text>
               </View>
             )}
             {tableColumns.map((column, colIndex) => {
@@ -185,6 +197,33 @@ const Table = ({
             })}
           </View>
         ))
+      )}
+      {data.length > rowsPerPage && (
+        <View style={styles.paginationContainer}>
+            <Text 
+              style={[
+                styles.paginationButton,
+                currentPage === 1 && styles.disabledButton
+              ]}
+              onPress={() => currentPage > 1 && setCurrentPage(prev => prev - 1)}
+            >
+              Previous
+            </Text>
+
+          <Text style={styles.paginationText}>
+            Page {currentPage} of {totalPages}
+          </Text>
+
+            <Text 
+              style={[
+                styles.paginationButton,
+                currentPage === totalPages && styles.disabledButton
+              ]}
+              onPress={() => currentPage < totalPages && setCurrentPage(prev => prev + 1)}
+            >
+              Next
+            </Text>
+        </View>
       )}
     </View>
   );
@@ -313,9 +352,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   emptyContainer: {
-    padding: 40,
+    backgroundColor: "#F8F9FA",
+    height:"70%",
     alignItems: "center",
     justifyContent: "center",
+    // borderWidth:1,
+    borderRadius:5,
+    borderColor: "#f0f0f0",
   },
   emptyText: {
     color: COLORS.color_text_secondary,
@@ -323,6 +366,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
+  paginationContainer: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginTop: 16,
+},
+paginationButton: {
+  marginHorizontal: 20,
+  color: COLORS.secondaryColor,
+  fontFamily: "Manrope-Medium",
+  fontSize: 14,
+},
+paginationText: {
+  fontFamily: "Manrope-Regular",
+  fontSize: 14,
+  color: COLORS.primaryFontColor,
+},
+disabledButton: {
+  color: '#cccccc',
+},
+
 });
 
 export default Table;
