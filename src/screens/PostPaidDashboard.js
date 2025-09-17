@@ -260,10 +260,11 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
           />
   
           <View style={styles.meterContainer}>
-            {isLoading ? (
-              <SkeletonLoader lines={4} showAvatar={true} style={{ margin: 16 }} />
-            ) : (
-              consumerData && (
+                {/* {isLoading ? (
+                  <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+                ) : ( */}
+                  consumerData && (
+
                 <>
                       <TouchableOpacity 
                         style={styles.meterInfoContainer}
@@ -274,15 +275,14 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
                           <View style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 10 }}>
                             <Meter width={30} height={30} />
                             <Text style={styles.meterConsumerText}>
-                              {consumerData.name || consumerData.consumerName || "Loading..."}
+                              {consumerData?.name || consumerData?.consumerName || "Loading..."}
                             </Text>
                           </View>
                           <View style={styles.meterSLnum}>
                             <Text style={styles.meterNumberText}>
-                              Meter SL No:
+                              Meter SL No:{consumerData?.meterSerialNumber || "Loading..."}
                             {/* </Text>
                             <Text style={styles.meterNumberText}> */}
-                              {consumerData.meterSerialNumber || "Loading..."}
                             </Text>
                           </View>
                         </View>
@@ -293,7 +293,7 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
                             <Text style={styles.tapIndicatorText}>Tap for details</Text>
                           </View>
                           <Text style={styles.meterUIDText}>
-                            UID: {consumerData.uniqueIdentificationNo || "Loading..."}
+                            UID: {consumerData?.uniqueIdentificationNo || "Loading..."}
                           </Text>
                         </View>
                       </TouchableOpacity>
@@ -303,12 +303,12 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
                       <Text style={styles.lastCommunicationText}>Last Communication</Text>
                       </View>
                       <Text style={styles.lastCommunicationTimeText}>
-                        {consumerData.readingDate? formatDateTime (consumerData.readingDate) : "Loading..."}
+                        {consumerData?.readingDate? formatDateTime (consumerData.readingDate) : "Loading..."}
                       </Text>                  
                     </View>
                 </>
               )
-            )}
+            {/* )} */}
           </View>
   
           <View style={styles.graphSection}>
@@ -448,7 +448,7 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
             <Table 
             data={tableData}
             loading={isTableLoading}
-            skeletonLines={4}
+            skeletonLines={5}
             emptyMessage={consumerData?.alerts?.length === 0 ? "No tamper alerts available" : "No meter status data available"}
             showSerial={false}
             showPriority={false}

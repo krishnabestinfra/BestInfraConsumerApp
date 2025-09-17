@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor,
     borderRadius: 5,
     // flex: 1, 
-    marginBottom: 10, // Add some margin bottom to separate from chat container
+    marginBottom: 5, // Add some margin bottom to separate from chat container
   },
   TicketDetailsHeader: {
     display: "flex",
