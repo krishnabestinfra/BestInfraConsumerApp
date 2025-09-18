@@ -29,7 +29,7 @@ const Table = ({
   skeletonLines = 4,
 }) => {
 
-        const [currentPage, setCurrentPage] = useState(1); 
+  const [currentPage, setCurrentPage] = useState(1); 
   const rowsPerPage = 5; 
   const totalPages = Math.ceil(data.length / rowsPerPage); 
 
@@ -379,11 +379,11 @@ paginationButton: {
   marginHorizontal: 20,
   color: COLORS.secondaryColor,
   fontFamily: "Manrope-Medium",
-  fontSize: 14,
+  fontSize: 10,
 },
 paginationText: {
   fontFamily: "Manrope-Regular",
-  fontSize: 14,
+  fontSize: 10,
   color: COLORS.primaryFontColor,
 },
 disabledButton: {

@@ -260,9 +260,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
           />
 
           <View style={styles.meterContainer}>
-                {isLoading ? (
+                {/* {isLoading ? (
                   <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-                ) : (
+                ) : ( */}
                   consumerData && (
 
                 <>
@@ -290,23 +290,25 @@ const PostPaidDashboard = ({ navigation, route }) => {
                       <View style={styles.tapIndicator}>
                         <Text style={styles.tapIndicatorText}>Tap for details</Text>
                       </View>
-                      <Text style={styles.meterUIDText}>
-                        UID: {consumerData?.uniqueIdentificationNo || "Loading..."}
-                      </Text>
+                      <View style={styles.LastCommunicationRow}>
+                        <View style={styles.lastCommunicationLeft}>
+                          <LastCommunicationIcon width={18} height={10} style={{ marginRight: 1 }} />
+                        <Text style={styles.lastCommunicationText}>Last Communication</Text>
+                        </View>
+                        <Text style={styles.lastCommunicationTimeText}>
+                          {consumerData?.readingDate || "Loading..."}
+                        </Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                   <View style={styles.lastCommunicationContainer}>
-                    <View style={styles.lastCommunicationLeft}>
-                      <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
-                      <Text style={styles.lastCommunicationText}>Last Communication</Text>
-                    </View>
-                    <Text style={styles.lastCommunicationTimeText}>
-                      {consumerData?.readingDate ? formatDateTime(consumerData.readingDate) : "Loading..."}
-                    </Text>
+                      <Text style={styles.meterUIDText}>
+                        UID: {consumerData?.uniqueIdentificationNo || "Loading..."}
+                      </Text>
                   </View>
                 </>
               )
-            )}
+            {/* )} */}
           </View>
 
           <View style={styles.graphSection}>
@@ -599,6 +601,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     gap: 5,
   },
+  LastCommunicationRow:{
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-end",
+    alignItems:"flex-end",
+    // gap: 4
+  },
   meterConsumerText: {
     color: COLORS.secondaryFontColor,
     width: "70%",
@@ -615,7 +624,8 @@ const styles = StyleSheet.create({
   rightContainer: {
     flexDirection: "column",
     alignItems: "flex-end",
-    justifyContent: "flex-start",
+    // justifyContent: "flex-start",
+    flex: 1,
     paddingVertical: 22
   },
 
@@ -633,7 +643,7 @@ const styles = StyleSheet.create({
   },
 
   meterUIDText: {
-    color: COLORS.secondaryFontColor,
+    color: COLORS.primaryFontColor,
     fontSize: 10,
     fontFamily: "Manrope-Medium",
     paddingHorizontal: 5,
@@ -658,24 +668,14 @@ const styles = StyleSheet.create({
   LastCommunicationIcon: {
     marginRight: 5,
   },
-  lastCommunicationText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-  },
-  lastCommunicationTimeText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-  },
 
   lastCommunicationText: {
-    color: COLORS.primaryFontColor,
+    color: COLORS.secondaryFontColor,
     fontSize: 10,
     fontFamily: "Manrope-Regular",
   },
   lastCommunicationTimeText: {
-    color: COLORS.primaryFontColor,
+    color: COLORS.secondaryFontColor,
     fontSize: 10,
     fontFamily: "Manrope-Regular",
   },
