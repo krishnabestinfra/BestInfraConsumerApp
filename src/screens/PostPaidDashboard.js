@@ -745,6 +745,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     gap: 5,
   },
+  LastCommunicationRow:{
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-end",
+    alignItems:"flex-end",
+    // gap: 4
+  },
   meterConsumerText: {
     color: COLORS.secondaryFontColor,
     width: "70%",
@@ -761,7 +768,8 @@ const styles = StyleSheet.create({
   rightContainer: {
     flexDirection: "column",
     alignItems: "flex-end",
-    justifyContent: "flex-start",
+    // justifyContent: "flex-start",
+    flex: 1,
     paddingVertical: 22
   },
 
@@ -779,7 +787,7 @@ const styles = StyleSheet.create({
   },
 
   meterUIDText: {
-    color: COLORS.secondaryFontColor,
+    color: COLORS.primaryFontColor,
     fontSize: 10,
     fontFamily: "Manrope-Medium",
     paddingHorizontal: 5,
@@ -804,24 +812,14 @@ const styles = StyleSheet.create({
   LastCommunicationIcon: {
     marginRight: 5,
   },
-  lastCommunicationText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-  },
-  lastCommunicationTimeText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-  },
 
   lastCommunicationText: {
-    color: COLORS.primaryFontColor,
+    color: COLORS.secondaryFontColor,
     fontSize: 10,
     fontFamily: "Manrope-Regular",
   },
   lastCommunicationTimeText: {
-    color: COLORS.primaryFontColor,
+    color: COLORS.secondaryFontColor,
     fontSize: 10,
     fontFamily: "Manrope-Regular",
   },
