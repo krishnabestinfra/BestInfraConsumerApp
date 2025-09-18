@@ -98,7 +98,7 @@ export default SideMenu;
 
 const styles = StyleSheet.create({
   Container: {
-    backgroundColor: COLORS.primaryDarkColor,
+    backgroundColor: COLORS.brandBlueColor,
     height: "100%",
   },
   TopMenu: {

@@ -42,6 +42,7 @@ export const colors = {
 export const COLORS = {
   primaryDarkColor: colors.color_primary_deep,
   primaryColor: colors.color_primary,
+  brandBlueColor: colors.color_brand_blue,
   secondaryColor: colors.color_secondary,
   primaryFontColor: colors.color_text_primary,
   secondaryFontColor: colors.color_surface,
