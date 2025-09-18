@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   energyText: {
     color: COLORS.primaryFontColor,
     fontSize: 14,
-    fontFamily: "Manrope-Bold",
+    fontFamily: "Manrope-Regular",
     marginBottom: 10,
   },
   dailyText: {
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   monthlyText: {
     color: COLORS.secondaryColor,
     fontSize: 12,
-    fontFamily: "Manrope-Bold",
+    fontFamily: "Manrope-Regular",
   },
   graphsContainer: {
     backgroundColor: "#eef8f0",

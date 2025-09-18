@@ -7,9 +7,9 @@ import BiLogo from "../../assets/icons/Logo.svg";
 import DatePicker from "../components/global/DatePicker";
 import Table from "../components/global/Table";
 import Button from "../components/global/Button";
+import DownloadButton from "../components/global/DownloadButton";
 import { getUser } from "../utils/storage";
 import { GLOBAL_API_URL } from "../constants/constants";
-import { showSuccess, showError, showInfo, showWarning } from '../components/global/ToastHelper';
 
 
 const Transactions = ({ navigation }) => {
@@ -125,7 +125,7 @@ const Transactions = ({ navigation }) => {
         />
       </View>
     </ScrollView>
-    {tableData.length > 0 && (
+    {tableData.length > 0 && ( 
      <View style={styles.buttonContainer}>
      <View style={styles.buttonContainerInner}>
        <Button title="View"
@@ -134,7 +134,15 @@ const Transactions = ({ navigation }) => {
          style={styles.button}
          textStyle={styles.forgotText}
        />
-       <Button title="Download"
+       <DownloadButton 
+         data={tableData}
+         columns={[
+           { key: 'transactionId', title: 'Transaction ID' },
+           { key: 'date', title: 'Date' },
+           { key: 'status', title: 'Status' }
+         ]}
+         fileName="transactions"
+         title="Download"
          variant="primary"
          size="medium"
          style={styles.button}
@@ -142,7 +150,7 @@ const Transactions = ({ navigation }) => {
        />
      </View>
    </View>
-    )}
+    )} 
     </>
   );
 };

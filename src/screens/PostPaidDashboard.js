@@ -47,6 +47,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     {
       id: 1,
       eventName: "B_PH CT Open",
+      description: "Current transformer circuit opened on B phase",
       occurredOn: "07/09/2025 6:15 PM",
       status: "Start",
       isActive: true
@@ -54,6 +55,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     {
       id: 2,
       eventName: "B_PH CT Open",
+      description: "Current transformer circuit opened on B phase",
       occurredOn: "07/09/2025 6:10 PM",
       status: "End",
       isActive: false
@@ -61,6 +63,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     {
       id: 3,
       eventName: "B_PH CT Open",
+      description: "Current transformer circuit opened on B phase",
       occurredOn: "07/09/2025 6:05 PM",
       status: "Start",
       isActive: false
@@ -141,6 +144,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
             .map((alert, index) => ({
               id: alert.id || index + 1,
               eventName: getTamperTypeText(alert.tamperType),
+              description: getTamperTypeDescription(alert.tamperType),
               occurredOn: formatDateTime(alert.tamperDatetime),
               status: alert.tamperStatus === 1 ? "Start" : "End",
               isActive: alert.tamperStatus === 1,
@@ -180,9 +184,35 @@ const PostPaidDashboard = ({ navigation, route }) => {
       12: "CT Bypass",
       13: "CT Open",
       14: "PT Bypass",
-      15: "PT Open"
+      15: "PT Open",
+      24: "Tamper Type 24",
+      25: "Tamper Type 25"
     };
     return tamperTypes[tamperType] || `Tamper Type ${tamperType}`;
+  };
+
+  // Helper function to get tamper type description
+  const getTamperTypeDescription = (tamperType) => {
+    const tamperDescriptions = {
+      1: "Meter cover has been removed or tampered with",
+      2: "Magnetic interference detected on meter",
+      3: "Current flow direction reversed from normal",
+      4: "Neutral wire disconnected from meter",
+      5: "Phase wire disconnected from meter",
+      6: "Neutral wire connected in reverse polarity",
+      7: "Phase wire connected in reverse polarity",
+      8: "Uneven current distribution across phases",
+      9: "Uneven voltage distribution across phases",
+      10: "Power factor outside acceptable range",
+      11: "Frequency deviation from standard 50Hz",
+      12: "Current transformer bypassed",
+      13: "Current transformer circuit opened",
+      14: "Potential transformer bypassed",
+      15: "Potential transformer circuit opened",
+      24: "Custom tamper detection type 24 - specific to your meter system",
+      25: "Custom tamper detection type 25 - specific to your meter system"
+    };
+    return tamperDescriptions[tamperType] || `Unknown tamper type ${tamperType}`;
   };
 
   // Helper function to format datetime
@@ -214,6 +244,110 @@ const PostPaidDashboard = ({ navigation, route }) => {
     if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) return 0;
     const monthlyData = consumerData.chartData.monthly.seriesData[0].data;
     return monthlyData[monthlyData.length - 1] || 0; // Get last value
+  };
+
+  // Dynamic Daily Trend Calculation - works with cumulative data for any date range
+  const getDailyTrendPercentage = () => {
+    if (!consumerData?.chartData?.daily?.seriesData?.[0]?.data) {
+      return 0;
+    }
+    
+    const data = consumerData.chartData.daily.seriesData[0].data;
+    
+    // Need at least 2 data points to calculate trend
+    if (data.length < 2) {
+      return 0;
+    }
+    
+    // Check if data appears to be cumulative (increasing values)
+    const isCumulative = data.every((value, index) => index === 0 || value >= data[index - 1]);
+    
+    let dailyConsumptions;
+    if (isCumulative) {
+      // Calculate actual daily consumption from cumulative data
+      // For each date D(n), consumption = Total up to D(n) - Total up to D(n-1)
+      dailyConsumptions = [];
+      for (let i = 0; i < data.length; i++) {
+        if (i === 0) {
+          // First day: consumption = cumulative total
+          dailyConsumptions.push(data[i] || 0);
+        } else {
+          // Subsequent days: consumption = current cumulative - previous cumulative
+          const currentCumulative = data[i] || 0;
+          const previousCumulative = data[i - 1] || 0;
+          const dailyConsumption = currentCumulative - previousCumulative;
+          dailyConsumptions.push(dailyConsumption);
+        }
+      }
+    } else {
+      // Data is already direct consumption values
+      dailyConsumptions = data;
+    }
+    
+    // Get the last two daily consumption values for trend calculation
+    const yesterdayConsumption = dailyConsumptions[dailyConsumptions.length - 1] || 0;
+    const dayBeforeYesterdayConsumption = dailyConsumptions[dailyConsumptions.length - 2] || 0;
+    
+    // Avoid division by zero
+    if (dayBeforeYesterdayConsumption === 0) {
+      return 0;
+    }
+    
+    // Calculate percentage change: ((yesterday - dayBeforeYesterday) / dayBeforeYesterday) * 100
+    const percentageChange = ((yesterdayConsumption - dayBeforeYesterdayConsumption) / dayBeforeYesterdayConsumption) * 100;
+    return Math.round(percentageChange);
+  };
+
+  // Dynamic Monthly Trend Calculation - works with cumulative data for any month range
+  const getMonthlyTrendPercentage = () => {
+    if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) {
+      return 0;
+    }
+    
+    const data = consumerData.chartData.monthly.seriesData[0].data;
+    
+    // Need at least 2 data points to calculate trend
+    if (data.length < 2) {
+      return 0;
+    }
+    
+    // Check if data appears to be cumulative (increasing values)
+    const isCumulative = data.every((value, index) => index === 0 || value >= data[index - 1]);
+    
+    let monthlyConsumptions;
+    if (isCumulative) {
+      // Calculate actual monthly consumption from cumulative data
+      // For each month M(n), consumption = Total up to M(n) - Total up to M(n-1)
+      monthlyConsumptions = [];
+      for (let i = 0; i < data.length; i++) {
+        if (i === 0) {
+          // First month: consumption = cumulative total
+          monthlyConsumptions.push(data[i] || 0);
+        } else {
+          // Subsequent months: consumption = current cumulative - previous cumulative
+          const currentCumulative = data[i] || 0;
+          const previousCumulative = data[i - 1] || 0;
+          const monthlyConsumption = currentCumulative - previousCumulative;
+          monthlyConsumptions.push(monthlyConsumption);
+        }
+      }
+    } else {
+      // Data is already direct consumption values
+      monthlyConsumptions = data;
+    }
+    
+    // Get the last two monthly consumption values for trend calculation
+    const thisMonthConsumption = monthlyConsumptions[monthlyConsumptions.length - 1] || 0;
+    const lastMonthConsumption = monthlyConsumptions[monthlyConsumptions.length - 2] || 0;
+    
+    // Avoid division by zero
+    if (lastMonthConsumption === 0) {
+      return 0;
+    }
+    
+    // Calculate percentage change: ((thisMonth - lastMonth) / lastMonth) * 100
+    const percentageChange = ((thisMonthConsumption - lastMonthConsumption) / lastMonthConsumption) * 100;
+    return Math.round(percentageChange);
   };
 
   // Bottom sheet handlers
@@ -260,55 +394,45 @@ const PostPaidDashboard = ({ navigation, route }) => {
           />
 
           <View style={styles.meterContainer}>
-                {/* {isLoading ? (
-                  <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-                ) : ( */}
-                  consumerData && (
-
-                <>
-                  <TouchableOpacity
-                    style={styles.meterInfoContainer}
-                    onPress={handleConsumerPress}
-                  >
-                    {/* Left side container */}
-                    <View style={styles.leftContainer}>
-                      <View style={styles.meterInfoRow}>
-                        <Meter width={30} height={30} style={{ marginTop: 5 }} />
-                        <View style={styles.meterConsumerRow}>
-                          <Text style={styles.meterConsumerText}>
-                            {consumerData?.name || consumerData?.consumerName || "Loading..."}
-                          </Text>
-                          <Text style={styles.meterNumberText}>
-                            Meter SL No: {consumerData?.meterSerialNumber || "Loading..."}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Right side container */}
-                    <View style={styles.rightContainer}>
-                      <View style={styles.tapIndicator}>
-                        <Text style={styles.tapIndicatorText}>Tap for details</Text>
-                      </View>
-                      <View style={styles.LastCommunicationRow}>
-                        <View style={styles.lastCommunicationLeft}>
-                          <LastCommunicationIcon width={18} height={10} style={{ marginRight: 1 }} />
-                        <Text style={styles.lastCommunicationText}>Last Communication</Text>
-                        </View>
-                        <Text style={styles.lastCommunicationTimeText}>
-                          {consumerData?.readingDate || "Loading..."}
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                  <View style={styles.lastCommunicationContainer}>
-                      <Text style={styles.meterUIDText}>
-                        UID: {consumerData?.uniqueIdentificationNo || "Loading..."}
-                      </Text>
+            <TouchableOpacity
+              style={styles.meterInfoContainer}
+              onPress={handleConsumerPress}
+            >
+              {/* Left side container */}
+              <View style={styles.leftContainer}>
+                <View style={styles.meterInfoRow}>
+                  <Meter width={30} height={30} style={{ marginTop: 5 }} />
+                  <View style={styles.meterConsumerRow}>
+                    <Text style={styles.meterConsumerText}>
+                      {consumerData?.name || consumerData?.consumerName || "Loading..."}
+                    </Text>
+                    <Text style={styles.meterNumberText}>
+                      Meter SL No: {consumerData?.meterSerialNumber || "Loading..."}
+                    </Text>
                   </View>
-                </>
-              )
-            {/* )} */}
+                </View>
+              </View>
+
+              {/* Right side container */}
+              <View style={styles.rightContainer}>
+                <View style={styles.tapIndicator}>
+                  <Text style={styles.tapIndicatorText}>Tap for details</Text>
+                </View>
+                <Text style={styles.meterUIDText}>
+                  UID: {consumerData?.uniqueIdentificationNo || "Loading..."}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.lastCommunicationContainer}>
+              <View style={styles.lastCommunicationLeft}>
+                <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
+                <Text style={styles.lastCommunicationText}>Last Communication</Text>
+              </View>
+              <Text style={styles.lastCommunicationTimeText}>
+                {consumerData?.readingDate ? formatDateTime(consumerData.readingDate) : "Loading..."}
+              </Text>
+            </View>
+
           </View>
 
           <View style={styles.graphSection}>
@@ -332,7 +456,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     Daily
                   </Text>
                 </TouchableOpacity>
-                <Text> / </Text>
+                <Text style={styles.separator}>{' / '}</Text>
                 <TouchableOpacity onPress={() => setSelectedView("monthly")}>
                   <Text
                     style={
@@ -387,9 +511,19 @@ const PostPaidDashboard = ({ navigation, route }) => {
                       marginTop: 10,
                     }}
                   >
-                    <View style={styles.tenPercentageTextContainer}>
-                      <Text style={styles.percentText}>5%</Text>
-                      <Arrow width={12} height={12} fill="#55B56C" />
+                    <View style={[
+                      styles.tenPercentageTextContainer,
+                      getDailyTrendPercentage() < 0 && styles.negativeTrendContainer
+                    ]}>
+                      <Text style={styles.percentText}>
+                        {isLoading ? "..." : `${Math.abs(getDailyTrendPercentage())}%`}
+                      </Text>
+                      <Arrow 
+                        width={12} 
+                        height={12} 
+                        fill={getDailyTrendPercentage() >= 0 ? "#55B56C" : "#FF6B6B"} 
+                        style={getDailyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
+                      />
                     </View>
                     <Text style={styles.lastText}>Yesterday.</Text>
                   </View>
@@ -420,9 +554,19 @@ const PostPaidDashboard = ({ navigation, route }) => {
                       marginTop: 10,
                     }}
                   >
-                    <View style={styles.tenPercentageTextContainer}>
-                      <Text style={styles.percentText}>10%</Text>
-                      <Arrow width={12} height={12} fill="#55B56C" />
+                    <View style={[
+                      styles.tenPercentageTextContainer,
+                      getMonthlyTrendPercentage() < 0 && styles.negativeTrendContainer
+                    ]}>
+                      <Text style={styles.percentText}>
+                        {isLoading ? "..." : `${Math.abs(getMonthlyTrendPercentage())}%`}
+                      </Text>
+                      <Arrow 
+                        width={12} 
+                        height={12} 
+                        fill={getMonthlyTrendPercentage() >= 0 ? "#55B56C" : "#FF6B6B"} 
+                        style={getMonthlyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
+                      />
                     </View>
                     <Text style={styles.lastText}>Last Month.</Text>
                   </View>
@@ -460,13 +604,12 @@ const PostPaidDashboard = ({ navigation, route }) => {
               "Reverse Current": "high"
             }}
             columns={[
-              { key: 'eventName', title: 'Event Name', flex: 1 },
+              { key: 'eventName', title: 'Name', flex: 1 },
+              { key: 'description', title: 'Description', flex: 2 },
               { key: 'occurredOn', title: 'Occurred On', flex: 2 },
               { key: 'status', title: 'Status', flex: 1 }
             ]}
           />
-
-
         </View>
       </ScrollView>
 
@@ -500,18 +643,18 @@ const styles = StyleSheet.create({
   dailyText: {
     color: COLORS.primaryFontColor,
     fontSize: 12,
-    fontFamily: "Manrope-Regular",
+    fontFamily: "Manrope-Medium",
   },
   monthlyText: {
     color: COLORS.secondaryColor,
     fontSize: 12,
-    fontFamily: "Manrope-Bold",
+    fontFamily: "Manrope-Medium",
   },
   separator: {
-    color: COLORS.primaryFontColor,
-    fontSize: 12,
-    fontFamily: "Manrope-Regular",
-    marginHorizontal: 5,
+    // color: COLORS.primaryFontColor,
+    // fontSize: 12,
+    // fontFamily: "Manrope-Regular",
+    // marginHorizontal: 5,
   },
   toggleButton: {
     minHeight: 30,
@@ -570,6 +713,7 @@ const styles = StyleSheet.create({
   },
   meterContainer: {
     padding: 16,
+    paddingBottom: 0,
     // backgroundColor:"red"
   },
   meterInfoContainer: {
@@ -723,5 +867,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 5,
+  },
+  negativeTrendContainer: {
+    backgroundColor: "#FF6B6B",
   }
 });

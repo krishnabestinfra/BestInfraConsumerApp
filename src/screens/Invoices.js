@@ -11,6 +11,8 @@ import {
   syncConsumerData 
 } from "../services/apiService";
 import DashboardHeader from "../components/global/DashboardHeader";
+import Button from "../components/global/Button";
+import DownloadButton from "../components/global/DownloadButton";
 
 const Invoices = ({ navigation }) => {
   const [tableData, setTableData] = useState([]);
@@ -115,7 +117,32 @@ const Invoices = ({ navigation }) => {
           />
         </View>
       </ScrollView>
-
+      {tableData.length > 0 && ( 
+     <View style={styles.buttonContainer}>
+     <View style={styles.buttonContainerInner}>
+       <Button title="View"
+         variant="outline"
+         size="medium"
+         style={styles.button}
+         textStyle={styles.forgotText}
+       />
+       <DownloadButton
+         data={tableData}
+         columns={[
+           { key: 'transactionId', title: 'Transaction ID' },
+           { key: 'date', title: 'Date' },
+           { key: 'status', title: 'Status' }
+         ]}
+         fileName="transactions"
+         title="Download"
+         variant="primary"
+         size="medium"
+         style={styles.button}
+         textStyle={styles.forgotText}
+       />
+     </View>
+   </View>
+    )} 
     </>
   );
 };
@@ -125,5 +152,26 @@ export default Invoices;
 const styles = StyleSheet.create({
   Container: {
     backgroundColor: COLORS.secondaryFontColor,
+    height: '100%',
   },
+  buttonContainer:{
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 20,
+    backgroundColor: COLORS.secondaryFontColor
+  },
+  buttonContainerInner:{
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  button:{
+    width: '48%',
+  }
 });
