@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     left: 25,
     top: 80,
     backgroundColor: "#eef8f0",
-    borderTopLeftRadius: 20,
+    borderTopLeftRadius: 30,
     borderBottomLeftRadius: 20,
     elevation: 10,
     opacity: 0.3,
@@ -241,5 +241,6 @@ const styles = StyleSheet.create({
   },
   blurContainer: {
     borderTopLeftRadius: 30,
+
   },
 });

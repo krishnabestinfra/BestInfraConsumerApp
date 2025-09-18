@@ -210,7 +210,8 @@ const DashboardHeader = React.memo(({
         <View>
           <View style={styles.greetingContainer}>
             <Text style={styles.hiText}>
-              Hi, {getDisplayName()}
+              Hi, Good Morning
+              {/* {getDisplayName()} */}
             </Text>
             <Hand width={30} height={30} fill="#55B56C" />
           </View>
@@ -398,7 +399,7 @@ badgeText: {
   },
   dateText: {
     color: COLORS.secondaryFontColor,
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: 'Manrope-Regular',
   },
   greenBox: {

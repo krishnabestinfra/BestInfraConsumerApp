@@ -22,6 +22,7 @@ import { COLORS } from '../constants/colors';
 import { GLOBAL_API_URL } from '../constants/constants';
 import { getToken } from '../utils/storage';
 import CloseIcon from "../../assets/icons/cross.svg";
+import { SkeletonLoader } from '../utils/loadingManager';
 
 const ConsumerDetailsBottomSheet = ({ 
   visible,
@@ -29,7 +30,7 @@ const ConsumerDetailsBottomSheet = ({
   onClose 
 }) => {
   const [consumerData, setConsumerData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [slideAnim] = useState(new Animated.Value(0));
 
@@ -154,18 +155,21 @@ const ConsumerDetailsBottomSheet = ({
             value={formatValue(consumerData?.rPhaseVoltage) || 0} 
             unit="V" 
             color="#FF6B6B"
+            loading={isLoading}
           />
           <ReadingCard 
             phase="Y-Phase" 
             value={formatValue(consumerData?.yPhaseVoltage) || 0} 
             unit="V" 
             color="#4ECDC4"
+            loading={isLoading}
           />
           <ReadingCard 
             phase="B-Phase" 
             value={formatValue(consumerData?.bPhaseVoltage) || 0} 
             unit="V" 
             color="#45B7D1"
+            loading={isLoading}
           />
         </View>
       </View>
@@ -179,18 +183,21 @@ const ConsumerDetailsBottomSheet = ({
             value={formatValue(consumerData?.rPhaseCurrent)} 
             unit="A" 
             color="#FF6B6B"
+            loading={isLoading}
           />
           <ReadingCard 
             phase="Y-Phase" 
             value={formatValue(consumerData?.yPhaseCurrent)} 
             unit="A" 
             color="#4ECDC4"
+            loading={isLoading}
           />
           <ReadingCard 
             phase="B-Phase" 
             value={formatValue(consumerData?.bPhaseCurrent)} 
             unit="A" 
             color="#45B7D1"
+            loading={isLoading}
           />
         </View>
       </View>
@@ -233,12 +240,26 @@ const ConsumerDetailsBottomSheet = ({
             style={styles.content}
             showsVerticalScrollIndicator={false}
           >
-            {loading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-                <Text style={styles.loadingText}>Loading consumer details...</Text>
+            {isLoading ? (
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Instantaneous Meter Readings</Text>
+
+              <Text style={styles.readingsSubtitle}>Voltage Readings</Text>
+              <View style={styles.readingsGrid}>
+                <ReadingCard loading={true} color="#FF6B6B" />
+                <ReadingCard loading={true} color="#4ECDC4" />
+                <ReadingCard loading={true} color="#45B7D1" />
               </View>
-            ) : error ? (
+
+              <Text style={[styles.readingsSubtitle, { marginTop: 20 }]}>Current Readings</Text>
+              <View style={styles.readingsGrid}>
+                <ReadingCard loading={true} color="#FF6B6B" />
+                <ReadingCard loading={true} color="#4ECDC4" />
+                <ReadingCard loading={true} color="#45B7D1" />
+              </View>
+            </View>
+           ) : error ? (
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Failed to load data</Text>
                 <TouchableOpacity onPress={fetchConsumerData} style={styles.retryButton}>
@@ -262,13 +283,20 @@ const ConsumerDetailsBottomSheet = ({
 };
 
 // ReadingCard component for displaying phase readings
-const ReadingCard = ({ phase, value, unit, color }) => (
+const ReadingCard = ({ phase, value, unit, color, loading }) => (
   <View style={[styles.readingCard, { borderLeftColor: color }]}>
-    <Text style={styles.readingPhase}>{phase}</Text>
-    <Text style={styles.readingValue}>
-      {value} <Text style={styles.readingUnit}>{unit}</Text>
-    </Text>
+    {loading ? (
+      <SkeletonLoader variant="card" lines={1} />
+    ) : (
+      <>
+        <Text style={styles.readingPhase}>{phase}</Text>
+        <Text style={styles.readingValue}>
+          {value} <Text style={styles.readingUnit}>{unit}</Text>
+        </Text>
+      </>
+    )}
   </View>
+  
 );
 
 const styles = StyleSheet.create({
@@ -368,11 +396,11 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontFamily: 'Manrope-Regular',
   },
-  loadingContainer: {
+  isLoadingContainer: {
     alignItems: 'center',
     paddingVertical: 40,
   },
-  loadingText: {
+  isLoadingText: {
     fontSize: 14,
     fontFamily: 'Manrope-Regular',
     color: COLORS.primaryFontColor,
