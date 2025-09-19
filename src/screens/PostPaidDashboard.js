@@ -418,21 +418,20 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 <View style={styles.tapIndicator}>
                   <Text style={styles.tapIndicatorText}>Tap for details</Text>
                 </View>
-                <Text style={styles.meterUIDText}>
-                  UID: {consumerData?.uniqueIdentificationNo || "Loading..."}
-                </Text>
+                <View style={styles.lastCommunicationLeft}>
+                  <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
+                  <Text style={styles.lastCommunicationText}>Last Communication</Text>
+                </View>
+                <Text style={styles.lastCommunicationTimeText}>
+                {consumerData?.readingDate ? (consumerData.readingDate) : "Loading..."}
+              </Text>
               </View>
             </TouchableOpacity>
             <View style={styles.lastCommunicationContainer}>
-              <View style={styles.lastCommunicationLeft}>
-                <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
-                <Text style={styles.lastCommunicationText}>Last Communication</Text>
-              </View>
-              <Text style={styles.lastCommunicationTimeText}>
-                {consumerData?.readingDate ? formatDateTime(consumerData.readingDate) : "Loading..."}
-              </Text>
+                <Text style={styles.meterUIDText}>
+                  UID: {consumerData?.uniqueIdentificationNo || "Loading..."}
+                </Text>
             </View>
-
           </View>
 
           <View style={styles.graphSection}>
