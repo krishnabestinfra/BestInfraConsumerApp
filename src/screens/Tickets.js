@@ -16,7 +16,7 @@ import { getUser } from "../utils/storage";
 import { getCachedConsumerData } from "../utils/cacheManager";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
+import { SkeletonLoader } from '../utils/loadingManager';
 import CreateNewTicket from "../components/global/CreateNewTicket";
 
 
@@ -176,9 +176,14 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>Open Tickets</Text>
-              <Text style={styles.TicketBoxNumber}>
-                {statsLoading ? "..." : ticketStats.open}
-              </Text>
+
+              <View style={{ minWidth: 20 }}> 
+                {statsLoading ? (
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 50, width: 20 }} />
+                ) : (
+                  <Text style={styles.TicketBoxNumber}>{ticketStats.open}</Text>
+                )}
+              </View>
             </View>
                 <LinearGradient
                   colors={["#E6F6ED", "#C2EAD2"]}
@@ -192,9 +197,13 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>In Progress</Text>
-              <Text style={styles.TicketBoxNumber}>
-                {statsLoading ? "..." : ticketStats.inProgress}
-              </Text>
+              <View style={{ minWidth: 20 }}> 
+                {statsLoading ? (
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
+                ) : (
+                  <Text style={styles.TicketBoxNumber}>{ticketStats.inProgress}</Text>
+                )}
+              </View>
             </View>
               <LinearGradient
                 colors={["#E6F6ED", "#C2EAD2"]}
@@ -208,9 +217,13 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>Resolved</Text>
-              <Text style={styles.TicketBoxNumber}>
-                {statsLoading ? "..." : ticketStats.resolved}
-              </Text>
+              <View style={{ minWidth: 20 }}> 
+                {statsLoading ? (
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
+                ) : (
+                  <Text style={styles.TicketBoxNumber}>{ticketStats.resolved}</Text>
+                )}
+              </View>
             </View>
               <LinearGradient
                 colors={["#E6F6ED", "#C2EAD2"]}
@@ -224,9 +237,13 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>Closed</Text>
-              <Text style={styles.TicketBoxNumber}>
-                {statsLoading ? "..." : ticketStats.closed}
-              </Text>
+              <View style={{ minWidth: 20 }}> 
+                {statsLoading ? (
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
+                ) : (
+                  <Text style={styles.TicketBoxNumber}>{ticketStats.closed}</Text>
+                )}
+              </View>
             </View>
             <LinearGradient
               colors={["#E6F6ED", "#C2EAD2"]}

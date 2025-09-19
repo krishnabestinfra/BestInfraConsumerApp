@@ -17,11 +17,13 @@
     "expo": "~53.0.8",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.6",
+    "expo-file-system": "~18.1.11",
     "expo-font": "~13.3.1",
     "expo-image-picker": "~16.1.4",
     "expo-linear-gradient": "^14.1.5",
     "expo-linking": "~7.1.5",
     "expo-secure-store": "~14.2.4",
+    "expo-sharing": "~13.1.5",
     "expo-status-bar": "~2.2.3",
     "jwt-decode": "^4.0.0",
     "react": "19.0.0",
@@ -38,9 +40,7 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-webview": "^13.13.5",
-    "zod": "^4.0.5",
-    "expo-file-system": "~18.1.11",
-    "expo-sharing": "~13.1.5"
+    "zod": "^4.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
