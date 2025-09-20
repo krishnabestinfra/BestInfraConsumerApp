@@ -12,10 +12,9 @@ import { COLORS } from "../constants/colors";
 
 const { width } = Dimensions.get("window");
 
-const OnBoardingSlides = () => {
+const OnBoardingSlides = ({ scrollRef, onIndexChange}) => {
   const [activeIndex, setActiveIndex] = useState(0); // State for the active slide index
 
-  const scrollRef = useRef(null);
   const currentIndex = useRef(0);
   const slides = [0, 1, 2]; // Just placeholders for the static views
 
@@ -32,28 +31,30 @@ const OnBoardingSlides = () => {
 
   //   return () => clearInterval(interval);
   // }, []);
+//   useEffect(() => {
+//   const interval = setInterval(() => {
+//     currentIndex.current = (currentIndex.current + 1) % slides.length;
+//     setActiveIndex(currentIndex.current);
+//     onIndexChange?.(currentIndex.current);   
+//     scrollRef.current.scrollTo({
+//       x: currentIndex.current * width,
+//       animated: true,
+//     });
+//   }, 3000);
+
+//   return () => clearInterval(interval);
+// }, []);
+
+
   useEffect(() => {
-  const interval = setInterval(() => {
-    currentIndex.current = (currentIndex.current + 1) % slides.length;
-    setActiveIndex(currentIndex.current);
-    scrollRef.current.scrollTo({
-      x: currentIndex.current * width,
-      animated: true,
+    animatedValues.forEach((anim, index) => {
+      Animated.timing(anim, {
+        toValue: index === activeIndex ? 25 : 10,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
     });
-  }, 3000);
-
-  return () => clearInterval(interval);
-}, []);
-
-useEffect(() => {
-  animatedValues.forEach((anim, index) => {
-    Animated.timing(anim, {
-      toValue: index === activeIndex ? 25 : 10,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  });
-}, [activeIndex]);
+  }, [activeIndex]);
 
 
   return (
@@ -73,6 +74,7 @@ useEffect(() => {
           const contentOffsetX = event.nativeEvent.contentOffset.x;
           const index = Math.round(contentOffsetX / width); // Use Math.round to handle fractional values
           setActiveIndex(index); // Update the active index based on scroll position
+          onIndexChange?.(index);
         }}
       >
         {/* Slide 1 */}

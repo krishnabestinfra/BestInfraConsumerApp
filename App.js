@@ -28,7 +28,7 @@ import PaymentStatus from "./src/screens/PaymentStatus";
 import DgScreen from "./src/screens/DgScreen";
 import ConsumerDataTable from "./src/screens/ConsumerDataTable";
 import Invoices from "./src/screens/Invoices";
-import Toast from 'react-native-toast-message';
+import Toastify from 'react-native-toast-message';
 
 
 const Stack = createNativeStackNavigator();
@@ -185,7 +185,7 @@ export default function App() {
             options={{ headerShown: false }}
           />
             </Stack.Navigator>
-             <Toast />  
+             <Toastify />  
           </NavigationContainer>
         </TabProvider>
       </NotificationsProvider>

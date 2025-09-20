@@ -34,8 +34,8 @@ const Shimmer = ({ style }) => {
   }, [shimmerAnim]);
 
   const translateX = shimmerAnim.interpolate({
-    inputRange: [-1, 1],
-    outputRange: [-200, 200],
+    inputRange: [0, 1],
+    outputRange: [-200, 300],
   });
 
   return (
@@ -252,7 +252,7 @@ export const SkeletonLoader = memo(({
             styles.chartBar,
             {
               height: 60 + Math.random() * 100,
-              width: 20,
+              width: 22,
             },
           ]}
         />
@@ -488,9 +488,9 @@ const styles = StyleSheet.create({
   paddingHorizontal: 10,
 
   },
-    chartBar: {
+  chartBar: {
   backgroundColor: "#e0e0e0",
-  borderRadius: 6,
+  // borderRadius: 6,
   marginHorizontal: 4
 
   },
