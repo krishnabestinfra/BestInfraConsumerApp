@@ -1,4 +1,14 @@
-import { StyleSheet, Text, View, ScrollView, StatusBar, Alert, ActivityIndicator } from "react-native";
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  ScrollView, 
+  StatusBar, 
+  Alert, 
+  ActivityIndicator, 
+  KeyboardAvoidingView, 
+  Platform 
+} from "react-native";
 import { COLORS } from "../constants/colors";
 import React, { useState, useEffect } from "react";
 import Input from "../components/global/Input";
@@ -181,14 +191,19 @@ const PostPaidRechargePayments = ({ navigation }) => {
   }, []);
 
   return (
-    <>
+    <KeyboardAvoidingView 
+      style={styles.keyboardAvoidingView} 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
+      <StatusBar barStyle="dark-content" />
       <ScrollView
         style={styles.Container}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
-
-        <StatusBar barStyle="dark-content" />
         <DashboardHeader 
           navigation={navigation} 
           variant="payments" 
@@ -240,12 +255,13 @@ const PostPaidRechargePayments = ({ navigation }) => {
                   value={selectedOption === "option2" ? customAmount : ""}
                   onChangeText={handleCustomAmountChange}
                   style={styles.amountInput}
+                  keyboardType="numeric"
+                  returnKeyType="done"
                 />
               </View>
             </View>
           </View>
         </View>
-
       </ScrollView>
       <View style={styles.buttonContainer}>
         <Button 
@@ -274,17 +290,26 @@ const PostPaidRechargePayments = ({ navigation }) => {
         onError={onPaymentError}
         orderData={orderData}
       />
-    </>
+    </KeyboardAvoidingView>
   );
 };
 
 export default PostPaidRechargePayments;
 
 const styles = StyleSheet.create({
+  keyboardAvoidingView: {
+    flex: 1,
+    backgroundColor: COLORS.secondaryFontColor,
+  },
   Container: {
+    flex: 1,
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
     borderBottomRightRadius: 30,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+    paddingBottom: 120, // Space for the button container
   },
   bluecontainer: {
     backgroundColor: "#eef8f0",
@@ -483,10 +508,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
     paddingTop: 20,
     backgroundColor: COLORS.secondaryFontColor,
-
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },

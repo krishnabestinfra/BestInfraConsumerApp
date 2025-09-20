@@ -52,78 +52,76 @@ const TicketChatBox = () => {
   ];
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1}} 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={[styles.container]}> 
-          {/* Messages */}
-          <View style={{ flex: 1}}>{/* New View wrapping ScrollView */}
-            <ScrollView
-              style={[styles.messageScrollView]} 
-              contentContainerStyle={styles.messageScrollContent}
-              showsVerticalScrollIndicator={false}
-              automaticallyAdjustKeyboardInsets={true} 
-            >
-              <View style={[styles.chatContainer]}> 
-                {messages.map((msg, i) => (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={[styles.container]}> 
+        {/* Messages */}
+        <View style={{ flex: 1}}>{/* New View wrapping ScrollView */}
+          <ScrollView
+            style={[styles.messageScrollView]} 
+            contentContainerStyle={styles.messageScrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+              autoscrollToTopThreshold: 10,
+            }}
+          >
+            <View style={[styles.chatContainer]}> 
+              {messages.map((msg, i) => (
+                <View
+                  key={i}
+                  style={[
+                    msg.type === "receiver" ? styles.recevier : styles.sender,
+                    { marginBottom: 8 }, 
+                  ]}
+                >
                   <View
-                    key={i}
-                    style={[
-                      msg.type === "receiver" ? styles.recevier : styles.sender,
-                      { marginBottom: 8 }, 
-                    ]}
+                    style={
+                      msg.type === "receiver"
+                        ? styles.recevierContainer
+                        : styles.senderContainer
+                    }
                   >
-                    <View
+                    <Text
                       style={
                         msg.type === "receiver"
-                          ? styles.recevierContainer
-                          : styles.senderContainer
+                          ? styles.receviersChatText
+                          : styles.senderChatText
                       }
                     >
-                      <Text
-                        style={
-                          msg.type === "receiver"
-                            ? styles.receviersChatText
-                            : styles.senderChatText
-                        }
-                      >
-                        {msg.text}
-                      </Text>
-                      <Text
-                        style={
-                          msg.type === "receiver"
-                            ? styles.receviersChatTime
-                            : styles.senderChatTime
-                        }
-                      >
-                        {msg.time}
-                      </Text>
-                    </View>
+                      {msg.text}
+                    </Text>
+                    <Text
+                      style={
+                        msg.type === "receiver"
+                          ? styles.receviersChatTime
+                          : styles.senderChatTime
+                      }
+                    >
+                      {msg.time}
+                    </Text>
                   </View>
-                ))}
-              </View>
-            </ScrollView>
-          </View>{/* End of new View */}
-
-          {/* Input Box */}
-          <View style={[styles.inputContainer]}>
-            <Input
-              placeholder="Your Message"
-              size="medium"
-              style={styles.inputBox}
-            />
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.sendessageButton}>
-                <Send width={18} height={18} />
-              </TouchableOpacity>
+                </View>
+              ))}
             </View>
+          </ScrollView>
+        </View>{/* End of new View */}
+
+        {/* Input Box */}
+        <View style={[styles.inputContainer]}>
+          <Input
+            placeholder="Your Message"
+            size="medium"
+            style={styles.inputBox}
+          />
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.sendessageButton}>
+              <Send width={18} height={18} />
+            </TouchableOpacity>
           </View>
         </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+      </View>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -146,7 +144,9 @@ const styles = StyleSheet.create({
     flex: 1, 
   },
   messageScrollContent: {
-    paddingBottom: 20, 
+    paddingBottom: 20,
+    flexGrow: 1,
+    justifyContent: 'flex-end',
   },
   inputContainer: {
     marginTop: 10,
@@ -157,7 +157,8 @@ const styles = StyleSheet.create({
     position: "relative",
     backgroundColor: COLORS.secondaryFontColor,
     borderRadius: 5,
-
+    minHeight: 50,
+    paddingHorizontal: 5,
   },
   inputBox: {
     flex: 1, 

@@ -7,6 +7,8 @@ import {
   Dimensions,
   StatusBar,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { COLORS } from "../constants/colors";
 import React, { useEffect, useRef, useState } from "react";
@@ -99,88 +101,94 @@ const TicketDetails = ({ navigation }) => {
   }, []);
 
   return (
-    <View style={[styles.bluecontainer, { flex: 1 }]}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.TopMenu}>
-        <Pressable
-          style={styles.barsIcon}
-          onPress={() => navigation.navigate("SideMenu")}
-        >
-          <Menu width={18} height={18} fill="#202d59" />
-        </Pressable>
-        <View style={styles.logoWrapper}>
-          {Array.from({ length: RING_COUNT }).map((_, index) => (
-            <Ring key={index} index={index} progress={progress} />
-          ))}
-          <Logo variant="blue" size="medium" />
-        </View>
-        <Pressable
-          style={styles.bellIcon}
-          onPress={() => navigation.navigate("Profile")}
-        >
-          <Notification width={18} height={18} fill="#202d59" />
-        </Pressable>
-      </View>
-
-      <View style={styles.TicketDetailsContainer}>
-        <TouchableOpacity 
-            style={styles.TicketDetailsHeader} 
-            onPress={() => setIsExpanded(!isExpanded)}
-            activeOpacity={0.7}
+    <KeyboardAvoidingView 
+      style={{ flex: 1 }} 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+    >
+      <View style={[styles.bluecontainer, { flex: 1 }]}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.TopMenu}>
+          <Pressable
+            style={styles.barsIcon}
+            onPress={() => navigation.navigate("SideMenu")}
           >
-            <Text style={styles.TicketDetailsText}>Ticket Details</Text>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <View style={styles.HighTextBox}>
-                <Text style={styles.HighText}>High</Text>
-              </View>
-                <DropdownIcon
-                  width={14}
-                  height={14}
-                  style={{
-                    marginLeft: 8,
-                    transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
-                  }}
-                />
-            </View>
-          </TouchableOpacity>
-            {isExpanded && (
-
-        <View style={styles.TicketDetailsMainContainer}>
-          <View style={styles.TicketDetailsMainItem}>
-            <Text style={styles.TicketDetailsMainText}>Ticket ID</Text>
-            <Text style={styles.TicketDetailsMainTextValue}>#298</Text>
+            <Menu width={18} height={18} fill="#202d59" />
+          </Pressable>
+          <View style={styles.logoWrapper}>
+            {Array.from({ length: RING_COUNT }).map((_, index) => (
+              <Ring key={index} index={index} progress={progress} />
+            ))}
+            <Logo variant="blue" size="medium" />
           </View>
-          <View style={styles.TicketDetailsMainItem}>
-            <Text style={styles.TicketDetailsMainText}>Ticket Type</Text>
-            <Text style={styles.TicketDetailsMainTextValue}>
-              Connection Issue
-            </Text>
-          </View>
-          <View style={styles.TicketDetailsMainItem}>
-            <Text style={styles.TicketDetailsMainText}>Created On</Text>
-            <Text style={styles.TicketDetailsMainTextValue}>
-              17/08/2025, 04:04 PM
-            </Text>
-          </View>
-          <View style={styles.TicketDetailsMainItem}>
-            <Text style={styles.TicketDetailsMainText}>Last Updated On</Text>
-            <Text style={styles.TicketDetailsMainTextValue}>
-              17/08/2025, 04:04 PM
-            </Text>
-          </View>
-          <View style={styles.TicketDetailsMainItem}>
-            <Text style={styles.TicketDetailsMainText}>Assigned To</Text>
-            <Text style={styles.TicketDetailsMainTextValue}>
-              BI - Tech Team
-            </Text>
-          </View>
+          <Pressable
+            style={styles.bellIcon}
+            onPress={() => navigation.navigate("Profile")}
+          >
+            <Notification width={18} height={18} fill="#202d59" />
+          </Pressable>
         </View>
-         )}
+
+        <View style={styles.TicketDetailsContainer}>
+          <TouchableOpacity 
+              style={styles.TicketDetailsHeader} 
+              onPress={() => setIsExpanded(!isExpanded)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.TicketDetailsText}>Ticket Details</Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={styles.HighTextBox}>
+                  <Text style={styles.HighText}>High</Text>
+                </View>
+                  <DropdownIcon
+                    width={14}
+                    height={14}
+                    style={{
+                      marginLeft: 8,
+                      transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
+                    }}
+                  />
+              </View>
+            </TouchableOpacity>
+              {isExpanded && (
+
+          <View style={styles.TicketDetailsMainContainer}>
+            <View style={styles.TicketDetailsMainItem}>
+              <Text style={styles.TicketDetailsMainText}>Ticket ID</Text>
+              <Text style={styles.TicketDetailsMainTextValue}>#298</Text>
+            </View>
+            <View style={styles.TicketDetailsMainItem}>
+              <Text style={styles.TicketDetailsMainText}>Ticket Type</Text>
+              <Text style={styles.TicketDetailsMainTextValue}>
+                Connection Issue
+              </Text>
+            </View>
+            <View style={styles.TicketDetailsMainItem}>
+              <Text style={styles.TicketDetailsMainText}>Created On</Text>
+              <Text style={styles.TicketDetailsMainTextValue}>
+                17/08/2025, 04:04 PM
+              </Text>
+            </View>
+            <View style={styles.TicketDetailsMainItem}>
+              <Text style={styles.TicketDetailsMainText}>Last Updated On</Text>
+              <Text style={styles.TicketDetailsMainTextValue}>
+                17/08/2025, 04:04 PM
+              </Text>
+            </View>
+            <View style={styles.TicketDetailsMainItem}>
+              <Text style={styles.TicketDetailsMainText}>Assigned To</Text>
+              <Text style={styles.TicketDetailsMainTextValue}>
+                BI - Tech Team
+              </Text>
+            </View>
+          </View>
+           )}
+        </View>
+        <View style={styles.TicketChatContainer}>
+          <TicketChatBox />
+        </View>
       </View>
-      <View style={styles.TicketChatContainer}>
-        <TicketChatBox />
-      </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
