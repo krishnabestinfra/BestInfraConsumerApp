@@ -211,7 +211,7 @@ const DashboardHeader = React.memo(({
           <View style={styles.greetingContainer}>
             <Text style={styles.hiText}>
               Hi, Good Morning
-              {/* {getDisplayName()} */}
+              {/* {getDisplayName()} */}{" "}
             </Text>
             <Hand width={30} height={30} fill="#55B56C" />
           </View>

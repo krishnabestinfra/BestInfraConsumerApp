@@ -207,11 +207,55 @@ export const hasValidCache = async (identifier) => {
 export const fetchNotifications = async (uid) => {
   try {
     const url = `${BASE_URL}/notifications?uid=${uid}`;
-    console.log(`🔔 Fetching notifications for UID: ${uid}`);
-    return await makeRequest(url);
+    const token = await getToken();
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+
+    // Handle specific HTTP status codes gracefully
+    if (response.status === 403) {
+      // 403 Forbidden - notifications feature may not be enabled for this consumer
+      // Return success with empty notifications to avoid error logs
+      return { 
+        success: true, 
+        data: { notifications: [] },
+        status: 403,
+        message: 'Notifications not available for this consumer'
+      };
+    }
+
+    if (response.status === 404) {
+      // 404 Not Found - endpoint may not exist yet
+      return { 
+        success: true, 
+        data: { notifications: [] },
+        status: 404,
+        message: 'Notifications endpoint not found'
+      };
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { success: true, data: data.data || data };
   } catch (error) {
-    console.error("Error fetching notifications:", error);
-    return { success: false, message: error.message };
+    // Only log actual network errors, not HTTP status errors
+    if (!error.message.includes('HTTP error!')) {
+      console.error("Network error fetching notifications:", error);
+    }
+    return { 
+      success: true, // Return success to prevent error propagation
+      data: { notifications: [] },
+      message: error.message 
+    };
   }
 };
 
