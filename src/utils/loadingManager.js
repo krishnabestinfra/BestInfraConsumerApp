@@ -23,6 +23,7 @@ const Shimmer = ({ style }) => {
   const shimmerAnim = useRef(new Animated.Value(-1)).current;
 
   useEffect(() => {
+     shimmerAnim.setValue(-1);
     Animated.loop(
       Animated.timing(shimmerAnim, {
         toValue: 1,

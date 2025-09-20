@@ -179,7 +179,7 @@ const Tickets = ({ navigation }) => {
 
               <View style={{ minWidth: 20 }}> 
                 {statsLoading ? (
-                  <SkeletonLoader variant="lines" lines={1} style={{ height: 50, width: 20 }} />
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 60, width: 10 }} />
                 ) : (
                   <Text style={styles.TicketBoxNumber}>{ticketStats.open}</Text>
                 )}
