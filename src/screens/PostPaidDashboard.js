@@ -22,6 +22,7 @@ import { GLOBAL_API_URL } from "../constants/constants";
 import { getUser, getToken } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
+import { showSuccess, showError } from '../components/global/Toastify';
 
 // import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -112,8 +113,10 @@ const PostPaidDashboard = ({ navigation, route }) => {
         setConsumerData(data);
 
         console.log("📊 Consumer Data Set:", data);
+        showSuccess("Data fetched Successfully")
       } catch (error) {
         console.error("❌ API error:", error);
+        showError("Failed to load Data")
         // Set fallback data
         setConsumerData({
           name: "Technific FMC",
@@ -528,7 +531,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   </View>
                   <View style={{ display: "flex", alignItems: "center" }}>
                     {isLoading ? (
-                      <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
+                      <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={10} />
                     ) : (
                       <ConsumerGroupedBarChart
                         viewType="daily"
