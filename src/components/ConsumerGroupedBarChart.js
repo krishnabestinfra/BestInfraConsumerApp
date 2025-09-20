@@ -70,7 +70,7 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
   const barWidth = 30;
   const spacing = 11.5;
   const chartWidth = (barWidth + spacing) * 8; // Width for exactly 10 bars
-  const needsScrolling = chartWidth > screenWidth - 80; // Check if scrolling is neede
+  const needsScrolling = chartWidth > screenWidth - 80; // Check if scrolling is neede 
 
   if (loading) {
   return (

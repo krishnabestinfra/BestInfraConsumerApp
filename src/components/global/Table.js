@@ -2,6 +2,8 @@ import { StyleSheet, Text, View, Dimensions } from "react-native";
 import React, {useState} from "react";
 import { COLORS } from "../../constants/colors";
 import { SkeletonLoader } from "../../utils/loadingManager";
+import Button from "../global/Button";
+
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -200,21 +202,29 @@ const Table = ({
       )}
       {data.length > rowsPerPage && (
         <View style={styles.paginationContainer}>
-            <Text 
-              style={[
-                styles.paginationButton,
-                currentPage === 1 && styles.disabledButton
-              ]}
+            <Button 
+              title="Previous"
+              variant="primary"
+              size="small"
+              disabled={currentPage===1}
+              style={[styles.paginationButton, currentPage === 1 && styles.disabledButton]}
               onPress={() => currentPage > 1 && setCurrentPage(prev => prev - 1)}
-            >
-              Previous
-            </Text>
+            />
 
           <Text style={styles.paginationText}>
             Page {currentPage} of {totalPages}
           </Text>
 
-            <Text 
+            <Button 
+              title="Next"
+              variant="primary"
+              size="small"
+              disabled={currentPage===totalPages}
+              style={[styles.paginationButton, currentPage===totalPages && styles.disabledButton]}
+              onPress={() => currentPage < totalPages && setCurrentPage(prev => prev + 1)}
+            />
+
+            {/* <Text 
               style={[
                 styles.paginationButton,
                 currentPage === totalPages && styles.disabledButton
@@ -222,7 +232,7 @@ const Table = ({
               onPress={() => currentPage < totalPages && setCurrentPage(prev => prev + 1)}
             >
               Next
-            </Text>
+            </Text> */}
         </View>
       )}
     </View>
@@ -376,10 +386,12 @@ const styles = StyleSheet.create({
   marginTop: 16,
 },
 paginationButton: {
+  display:"flex",
+  flex:0.3,
   marginHorizontal: 20,
-  color: COLORS.secondaryColor,
   fontFamily: "Manrope-Medium",
   fontSize: 10,
+  backgroundColor:COLORS.secondaryColor,
 },
 paginationText: {
   fontFamily: "Manrope-Regular",
@@ -387,7 +399,8 @@ paginationText: {
   color: COLORS.primaryFontColor,
 },
 disabledButton: {
-  color: '#cccccc',
+  backgroundColor: "#e8eaed",
+  color:"#808080"
 },
 
 });
