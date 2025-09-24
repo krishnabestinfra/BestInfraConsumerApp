@@ -19,7 +19,8 @@
       "fallbackToCacheTimeout": 0
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bestinfra.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,19 +28,20 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.krishnajayanth.BestInfraApp"
+      "package": "com.bestinfra.app"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "f0b67060-3d56-43f0-a138-3c32a47b7e16"
+        "projectId": "4e16f731-45e2-43c1-9401-1a99542ef2a6"
       }
     },
     "plugins": [
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-asset"
     ]
   }
 }

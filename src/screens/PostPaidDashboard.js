@@ -18,11 +18,12 @@ import DatePicker from "../components/global/DatePicker";
 import Meter from "../../assets/icons/meterWhite.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
 import LastCommunicationIcon from "../../assets/icons/signal.svg";
-import { GLOBAL_API_URL } from "../constants/constants";
+import { API, API_ENDPOINTS } from "../constants/constants";
 import { getUser, getToken } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 import { showSuccess, showError } from '../components/global/Toastify';
+import { apiClient } from '../services/apiClient';
 
 // import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -80,7 +81,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
 
         // Get authenticated user data
         const user = await getUser();
-        const token = await getToken();
 
         if (!user || !user.identifier) {
           console.error("No authenticated user found");
@@ -88,45 +88,52 @@ const PostPaidDashboard = ({ navigation, route }) => {
           return;
         }
 
-        const API_URL = `http://${GLOBAL_API_URL}:4256/api/consumers/${user.identifier}`;
-        console.log("🔄 Fetching consumer data from:", API_URL);
+        console.log("🔄 Fetching consumer data for:", user.identifier);
 
-        const response = await fetch(API_URL, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache',
-            ...(token && { 'Authorization': `Bearer ${token}` }),
-          },
-        });
+        // Use the centralized API client
+        const result = await apiClient.getConsumerData(user.identifier);
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (result.success) {
+          setConsumerData(result.data);
+          console.log("📊 Consumer Data Set:", result.data);
+          showSuccess("Data fetched Successfully");
+        } else {
+          throw new Error(result.error);
         }
-
-        const result = await response.json();
-        console.log("✅ API Response:", result);
-
-        // Handle nested data structure
-        const data = result.data || result;
-        setConsumerData(data);
-
-        console.log("📊 Consumer Data Set:", data);
-        showSuccess("Data fetched Successfully")
       } catch (error) {
         console.error("❌ API error:", error);
-        showError("Failed to load Data")
-        // Set fallback data
-        setConsumerData({
-          name: "Technific FMC",
-          meterSerialNumber: "23010587",
-          uniqueIdentificationNo: "BI25GMRA017",
-          readingDate: "9/10/2025, 7:30:02 PM",
-          totalOutstanding: 1658651.36,
+        
+        // Provide specific error messages based on error type
+        let errorMessage = "Failed to load Data";
+        if (error.message.includes('HTTP 500')) {
+          errorMessage = "Server error - please try again later";
+        } else if (error.message.includes('HTTP 401') || error.message.includes('Authentication failed')) {
+          errorMessage = "Authentication failed - please login again";
+        } else if (error.message.includes('HTTP 403') || error.message.includes('Access denied')) {
+          errorMessage = "Access denied - contact support";
+        } else if (error.message.includes('HTTP 404') || error.message.includes('not found')) {
+          errorMessage = "Consumer data not found";
+        } else if (error.message.includes('timeout')) {
+          errorMessage = "Request timeout - please try again";
+        } else if (error.message.includes('Network error')) {
+          errorMessage = "Network error - please check your connection";
+        }
+        
+        showError(errorMessage);
+        
+        // Set fallback data with user's actual identifier
+        const user = await getUser();
+        const fallbackData = {
+          name: user?.name || "Consumer",
+          meterSerialNumber: user?.meterSerialNumber || "N/A",
+          uniqueIdentificationNo: user?.identifier || user?.consumerNumber || "N/A",
+          readingDate: new Date().toLocaleString(),
+          totalOutstanding: 0,
           dailyConsumption: 0,
-          monthlyConsumption: 194800
-        });
+          monthlyConsumption: 0
+        };
+        
+        setConsumerData(fallbackData);
       } finally {
         setLoading(false);
       }

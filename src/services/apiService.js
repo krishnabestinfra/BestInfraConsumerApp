@@ -12,12 +12,13 @@
  * - Token management
  */
 
-import { GLOBAL_API_URL } from '../constants/constants';
+import { API, API_ENDPOINTS, ENV_INFO } from '../constants/constants';
 import { getToken } from '../utils/storage';
 import { cacheManager } from '../utils/cacheManager';
 
-const BASE_URL = `http://${GLOBAL_API_URL}:4256/api`;
-const TICKETS_BASE_URL = `http://${GLOBAL_API_URL}:4255/api`;
+// Use centralized API configuration
+const BASE_URL = API.BASE_URL;
+const TICKETS_BASE_URL = API.TICKETS_URL;
 
 /**
  * Make authenticated API request
@@ -55,7 +56,7 @@ export const testConsumerCredentials = async (identifier, password) => {
   try {
     console.log(`🧪 Testing credentials for consumer: ${identifier}`);
     
-    const response = await fetch(`${BASE_URL}/sub-app/auth/login`, {
+    const response = await fetch(API_ENDPOINTS.auth.login(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -94,7 +95,7 @@ export const fetchConsumerData = async (consumerId, forceRefresh = false) => {
   try {
     return await cacheManager.getData(
       'consumer_data',
-      `${BASE_URL}/consumers/${consumerId}`,
+      API_ENDPOINTS.consumers.get(consumerId),
       consumerId,
       forceRefresh
     );
@@ -111,7 +112,7 @@ export const syncConsumerData = async (consumerId) => {
   try {
     return await cacheManager.backgroundRefresh(
       'consumer_data',
-      `${BASE_URL}/consumers/${consumerId}`,
+      API_ENDPOINTS.consumers.get(consumerId),
       consumerId
     );
   } catch (error) {
@@ -125,7 +126,7 @@ export const syncConsumerData = async (consumerId) => {
  */
 export const fetchPostpaidBillingData = async (consumerId) => {
   try {
-    return await makeRequest(`${BASE_URL}/billing/postpaid/table`);
+    return await makeRequest(`${API.BASE_URL}/billing/postpaid/table`);
   } catch (error) {
     console.error("Error fetching postpaid billing data:", error);
     return { success: false, message: error.message };
@@ -139,7 +140,7 @@ export const fetchTicketStats = async (uid) => {
   try {
     return await cacheManager.getData(
       'ticket_stats',
-      `${TICKETS_BASE_URL}/tickets/stats?uid=${uid}`,
+      API_ENDPOINTS.tickets.stats(uid),
       uid
     );
   } catch (error) {
@@ -155,7 +156,7 @@ export const fetchTicketsTable = async (uid) => {
   try {
     return await cacheManager.getData(
       'ticket_table',
-      `${TICKETS_BASE_URL}/tickets/table?uid=${uid}`,
+      API_ENDPOINTS.tickets.table(uid),
       uid
     );
   } catch (error) {

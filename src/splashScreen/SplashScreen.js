@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Image, Dimensions } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
@@ -19,20 +19,38 @@ const getUser = async () => {
 
 const SplashScreen = () => {
   const navigation = useNavigation();
+  const [splashComplete, setSplashComplete] = useState(false);
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
+    const initializeApp = async () => {
+      try {
+        console.log('🚀 Initializing app...');
+        
+        // Proceed with normal app flow
+        await proceedToMainApp();
+        
+      } catch (error) {
+        console.error('❌ Error during app initialization:', error);
+        // On error, proceed to main app (graceful degradation)
+        await proceedToMainApp();
+      }
+    };
+
+    const proceedToMainApp = async () => {
       const user = await getUser();
+      
+      // Add minimum splash time for better UX
       setTimeout(() => {
+        setSplashComplete(true);
         if (user) {
-          // navigation.replace("Dashboard");
           navigation.replace("PostPaidDashboard");
         } else {
           navigation.replace("OnBoarding");
         }
-      }, 3000); // Reduced from 7s to 3s for better UX
+      }, 2000); // Minimum 2 seconds splash time
     };
-    checkLoginStatus();
+
+    initializeApp();
   }, [navigation]);
 
   return (
