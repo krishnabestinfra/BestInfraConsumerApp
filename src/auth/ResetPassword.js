@@ -8,6 +8,7 @@ import {
   Dimensions,
   Alert,
 } from 'react-native';
+import { API_ENDPOINTS } from '../constants/constants';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Button from '../components/global/Button';
 import Input from '../components/global/Input';
@@ -34,7 +35,7 @@ const ResetPassword = () => {
     }
 
     try {
-      const response = await fetch('http://192.168.1.33:3000/api/v1/auth/reset-password', {
+      const response = await fetch(API_ENDPOINTS.auth.resetPassword(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, email, newPassword }),

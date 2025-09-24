@@ -19,7 +19,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { COLORS } from '../constants/colors';
-import { GLOBAL_API_URL } from '../constants/constants';
+import { API, API_ENDPOINTS } from '../constants/constants';
 import { getToken } from '../utils/storage';
 import CloseIcon from "../../assets/icons/cross.svg";
 import { SkeletonLoader } from '../utils/loadingManager';
@@ -45,7 +45,7 @@ const ConsumerDetailsBottomSheet = ({
       setError(null);
 
       const token = await getToken();
-      const API_URL = `http://${GLOBAL_API_URL}:4256/api/consumers/${consumerUid}`;
+      const API_URL = API_ENDPOINTS.consumers.get(consumerUid);
       
       console.log('🔄 Fetching consumer details from:', API_URL);
 

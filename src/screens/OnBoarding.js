@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import Arrow from "react-native-vector-icons/FontAwesome6";
+import Arrow from "../../assets/icons/upArrow.svg";
 import { COLORS } from "../constants/colors";
 import OnBoardingSlides from "../components/OnBoardingSlides";
 import RippleEffect from "../components/RippleEffect";

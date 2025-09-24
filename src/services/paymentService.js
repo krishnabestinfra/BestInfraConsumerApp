@@ -5,10 +5,10 @@
  * No native dependencies, works perfectly with Expo managed projects
  */
 
-import { GLOBAL_API_URL } from '../constants/constants';
+import { API, API_ENDPOINTS } from '../constants/constants';
 import { getToken, getUser } from '../utils/storage';
 
-const BASE_URL = `http://${GLOBAL_API_URL}:4256/api`;
+const BASE_URL = API.BASE_URL;
 
 /**
  * Create payment order - Fallback to test mode if backend fails
@@ -21,7 +21,7 @@ export const createPaymentOrder = async (paymentData) => {
     
     if (user && user.identifier) {
       try {
-        const response = await fetch(`${BASE_URL}/payment/create-link`, {
+        const response = await fetch(API_ENDPOINTS.payment.createLink(), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

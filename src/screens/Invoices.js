@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
 import Table from "../components/global/Table";
 import { getUser } from "../utils/storage";
-import { GLOBAL_API_URL } from "../constants/constants";
+import { API, API_ENDPOINTS } from "../constants/constants";
 import { useApp } from "../context/AppContext";
 import { 
   getCachedConsumerData, 
@@ -44,7 +44,7 @@ const Invoices = ({ navigation }) => {
         }
 
         // Fetch fresh data from API
-        const response = await fetch(`http://${GLOBAL_API_URL}:4256/api/consumers/${user.identifier}`);
+        const response = await fetch(API_ENDPOINTS.consumers.get(user.identifier));
 
         if (response.ok) {
           const data = await response.json();

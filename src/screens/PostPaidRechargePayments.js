@@ -16,7 +16,7 @@ import Button from "../components/global/Button";
 import DashboardHeader from "../components/global/DashboardHeader";
 import DirectRazorpayPayment from "../components/DirectRazorpayPayment";
 import { getUser } from "../utils/storage";
-import { GLOBAL_API_URL } from "../constants/constants";
+import { API, API_ENDPOINTS } from "../constants/constants";
 import { fetchConsumerData, syncConsumerData } from "../services/apiService";
 import { getCachedConsumerData } from "../utils/cacheManager";
 import { 

@@ -9,7 +9,7 @@ import Table from "../components/global/Table";
 import Button from "../components/global/Button";
 import DownloadButton from "../components/global/DownloadButton";
 import { getUser } from "../utils/storage";
-import { GLOBAL_API_URL } from "../constants/constants";
+import { API, API_ENDPOINTS } from "../constants/constants";
 
 
 const Transactions = ({ navigation }) => {
@@ -27,7 +27,7 @@ const Transactions = ({ navigation }) => {
         
         if (user && user.identifier) {
           // Using the authenticated user's identifier
-          const response = await fetch(`http://${GLOBAL_API_URL}:4256/api/consumers/${user.identifier}`);
+          const response = await fetch(API_ENDPOINTS.consumers.get(user.identifier));
           
           if (response.ok) {
             const data = await response.json();
