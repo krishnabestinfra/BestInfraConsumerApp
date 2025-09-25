@@ -1,4 +1,4 @@
-package com.krishnajayanth.BestInfraApp
+package com.bestinfra.app
 
 import android.app.Application
 import android.content.res.Configuration
