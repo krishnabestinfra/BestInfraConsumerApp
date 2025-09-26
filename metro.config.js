@@ -25,4 +25,23 @@ config.transformer.svgrConfig = {
 // Fix for Metro version compatibility
 config.resolver.platforms = ["ios", "android", "native", "web"];
 
+// Ensure proper bundle generation
+config.serializer = {
+  ...config.serializer,
+  getModulesRunBeforeMainModule: () => [
+    require.resolve('react-native/Libraries/Core/InitializeCore'),
+  ],
+};
+
+// Fix for bundle generation issues
+config.transformer = {
+  ...config.transformer,
+  minifierConfig: {
+    keep_fnames: true,
+    mangle: {
+      keep_fnames: true,
+    },
+  },
+};
+
 module.exports = config;
