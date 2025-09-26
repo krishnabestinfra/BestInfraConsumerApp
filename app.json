@@ -2,46 +2,21 @@
   "expo": {
     "name": "BestInfraApp",
     "slug": "BestInfraApp",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
+    "version": "1.0.1",
     "assetBundlePatterns": [
-      "assets/fonts/*"
+      "assets/fonts/*",
+      "assets/icons/*"
     ],
     "updates": {
       "fallbackToCacheTimeout": 0
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.bestinfra.app"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.bestinfra.app"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "4e16f731-45e2-43c1-9401-1a99542ef2a6"
+        "projectId": "2282ce6c-b4a2-4b18-a1a2-9f58b7333f74"
       }
-    },
-    "plugins": [
-      "expo-font",
-      "expo-secure-store",
-      "expo-asset"
-    ]
+    }
   }
 }

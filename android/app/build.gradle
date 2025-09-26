@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.krishnajayanth.BestInfraApp'
+    namespace 'com.bestinfra.app'
     defaultConfig {
-        applicationId 'com.krishnajayanth.BestInfraApp'
+        applicationId 'com.bestinfra.app'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
