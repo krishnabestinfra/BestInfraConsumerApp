@@ -108,7 +108,7 @@ const handleButtonPress = () => {
            variant="secondary"
             size="small" 
             style={styles.loginBox} 
-            onPress={handleButtonPress}
+            onPress={()=>navigation.navigate('Login')}
           />
         </View>
       </View>

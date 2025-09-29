@@ -25,6 +25,8 @@
       "versionCode": 1
     },
     "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0
     },
     "web": {
