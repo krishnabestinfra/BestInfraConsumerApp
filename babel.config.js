@@ -5,5 +5,12 @@ module.exports = function (api) {
     plugins: [
       "react-native-reanimated/plugin" // must be last
     ],
+    env: {
+      production: {
+        plugins: [
+          "react-native-reanimated/plugin"
+        ]
+      }
+    }
   };
 };

@@ -3,6 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useState, useEffect } from "react";
 import * as Font from "expo-font";
+import { checkForAppUpdates } from "./src/utils/updateChecker";
 
 import SplashScreen from "./src/splashScreen/SplashScreen";
 import OnBoarding from "./src/screens/OnBoarding";
@@ -60,6 +61,8 @@ export default function App() {
 
   useEffect(() => {
     loadFonts();
+    // Check for app updates after fonts are loaded
+    checkForAppUpdates();
   }, []);
 
   if (!fontsLoaded) {
