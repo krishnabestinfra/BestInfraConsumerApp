@@ -84,7 +84,7 @@ const SideMenu = ({ navigation }) => {
             </View>
           </ScrollView>
           <ScrollView scrollEnabled={false} style={styles.LoginComponentsbar}>
-            <BlurView intensity={50} tint="dark" style={styles.blurContainer}>
+            <BlurView tint="dark" style={styles.blurContainer}>
               <View>{renderContent()}</View>
             </BlurView>
           </ScrollView>
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryColor,
   },
   blurContainer: {
-    borderTopLeftRadius: 30,
-
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
   },
 });

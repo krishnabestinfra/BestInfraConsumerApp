@@ -155,6 +155,7 @@ const LoginForm = ({
               width={20} 
               height={20} 
               fill={COLORS.color_text_secondary} 
+              style={styles.userIcon}
             />
           }
           disabled={isLoading}
@@ -287,4 +288,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  userIcon:{
+    marginRight: 8,
+  }
 });
