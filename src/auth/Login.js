@@ -449,11 +449,9 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
     fontSize: Platform.OS === "ios" ? 14 : 12,
     textAlign: "center",
-    verticalAlign: "middle",
     fontFamily: "Manrope-SemiBold",
   },
   guestContainer: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",

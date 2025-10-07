@@ -14,14 +14,58 @@ import { API_ENDPOINTS } from '../constants/constants';
 
 class ApiClient {
   constructor() {
-    this.baseTimeout = 15000; // 15 seconds
-    this.maxRetries = 2;
+    this.baseTimeout = 10000; // Reduced to 10 seconds for faster failures
+    this.maxRetries = 1; // Reduced retries for speed
+    this.requestCache = new Map(); // In-memory request cache
+    this.pendingRequests = new Map(); // Prevent duplicate requests
   }
 
   /**
-   * Make an authenticated API request
+   * Make an authenticated API request with caching
    */
   async request(endpoint, options = {}) {
+    const cacheKey = `${options.method || 'GET'}:${endpoint}`;
+    
+    // Return cached result if available
+    if (this.requestCache.has(cacheKey)) {
+      const cached = this.requestCache.get(cacheKey);
+      if (Date.now() - cached.timestamp < 30000) { // 30 second cache
+        console.log(`⚡ API: Cache hit for ${endpoint}`);
+        return cached.data;
+      }
+    }
+
+    // Return pending request if already in progress
+    if (this.pendingRequests.has(cacheKey)) {
+      console.log(`⚡ API: Reusing pending request for ${endpoint}`);
+      return this.pendingRequests.get(cacheKey);
+    }
+
+    // Create new request
+    const requestPromise = this._makeRequest(endpoint, options);
+    this.pendingRequests.set(cacheKey, requestPromise);
+
+    try {
+      const result = await requestPromise;
+      
+      // Cache successful result
+      if (result.success) {
+        this.requestCache.set(cacheKey, {
+          data: result,
+          timestamp: Date.now()
+        });
+      }
+      
+      return result;
+    } finally {
+      this.pendingRequests.delete(cacheKey);
+    }
+  }
+
+  /**
+   * Make the actual HTTP request
+   */
+  async _makeRequest(endpoint, options = {}) {
     const {
       method = 'GET',
       headers = {},

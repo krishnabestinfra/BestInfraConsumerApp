@@ -30,7 +30,7 @@ const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
     'General Inquiry'
   ];
 
-  const handleSubmit = ( navigation ) => {
+  const handleSubmit = () => {
     const ticketData = {
       category: selectedCategory,
       description: description,
@@ -147,7 +147,6 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
-    display:"flex",
     justifyContent:"end",
     alignItems:"end",
     position:'relative'
@@ -157,7 +156,6 @@ const styles = StyleSheet.create({
      position: "absolute", // ✅ required
     top: height / 2 - 300, // (400 modal height / 2)
     left: width / 2 - 200, // (300 modal width / 2)
-    display:"flex",
     justifyContent:"flex-start",
     alignItems:"flex-start",
   },

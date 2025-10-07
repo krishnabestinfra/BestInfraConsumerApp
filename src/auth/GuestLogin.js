@@ -50,7 +50,6 @@ export default GuestLogin;
 const styles = StyleSheet.create({
   Maincontainer: {
     height: "100%",
-    display: "flex",
     justifyContent: "center",
   },
   container: {

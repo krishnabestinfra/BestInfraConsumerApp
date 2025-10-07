@@ -156,7 +156,6 @@ const styles = StyleSheet.create({
   /////Arrow \\\\\\
   arrowContainer: {
     height: "15%",
-    display: "flex",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1, // Ensure arrow is above background
@@ -166,7 +165,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "15%",
     justifyContent: "center",
-    display: "flex",
     alignItems: "center",
     zIndex: 1, // Ensure login container is above background
   },

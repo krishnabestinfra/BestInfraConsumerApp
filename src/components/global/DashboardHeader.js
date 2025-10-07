@@ -9,8 +9,8 @@ import UsageIcon from '../../../assets/icons/usage.svg';
 // White icons for active states
 import ActiveRechargeIcon from '../../../assets/icons/activePayments.svg';
 import ActiveTicketsIcon from '../../../assets/icons/ticketsWhite.svg';
-import ActiveInvoiceIcon from '../../../assets/icons/activeUsageIcon.svg';
-import ActiveUsageIcon from '../../../assets/icons/activeInvoice.svg';
+import ActiveInvoiceIcon from '../../../assets/icons/activeInvoice.svg';
+import ActiveUsageIcon from '../../../assets/icons/activeUsageIcon.svg';
 import Hand from '../../../assets/icons/hand.svg';
 import Arrow from '../../../assets/icons/arrow.svg';
 import Plus from '../../../assets/icons/plus.svg';
@@ -36,6 +36,15 @@ const DashboardHeader = React.memo(({
   const [userName, setUserName] = useState('');
   const [cachedConsumerData, setCachedConsumerData] = useState(null);
   const { isLoading: isUserLoading, setLoading: setUserLoading } = useLoading('user_loading', true);
+  
+  // Helper function to format amount
+  const formatAmount = (amount) => {
+    if (amount === null || amount === undefined) return "₹0.00";
+    return `₹${Math.abs(amount).toLocaleString('en-IN', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    })}`;
+  };
   
   // Get notification data from context
   const { unreadCount, isLoading: isNotificationsLoading } = useNotifications();
@@ -143,7 +152,12 @@ const DashboardHeader = React.memo(({
   // Handle navigation press - memoized for performance
   const handleNavigationPress = useCallback((item) => {
     if (item.route) {
-      navigation.navigate(item.route);
+      // Use smooth navigation if available
+      if (navigation.navigateSmoothly) {
+        navigation.navigateSmoothly(item.route);
+      } else {
+        navigation.navigate(item.route);
+      }
     }
   }, [navigation]);
 
@@ -224,7 +238,7 @@ const DashboardHeader = React.memo(({
             <Text style={styles.balanceText}>Balance</Text>
             <View style={styles.balanceContainer}>
               <Text style={styles.amountText}>
-                {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ? `₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹1,245")}
+                {isLoading ? "Loading..." : formatAmount((cachedConsumerData || consumerData)?.totalOutstanding)}
               </Text>
               <View style={styles.plusBox}>
                 <Plus width={20} height={20} fill="#55B56C" />
@@ -238,7 +252,7 @@ const DashboardHeader = React.memo(({
       <View style={styles.amountSection}>
         <View style={styles.amountContainer}>
           <Text style={styles.dueText}>
-            Due Amount: {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ?`₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹3,180")}
+            Due Amount: {isLoading ? "Loading..." : formatAmount((cachedConsumerData || consumerData)?.totalOutstanding)}
           </Text>
           <Text style={styles.dateText}>This Month</Text>
         </View>
@@ -276,7 +290,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   TopMenu: {
-    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -290,7 +303,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: 'center',
-    verticalAlign: 'middle',
     justifyContent: 'center',
     elevation: 5,
     zIndex: 2,
@@ -306,7 +318,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: 'center',
-    verticalAlign: 'middle',
     justifyContent: 'center',
     elevation: 5,
     zIndex: 2,
@@ -336,13 +347,11 @@ badgeText: {
 },
 
   ProfileBox: {
-    display: 'flex',
     justifyContent: 'space-between',
     flexDirection: 'row',
     marginHorizontal: 4,
   },
   greetingContainer: {
-    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -363,7 +372,6 @@ badgeText: {
     fontFamily: 'Manrope-Regular',
   },
   balanceContainer: {
-    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 5,
@@ -382,7 +390,6 @@ badgeText: {
   },
   amountContainer: {
     backgroundColor: COLORS.primaryColor,
-    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 10,
@@ -403,7 +410,6 @@ badgeText: {
     fontFamily: 'Manrope-Regular',
   },
   greenBox: {
-    display: 'flex',
     flexDirection: 'row',
     backgroundColor: COLORS.secondaryColor,
     borderRadius: 8,
@@ -414,7 +420,6 @@ badgeText: {
     marginTop: 3,
   },
   payInfoContainer: {
-    display: 'flex',
     flexDirection: 'row',
   },
   shieldIcon: {
@@ -442,7 +447,6 @@ badgeText: {
     height: 35,
     width: 95,
     borderRadius: 5,
-    display: 'flex',
     justifyContent: 'center',
     marginHorizontal:12,
     
@@ -452,10 +456,8 @@ badgeText: {
     fontSize: 12,
     fontFamily: 'Manrope-Medium',
     textAlign: 'center',
-    verticalAlign: 'middle',
   },
   iconsContainer: {
-    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     marginTop: 15,

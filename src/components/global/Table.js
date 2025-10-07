@@ -159,7 +159,7 @@ const Table = ({
           >
             {showSerial && (
               <View style={[styles.columnContainer, styles.serialColumn]}>
-                <Text style={[styles.dataText, textStyle]}>
+                <Text style={[styles.dataText, styles.serialText, textStyle]}>
                   {(currentPage - 1) * rowsPerPage + index + 1}
                 </Text>
               </View>
@@ -252,7 +252,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     alignItems: "center",
     minHeight: 48,
-    display:"flex",
     justifyContent:"center",
   },
   columnContainer: {
@@ -310,8 +309,13 @@ const styles = StyleSheet.create({
   },
   serialColumn: {
     width: 50,
-    textAlign: "center",
     flex: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  serialText: {
+    textAlign: "center",
+    fontWeight: "600",
   },
   inlinePriorityWrapper: {
     flexDirection: "row",
@@ -386,7 +390,6 @@ const styles = StyleSheet.create({
   marginTop: 16,
 },
 paginationButton: {
-  display:"flex",
   flex:0.3,
   marginHorizontal: 20,
   fontFamily: "Manrope-Medium",

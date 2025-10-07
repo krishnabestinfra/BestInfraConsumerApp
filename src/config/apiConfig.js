@@ -43,12 +43,14 @@ const getCurrentConfig = () => {
 // Current API configuration
 export const API = getCurrentConfig();
 
-// Debug API configuration
-console.log('🔧 API Configuration Debug:');
-console.log(`   Environment: ${currentEnv.name}`);
-console.log(`   API.BASE_URL: ${API.BASE_URL}`);
-console.log(`   API.AUTH_URL: ${API.AUTH_URL}`);
-console.log(`   API.TICKETS_URL: ${API.TICKETS_URL}`);
+// Debug API configuration (only in development)
+if (__DEV__) {
+  console.log('🔧 API Configuration Debug:');
+  console.log(`   Environment: ${currentEnv.name}`);
+  console.log(`   API.BASE_URL: ${API.BASE_URL}`);
+  console.log(`   API.AUTH_URL: ${API.AUTH_URL}`);
+  console.log(`   API.TICKETS_URL: ${API.TICKETS_URL}`);
+}
 
 // Specific endpoint builders
 export const API_ENDPOINTS = {

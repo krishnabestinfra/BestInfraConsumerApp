@@ -274,7 +274,6 @@ const styles = StyleSheet.create({
         marginBottom: 15,
     },
     forgetboxContainer: {
-        display: "flex",
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -344,7 +343,6 @@ const styles = StyleSheet.create({
         color: COLORS.primaryFontColor,
         fontSize: Platform.OS === "ios" ? 14 : 12,
         textAlign: "center",
-        verticalAlign: "middle",
         fontFamily: "Manrope-SemiBold",
     },
     otpSection: {

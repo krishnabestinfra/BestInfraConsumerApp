@@ -144,7 +144,17 @@ const ConsumerDetailsBottomSheet = ({
   // Render instantaneous readings section
   const renderInstantaneousReadings = () => (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Instantaneous Meter Readings</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Instantaneous Meter Readings</Text>
+        {consumerData?.readingDate && (
+          <View style={styles.timestampContainer}>
+            <Text style={styles.timestampLabel}>Reading Time:</Text>
+            <Text style={styles.timestampValue}>
+              {formatDateTime(consumerData.readingDate)}
+            </Text>
+          </View>
+        )}
+      </View>
       
       {/* Voltage Readings */}
       <View style={styles.readingsContainer}>
@@ -230,7 +240,14 @@ const ConsumerDetailsBottomSheet = ({
         >
           <View style={styles.handle} />
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Consumer Details</Text>
+            <View style={styles.headerContent}>
+              <Text style={styles.headerTitle}>Consumer Details</Text>
+              {consumerData?.readingDate && (
+                <Text style={styles.lastReadingText}>
+                  Last Reading: {formatDateTime(consumerData.readingDate)}
+                </Text>
+              )}
+            </View>
             <TouchableOpacity onPress={handleClose}>
               <CloseIcon width={18} height={18} />
             </TouchableOpacity>
@@ -268,6 +285,19 @@ const ConsumerDetailsBottomSheet = ({
               </View>
             ) : consumerData ? (
               <>
+                {/* Consumer Information Section */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Consumer Information</Text>
+                  <View style={styles.infoContainer}>
+                    <InfoRow label="Consumer Name" value={consumerData.name || 'N/A'} />
+                    <InfoRow label="Consumer Number" value={consumerData.consumerNumber || 'N/A'} />
+                    <InfoRow label="Meter Serial" value={consumerData.meterSerialNumber || 'N/A'} />
+                    <InfoRow label="UID" value={consumerData.uniqueIdentificationNo || 'N/A'} />
+                    <InfoRow label="Phase" value={`${consumerData.meterPhase || 'N/A'} Phase`} />
+                    <InfoRow label="Status" value={consumerData.occupancyStatus || 'N/A'} />
+                  </View>
+                </View>
+
                 {renderInstantaneousReadings()}
               </>
             ) : (
@@ -281,6 +311,14 @@ const ConsumerDetailsBottomSheet = ({
     </Modal>
   );
 };
+
+// InfoRow component for displaying consumer information
+const InfoRow = ({ label, value }) => (
+  <View style={styles.infoRow}>
+    <Text style={styles.infoLabel}>{label}</Text>
+    <Text style={styles.infoValue}>{value}</Text>
+  </View>
+);
 
 // ReadingCard component for displaying phase readings
 const ReadingCard = ({ phase, value, unit, color, loading }) => (
@@ -296,7 +334,6 @@ const ReadingCard = ({ phase, value, unit, color, loading }) => (
       </>
     )}
   </View>
-  
 );
 
 const styles = StyleSheet.create({
@@ -346,19 +383,50 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
     marginBottom: 20,
   },
+  headerContent: {
+    flex: 1,
+  },
   headerTitle: {
     fontSize: 16,
     fontFamily: 'Manrope-Bold',
     color: COLORS.primaryFontColor,
   },
+  lastReadingText: {
+    fontSize: 12,
+    fontFamily: 'Manrope-Regular',
+    color: '#64748B',
+    marginTop: 2,
+  },
   section: {
     gap: 10,
+  },
+  sectionHeader: {
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 16,
     fontFamily: 'Manrope-Bold',
     color: COLORS.primaryFontColor,
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  timestampContainer: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.secondaryColor,
+  },
+  timestampLabel: {
+    fontSize: 12,
+    fontFamily: 'Manrope-SemiBold',
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  timestampValue: {
+    fontSize: 14,
+    fontFamily: 'Manrope-Bold',
+    color: COLORS.primaryFontColor,
   },
   readingsSubtitle: {
     fontSize: 16,
@@ -438,6 +506,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Manrope-Regular',
     color: '#6B7280',
+  },
+  infoContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  infoLabel: {
+    fontSize: 13,
+    fontFamily: 'Manrope-SemiBold',
+    color: '#64748B',
+    flex: 1,
+  },
+  infoValue: {
+    fontSize: 13,
+    fontFamily: 'Manrope-Bold',
+    color: COLORS.primaryFontColor,
+    flex: 1,
+    textAlign: 'right',
   },
 });
 
