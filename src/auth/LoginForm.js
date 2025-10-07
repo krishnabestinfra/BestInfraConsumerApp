@@ -240,7 +240,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   forgetboxContainer: {
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

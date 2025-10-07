@@ -19,6 +19,8 @@ import Settings from "./src/screens/Settings";
 import { TabProvider } from "./src/context/TabContext";
 import { AppProvider } from "./src/context/AppContext";
 import { NotificationsProvider } from "./src/context/NotificationsContext";
+import { NavigationProvider } from "./src/context/NavigationContext";
+import { DataProvider } from "./src/context/DataContext";
 import ForgotPassword from "./src/auth/ForgotPassword";
 import ResetPassword from "./src/auth/ResetPassword";
 import GuestLogin from "./src/auth/GuestLogin";
@@ -75,9 +77,11 @@ export default function App() {
 
   return (
     <AppProvider>
-      <NotificationsProvider>
-        <TabProvider>
-          <NavigationContainer linking={linking}> 
+      <DataProvider>
+        <NavigationProvider>
+          <NotificationsProvider>
+            <TabProvider>
+              <NavigationContainer linking={linking}> 
             <Stack.Navigator
               initialRouteName="Splash"
               screenOptions={{ headerShown: false }}
@@ -189,9 +193,11 @@ export default function App() {
           />
             </Stack.Navigator>
              <Toastify />  
-          </NavigationContainer>
-        </TabProvider>
-      </NotificationsProvider>
+              </NavigationContainer>
+            </TabProvider>
+          </NotificationsProvider>
+        </NavigationProvider>
+      </DataProvider>
     </AppProvider>
   );
 }

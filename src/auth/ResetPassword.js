@@ -95,7 +95,6 @@ export default ResetPassword;
 const styles = StyleSheet.create({
    Maincontainer: {
     height:"100%",
-    display:"flex",
     justifyContent:"center",
   },
   container: {
@@ -109,7 +108,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
-    display:"flex",
     justifyContent:"center",
     alignContent:"center"
   },

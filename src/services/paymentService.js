@@ -65,8 +65,8 @@ export const createPaymentOrder = async (paymentData) => {
  */
 const createTestPaymentOrder = (paymentData) => {
   try {
-    // Use Razorpay test key (this is a public test key for development)
-    const testKeyId = 'rzp_test_1DP5mmOlF5G5ag'; // Public test key for development
+    // Use your actual Razorpay key - replace with your real key
+    const testKeyId = 'rzp_live_RtoHmSaBDCz4GS'; // Replace with your actual Razorpay key
     
     const testOrderData = {
       // For direct payment, we don't need order_id
@@ -74,10 +74,10 @@ const createTestPaymentOrder = (paymentData) => {
       amount: paymentData.amount,
       currency: paymentData.currency || 'INR',
       key_id: testKeyId,
-      description: paymentData.description || 'Test Payment',
-      consumer_name: paymentData.consumer_name || 'Test User',
-      email: paymentData.email || 'test@example.com',
-      contact: paymentData.contact || '9876543210',
+      description: paymentData.description || 'Energy Bill Payment - UPI',
+      consumer_name: paymentData.consumer_name || 'Customer',
+      email: paymentData.email || 'customer@bestinfra.com',
+      contact: paymentData.contact || '7013845459',
       // Test mode flags
       test_mode: true,
       direct_payment: true, // Flag to indicate direct payment
@@ -85,6 +85,7 @@ const createTestPaymentOrder = (paymentData) => {
         source: 'react_native_app',
         test_payment: true,
         consumer_id: paymentData.consumer_id || 'test_consumer',
+        payment_method: 'upi'
       }
     };
 

@@ -34,7 +34,7 @@ const CreateNewTicket = ({
     "General Inquiry",
   ];
 
-  const handleSubmit = (navigation) => {
+  const handleSubmit = () => {
     const ticketData = {
       category: selectedCategory,
       subject,
@@ -50,7 +50,7 @@ const CreateNewTicket = ({
     setUploadedFiles([]);
   };
 
-  const handleCancel = (navigate) => {
+  const handleCancel = () => {
     // Reset form
     setSelectedCategory("");
     setDescription("");
@@ -148,13 +148,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     marginTop: 150,
-    display:"flex",
     flexDirection:"column",
     flex: 1,
     justifyContent: "center", // center vertically
     //   alignItems: "center",     // center horizontally
     // alignSelf:"center",
-    // verticalAlign:"middle",
+    //
     marginHorizontal:20
 
   },

@@ -28,16 +28,31 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
         const latestData = allData.slice(-10);
         const latestLabels = allLabels.slice(-10);
         
+        // Ensure we have valid data
+        if (latestData.length > 0 && latestLabels.length > 0) {
+          setChartData({
+            blue: latestData,
+            labels: latestLabels,
+          });
+        } else {
+          // Use fallback data if API data is empty
+          setChartData({
+            blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
+            labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
+          });
+        }
+      } else {
+        // Use fallback data if no series data
         setChartData({
-          blue: latestData,
-          labels: latestLabels,
+          blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
+          labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
         });
       }
     } else if (!loading) {
-      // Fallback to default data if no API data - same as original
+      // Fallback to default data if no API data
       setChartData({
         blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
-        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "July", "Aug", "Sept", "Oct"],
+        labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
       });
     }
   }, [data, viewType, loading]);
