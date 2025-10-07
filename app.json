@@ -22,7 +22,7 @@
         "backgroundColor": "#1e4a7a"
       },
       "package": "com.bestinfra.app",
-      "versionCode": 3
+      "versionCode": 4
     },
     "updates": {
       "enabled": true,

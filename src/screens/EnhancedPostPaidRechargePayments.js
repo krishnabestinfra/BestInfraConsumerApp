@@ -1,3 +1,10 @@
+/**
+ * Enhanced PostPaid Recharge Payments Screen
+ * 
+ * Based on web implementation best practices
+ * Uses proper backend integration, verification, and error handling
+ */
+
 import { 
   StyleSheet, 
   Text, 
@@ -10,7 +17,7 @@ import {
   Platform 
 } from "react-native";
 import { COLORS } from "../constants/colors";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
 import DashboardHeader from "../components/global/DashboardHeader";
@@ -20,15 +27,13 @@ import { API, API_ENDPOINTS } from "../constants/constants";
 import { fetchConsumerData, syncConsumerData } from "../services/apiService";
 import { getCachedConsumerData } from "../utils/cacheManager";
 import { 
-  processRazorpayPayment, 
-  handlePaymentSuccess, 
-  handlePaymentError, 
-  formatAmount 
-} from "../services/paymentService";
+  processCompletePayment,
+  handlePaymentSuccess,
+  handlePaymentError,
+  validatePaymentData
+} from "../services/EnhancedPaymentService";
 
-
-const PostPaidRechargePayments = ({ navigation }) => {
-
+const EnhancedPostPaidRechargePayments = ({ navigation }) => {
   const [selectedOption, setSelectedOption] = useState("option1");
   const [customAmount, setCustomAmount] = useState("");
   const [outstandingAmount, setOutstandingAmount] = useState("NA");
@@ -38,6 +43,7 @@ const PostPaidRechargePayments = ({ navigation }) => {
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [orderData, setOrderData] = useState(null);
+  const [paymentError, setPaymentError] = useState(null);
 
   const handleCustomAmountChange = (text) => {
     setCustomAmount(text);
@@ -72,16 +78,15 @@ const PostPaidRechargePayments = ({ navigation }) => {
     return true;
   };
 
-  // Handle payment processing
-  const handlePayment = async () => {
+  // Enhanced payment handler (like web version)
+  const handlePayment = useCallback(async () => {
     try {
-      if (!validatePaymentAmount()) {
-        return;
-      }
-
+      setPaymentError(null);
       setIsPaymentProcessing(true);
 
       const paymentAmount = getPaymentAmount();
+      
+      // Prepare payment data (like web version)
       const paymentData = {
         amount: paymentAmount,
         currency: 'INR',
@@ -94,40 +99,117 @@ const PostPaidRechargePayments = ({ navigation }) => {
         custom_amount: selectedOption === "option2" ? customAmount : null,
       };
 
-      await processRazorpayPayment(paymentData, navigation, setShowPaymentModal, setOrderData);
+      // Validate payment data (like web version)
+      const validation = validatePaymentData(paymentData);
+      if (!validation.isValid) {
+        setPaymentError(validation.errors[0]);
+        return;
+      }
+
+      console.log('🚀 Processing payment:', paymentData);
+
+      // Process payment using enhanced service
+      const result = await processCompletePayment(
+        paymentData,
+        navigation,
+        setShowPaymentModal,
+        setOrderData
+      );
+
+      // Log fallback mode only in development
+      if (result && result.fallback && __DEV__) {
+        console.log('ℹ️ Payment processing in fallback mode (backend routes not available)');
+      }
 
     } catch (error) {
       console.error('❌ Payment error:', error);
       
+      const errorMessage = error.message || "An error occurred while processing payment. Please try again.";
+      setPaymentError(errorMessage);
+      
+      // Show user-friendly error alert (like web version)
       Alert.alert(
         "Payment Failed", 
-        error.message || "An error occurred while processing payment. Please try again.",
-        [{ text: "OK" }]
+        errorMessage,
+        [
+          { 
+            text: "Try Again", 
+            onPress: () => setPaymentError(null) 
+          },
+          { 
+            text: "Cancel", 
+            style: "cancel" 
+          }
+        ]
       );
     } finally {
       setIsPaymentProcessing(false);
     }
-  };
+  }, [selectedOption, consumerData, customAmount, navigation]);
 
-  // Handle payment success
-  const onPaymentSuccess = async (paymentResponse) => {
+  // Enhanced payment success handler (like web version)
+  const onPaymentSuccess = useCallback(async (paymentResponse) => {
     try {
-      await handlePaymentSuccess(paymentResponse, navigation, setShowPaymentModal);
+      console.log('✅ Payment successful:', paymentResponse);
+      
+      // Get bill ID for tracking (like web version)
+      const billId = consumerData?.uniqueIdentificationNo || consumerData?.identifier;
+      
+      const result = await handlePaymentSuccess(
+        paymentResponse, 
+        navigation, 
+        setShowPaymentModal,
+        billId
+      );
+
+      // Log fallback verification only in development
+      if (result && result.fallback && __DEV__) {
+        console.log('ℹ️ Payment verification in fallback mode (backend routes not available)');
+      }
+      
     } catch (error) {
-      Alert.alert("Payment Verification Failed", error.message);
+      console.error('❌ Payment success handling failed:', error);
+      
+      Alert.alert(
+        "Payment Verification Failed", 
+        error.message || "Payment was successful but verification failed. Please contact support.",
+        [
+          { 
+            text: "Contact Support", 
+            onPress: () => {
+              // Navigate to support or show contact info
+              console.log('Navigate to support');
+            }
+          },
+          { 
+            text: "OK", 
+            style: "default" 
+          }
+        ]
+      );
     }
-  };
+  }, [navigation, consumerData]);
 
-  // Handle payment error
-  const onPaymentError = (error) => {
+  // Enhanced payment error handler (like web version)
+  const onPaymentError = useCallback((error) => {
     try {
+      console.error('❌ Payment error:', error);
+      
       handlePaymentError(error, setShowPaymentModal);
-      setOrderData(null); // Clear order data on error
+      setOrderData(null);
+      
     } catch (err) {
-      Alert.alert("Payment Error", err.message);
-      setOrderData(null); // Clear order data on error
+      console.error('❌ Payment error handling failed:', err);
+      
+      Alert.alert(
+        "Payment Error", 
+        err.message || "An unexpected error occurred. Please try again.",
+        [{ text: "OK" }]
+      );
+      
+      setOrderData(null);
     }
-  };
+  }, []);
 
   // Fetch consumer data and outstanding amount with caching
   useEffect(() => {
@@ -237,13 +319,13 @@ const PostPaidRechargePayments = ({ navigation }) => {
               </View>
             </View>
 
-            {/* Overdue Amount */}
+            {/* Custom Amount */}
             <View style={[
               styles.amountCard2,
               selectedOption === "option2" && styles.amountCardSelected2
             ]}>
               <View style={styles.amountCardHeader}>
-                <Text style={styles.amountCardTitle}>Overdue Amount</Text>
+                <Text style={styles.amountCardTitle}>Custom Amount</Text>
                 <View style={[
                   styles.statusDot,
                   selectedOption === "option2" && styles.statusDotSelected
@@ -262,14 +344,22 @@ const PostPaidRechargePayments = ({ navigation }) => {
             </View>
           </View>
         </View>
+        
+        {/* Payment Error Display */}
+        {paymentError && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>⚠️ {paymentError}</Text>
+          </View>
+        )}
       </ScrollView>
+      
       <View style={styles.buttonContainer}>
         <Button 
-          title={isPaymentProcessing ? "Processing Payment..." : "Proceed to Recharge"} 
+          title={isPaymentProcessing ? "Processing Payment..." : "Proceed to Payment"} 
           variant="primary" 
           size="medium" 
           onPress={handlePayment}
-          disabled={isPaymentProcessing || isLoading}
+          disabled={isPaymentProcessing || isLoading || !validatePaymentAmount()}
         />
         {isPaymentProcessing && (
           <View style={styles.loadingContainer}>
@@ -294,7 +384,7 @@ const PostPaidRechargePayments = ({ navigation }) => {
   );
 };
 
-export default PostPaidRechargePayments;
+export default EnhancedPostPaidRechargePayments;
 
 const styles = StyleSheet.create({
   keyboardAvoidingView: {
@@ -311,238 +401,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 120, // Space for the button container
   },
-  bluecontainer: {
-    backgroundColor: "#eef8f0",
-    padding: 15,
-  },
-  TopMenu: {    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 15,
-  },
-  barsIcon: {
-    backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
-    borderRadius: 60,
-    alignItems: "center",    justifyContent: "center",
-    elevation: 5,
-    zIndex: 2,
-  },  logo: {
-    width: 80,
-    height: 80,
-    zIndex: 1,
-  },
-  bellIcon: {
-    backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
-    borderRadius: 60,
-    alignItems: "center",    justifyContent: "center",
-    elevation: 5,
-    zIndex: 2,
-  },
-  ProfileBox: {    justifyContent: "space-between",
-    flexDirection: "row",
-    marginHorizontal: 4,
-  },
-  usageText: {
-    color: COLORS.primaryFontColor,
-    fontFamily: "Manrope-Medium",
-    fontSize: 16,
-    textAlign: "center",
-    paddingTop: 0,
-    marginTop: 30,
-  },
-  hiText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 18,
-    fontFamily: "Manrope-Bold",
-  },
-  stayingText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Regular",
-  },
-  balanceText: {
-    color: COLORS.primaryFontColor,
-    marginLeft: 20,
-    fontSize: 14,
-    fontFamily: "Manrope-Regular",
-  },
-  amountText: {
-    color: COLORS.primaryColor,
-    fontSize: 20,
-    fontFamily: "Manrope-Bold",
-  },
-
-  plusBox: {
-    marginLeft: 7,
-  },
-  amountContainer: {
-    backgroundColor: COLORS.primaryColor,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 10,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    paddingHorizontal: 15,
-  },
-  dueText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Medium",
-  },
-  dateText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-  },
-  greenBox: {    flexDirection: "row",
-    backgroundColor: COLORS.secondaryColor,
-    borderRadius: 8,
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
-    alignItems: "center",
-    padding: 10,
-    marginTop: 3,
-  },
-  payText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 16,
-    fontFamily: "Manrope-Bold",
-  },
-  tostayText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 16,
-    fontFamily: "Manrope-Bold",
-  },
-  avoidText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-  },
-  paynowbox: {
-    backgroundColor: COLORS.secondaryFontColor,
-    height: 35,
-    width: 95,
-    borderRadius: 5,    justifyContent: "center",
-  },
-  paynowText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 12,
-    fontFamily: "Manrope-Medium",
-    textAlign: "center",  },
-  iconsContainer: {    flexDirection: "row",
-    justifyContent: "space-evenly",
-    marginTop: 15,
-  },
-  individualBox: {
-    alignItems: "center",
-    width: 85,
-  },
-  iconBox: {
-    backgroundColor: COLORS.secondaryFontColor,
-    borderRadius: 35,
-    elevation: 1,
-    width: 54,
-    height: 54,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconBoxActive: {
-    backgroundColor: COLORS.secondaryColor,
-    borderRadius: 35,
-    elevation: 1,
-    width: 54,
-    height: 54,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-    marginTop: 5,
-  },
-  logoWrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  ring: {
-    position: "absolute",
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 1,
-    borderColor: "#BABECC66",
-    opacity: 0.2,
-  },
-  buttonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
-    paddingTop: 20,
-    backgroundColor: COLORS.secondaryFontColor,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  buttonContainerInner: {    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-  },
   contentSection: {
     paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 20,
-  },
-  inputContainer: {
-  },
-  rechargeOptionsContainer: {
-    borderWidth: 2,
-    borderColor: '#CAE8D1',
-    borderRadius: 8,
-    borderStyle: "dashed",
-    padding: 16,
-  },
-  rechargeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  rechargeHeading: {
-    color: COLORS.primaryFontColor,
-    fontSize: 16,
-    fontFamily: 'Manrope-Bold',
-  },
-  rechargesubheading: {
-    color: '#666',
-    fontSize: 12,
-    fontFamily: 'Manrope-Regular',
-  },
-  radioGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'stretch',
-    gap: 12,
-  },
-  radioGroupContainer: {
-    marginBottom: 24,
   },
   inputSection: {
     gap: 16,
@@ -568,11 +430,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
   },
   amountCardSelected2: {
-    // borderColor: COLORS.secondaryColor,
-    // borderWidth: 3,
-    // borderStyle: 'dashed',
-    // elevation: 2,
-    // shadowOpacity: 0.1,
+    borderColor: COLORS.secondaryColor,
+    borderWidth: 1.5,
+    borderStyle: 'solid',
   },
   amountCardHeader: {
     flexDirection: 'row',
@@ -604,6 +464,38 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope-Medium',
     color: COLORS.primaryFontColor,
   },
+  errorContainer: {
+    backgroundColor: '#ffebee',
+    borderColor: '#f44336',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginHorizontal: 20,
+    marginBottom: 10,
+  },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 14,
+    fontFamily: 'Manrope-Medium',
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+    paddingTop: 20,
+    backgroundColor: COLORS.secondaryFontColor,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -617,3 +509,4 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
   },
 });
+

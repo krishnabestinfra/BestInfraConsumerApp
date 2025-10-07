@@ -118,27 +118,6 @@ const Tickets = ({ navigation }) => {
   //   setShowModal(false);
   // };
 
-  // const tableData = [
-  //   {
-  //     id: 1,
-  //     ticketId: 298,
-  //     issueType: "Connection Issue",
-  //     status: "Open",
-
-  //   },
-  //   {
-  //     id: 2,
-  //     ticketId: 286,
-  //     issueType: "Meter Issue",
-  //     status: "Closed",
-  //   },
-  //   {
-  //     id: 3,
-  //     ticketId: 278,
-  //     issueType: "Meter Issue",
-  //     status: "Resolved",
-  //   },
-  // ];
   const handleCreateTicket = (ticketData) => {
   console.log("New Ticket Created:", ticketData);
   };
@@ -318,7 +297,6 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   TopMenu: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -332,12 +310,10 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     elevation: 5,
     zIndex: 2,
   },
-  logoImage: {},
   logo: {
     width: 80,
     height: 80,
@@ -349,13 +325,11 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     elevation: 5,
     zIndex: 2,
   },
   ProfileBox: {
-    display: "flex",
     justifyContent: "space-between",
     flexDirection: "row",
     marginHorizontal: 4,
@@ -365,7 +339,6 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(186, 190, 204, 0.4)',
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -411,7 +384,6 @@ const styles = StyleSheet.create({
   },
   amountContainer: {
     backgroundColor: COLORS.primaryColor,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 10,
@@ -432,7 +404,6 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-Regular",
   },
   greenBox: {
-    display: "flex",
     flexDirection: "row",
     backgroundColor: COLORS.secondaryColor,
     borderRadius: 8,
@@ -462,7 +433,6 @@ const styles = StyleSheet.create({
     height: 35,
     width: 95,
     borderRadius: 5,
-    display: "flex",
     justifyContent: "center",
   },
   paynowText: {
@@ -470,10 +440,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Manrope-Medium",
     textAlign: "center",
-    verticalAlign: "middle",
   },
   iconsContainer: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-evenly",
     marginTop: 25,
@@ -522,7 +490,6 @@ const styles = StyleSheet.create({
   },
   TicketContainerTwo: {
     flexWrap: "wrap",
-    display: "flex",
     flexDirection: "row",
     justifyContent: "center",
     // marginHorizontal: 20,
@@ -530,7 +497,6 @@ const styles = StyleSheet.create({
     gap: 15
   },
   TicketBox: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
@@ -569,7 +535,6 @@ const styles = StyleSheet.create({
   },
   TicketBoxTextContainer: {
     height: "100%",
-    display: "flex",
     justifyContent: "space-between",
   },
   TicketContainerThree: {

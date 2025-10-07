@@ -178,7 +178,6 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   TopMenu: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -192,7 +191,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     // iOS shadow
     shadowColor: "#000",
@@ -213,7 +211,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     // iOS shadow
     shadowColor: "#000",

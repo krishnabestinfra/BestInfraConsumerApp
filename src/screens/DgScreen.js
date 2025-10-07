@@ -325,7 +325,6 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   TopMenu: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -339,7 +338,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     elevation: 5,
   },
@@ -349,7 +347,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     elevation: 5,
   },
@@ -357,7 +354,6 @@ const styles = StyleSheet.create({
      paddingHorizontal: 20,
      paddingVertical: 20,
      backgroundColor: COLORS.secondaryFontColor,
-     display: 'flex',
      flexDirection: 'row',
      justifyContent: 'space-between',
      alignItems: 'center',
@@ -843,7 +839,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor
   },
   buttonContainerInner: {
-    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

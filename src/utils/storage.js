@@ -47,6 +47,9 @@ export const logoutUser = async () => {
   }
 };
 
+// Export clearStorage as an alias for logoutUser
+export const clearStorage = logoutUser;
+
 export const isUserLoggedIn = async () => {
   try {
     const token = await getToken();

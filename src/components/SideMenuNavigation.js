@@ -326,7 +326,6 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   flex: {
-    display: "flex",
     flexDirection: "row",
     padding: 10,
     alignItems: "center",

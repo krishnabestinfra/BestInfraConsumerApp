@@ -14,14 +14,16 @@ const forceDevelopment = process.env.EXPO_PUBLIC_ENVIRONMENT === 'development';
 const isDevelopment = false; // Force to false to use hosted API
 const isProduction = true; // Force to true to use hosted API
 
-// Debug environment detection
-console.log('🔧 Environment Detection Debug:');
-console.log(`   __DEV__: ${__DEV__}`);
-console.log(`   EXPO_PUBLIC_ENVIRONMENT: ${process.env.EXPO_PUBLIC_ENVIRONMENT}`);
-console.log(`   forceProduction: ${forceProduction}`);
-console.log(`   forceDevelopment: ${forceDevelopment}`);
-console.log(`   isDevelopment: ${isDevelopment} (FORCED)`);
-console.log(`   isProduction: ${isProduction} (FORCED)`);
+// Debug environment detection (only in development)
+if (__DEV__) {
+  console.log('🔧 Environment Detection Debug:');
+  console.log(`   __DEV__: ${__DEV__}`);
+  console.log(`   EXPO_PUBLIC_ENVIRONMENT: ${process.env.EXPO_PUBLIC_ENVIRONMENT}`);
+  console.log(`   forceProduction: ${forceProduction}`);
+  console.log(`   forceDevelopment: ${forceDevelopment}`);
+  console.log(`   isDevelopment: ${isDevelopment} (FORCED)`);
+  console.log(`   isProduction: ${isProduction} (FORCED)`);
+}
 
 // Environment configuration with environment variable support
 export const ENVIRONMENT_CONFIG = {
@@ -62,13 +64,15 @@ export const ENVIRONMENT_CONFIG = {
 export const getCurrentEnvironment = () => {
   const config = isDevelopment ? ENVIRONMENT_CONFIG.development : ENVIRONMENT_CONFIG.production;
   
-  // Log configuration for debugging
-  console.log('🔧 Environment Configuration:');
-  console.log(`   Mode: ${config.name}`);
-  console.log(`   API Base URL: ${config.apiBaseUrl}`);
-  console.log(`   Tickets URL: ${config.ticketsBaseUrl}`);
-  console.log(`   Auth URL: ${config.authBaseUrl}`);
-  console.log(`   Debug API Calls: ${config.debugApiCalls}`);
+  // Log configuration for debugging (only in development)
+  if (__DEV__) {
+    console.log('🔧 Environment Configuration:');
+    console.log(`   Mode: ${config.name}`);
+    console.log(`   API Base URL: ${config.apiBaseUrl}`);
+    console.log(`   Tickets URL: ${config.ticketsBaseUrl}`);
+    console.log(`   Auth URL: ${config.authBaseUrl}`);
+    console.log(`   Debug API Calls: ${config.debugApiCalls}`);
+  }
   
   return config;
 };

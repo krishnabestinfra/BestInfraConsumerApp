@@ -150,7 +150,6 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginTop: 10,
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

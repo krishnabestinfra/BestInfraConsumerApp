@@ -446,14 +446,12 @@ const PostPaidDashboard = ({ navigation, route }) => {
 
           <View style={styles.graphSection}>
             <View
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                flexDirection: "row",
+              style={{                justifyContent: "space-between",
+    flexDirection: "row",
               }}
             >
               <Text style={styles.energyText}>Energy Summary</Text>
-              <View style={{ display: "flex", flexDirection: "row" }}>
+              <View style={{ flexDirection: "row" }}>
                 <TouchableOpacity onPress={() => setSelectedView("daily")}>
                   <Text
                     style={
@@ -514,9 +512,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     </Text>
                   </Text>
                   <View
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
+                    style={{                      flexDirection: "row",
                       marginTop: 10,
                     }}
                   >
@@ -536,7 +532,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     </View>
                     <Text style={styles.lastText}>Yesterday.</Text>
                   </View>
-                  <View style={{ display: "flex", alignItems: "center" }}>
+                  <View style={{ alignItems: "center" }}>
                     {isLoading ? (
                       <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={10} />
                     ) : (
@@ -557,9 +553,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     </Text>
                   </Text>
                   <View
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
+                    style={{                      flexDirection: "row",
                       marginTop: 10,
                     }}
                   >
@@ -579,7 +573,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     </View>
                     <Text style={styles.lastText}>Last Month.</Text>
                   </View>
-                  <View style={{ display: "flex", alignItems: "center" }}>
+                  <View style={{ alignItems: "center" }}>
                     {isLoading ? (
                       <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
                     ) : (
@@ -603,7 +597,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
             loading={isTableLoading}
             skeletonLines={5}
             emptyMessage={consumerData?.alerts?.length === 0 ? "No tamper alerts available" : "No meter status data available"}
-            showSerial={false}
+            showSerial={true}
             showPriority={false}
             priorityField="occurredOn"
             priorityMapping={{
@@ -689,7 +683,6 @@ const styles = StyleSheet.create({
   },
   tenPercentageTextContainer: {
     backgroundColor: COLORS.secondaryColor,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -742,21 +735,15 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
-  meterInfoRow: {
-    display: "flex",
-    flexDirection: "row",
+  meterInfoRow: {    flexDirection: "row",
     justifyContent: "flex-start",
     gap: 10,
   },
-  meterConsumerRow: {
-    display: "flex",
-    flexDirection: "column",
+  meterConsumerRow: {    flexDirection: "column",
     justifyContent: "flex-start",
     gap: 5,
   },
-  LastCommunicationRow:{
-    display: "flex",
-    flexDirection: "column",
+  LastCommunicationRow:{    flexDirection: "column",
     justifyContent: "flex-end",
     alignItems:"flex-end",
     // gap: 4
@@ -807,7 +794,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryLightColor,
     borderRadius: 5,
     padding: 10,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",

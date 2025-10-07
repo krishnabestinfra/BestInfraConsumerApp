@@ -1,198 +1,109 @@
-import { StyleSheet, Text, View, Pressable, ScrollView ,TouchableOpacity,ActivityIndicator} from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
-import Menu from "../../assets/icons/bars.svg";
-import Notification from "../../assets/icons/notification.svg";
-import BiLogo from "../../assets/icons/Logo.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
-import { getCachedConsumerData, backgroundSyncConsumerData } from "../utils/cacheManager";
+import { getCachedConsumerData } from "../utils/cacheManager";
 import { fetchConsumerData, syncConsumerData } from "../services/apiService";
-import { fetchTicketStats, fetchTicketsTable } from "../services/apiService";
 import ConsumerGroupedBarChart from "../components/ConsumerGroupedBarChart";
 import { StatusBar } from "expo-status-bar";
 import Arrow from "../../assets/icons/arrow.svg";
-import GroupedBarChart from "../components/GroupedBarChart";
-import Meter from "../../assets/icons/meterWhite.svg";
-import { API, API_ENDPOINTS } from "../constants/constants";
-import { getUser, getToken } from "../utils/storage";
+import { getUser } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { apiClient } from '../services/apiClient';
 
 
 const Usage = ({ navigation }) => {
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
-  const [tableData, setTableData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
+  // Main state
   const [consumerData, setConsumerData] = useState(null);
-  const [ticketStats, setTicketStats] = useState({
-    total: 0,
-    open: 0,
-    inProgress: 0,
-    resolved: 0,
-    closed: 0
-  });
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [tableLoading, setTableLoading] = useState(true);
-
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedView, setSelectedView] = useState("daily");
-  const [isTableLoading, setIsTableLoading] = useState(true);
-  // const { userName } = route?.params || {};
-  //  const { isGuest } = route.params || {};
-  const [loading, setLoading] = useState(true);
-
+  
   // Bottom sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
 
-  // Table data for meter status
-  const meterStatusData = [
-    {
-      id: 1,
-      eventName: "B_PH CT Open",
-      occurredOn: "07/09/2025 6:15 PM",
-      status: "Start",
-      isActive: true
-    },
-    {
-      id: 2,
-      eventName: "B_PH CT Open",
-      occurredOn: "07/09/2025 6:10 PM",
-      status: "End",
-      isActive: false
-    },
-    {
-      id: 3,
-      eventName: "B_PH CT Open",
-      occurredOn: "07/09/2025 6:05 PM",
-      status: "Start",
-      isActive: false
-    }
-  ];
+  // Fetch consumer data with proper error handling
+  const fetchConsumerData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      console.log("🔄 Usage: Starting data fetch");
 
-  // Fetch API data
-  useEffect(() => {
-    const fetchConsumerData = async () => {
-      try {
-        setIsLoading(true);
+      // Get authenticated user data
+      const user = await getUser();
 
-        // Get authenticated user data
-        const user = await getUser();
+      if (!user || !user.identifier) {
+        console.error("❌ Usage: No authenticated user found");
+        setIsLoading(false);
+        return;
+      }
 
-        if (!user || !user.identifier) {
-          console.error("No authenticated user found");
-          setIsLoading(false);
-          return;
-        }
+      console.log("🔄 Usage: Fetching data for:", user.identifier);
 
-        console.log("🔄 Fetching consumer data for:", user.identifier);
-
-        // Use the centralized API client
-        const result = await apiClient.getConsumerData(user.identifier);
-
-        if (result.success) {
-          setConsumerData(result.data);
-          console.log("📊 Consumer Data Set:", result.data);
-        } else {
-          throw new Error(result.error);
-        }
-      } catch (error) {
-        console.error("❌ API error:", error);
-        
-        // Set fallback data with user's actual identifier
-        const user = await getUser();
-        const fallbackData = {
-          name: user?.name || "Consumer",
-          meterSerialNumber: user?.meterSerialNumber || "N/A",
-          uniqueIdentificationNo: user?.identifier || user?.consumerNumber || "N/A",
-          readingDate: new Date().toLocaleString(),
-          totalOutstanding: 0,
-          dailyConsumption: 0,
-          monthlyConsumption: 0
-        };
-        
-        setConsumerData(fallbackData);
-      } finally {
+      // Try cached data first for instant display
+      const cachedResult = await getCachedConsumerData(user.identifier);
+      if (cachedResult.success && cachedResult.data) {
+        setConsumerData(cachedResult.data);
+        console.log("⚡ Usage: Using cached data");
         setIsLoading(false);
       }
-    };
 
-    fetchConsumerData();
+      // Fetch fresh data from API
+      const result = await apiClient.getConsumerData(user.identifier);
+      
+      if (result.success && result.data) {
+        setConsumerData(result.data);
+        console.log("✅ Usage: Fresh data loaded:", result.data);
+        
+        // Background sync for future updates
+        syncConsumerData(user.identifier).catch(error => {
+          console.error("⚠️ Usage: Background sync failed:", error);
+        });
+      } else {
+        throw new Error(result.error || "Failed to fetch consumer data");
+      }
+    } catch (error) {
+      console.error("❌ Usage: API error:", error);
+      
+      // Set fallback data with user's actual identifier
+      const user = await getUser();
+      const fallbackData = {
+        name: user?.name || "Consumer",
+        meterSerialNumber: user?.meterSerialNumber || "N/A",
+        uniqueIdentificationNo: user?.identifier || user?.consumerNumber || "N/A",
+        readingDate: new Date().toLocaleString(),
+        totalOutstanding: 0,
+        dailyConsumption: 0,
+        monthlyConsumption: 0,
+        chartData: {
+          daily: {
+            seriesData: [{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }],
+            xAxisData: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+          },
+          monthly: {
+            seriesData: [{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }],
+            xAxisData: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"]
+          }
+        }
+      };
+      
+      setConsumerData(fallbackData);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  // Load table data from API alerts
+  // Load data on component mount
   useEffect(() => {
-    const loadTableData = async () => {
-      setIsTableLoading(true);
-      try {
-        if (consumerData && consumerData.alerts && consumerData.alerts.length > 0) {
-          // Process API alerts data
-          const formattedAlerts = consumerData.alerts
-            .sort((a, b) => new Date(b.tamperDatetime) - new Date(a.tamperDatetime)) // Sort by date, latest first
-            .map((alert, index) => ({
-              id: alert.id || index + 1,
-              eventName: getTamperTypeText(alert.tamperType),
-              occurredOn: formatDateTime(alert.tamperDatetime),
-              status: alert.tamperStatus === 1 ? "Start" : "End",
-              isActive: alert.tamperStatus === 1,
-            }));
-          setTableData(formattedAlerts);
-        } else {
-          // Fallback to static data if no API alerts
-          setTableData(meterStatusData);
-        }
-      } catch (error) {
-        console.error('Error loading table data:', error);
-        setTableData(meterStatusData); // Fallback to static data
-      } finally {
-        setIsTableLoading(false);
-      }
-    };
+    fetchConsumerData();
+  }, [fetchConsumerData]);
 
-    if (consumerData) {
-      loadTableData();
-    }
-  }, [consumerData]);
+  // Add refresh functionality
+  const handleRefresh = useCallback(() => {
+    console.log("🔄 Usage: Manual refresh triggered");
+    fetchConsumerData();
+  }, [fetchConsumerData]);
 
-  // Helper function to map tamper type codes to readable text
-  const getTamperTypeText = (tamperType) => {
-    const tamperTypes = {
-      1: "Cover Tamper",
-      2: "Magnetic Tamper",
-      3: "Reverse Current",
-      4: "Neutral Disconnect",
-      5: "Phase Disconnect",
-      6: "Neutral Reverse",
-      7: "Phase Reverse",
-      8: "Current Imbalance",
-      9: "Voltage Imbalance",
-      10: "Power Factor",
-      11: "Frequency",
-      12: "CT Bypass",
-      13: "CT Open",
-      14: "PT Bypass",
-      15: "PT Open"
-    };
-    return tamperTypes[tamperType] || `Tamper Type ${tamperType}`;
-  };
 
-  // Helper function to format datetime
-  const formatDateTime = (dateString) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-    } catch (error) {
-      return dateString;
-    }
-  };
 
   // Helper function to get daily usage from chart data
   const getDailyUsage = () => {
@@ -206,6 +117,16 @@ const Usage = ({ navigation }) => {
     if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) return 0;
     const monthlyData = consumerData.chartData.monthly.seriesData[0].data;
     return monthlyData[monthlyData.length - 1] || 0; // Get last value
+  };
+
+  // Calculate percentage change (mock data for now)
+  const getPercentageChange = () => {
+    return selectedView === "daily" ? 5 : 10;
+  };
+
+  // Get comparison text
+  const getComparisonText = () => {
+    return selectedView === "daily" ? "Yesterday." : "Last Month.";
   };
 
   // Bottom sheet handlers
@@ -230,73 +151,27 @@ const Usage = ({ navigation }) => {
     console.log('📊 Bar pressed:', barData);
     navigation.navigate('ConsumerDataTable', {
       consumerData,
-      loading,
+      loading: isLoading,
       viewType: selectedView
     });
-  }, [navigation, consumerData, loading, selectedView]);
+  }, [navigation, consumerData, isLoading, selectedView]);
 
-  // Fetch data function
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      setStatsLoading(true);
-      setTableLoading(true);
-      const user = await getUser();
-
-      if (user && user.identifier) {
-        // Try to get cached data first for instant display
-        const cachedResult = await getCachedConsumerData(user.identifier);
-        if (cachedResult.success) {
-          setConsumerData(cachedResult.data);
-          setIsLoading(false);
-        }
-
-        // Fetch fresh data
-        const result = await fetchConsumerData(user.identifier);
-        if (result.success) {
-          setConsumerData(result.data);
-        }
-
-        // Fetch ticket statistics
-        const statsResult = await fetchTicketStats(user.identifier);
-        if (statsResult.success) {
-          setTicketStats(statsResult.data);
-        }
-
-        // Fetch tickets table data
-        const tableResult = await fetchTicketsTable(user.identifier);
-        if (tableResult.success) {
-          setTableData(tableResult.data || []);
-        } else {
-          console.error('Failed to fetch tickets table:', tableResult.message);
-          setTableData([]); // Set empty array on failure
-        }
-
-        // Background sync
-        syncConsumerData(user.identifier).catch(error => {
-          console.error('Background sync failed:', error);
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching consumer data:', error);
-    } finally {
-      setIsLoading(false);
-      setStatsLoading(false);
-      setTableLoading(false);
-    }
-  };
-
-  // Fetch consumer data with caching
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   return (
     <ScrollView
       style={styles.Container}
       contentContainerStyle={{ paddingBottom: 30 }}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={handleRefresh}
+          colors={[COLORS.secondaryColor]}
+          tintColor={COLORS.secondaryColor}
+        />
+      }
     >
+      <StatusBar style="dark" />
       <DashboardHeader
         navigation={navigation}
         variant="usage"
@@ -305,26 +180,16 @@ const Usage = ({ navigation }) => {
         isLoading={isLoading}
       />
 
-      {/* <View style={{ display: "flex", alignItems: "center",marginTop: 20 }}>
-        <ConsumerGroupedBarChart
-          viewType="daily"
-          data={consumerData}
-          loading={loading}
-          onBarPress={handleBarPress}
-        />
-      </View> */}
 
 
 <View style={styles.whiteContainer}>
             <View
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                flexDirection: "row",
+              style={{                justifyContent: "space-between",
+    flexDirection: "row",
               }}
             >
               <Text style={styles.energyText}>Energy Summary</Text>
-              <View style={{ display: "flex", flexDirection: "row" }}>
+              <View style={{ flexDirection: "row" }}>
                 <TouchableOpacity onPress={() => setSelectedView("daily")}>
                   <Text
                     style={
@@ -351,31 +216,34 @@ const Usage = ({ navigation }) => {
               </View>
             </View>
             <View style={styles.graphsContainer}>
-              {selectedView === "daily" ? (
+              {isLoading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+                  <Text style={styles.loadingText}>Loading usage data...</Text>
+                </View>
+              ) : selectedView === "daily" ? (
                 <>
                   <Text style={styles.thismonthText}>
                     Today's Usage: <Text style={styles.kwhText}>
-                      {loading ? "Loading..." : getDailyUsage()}kWh
+                      {`${getDailyUsage()}kWh`}
                     </Text>
                   </Text>
                   <View
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
+                    style={{                      flexDirection: "row",
                       marginTop: 10,
                     }}
                   >
                     <View style={styles.tenPercentageTextContainer}>
-                      <Text style={styles.percentText}>5%</Text>
+                      <Text style={styles.percentText}>{getPercentageChange()}%</Text>
                       <Arrow width={12} height={12} fill="#55B56C" />
                     </View>
-                    <Text style={styles.lastText}>Yesterday.</Text>
+                    <Text style={styles.lastText}>{getComparisonText()}</Text>
                   </View>
-                  <View style={{ display: "flex", alignItems: "center" }}>
+                  <View style={{ alignItems: "center" }}>
                     <ConsumerGroupedBarChart 
                       viewType="daily" 
                       data={consumerData}
-                      loading={loading}
+                      loading={isLoading}
                       onBarPress={handleBarPress}
                     />
                   </View>
@@ -384,27 +252,25 @@ const Usage = ({ navigation }) => {
                 <>
                   <Text style={styles.thismonthText}>
                     This Month's Usage: <Text style={styles.kwhText}>
-                      {loading ? "Loading..." : getMonthlyUsage()}kWh
+                      {`${getMonthlyUsage()}kWh`}
                     </Text>
                   </Text>
                   <View
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
+                    style={{                      flexDirection: "row",
                       marginTop: 10,
                     }}
                   >
                     <View style={styles.tenPercentageTextContainer}>
-                      <Text style={styles.percentText}>10%</Text>
+                      <Text style={styles.percentText}>{getPercentageChange()}%</Text>
                       <Arrow width={12} height={12} fill="#55B56C" />
                     </View>
-                    <Text style={styles.lastText}>Last Month.</Text>
+                    <Text style={styles.lastText}>{getComparisonText()}</Text>
                   </View>
-                  <View style={{ display: "flex", alignItems: "center" }}>
+                  <View style={{ alignItems: "center" }}>
                     <ConsumerGroupedBarChart 
                       viewType="monthly" 
                       data={consumerData}
-                      loading={loading}
+                      loading={isLoading}
                       onBarPress={handleBarPress}
                     />
                   </View>
@@ -412,6 +278,13 @@ const Usage = ({ navigation }) => {
               )}
             </View>
           </View>
+      
+      {/* Consumer Details Bottom Sheet */}
+      <ConsumerDetailsBottomSheet
+        visible={bottomSheetVisible}
+        onClose={handleBottomSheetClose}
+        consumerUid={selectedConsumerUid}
+      />
     </ScrollView>
   );
 };
@@ -465,7 +338,6 @@ const styles = StyleSheet.create({
   },
   tenPercentageTextContainer: {
     backgroundColor: COLORS.secondaryColor,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -496,54 +368,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef8f0",
     padding: 15,
   },
-  TopMenu: {
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "space-between",
+  loadingContainer: {
     alignItems: "center",
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 15,
-  },
-  barsIcon: {
-    backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
-    borderRadius: 60,
-    alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
-    // Android shadow
-    elevation: 5,
+    paddingVertical: 40,
   },
-  logoImage: {},
-  logo: {
-    width: 80,
-    height: 80,
-    zIndex: 1,
-  },
-  bellIcon: {
-    backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
-    borderRadius: 60,
-    alignItems: "center",
-    verticalAlign: "middle",
-    justifyContent: "center",
-    elevation: 5,
-  },
-  ProfileBox: {
-    display: "flex",
-    justifyContent: "space-between",
-    flexDirection: "row",
-    marginHorizontal: 4,
-  },
-  textContainer: {},
-  usageText: {
+  loadingText: {
     color: COLORS.primaryFontColor,
-    fontFamily: "Manrope-Medium",
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 30,
+    fontSize: 14,
+    fontFamily: "Manrope-Regular",
+    marginTop: 10,
   },
 });

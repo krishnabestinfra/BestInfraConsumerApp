@@ -165,7 +165,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor
   },
   buttonContainerInner:{
-    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

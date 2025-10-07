@@ -21,6 +21,8 @@ import { getCachedConsumerData } from "../utils/cacheManager";
 import { cacheManager } from "../utils/cacheManager";
 import { useLoading } from "../utils/loadingManager";
 import { InstantLoader } from "../utils/loadingManager";
+import { useUltraFastData } from "../hooks/useUltraFastData";
+import UltraFastScreen from "../components/UltraFastScreen";
 
 
 
@@ -32,6 +34,12 @@ const Dashboard = React.memo(({ navigation, route }) => {
   const [isTableLoading, setIsTableLoading] = useState(true);
   const [consumerData, setConsumerData] = useState(null);
   const { isLoading, setLoading } = useLoading('dashboard_loading', true);
+  
+  // Ultra-fast data loading
+  const { data: ultraFastData, isLoading: ultraFastLoading, refresh: ultraFastRefresh } = useUltraFastData('consumerData', {
+    maxLoadingTime: 500,
+    autoRefresh: true
+  });
 
   // Fetch consumer data with caching
   useEffect(() => {
@@ -264,7 +272,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
           loading={isTableLoading}
           skeletonLines={3}
           emptyMessage="No meter status data available"
-          showSerial={false}
+          showSerial={true}
           showPriority={false}
           priorityField="occurredOn"
           priorityMapping={{
@@ -335,7 +343,6 @@ const styles = StyleSheet.create({
   },
   tenPercentageTextContainer: {
     backgroundColor: COLORS.secondaryColor,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -365,7 +372,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingVertical: 15,
     paddingHorizontal: 15,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -374,7 +380,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryLightColor, 
     borderRadius: 5,
     padding: 10,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -434,35 +439,23 @@ lastCommunicationTimeText: {
     color: COLORS.primaryFontColor,
     marginBottom: 10,
   },
-  meterInfoRow: {
-    display: "flex",
-    flexDirection: "row",
+  meterInfoRow: {    flexDirection: "row",
     alignItems: "center",
     gap: 10,
     width: "50%"
   },
-  meterInfoColumn: {
-    display: "flex",
-    flexDirection: "column",
+  meterInfoColumn: {    flexDirection: "column",
     alignItems: "flex-end"
   },
-  energyHeader: {
-    display: "flex",
-    justifyContent: "space-between",
+  energyHeader: {    justifyContent: "space-between",
     flexDirection: "row",
   },
-  toggleContainer: {
-    display: "flex",
-    flexDirection: "row"
+  toggleContainer: {    flexDirection: "row"
   },
-  percentageContainer: {
-    display: "flex",
-    flexDirection: "row",
+  percentageContainer: {    flexDirection: "row",
     marginTop: 10,
   },
-  chartContainer: {
-    display: "flex",
-    alignItems: "center"
+  chartContainer: {    alignItems: "center"
   },
   tableContainer: {
     paddingHorizontal: 20,
