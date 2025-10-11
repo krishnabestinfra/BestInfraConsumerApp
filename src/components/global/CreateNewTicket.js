@@ -67,7 +67,7 @@ const CreateNewTicket = ({
       <View style={styles.header}>
         <Text style={styles.NewticketTitle}>{title}</Text>
         {onClose && (
-          <TouchableOpacity style={styles.closeButton}>
+          <TouchableOpacity style={styles.closeButton}  onPress={onClose}>
             <CloseIcon width={16} height={16} />
           </TouchableOpacity>
         )}
