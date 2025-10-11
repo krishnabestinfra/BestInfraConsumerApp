@@ -36,6 +36,14 @@ const DashboardHeader = React.memo(({
   const [userName, setUserName] = useState('');
   const [cachedConsumerData, setCachedConsumerData] = useState(null);
   const { isLoading: isUserLoading, setLoading: setUserLoading } = useLoading('user_loading', true);
+
+    const getGreeting = () => {
+    const hour = new Date().getHours(); // 0-23
+    if (hour >= 5 && hour < 12) return "Good Morning";
+    if (hour >= 12 && hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  };
+
   
   // Helper function to format amount
   const formatAmount = (amount) => {
@@ -224,7 +232,7 @@ const DashboardHeader = React.memo(({
         <View>
           <View style={styles.greetingContainer}>
             <Text style={styles.hiText}>
-              Hi, Good Morning
+              Hi, {getGreeting()}
               {/* {getDisplayName()} */}{" "}
             </Text>
             <Hand width={30} height={30} fill="#55B56C" />
