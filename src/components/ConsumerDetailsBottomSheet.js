@@ -1,8 +1,7 @@
 /**
  * ConsumerDetailsBottomSheet Component
  * 
- * Simple bottom sheet using React Native Modal and Animated
- * Displays consumer information and instantaneous meter readings
+ * Fixed: static headers/sections always visible, only values use SkeletonLoader while loading
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -10,7 +9,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   Alert,
   TouchableOpacity,
   Modal,
@@ -19,7 +17,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { COLORS } from '../constants/colors';
-import { API, API_ENDPOINTS } from '../constants/constants';
+import { API_ENDPOINTS } from '../constants/constants';
 import { getToken } from '../utils/storage';
 import CloseIcon from "../../assets/icons/cross.svg";
 import { SkeletonLoader } from '../utils/loadingManager';
@@ -70,9 +68,9 @@ const ConsumerDetailsBottomSheet = ({
       const data = result.data || result;
       setConsumerData(data);
 
-    } catch (error) {
-      console.error('❌ Error fetching consumer details:', error);
-      setError(error.message);
+    } catch (err) {
+      console.error('❌ Error fetching consumer details:', err);
+      setError(err.message || 'Unknown error');
       Alert.alert(
         'Error',
         'Failed to load consumer details. Please try again.',
@@ -87,10 +85,13 @@ const ConsumerDetailsBottomSheet = ({
   useEffect(() => {
     if (consumerUid && visible) {
       fetchConsumerData();
+    } else if (!visible) {
+      // setConsumerData(null);
+      // setError(null);
     }
   }, [consumerUid, visible, fetchConsumerData]);
 
-  // Handle visibility changes
+  // Handle visibility animation
   useEffect(() => {
     if (visible) {
       Animated.timing(slideAnim, {
@@ -107,7 +108,6 @@ const ConsumerDetailsBottomSheet = ({
     }
   }, [visible, slideAnim]);
 
-  // Handle close
   const handleClose = useCallback(() => {
     Animated.timing(slideAnim, {
       toValue: 0,
@@ -118,7 +118,7 @@ const ConsumerDetailsBottomSheet = ({
     });
   }, [slideAnim, onClose]);
 
-  // Format date/time
+
   const formatDateTime = (dateString) => {
     try {
       const date = new Date(dateString);
@@ -134,85 +134,10 @@ const ConsumerDetailsBottomSheet = ({
       return dateString || 'N/A';
     }
   };
-
-  // Format voltage/current values
   const formatValue = (value) => {
     if (value === null || value === undefined) return 'N/A';
     return typeof value === 'number' ? value.toFixed(2) : value;
   };
-
-  // Render instantaneous readings section
-  const renderInstantaneousReadings = () => (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Instantaneous Meter Readings</Text>
-        {consumerData?.readingDate && (
-          <View style={styles.timestampContainer}>
-            <Text style={styles.timestampLabel}>Reading Time:</Text>
-            <Text style={styles.timestampValue}>
-              {formatDateTime(consumerData.readingDate)}
-            </Text>
-          </View>
-        )}
-      </View>
-      
-      {/* Voltage Readings */}
-      <View style={styles.readingsContainer}>
-        <Text style={styles.readingsSubtitle}>Voltage Readings</Text>
-        <View style={styles.readingsGrid}>
-          <ReadingCard 
-            phase="R-Phase" 
-            value={formatValue(consumerData?.rPhaseVoltage) || 0} 
-            unit="V" 
-            color="#FF6B6B"
-            loading={isLoading}
-          />
-          <ReadingCard 
-            phase="Y-Phase" 
-            value={formatValue(consumerData?.yPhaseVoltage) || 0} 
-            unit="V" 
-            color="#4ECDC4"
-            loading={isLoading}
-          />
-          <ReadingCard 
-            phase="B-Phase" 
-            value={formatValue(consumerData?.bPhaseVoltage) || 0} 
-            unit="V" 
-            color="#45B7D1"
-            loading={isLoading}
-          />
-        </View>
-      </View>
-
-      {/* Current Readings */}
-      <View style={styles.readingsContainer}>
-        <Text style={styles.readingsSubtitle}>Current Readings</Text>
-        <View style={styles.readingsGrid}>
-          <ReadingCard 
-            phase="R-Phase" 
-            value={formatValue(consumerData?.rPhaseCurrent)} 
-            unit="A" 
-            color="#FF6B6B"
-            loading={isLoading}
-          />
-          <ReadingCard 
-            phase="Y-Phase" 
-            value={formatValue(consumerData?.yPhaseCurrent)} 
-            unit="A" 
-            color="#4ECDC4"
-            loading={isLoading}
-          />
-          <ReadingCard 
-            phase="B-Phase" 
-            value={formatValue(consumerData?.bPhaseCurrent)} 
-            unit="A" 
-            color="#45B7D1"
-            loading={isLoading}
-          />
-        </View>
-      </View>
-    </View>
-  );
 
   const translateY = slideAnim.interpolate({
     inputRange: [0, 1],
@@ -242,11 +167,16 @@ const ConsumerDetailsBottomSheet = ({
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Text style={styles.headerTitle}>Consumer Details</Text>
-              {consumerData?.readingDate && (
+
+              {isLoading && !consumerData ? (
+                <View style={{ marginTop: 6, width: 140 }}>
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 12, width: 140 }} />
+                </View>
+              ) : consumerData?.readingDate ? (
                 <Text style={styles.lastReadingText}>
                   Last Reading: {formatDateTime(consumerData.readingDate)}
                 </Text>
-              )}
+              ) : null}
             </View>
             <TouchableOpacity onPress={handleClose}>
               <CloseIcon width={18} height={18} />
@@ -257,53 +187,154 @@ const ConsumerDetailsBottomSheet = ({
             style={styles.content}
             showsVerticalScrollIndicator={false}
           >
-            {isLoading ? (
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Instantaneous Meter Readings</Text>
-
-              <Text style={styles.readingsSubtitle}>Voltage Readings</Text>
-              <View style={styles.readingsGrid}>
-                <ReadingCard loading={true} color="#FF6B6B" />
-                <ReadingCard loading={true} color="#4ECDC4" />
-                <ReadingCard loading={true} color="#45B7D1" />
-              </View>
-
-              <Text style={[styles.readingsSubtitle, { marginTop: 20 }]}>Current Readings</Text>
-              <View style={styles.readingsGrid}>
-                <ReadingCard loading={true} color="#FF6B6B" />
-                <ReadingCard loading={true} color="#4ECDC4" />
-                <ReadingCard loading={true} color="#45B7D1" />
-              </View>
-            </View>
-           ) : error ? (
+            {error && !isLoading ? (
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>Failed to load data</Text>
                 <TouchableOpacity onPress={fetchConsumerData} style={styles.retryButton}>
                   <Text style={styles.retryButtonText}>Retry</Text>
                 </TouchableOpacity>
               </View>
-            ) : consumerData ? (
+            ) : (
               <>
-                {/* Consumer Information Section */}
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Consumer Information</Text>
                   <View style={styles.infoContainer}>
-                    <InfoRow label="Consumer Name" value={consumerData.name || 'N/A'} />
-                    <InfoRow label="Consumer Number" value={consumerData.consumerNumber || 'N/A'} />
-                    <InfoRow label="Meter Serial" value={consumerData.meterSerialNumber || 'N/A'} />
-                    <InfoRow label="UID" value={consumerData.uniqueIdentificationNo || 'N/A'} />
-                    <InfoRow label="Phase" value={`${consumerData.meterPhase || 'N/A'} Phase`} />
-                    <InfoRow label="Status" value={consumerData.occupancyStatus || 'N/A'} />
+                    <InfoRow
+                      label="Consumer Name"
+                      value={
+                        isLoading ? (
+                          <SkeletonLoader variant="lines" lines={1} style={{ height: 12, width: 120 }} />
+                        ) : (
+                          consumerData?.name || 'N/A'
+                        )
+                      }
+                    />
+                    <InfoRow
+                      label="Consumer Number"
+                      value={
+                        isLoading ? (
+                          <SkeletonLoader variant="lines" lines={1} style={{ height: 12, width: 100 }} />
+                        ) : (
+                          consumerData?.consumerNumber || 'N/A'
+                        )
+                      }
+                    />
+                    <InfoRow
+                      label="Meter Serial"
+                      value={
+                        isLoading ? (
+                          <SkeletonLoader variant="lines" lines={1} style={{ height: 12, width: 100 }} />
+                        ) : (
+                          consumerData?.meterSerialNumber || 'N/A'
+                        )
+                      }
+                    />
+                    <InfoRow
+                      label="UID"
+                      value={
+                        isLoading ? (
+                          <SkeletonLoader variant="lines" lines={1} style={{ height: 12, width: 100 }} />
+                        ) : (
+                          consumerData?.uniqueIdentificationNo || 'N/A'
+                        )
+                      }
+                    />
+                    <InfoRow
+                      label="Phase"
+                      value={
+                        isLoading ? (
+                          <SkeletonLoader variant="lines" lines={1} style={{ height: 12, width: 80 }} />
+                        ) : (
+                          `${consumerData?.meterPhase || 'N/A'} Phase`
+                        )
+                      }
+                    />
+                    <InfoRow
+                      label="Status"
+                      value={
+                        isLoading ? (
+                          <SkeletonLoader variant="lines" lines={1} style={{ height: 12, width: 80 }} />
+                        ) : (
+                          consumerData?.occupancyStatus || 'N/A'
+                        )
+                      }
+                    />
                   </View>
                 </View>
 
-                {renderInstantaneousReadings()}
+                <View style={[styles.section, { marginTop: 24 }]}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Instantaneous Meter Readings</Text>
+
+                    {/* Reading Time - always visible */}
+                    <View style={styles.timestampContainer}>
+                      <Text style={styles.timestampLabel}>Reading Time:</Text>
+                      {isLoading || !consumerData?.readingDate ? (
+                        <SkeletonLoader
+                          variant="text"
+                          lines={1}
+                          style={{ height: 14, width: 120 }}
+                        />
+                      ) : (
+                        <Text style={styles.timestampValue}>
+                          {formatDateTime(consumerData.readingDate)}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  {/* Voltage Readings */}
+                  <Text style={styles.readingsSubtitle}>Voltage Readings</Text>
+                  <View style={styles.readingsGrid}>
+                    <ReadingCard 
+                      phase="R-Phase" 
+                      value={formatValue(consumerData?.rPhaseVoltage)} 
+                      unit="V" 
+                      color="#FF6B6B"
+                      loading={isLoading}
+                    />
+                    <ReadingCard 
+                      phase="Y-Phase" 
+                      value={formatValue(consumerData?.yPhaseVoltage)} 
+                      unit="V" 
+                      color="#4ECDC4"
+                      loading={isLoading}
+                    />
+                    <ReadingCard 
+                      phase="B-Phase" 
+                      value={formatValue(consumerData?.bPhaseVoltage)} 
+                      unit="V" 
+                      color="#45B7D1"
+                      loading={isLoading}
+                    />
+                  </View>
+
+                  {/* Current Readings */}
+                  <Text style={[styles.readingsSubtitle, { marginTop: 20 }]}>Current Readings</Text>
+                  <View style={styles.readingsGrid}>
+                    <ReadingCard 
+                      phase="R-Phase" 
+                      value={formatValue(consumerData?.rPhaseCurrent)} 
+                      unit="A" 
+                      color="#FF6B6B"
+                      loading={isLoading}
+                    />
+                    <ReadingCard 
+                      phase="Y-Phase" 
+                      value={formatValue(consumerData?.yPhaseCurrent)} 
+                      unit="A" 
+                      color="#4ECDC4"
+                      loading={isLoading}
+                    />
+                    <ReadingCard 
+                      phase="B-Phase" 
+                      value={formatValue(consumerData?.bPhaseCurrent)} 
+                      unit="A" 
+                      color="#45B7D1"
+                      loading={isLoading}
+                    />
+                  </View>
+                </View>
               </>
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No data available</Text>
-              </View>
             )}
           </ScrollView>
         </Animated.View>
@@ -312,26 +343,28 @@ const ConsumerDetailsBottomSheet = ({
   );
 };
 
-// InfoRow component for displaying consumer information
 const InfoRow = ({ label, value }) => (
   <View style={styles.infoRow}>
     <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={styles.infoValue}>{value}</Text>
+    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+      {typeof value === 'string' || typeof value === 'number' ? (
+        <Text style={styles.infoValue}>{value}</Text>
+      ) : (
+        value
+      )}
+    </View>
   </View>
 );
 
-// ReadingCard component for displaying phase readings
 const ReadingCard = ({ phase, value, unit, color, loading }) => (
   <View style={[styles.readingCard, { borderLeftColor: color }]}>
+    <Text style={styles.readingPhase}>{phase}</Text>
     {loading ? (
-      <SkeletonLoader variant="card" lines={1} />
+      <SkeletonLoader variant="lines" lines={1} style={{ height: 18, width: 80, marginTop: 6 }} />
     ) : (
-      <>
-        <Text style={styles.readingPhase}>{phase}</Text>
-        <Text style={styles.readingValue}>
-          {value} <Text style={styles.readingUnit}>{unit}</Text>
-        </Text>
-      </>
+      <Text style={styles.readingValue}>
+        {value === 'N/A' || value === undefined || value === null ? 'N/A' : value} <Text style={styles.readingUnit}>{unit}</Text>
+      </Text>
     )}
   </View>
 );
@@ -447,6 +480,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginRight: 8,
   },
   readingPhase: {
     fontSize: 12,
@@ -476,7 +510,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 20,
   },
   errorText: {
     fontSize: 14,
