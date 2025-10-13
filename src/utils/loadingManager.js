@@ -501,6 +501,7 @@ tableContainer: {
   borderRadius: 6,
   overflow: "hidden",
   gap:3,
+  marginBottom: 40,
 },
 tableRow: {
   flexDirection: "row",

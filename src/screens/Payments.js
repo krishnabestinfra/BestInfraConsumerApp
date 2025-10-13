@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View, ScrollView, StatusBar } from "react-native";
+import { StyleSheet, Text, View, ScrollView} from "react-native";
 import { COLORS } from "../constants/colors";
+import { StatusBar } from "expo-status-bar";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";

@@ -164,39 +164,52 @@ const Table = ({
                 </Text>
               </View>
             )}
-            {tableColumns.map((column, colIndex) => {
-              const value = item[column.key];
-              const isPriorityField = priorityField === column.key;
-              const priorityLevel = getPriorityLevel(value);
-              const hasPriority = isPriorityField && priorityLevel;
-              
-              return (
-                <View 
-                  key={column.key} 
-                  style={[
-                    { flex: column.flex || 1, paddingRight: 8 },
-                    colIndex === tableColumns.length - 1 && { paddingRight: 0 },
-                    hasPriority && styles.priorityCell
-                  ]}
-                >
-                  {isPriorityField && hasPriority ? (
-                    inlinePriority ? (
-                      <View style={styles.inlinePriorityWrapper}>
-                        <Text style={[styles.dataText, textStyle]}>{value}</Text>
-                        <PriorityTag priority={priorityLevel} />
-                      </View>
-                    ) : (
-                      <>
-                        <Text style={[styles.dataText, textStyle]}>{value}</Text>
-                        <PriorityTag priority={priorityLevel} />
-                      </>
-                    )
-                  ) : (
-                    <Text style={[styles.dataText, textStyle]}>{value}</Text>
-                  )}
-                </View>
-              );
-            })}
+             {tableColumns.map((column, colIndex) => {
+               const value = item[column.key];
+               const isPriorityField = priorityField === column.key;
+               const priorityLevel = getPriorityLevel(value);
+               const hasPriority = isPriorityField && priorityLevel;
+               
+               return (
+                 <View 
+                   key={column.key} 
+                   style={[
+                     { 
+                       flex: column.flex || 1, 
+                       paddingRight: 6,
+                       justifyContent: 'center',
+                     },
+                     colIndex === tableColumns.length - 1 && { paddingRight: 0, alignItems: 'center', justifyContent: 'center' },
+                     hasPriority && styles.priorityCell
+                   ]}
+                 >
+                   {column.render ? (
+                     // Custom render function for action columns (like View button)
+                     column.render(item)
+                   ) : isPriorityField && hasPriority ? (
+                     inlinePriority ? (
+                       <View style={styles.inlinePriorityWrapper}>
+                         <Text style={[styles.dataText, styles.multiLineText, textStyle]}>
+                           {value}
+                         </Text>
+                         <PriorityTag priority={priorityLevel} />
+                       </View>
+                     ) : (
+                       <>
+                         <Text style={[styles.dataText, styles.multiLineText, textStyle]}>
+                           {value}
+                         </Text>
+                         <PriorityTag priority={priorityLevel} />
+                       </>
+                     )
+                   ) : (
+                     <Text style={[styles.dataText, styles.multiLineText, textStyle]}>
+                       {value}
+                     </Text>
+                   )}
+                 </View>
+               );
+             })}
           </View>
         ))
       )}
@@ -241,18 +254,18 @@ const Table = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding:16,
-    // paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   headerRow: {
     backgroundColor: COLORS.secondaryColor,
     borderRadius: 5,
     flexDirection: "row",
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     alignItems: "center",
-    minHeight: 48,
-    justifyContent:"center",
+    minHeight: 42,
+    justifyContent: "center",
+    paddingVertical: 10,
   },
   columnContainer: {
     paddingRight: 8,
@@ -273,13 +286,12 @@ const styles = StyleSheet.create({
   dataRow: {
     backgroundColor: "#F8F9FA",
     flexDirection: "row",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 5,
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: 2,
     minHeight: 48,
-    
   },
   pressableRow: {
     // Optional styling for pressable rows
@@ -289,9 +301,11 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-Medium",
     fontSize: 10,
     textAlign: "left",
-    lineHeight: 16,
-    // flex: 1,
-    marginRight: 4,
+    lineHeight: 14,
+  },
+  multiLineText: {
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   statusText: {
     fontFamily: "Manrope-Medium",
@@ -308,10 +322,11 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   serialColumn: {
-    width: 50,
+    width: 45,
     flex: 0,
     alignItems: "center",
     justifyContent: "center",
+    paddingRight: 6,
   },
   serialText: {
     textAlign: "center",
@@ -319,7 +334,7 @@ const styles = StyleSheet.create({
   },
   inlinePriorityWrapper: {
     flexDirection: "row",
-    height: 23,
+    alignItems: 'center',
   },
   priorityTag: {
     borderRadius: 12,
@@ -370,12 +385,11 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     backgroundColor: "#F8F9FA",
-    height:"70%",
+    height: 300,
     alignItems: "center",
     justifyContent: "center",
-    // borderWidth:1,
-    borderRadius:5,
-    borderColor: "#f0f0f0",
+    borderRadius: 5,
+    marginTop: 2,
   },
   emptyText: {
     color: COLORS.color_text_secondary,
@@ -384,11 +398,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   paginationContainer: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginTop: 16,
-},
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
 paginationButton: {
   flex:0.3,
   marginHorizontal: 20,

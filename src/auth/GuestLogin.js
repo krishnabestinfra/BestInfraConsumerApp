@@ -14,9 +14,12 @@ const GuestLogin = () => {
   const navigation = useNavigation();
 
   const handleContinueAsGuest = () => {
-    // Navigate to home or dashboard (replace 'Home' with your actual screen)
-    // navigation.navigate("Dashboard", { isGuest: true });
-    navigation.navigate("PostPaidDashboard", { isGuest: true });
+    // Reset navigation stack - removes auth screens from history
+    // This ensures pressing back on Dashboard will exit the app
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "PostPaidDashboard", params: { isGuest: true } }],
+    });
   };
 
   return (

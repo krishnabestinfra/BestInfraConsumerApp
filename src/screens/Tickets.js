@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, Dimensions } from "react-native";
+import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, RefreshControl } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/colors";
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -9,6 +9,7 @@ import OpenIcon from "../../assets/icons/open.svg";
 import ProgressIcon from "../../assets/icons/progress.svg";
 import ResolvedIcon from "../../assets/icons/resolved.svg";
 import ClosedIcon from "../../assets/icons/closed.svg";
+import EyeIcon from "../../assets/icons/eyeFill.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
 import { LinearGradient } from "expo-linear-gradient";
 import { fetchConsumerData, syncConsumerData, fetchTicketStats, fetchTicketsTable } from "../services/apiService";
@@ -18,8 +19,6 @@ import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SkeletonLoader } from '../utils/loadingManager';
 import CreateNewTicket from "../components/global/CreateNewTicket";
-
-
 
 const Tickets = ({ navigation }) => {
   const bottomSheetRef = useRef(null);
@@ -119,16 +118,36 @@ const Tickets = ({ navigation }) => {
   // };
 
   const handleCreateTicket = (ticketData) => {
-  console.log("New Ticket Created:", ticketData);
+    console.log("New Ticket Created:", ticketData);
   };
+
+  // Handle view ticket details
+  const handleViewTicket = useCallback((ticket) => {
+    console.log("📄 Viewing ticket:", ticket);
+    navigation.navigate('TicketDetails', {
+      ticketId: ticket.ticketNumber || ticket.id,
+      ticketData: ticket,
+      category: ticket.category,
+      status: ticket.status,
+    });
+  }, [navigation]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
 
       <ScrollView
         style={styles.Container}
-        contentContainerStyle={{ paddingBottom: 30 }}
+        contentContainerStyle={{flexGrow: 1}}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={fetchData}
+            colors={[COLORS.secondaryColor]}
+            tintColor={COLORS.secondaryColor}
+          />
+        }
+        nestedScrollEnabled={true}
       >
 
         <DashboardHeader 
@@ -251,9 +270,23 @@ const Tickets = ({ navigation }) => {
               "TECHNICAL": "High"
             }}
             columns={[
-              { key: 'ticketNumber', title: 'Ticket ID', flex: 1 },
-              { key: 'category', title: 'Category', flex: 2 },
-              { key: 'status', title: 'Status', flex: 1 }
+              { key: 'ticketNumber', title: 'Ticket ID', flex: 1.2 },
+              { key: 'category', title: 'Category', flex: 1.5 },
+              { key: 'status', title: 'Status', flex: 1 },
+              { 
+                key: 'view', 
+                title: 'View', 
+                flex: 0.7,
+                render: (ticket) => (
+                  <TouchableOpacity
+                    style={styles.viewIconButton}
+                    onPress={() => handleViewTicket(ticket)}
+                    activeOpacity={0.7}
+                  >
+                    <EyeIcon width={16} height={16} fill="#6C757D" />
+                  </TouchableOpacity>
+                )
+              }
             ]}
           />
         </View>
@@ -269,8 +302,10 @@ const Tickets = ({ navigation }) => {
         enablePanDownToClose={false}
         backgroundStyle={styles.bottomSheetBackground}
         handleIndicatorStyle={styles.bottomSheetIndicator}
-      enableHandlePanningGesture={false} 
-      enableContentPanningGesture={false}
+        enableHandlePanningGesture={false} 
+        enableContentPanningGesture={false}
+        enableOverDrag={false}
+        animateOnMount={false}
       >
         <BottomSheetView style={styles.bottomSheetContent}>
           <CreateNewTicket 
@@ -291,6 +326,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
     borderBottomRightRadius: 30,
+    flex: 1,
   },
   bluecontainer: {
     backgroundColor: "#eef8f0",
@@ -494,7 +530,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     // marginHorizontal: 20,
     marginTop: 15,
-    gap: 15
+    gap: 15,
   },
   TicketBox: {
     flexDirection: "row",
@@ -539,8 +575,30 @@ const styles = StyleSheet.create({
   },
   TicketContainerThree: {
     marginTop: 15,
+    minHeight: 400,
+    flex: 1,
   },
-bottomSheetBackground:{
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-},
+  bottomSheetBackground:{
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  bottomSheetContent: {
+    flex: 1,
+  },
+  viewIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F3F4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    // iOS shadow
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 2,
+    // Android shadow
+    elevation: 1,
+  },
 });

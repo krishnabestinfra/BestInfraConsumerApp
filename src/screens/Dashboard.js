@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -42,53 +43,53 @@ const Dashboard = React.memo(({ navigation, route }) => {
   });
 
   // Fetch consumer data with caching
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const user = await getUser();
-        
-        if (user && user.identifier) {
-          // Check preloaded data first (ultra-fast)
-          const preloadedData = await cacheManager.getCachedData('consumer_data', user.identifier);
-          if (preloadedData.success) {
-            setConsumerData(preloadedData.data);
-            setLoading(false, 50);
-            console.log('⚡ Dashboard: Using preloaded data');
-          } else {
-            // Try cached data
-            const cachedResult = await getCachedConsumerData(user.identifier);
-            if (cachedResult.success) {
-              setConsumerData(cachedResult.data);
-              setLoading(false, 100);
-              console.log('⚡ Dashboard: Using cached data');
-            }
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const user = await getUser();
+      
+      if (user && user.identifier) {
+        // Check preloaded data first (ultra-fast)
+        const preloadedData = await cacheManager.getCachedData('consumer_data', user.identifier);
+        if (preloadedData.success) {
+          setConsumerData(preloadedData.data);
+          setLoading(false, 50);
+          console.log('⚡ Dashboard: Using preloaded data');
+        } else {
+          // Try cached data
+          const cachedResult = await getCachedConsumerData(user.identifier);
+          if (cachedResult.success) {
+            setConsumerData(cachedResult.data);
+            setLoading(false, 100);
+            console.log('⚡ Dashboard: Using cached data');
           }
-          
-          // Fetch fresh data (will use cache if available, otherwise fetch from API)
-          const result = await fetchConsumerData(user.identifier);
-          if (result.success) {
-            setConsumerData(result.data);
-          }
-          
-          // Background sync for future updates
-          syncConsumerData(user.identifier).then((syncResult) => {
-            if (syncResult.success) {
-              setConsumerData(syncResult.data);
-            }
-          }).catch(error => {
-            console.error('Background sync failed:', error);
-          });
         }
-      } catch (error) {
-        console.error('Error fetching consumer data:', error);
-      } finally {
-        setLoading(false, 50);
+        
+        // Fetch fresh data (will use cache if available, otherwise fetch from API)
+        const result = await fetchConsumerData(user.identifier);
+        if (result.success) {
+          setConsumerData(result.data);
+        }
+        
+        // Background sync for future updates
+        syncConsumerData(user.identifier).then((syncResult) => {
+          if (syncResult.success) {
+            setConsumerData(syncResult.data);
+          }
+        }).catch(error => {
+          console.error('Background sync failed:', error);
+        });
       }
-    };
-
-    fetchData();
+    } catch (error) {
+      console.error('Error fetching consumer data:', error);
+    } finally {
+      setLoading(false, 50);
+    }
   }, [setLoading]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Table data for meter status - memoized for performance
   const meterStatusData = useMemo(() => [
@@ -139,6 +140,14 @@ const Dashboard = React.memo(({ navigation, route }) => {
         style={styles.Container}
         contentContainerStyle={{ paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={fetchData}
+            colors={[COLORS.secondaryColor]}
+            tintColor={COLORS.secondaryColor}
+          />
+        }
       >
         <View style={styles.Container}>
           <StatusBar style="dark" />

@@ -6,6 +6,8 @@ import {
   Pressable,
   Dimensions,
   ActivityIndicator,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
@@ -119,16 +121,28 @@ const Profile = ({ navigation, route }) => {
         >
           <Menu width={18} height={18} fill="#202d59" />
         </Pressable>
-        <Pressable onPress={() => navigation.navigate("PostPaidDashboard")}>
+        <Pressable onPress={() => navigation.replace("PostPaidDashboard")}>
           {/* <Image icon={BiLogo} size={45} /> */}
           <Logo variant="white" size="medium" />
         </Pressable>
-        <View style={styles.bellIcon}>
+        <Pressable style={styles.bellIcon} onPress={() => navigation.replace("PostPaidDashboard")}>
           <Notification width={18} height={18} fill="#ffffff" />
-        </View>
+        </Pressable>
       </View>
       
-      <View style={styles.notificationsContainer}>
+      <ScrollView
+        style={styles.notificationsContainer}
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refreshNotifications}
+            colors={[COLORS.secondaryFontColor]}
+            tintColor={COLORS.secondaryFontColor}
+          />
+        }
+      >
         {isLoading && displayNotifications.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.secondaryFontColor} />
@@ -165,7 +179,7 @@ const Profile = ({ navigation, route }) => {
             />
           ))
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 };

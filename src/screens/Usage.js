@@ -1,15 +1,16 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from "react-native";
+import { StyleSheet, Text, View, ScrollView, RefreshControl, TouchableOpacity } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
 import DashboardHeader from "../components/global/DashboardHeader";
 import { getCachedConsumerData } from "../utils/cacheManager";
 import { fetchConsumerData, syncConsumerData } from "../services/apiService";
-import ConsumerGroupedBarChart from "../components/ConsumerGroupedBarChart";
 import { StatusBar } from "expo-status-bar";
-import Arrow from "../../assets/icons/arrow.svg";
 import { getUser } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { apiClient } from '../services/apiClient';
+import { LinearGradient } from "expo-linear-gradient";
+import MeterIcon from "../../assets/icons/meterBolt.svg";
+import WalletIcon from "../../assets/icons/walletCard.svg";
 
 
 const Usage = ({ navigation }) => {
@@ -105,29 +106,6 @@ const Usage = ({ navigation }) => {
 
 
 
-  // Helper function to get daily usage from chart data
-  const getDailyUsage = () => {
-    if (!consumerData?.chartData?.daily?.seriesData?.[0]?.data) return 0;
-    const dailyData = consumerData.chartData.daily.seriesData[0].data;
-    return dailyData[dailyData.length - 1] || 0; // Get last value
-  };
-
-  // Helper function to get monthly usage from chart data
-  const getMonthlyUsage = () => {
-    if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) return 0;
-    const monthlyData = consumerData.chartData.monthly.seriesData[0].data;
-    return monthlyData[monthlyData.length - 1] || 0; // Get last value
-  };
-
-  // Calculate percentage change (mock data for now)
-  const getPercentageChange = () => {
-    return selectedView === "daily" ? 5 : 10;
-  };
-
-  // Get comparison text
-  const getComparisonText = () => {
-    return selectedView === "daily" ? "Yesterday." : "Last Month.";
-  };
 
   // Bottom sheet handlers
   const handleConsumerPress = useCallback(() => {
@@ -146,15 +124,20 @@ const Usage = ({ navigation }) => {
     setSelectedConsumerUid(null);
   }, []);
 
-  // Handle bar press from chart - navigate to dedicated table page
-  const handleBarPress = useCallback((barData) => {
-    console.log('📊 Bar pressed:', barData);
-    navigation.navigate('ConsumerDataTable', {
-      consumerData,
-      loading: isLoading,
-      viewType: selectedView
-    });
-  }, [navigation, consumerData, isLoading, selectedView]);
+  // Helper functions for usage data
+  const getDailyConsumption = () => {
+    if (!consumerData?.chartData?.daily?.seriesData?.[0]?.data) return 0;
+    const dailyData = consumerData.chartData.daily.seriesData[0].data;
+    return dailyData[dailyData.length - 1] || 0;
+  };
+
+  const getMonthlyConsumption = () => {
+    if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) return 0;
+    const monthlyData = consumerData.chartData.monthly.seriesData[0].data;
+    return monthlyData[monthlyData.length - 1] || 0;
+  };
+
+
 
 
   return (
@@ -180,104 +163,80 @@ const Usage = ({ navigation }) => {
         isLoading={isLoading}
       />
 
+    {/* Usage Summary Section */}
+    <View style={styles.usageSummaryContainer}>
+      {/* Header with Toggle */}
+      <View style={styles.summaryHeader}>
+        <Text style={styles.summaryTitle}>Usage Summary</Text>
+        <View style={styles.modernToggleContainer}>
+          <TouchableOpacity 
+            style={[styles.modernToggleButton, selectedView === "daily" && styles.modernToggleButtonActive]}
+            onPress={() => setSelectedView("daily")}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.modernToggleText, selectedView === "daily" && styles.modernToggleTextActive]}>
+              Daily
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.modernToggleButton, selectedView === "monthly" && styles.modernToggleButtonActive]}
+            onPress={() => setSelectedView("monthly")}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.modernToggleText, selectedView === "monthly" && styles.modernToggleTextActive]}>
+              Monthly
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
-
-<View style={styles.whiteContainer}>
-            <View
-              style={{                justifyContent: "space-between",
-    flexDirection: "row",
-              }}
-            >
-              <Text style={styles.energyText}>Energy Summary</Text>
-              <View style={{ flexDirection: "row" }}>
-                <TouchableOpacity onPress={() => setSelectedView("daily")}>
-                  <Text
-                    style={
-                      selectedView === "daily"
-                        ? styles.monthlyText
-                        : styles.dailyText
-                    }
-                  >
-                    Daily
-                  </Text>
-                </TouchableOpacity>
-                <Text> / </Text>
-                <TouchableOpacity onPress={() => setSelectedView("monthly")}>
-                  <Text
-                    style={
-                      selectedView === "monthly"
-                        ? styles.monthlyText
-                        : styles.dailyText
-                    }
-                  >
-                    Monthly
-                  </Text>
-                </TouchableOpacity>
-              </View>
+      {/* Professional Cards */}
+      <View style={styles.professionalCardsContainer}>
+        {/* Consumption Card */}
+        <View style={styles.professionalCard}>
+          <View style={styles.cardContent}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.professionalCardTitle}>
+                {selectedView === "daily" ? "Daily Consumption" : "Monthly Consumption"}
+              </Text>
+              <LinearGradient
+                colors={["#E8F5E9", "#C8E6C9"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.professionalCardIcon}
+              >
+                <MeterIcon width={18} height={18} />
+              </LinearGradient>
             </View>
-            <View style={styles.graphsContainer}>
-              {isLoading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-                  <Text style={styles.loadingText}>Loading usage data...</Text>
-                </View>
-              ) : selectedView === "daily" ? (
-                <>
-                  <Text style={styles.thismonthText}>
-                    Today's Usage: <Text style={styles.kwhText}>
-                      {`${getDailyUsage()}kWh`}
-                    </Text>
-                  </Text>
-                  <View
-                    style={{                      flexDirection: "row",
-                      marginTop: 10,
-                    }}
-                  >
-                    <View style={styles.tenPercentageTextContainer}>
-                      <Text style={styles.percentText}>{getPercentageChange()}%</Text>
-                      <Arrow width={12} height={12} fill="#55B56C" />
-                    </View>
-                    <Text style={styles.lastText}>{getComparisonText()}</Text>
-                  </View>
-                  <View style={{ alignItems: "center" }}>
-                    <ConsumerGroupedBarChart 
-                      viewType="daily" 
-                      data={consumerData}
-                      loading={isLoading}
-                      onBarPress={handleBarPress}
-                    />
-                  </View>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.thismonthText}>
-                    This Month's Usage: <Text style={styles.kwhText}>
-                      {`${getMonthlyUsage()}kWh`}
-                    </Text>
-                  </Text>
-                  <View
-                    style={{                      flexDirection: "row",
-                      marginTop: 10,
-                    }}
-                  >
-                    <View style={styles.tenPercentageTextContainer}>
-                      <Text style={styles.percentText}>{getPercentageChange()}%</Text>
-                      <Arrow width={12} height={12} fill="#55B56C" />
-                    </View>
-                    <Text style={styles.lastText}>{getComparisonText()}</Text>
-                  </View>
-                  <View style={{ alignItems: "center" }}>
-                    <ConsumerGroupedBarChart 
-                      viewType="monthly" 
-                      data={consumerData}
-                      loading={isLoading}
-                      onBarPress={handleBarPress}
-                    />
-                  </View>
-                </>
-              )}
-            </View>
+            <Text style={styles.professionalCardValue}>
+              {selectedView === "daily" ? `${getDailyConsumption()} kWh` : `${getMonthlyConsumption()} kWh`}
+            </Text>
           </View>
+        </View>
+
+        {/* Charges Card */}
+        <View style={styles.professionalCard}>
+          <View style={styles.cardContent}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.professionalCardTitle}>
+                {selectedView === "daily" ? "Daily Charges" : "Monthly Charges"}
+              </Text>
+              <LinearGradient
+                colors={["#E8F5E9", "#C8E6C9"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.professionalCardIcon}
+              >
+                <WalletIcon width={18} height={18} />
+              </LinearGradient>
+            </View>
+            <Text style={styles.professionalCardValue}>
+              N/A
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
       
       {/* Consumer Details Bottom Sheet */}
       <ConsumerDetailsBottomSheet
@@ -297,86 +256,97 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
-  whiteContainer: {
-    padding: 10,
+  // Modern Usage Summary Styles
+  usageSummaryContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingVertical: 24,
   },
-  energyText: {
+  summaryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontFamily: "Manrope-Bold",
     color: COLORS.primaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Regular",
-    marginBottom: 10,
   },
-  dailyText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 12,
-    fontFamily: "Manrope-Regular",
-  },
-  monthlyText: {
-    color: COLORS.secondaryColor,
-    fontSize: 12,
-    fontFamily: "Manrope-Regular",
-  },
-  graphsContainer: {
-    backgroundColor: "#eef8f0",
-    paddingHorizontal: 15,
-    paddingTop: 15,
-    marginTop: 10,
+  modernToggleContainer: {
+    flexDirection: "row",
+    backgroundColor: "#F8F9FA",
     borderRadius: 5,
-    paddingBottom: 5,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: "#E9ECEF",
   },
-  thismonthText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Regular",
+  modernToggleButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 5,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 60,
   },
-  kwhText: {
-    color: COLORS.secondaryColor,
-    fontSize: 14,
+  modernToggleButtonActive: {
+    backgroundColor: COLORS.secondaryColor,
+    shadowColor: COLORS.secondaryColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modernToggleText: {
+    fontSize: 13,
+    fontFamily: "Manrope-Medium",
+    color: "#6C757D",
+  },
+  modernToggleTextActive: {
+    color: COLORS.secondaryFontColor,
     fontFamily: "Manrope-Bold",
   },
-  tenPercentageTextContainer: {
-    backgroundColor: COLORS.secondaryColor,
+  professionalCardsContainer: {
     flexDirection: "row",
-    justifyContent: "center",
+    gap: 12,
+  },
+  professionalCard: {
+    flex: 1,
+    backgroundColor: COLORS.secondaryFontColor,
+    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#F1F3F4",
+    elevation: 0.5,
+  },
+  cardContent: {
+    flex: 1,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  professionalCardTitle: {
+    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+    color: "#6C757D",
+    flex: 1,
+    marginRight: 8,
+    lineHeight: 16,
+  },
+  professionalCardIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: "center",
-    width: 60,
-    borderRadius: 20,
-    height: 19,
-    // padding: 1.5,
-  },
-  percentText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 12,
-    fontFamily: "Manrope-SemiBold",
-    marginRight: 5,
-  },
-  lastText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 12,
-    fontFamily: "Manrope-Regular",
-    marginLeft: 10,
-  },
-  separator: {
-    color: COLORS.primaryFontColor,
-    fontSize: 12,
-    fontFamily: "Manrope-Regular",
-    marginHorizontal: 5,
-  },
-  bluecontainer: {
-    backgroundColor: "#eef8f0",
-    padding: 15,
-  },
-  loadingContainer: {
-    alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 40,
   },
-  loadingText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Regular",
-    marginTop: 10,
+  professionalCardValue: {
+    fontSize: 20,
+    fontFamily: "Manrope-Bold",
+    color: COLORS.secondaryColor,
+    lineHeight: 24,
   },
 });
