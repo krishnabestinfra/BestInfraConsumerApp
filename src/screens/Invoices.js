@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView } from "react-native";
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
 import Table from "../components/global/Table";
@@ -13,11 +13,13 @@ import {
 import DashboardHeader from "../components/global/DashboardHeader";
 import Button from "../components/global/Button";
 import DownloadButton from "../components/global/DownloadButton";
+import { handleViewBill } from "../services/InvoicePDFService";
 
 const Invoices = ({ navigation }) => {
   const [tableData, setTableData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [consumerData, setConsumerData] = useState(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Fetch payment history data
   const fetchPaymentHistory = useCallback(async () => {
@@ -36,7 +38,10 @@ const Invoices = ({ navigation }) => {
               id: index + 1,
               transactionId: payment.transactionId || 'N/A',
               date: payment.paymentDate || 'N/A',
-              status: payment.creditAmount > 0 ? 'Success' : 'Failed'
+              amount: payment.creditAmount ? `₹${payment.creditAmount}` : 'N/A',
+              status: payment.creditAmount > 0 ? 'Paid' : 'Pending',
+              // Keep original payment data for PDF generation
+              _originalData: payment
             }));
             setTableData(transformedData);
             setIsLoading(false);
@@ -57,7 +62,10 @@ const Invoices = ({ navigation }) => {
                 id: index + 1,
                 transactionId: payment.transactionId || 'N/A',
                 date: payment.paymentDate || 'N/A',
-                status: payment.creditAmount > 0 ? 'Success' : 'Failed'
+                amount: payment.creditAmount ? `₹${payment.creditAmount}` : 'N/A',
+                status: payment.creditAmount > 0 ? 'Paid' : 'Pending',
+                // Keep original payment data for PDF generation
+                _originalData: payment
               }));
               setTableData(transformedData);
             } else {
@@ -88,12 +96,43 @@ const Invoices = ({ navigation }) => {
   useEffect(() => {
     fetchPaymentHistory();
   }, [fetchPaymentHistory]);
+
+  // Handle row press to open invoice PDF
+  const handleRowPress = useCallback(async (row) => {
+    try {
+      setIsGeneratingPDF(true);
+      console.log('📄 Opening invoice for transaction:', row.transactionId);
+      
+      // Get original payment data
+      const paymentData = row._originalData;
+      
+      // Generate and view PDF
+      const result = await handleViewBill(paymentData, consumerData);
+      
+      if (!result.success) {
+        console.error('Failed to generate invoice PDF');
+      }
+    } catch (error) {
+      console.error('Error opening invoice:', error);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  }, [consumerData]);
+
   return (
     <>
       <ScrollView
         style={styles.Container}
         contentContainerStyle={{ paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={fetchPaymentHistory}
+            colors={[COLORS.secondaryColor]}
+            tintColor={COLORS.secondaryColor}
+          />
+        }
       >
         <DashboardHeader
           navigation={navigation}
@@ -102,47 +141,62 @@ const Invoices = ({ navigation }) => {
           consumerData={consumerData}
           isLoading={isLoading}
         />
+        
+        {/* Invoice Table */}
         <View style={{marginTop: 20}}>
           <Table
             data={tableData}
             loading={isLoading}
-            emptyMessage="No payment history available"
+            emptyMessage="No invoices available"
             showSerial={true}
             showPriority={false}
+            onRowPress={handleRowPress}
             columns={[
-              { key: 'transactionId', title: 'Transaction ID', flex: 2 },
-              { key: 'date', title: 'Date', flex: 1.2 },
+              { key: 'transactionId', title: 'Invoice ID', flex: 2 },
+              { key: 'date', title: 'Date', flex: 1.5 },
+              { key: 'amount', title: 'Amount', flex: 1.2 },
               { key: 'status', title: 'Status', flex: 1 }
             ]}
           />
         </View>
+        
+        {/* PDF Generation Overlay */}
+        {isGeneratingPDF && (
+          <View style={styles.pdfOverlay}>
+            <View style={styles.pdfOverlayContent}>
+              <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+              <Text style={styles.pdfOverlayText}>Generating Invoice PDF...</Text>
+            </View>
+          </View>
+        )}
+        
       </ScrollView>
-      {tableData.length > 0 && ( 
-     <View style={styles.buttonContainer}>
-     <View style={styles.buttonContainerInner}>
-       <Button title="View"
-         variant="outline"
-         size="medium"
-         style={styles.button}
-         textStyle={styles.forgotText}
-       />
-       <DownloadButton
-         data={tableData}
-         columns={[
-           { key: 'transactionId', title: 'Transaction ID' },
-           { key: 'date', title: 'Date' },
-           { key: 'status', title: 'Status' }
-         ]}
-         fileName="transactions"
-         title="Download"
-         variant="primary"
-         size="medium"
-         style={styles.button}
-         textStyle={styles.forgotText}
-       />
-     </View>
-   </View>
-    )} 
+      {/* {tableData.length > 0 && ( 
+        <View style={styles.buttonContainer}>
+          <View style={styles.buttonContainerInner}>
+            <DownloadButton
+              data={tableData.map(item => ({
+                transactionId: item.transactionId,
+                date: item.date,
+                amount: item.amount,
+                status: item.status
+              }))}
+              columns={[
+                { key: 'transactionId', title: 'Invoice ID' },
+                { key: 'date', title: 'Date' },
+                { key: 'amount', title: 'Amount' },
+                { key: 'status', title: 'Status' }
+              ]}
+              fileName="invoices"
+              title="Download All"
+              variant="primary"
+              size="medium"
+              style={styles.downloadButton}
+              textStyle={styles.forgotText}
+            />
+          </View>
+        </View>
+      )} */}
     </>
   );
 };
@@ -166,11 +220,39 @@ const styles = StyleSheet.create({
   },
   buttonContainerInner:{
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
   },
-  button:{
-    width: '48%',
+  downloadButton:{
+    width: '100%',
+  },
+  pdfOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  pdfOverlayContent: {
+    backgroundColor: COLORS.secondaryFontColor,
+    padding: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  pdfOverlayText: {
+    marginTop: 15,
+    fontSize: 16,
+    fontFamily: 'Manrope-Medium',
+    color: COLORS.primaryFontColor,
   }
 });

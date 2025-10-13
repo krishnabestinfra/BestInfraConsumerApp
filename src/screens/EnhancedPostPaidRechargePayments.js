@@ -10,7 +10,6 @@ import {
   Text, 
   View, 
   ScrollView, 
-  StatusBar, 
   Alert, 
   ActivityIndicator, 
   KeyboardAvoidingView, 
@@ -20,6 +19,7 @@ import { COLORS } from "../constants/colors";
 import React, { useState, useEffect, useCallback } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
+import { StatusBar } from "expo-status-bar";
 import DashboardHeader from "../components/global/DashboardHeader";
 import DirectRazorpayPayment from "../components/DirectRazorpayPayment";
 import { getUser } from "../utils/storage";

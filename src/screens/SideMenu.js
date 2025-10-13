@@ -16,6 +16,7 @@ import { TabContext } from "../context/TabContext";
 import SideMenuNavigation from "../components/SideMenuNavigation";
 import Logo from "../components/global/Logo";
 import { logoutUser } from "../utils/storage";
+import CrossIcon from "../../assets/icons/crossWhite.svg";
 
 const SideMenu = ({ navigation }) => {
   const { activeItem, setActiveItem } = useContext(TabContext);
@@ -41,8 +42,6 @@ const SideMenu = ({ navigation }) => {
         return <PostPaidRechargePayments />;
       case "Transactions":
         return <Transactions />;
-      case "Tickets":
-        return <Tickets />;
       case "Settings":
         return <Settings />;
       default:
@@ -53,13 +52,14 @@ const SideMenu = ({ navigation }) => {
     <View style={styles.Container}>
       <StatusBar style="light"/>
       <View style={styles.TopMenu}>
-        <View style={styles.barsIcon}>
-          <Menu width={18} height={18} fill="#ffffff" />
-        </View>
+        <Pressable style={styles.barsIcon} onPress={() => navigation.navigate("PostPaidDashboard")}>
+          <Menu width={18} height={18} fill="#ffffff"/>
+          {/* <CrossIcon width={30} height={30} fill="#ffffff"/> */}
+        </Pressable>
         <Pressable
          onPress={() => {
-          setActiveItem("Dashboard");  
-          navigation.navigate("Dashboard");
+          setActiveItem("PostPaidDashboard");  
+          navigation.navigate("PostPaidDashboard");
          }}>
           {/* <BiLogo width={45} height={45} /> */}
           <Logo variant="white" size="medium" />

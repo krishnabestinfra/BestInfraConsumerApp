@@ -62,10 +62,13 @@ const Ring = ({ index, progress }) => {
   return <Animated.View style={[styles.ring, ringStyle]} />;
 };
 
-const TicketDetails = ({ navigation }) => {
+const TicketDetails = ({ navigation, route }) => {
   const progress = useSharedValue(0);
   const [userName, setUserName] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Get ticket data from navigation params
+  const { ticketId, ticketData, category, status } = route?.params || {};
 
 
   const loopAnimation = () => {
@@ -111,9 +114,9 @@ const TicketDetails = ({ navigation }) => {
         <View style={styles.TopMenu}>
           <Pressable
             style={styles.barsIcon}
-            onPress={() => navigation.navigate("SideMenu")}
+            onPress={() => navigation.goBack()}
           >
-            <Menu width={18} height={18} fill="#202d59" />
+            <Arrow width={18} height={18} fill="#202d59" style={{ transform: [{ rotate: '180deg' }] }} />
           </Pressable>
           <View style={styles.logoWrapper}>
             {Array.from({ length: RING_COUNT }).map((_, index) => (
@@ -123,22 +126,28 @@ const TicketDetails = ({ navigation }) => {
           </View>
           <Pressable
             style={styles.bellIcon}
-            onPress={() => navigation.navigate("Profile")}
+            onPress={() => navigation.replace("Profile")}
           >
             <Notification width={18} height={18} fill="#202d59" />
           </Pressable>
         </View>
 
         <View style={styles.TicketDetailsContainer}>
-          <TouchableOpacity 
+            <TouchableOpacity 
               style={styles.TicketDetailsHeader} 
               onPress={() => setIsExpanded(!isExpanded)}
               activeOpacity={0.7}
             >
               <Text style={styles.TicketDetailsText}>Ticket Details</Text>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={styles.HighTextBox}>
-                  <Text style={styles.HighText}>High</Text>
+                <View style={[
+                  styles.HighTextBox,
+                  ticketData?.priority?.toLowerCase() === 'low' && styles.LowTextBox,
+                  ticketData?.priority?.toLowerCase() === 'medium' && styles.MediumTextBox,
+                ]}>
+                  <Text style={styles.HighText}>
+                    {ticketData?.priority || category || "High"}
+                  </Text>
                 </View>
                   <DropdownIcon
                     width={14}
@@ -155,30 +164,38 @@ const TicketDetails = ({ navigation }) => {
           <View style={styles.TicketDetailsMainContainer}>
             <View style={styles.TicketDetailsMainItem}>
               <Text style={styles.TicketDetailsMainText}>Ticket ID</Text>
-              <Text style={styles.TicketDetailsMainTextValue}>#298</Text>
+              <Text style={styles.TicketDetailsMainTextValue}>
+                {ticketData?.ticketNumber || ticketId || "#298"}
+              </Text>
             </View>
             <View style={styles.TicketDetailsMainItem}>
-              <Text style={styles.TicketDetailsMainText}>Ticket Type</Text>
+              <Text style={styles.TicketDetailsMainText}>Category</Text>
               <Text style={styles.TicketDetailsMainTextValue}>
-                Connection Issue
+                {ticketData?.category || category || "Connection Issue"}
+              </Text>
+            </View>
+            <View style={styles.TicketDetailsMainItem}>
+              <Text style={styles.TicketDetailsMainText}>Status</Text>
+              <Text style={styles.TicketDetailsMainTextValue}>
+                {ticketData?.status || status || "Open"}
               </Text>
             </View>
             <View style={styles.TicketDetailsMainItem}>
               <Text style={styles.TicketDetailsMainText}>Created On</Text>
               <Text style={styles.TicketDetailsMainTextValue}>
-                17/08/2025, 04:04 PM
+                {ticketData?.createdOn || "17/08/2025, 04:04 PM"}
               </Text>
             </View>
             <View style={styles.TicketDetailsMainItem}>
-              <Text style={styles.TicketDetailsMainText}>Last Updated On</Text>
+              <Text style={styles.TicketDetailsMainText}>Last Updated</Text>
               <Text style={styles.TicketDetailsMainTextValue}>
-                17/08/2025, 04:04 PM
+                {ticketData?.lastUpdated || ticketData?.updatedOn || "17/08/2025, 04:04 PM"}
               </Text>
             </View>
             <View style={styles.TicketDetailsMainItem}>
               <Text style={styles.TicketDetailsMainText}>Assigned To</Text>
               <Text style={styles.TicketDetailsMainTextValue}>
-                BI - Tech Team
+                {ticketData?.assignedTo || "BI - Tech Team"}
               </Text>
             </View>
           </View>
@@ -390,6 +407,18 @@ const styles = StyleSheet.create({
   },
   HighTextBox: {
     backgroundColor: "#FF9C9C",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  MediumTextBox: {
+    backgroundColor: "#FF8C00",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 20,
+  },
+  LowTextBox: {
+    backgroundColor: "#28A745",
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 20,

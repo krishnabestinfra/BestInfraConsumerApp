@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View, Pressable, ScrollView, TouchableOpacity } from "react-native";
-import React, { useState, useEffect } from "react";
+import { StyleSheet, Text, View, Pressable, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
 import Menu from "../../assets/icons/bars.svg";
 import Notification from "../../assets/icons/notification.svg";
@@ -19,53 +19,61 @@ const Transactions = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch payment history from API
-  useEffect(() => {
-    const fetchPaymentHistory = async () => {
-      try {
-        setIsLoading(true);
-        const user = await getUser();
+  const fetchPaymentHistory = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const user = await getUser();
+      
+      if (user && user.identifier) {
+        // Using the authenticated user's identifier
+        const response = await fetch(API_ENDPOINTS.consumers.get(user.identifier));
         
-        if (user && user.identifier) {
-          // Using the authenticated user's identifier
-          const response = await fetch(API_ENDPOINTS.consumers.get(user.identifier));
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && data.data.paymentHistory) {
-              // Transform payment history data for the table
-              const transformedData = data.data.paymentHistory.map((payment, index) => ({
-                id: index + 1,
-                transactionId: payment.transactionId || 'N/A',
-                date: payment.paymentDate || 'N/A',
-                // amount: payment.creditAmount ? `₹${payment.creditAmount}` : 'N/A',
-                // paymentMode: payment.paymentMode || 'N/A',
-                status: payment.creditAmount > 0 ? 'Success' : 'Failed'
-              }));
-              setTableData(transformedData);
-            } else {
-              setTableData([]);
-            }
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data && data.data.paymentHistory) {
+            // Transform payment history data for the table
+            const transformedData = data.data.paymentHistory.map((payment, index) => ({
+              id: index + 1,
+              transactionId: payment.transactionId || 'N/A',
+              date: payment.paymentDate || 'N/A',
+              amount: payment.creditAmount ? `₹${payment.creditAmount}` : 'N/A',
+              paymentMode: payment.paymentMode || 'N/A',
+              status: payment.creditAmount > 0 ? 'Success' : 'Failed'
+            }));
+            setTableData(transformedData);
           } else {
-            console.error('Failed to fetch payment history:', response.status);
             setTableData([]);
           }
+        } else {
+          console.error('Failed to fetch payment history:', response.status);
+          setTableData([]);
         }
-      } catch (error) {
-        console.error('Error fetching payment history:', error);
-        setTableData([]);
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    fetchPaymentHistory();
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      setTableData([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchPaymentHistory();
+  }, [fetchPaymentHistory]);
   return (
     <>
     <ScrollView
       style={styles.Container}
       contentContainerStyle={{ paddingBottom: 30 }}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={isLoading}
+          onRefresh={fetchPaymentHistory}
+          colors={[COLORS.secondaryColor]}
+          tintColor={COLORS.secondaryColor}
+        />
+      }
     >
       <View style={styles.bluecontainer}>
         <View style={styles.TopMenu}>
@@ -116,16 +124,17 @@ const Transactions = ({ navigation }) => {
           showSerial={true}
           showPriority={false}
           columns={[
-            { key: 'transactionId', title: 'Transaction ID', flex: 2 },
             { key: 'date', title: 'Date', flex: 1.2 },
-            // { key: 'amount', title: 'Amount', flex: 1 },
-            // { key: 'paymentMode', title: 'Mode', flex: 1 },
-            { key: 'status', title: 'Status', flex: 1 }
+            // { key: 'transactionId', title: 'Transaction ID', flex: 2 },
+            { key: 'amount', title: 'Amount', flex: 1 },
+            { key: 'status', title: 'Status', flex: 1 },
+            { key: 'paymentMode', title: 'Mode', flex: 1 },
+           
           ]}
         />
       </View>
     </ScrollView>
-    {tableData.length > 0 && ( 
+    {/* {tableData.length > 0 && ( 
      <View style={styles.buttonContainer}>
      <View style={styles.buttonContainerInner}>
        <Button title="View"
@@ -137,8 +146,10 @@ const Transactions = ({ navigation }) => {
        <DownloadButton 
          data={tableData}
          columns={[
-           { key: 'transactionId', title: 'Transaction ID' },
+           // { key: 'transactionId', title: 'Transaction ID' },
            { key: 'date', title: 'Date' },
+           { key: 'amount', title: 'Amount' },
+           { key: 'paymentMode', title: 'Mode' },
            { key: 'status', title: 'Status' }
          ]}
          fileName="transactions"
@@ -150,7 +161,7 @@ const Transactions = ({ navigation }) => {
        />
      </View>
    </View>
-    )} 
+    )}  */}
     </>
   );
 };

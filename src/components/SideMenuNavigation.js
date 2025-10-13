@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useContext } from "react";
 import { COLORS } from "../constants/colors";
 import Button from "./global/Button";
 import DashboardIcon from "../../assets/icons/dashboardMenu.svg";
@@ -17,13 +17,37 @@ import ActiveSettings from "../../assets/icons/activeSettings.svg";
 import LogoutIcon from "../../assets/icons/logoutMenu.svg";
 import ActiveLogout from "../../assets/icons/activeLogout.svg";
 import { logoutUser } from "../utils/storage"; // adjust path
-
-import { useContext } from "react";
-import { TabContext } from "../context/TabContext"; 
+import { TabContext } from "../context/TabContext";
+import { useNavigationState } from "@react-navigation/native"; 
 
 const SideMenuNavigation = ({ navigation }) => {
 
   const { activeItem, setActiveItem } = useContext(TabContext);
+
+  // Get current route to sync sidebar highlighting
+  const currentRoute = useNavigationState(state => 
+    state?.routes[state?.index]?.name
+  );
+
+  // Sync activeItem with current route on mount and route changes
+  useEffect(() => {
+    if (currentRoute) {
+      // Map route names to menu items for highlighting
+      if (currentRoute === "PostPaidDashboard" || currentRoute === "Dashboard") {
+        setActiveItem("Dashboard");
+      } else if (currentRoute === "PostPaidRechargePayments" || currentRoute === "Payments") {
+        setActiveItem("PostPaidRechargePayments");
+      } else if (currentRoute === "Transactions") {
+        setActiveItem("Transactions");
+      } else if (currentRoute === "DG") {
+        setActiveItem("DG");
+      } else if (currentRoute === "Usage") {
+        setActiveItem("Usage");
+      } else if (currentRoute === "Settings") {
+        setActiveItem("Settings");
+      }
+    }
+  }, [currentRoute, setActiveItem]);
 
   const handleMenuPress = (item) => {
     setActiveItem(item); 
@@ -184,42 +208,6 @@ const SideMenuNavigation = ({ navigation }) => {
             ]}
           >
             Transactions
-          </Text>
-        </Pressable>
-        <Pressable
-          style={styles.flex}
-          onPress={() => handleMenuPress("Tickets")}
-        >
-          {activeItem === "Tickets" ? (
-            <>
-              <ActiveTickets
-                width={18}
-                height={18}
-                style={[
-                  styles.iconStyle,
-                  activeItem === "Tickets" && styles.activeIcon,
-                ]}
-              />
-            </>
-          ) : (
-            <>
-              <TicketsIcon
-                width={18}
-                height={18}
-                style={[
-                  styles.iconStyle,
-                  activeItem === "Tickets" && styles.activeIcon,
-                ]}
-              />
-            </>
-          )}
-          <Text
-            style={[
-              styles.menuText,
-              activeItem === "Tickets" && styles.activeText,
-            ]}
-          >
-            Tickets
           </Text>
         </Pressable>
         <Pressable

@@ -128,7 +128,7 @@ const DashboardHeader = React.memo(({
       label: 'Invoices',
       route: 'Invoices',
       icon: InvoicesIcon,
-      activeIcon: ActiveInvoiceIcon , // Use same icon for now
+      activeIcon: ActiveUsageIcon, // Use same icon for now
       iconSize: { width: 20, height: 20 }
     },
     {
@@ -144,7 +144,7 @@ const DashboardHeader = React.memo(({
       label: 'Usage',
       route: 'Usage',
       icon: UsageIcon,
-      activeIcon: ActiveUsageIcon ,
+      activeIcon:  ActiveInvoiceIcon,
       iconSize: { width: 20, height: 20 }
     }
   ], []);
@@ -200,10 +200,10 @@ const DashboardHeader = React.memo(({
           <Menu width={18} height={18} fill="#202d59" />
         </Pressable>
         
-        <View style={styles.logoWrapper}>
+        <Pressable style={styles.logoWrapper} onPress={() => navigation.navigate('PostPaidDashboard')}>
           {showRings && <AnimatedRings />}
           <Logo variant="blue" size="medium" />
-        </View>
+        </Pressable>
         
         <Pressable
           style={styles.bellWrapper}
@@ -254,7 +254,7 @@ const DashboardHeader = React.memo(({
           <Text style={styles.dueText}>
             Due Amount: {isLoading ? "Loading..." : formatAmount((cachedConsumerData || consumerData)?.totalOutstanding)}
           </Text>
-          <Text style={styles.dateText}>This Month</Text>
+          {/* <Text style={styles.dateText}>This Month</Text> */}
         </View>
         <View style={styles.greenBox}>
           <View style={styles.payInfoContainer}>

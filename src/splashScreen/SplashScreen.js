@@ -43,9 +43,18 @@ const SplashScreen = () => {
       setTimeout(() => {
         setSplashComplete(true);
         if (user) {
-          navigation.replace("PostPaidDashboard");
+          // User is already logged in - go directly to dashboard
+          // Reset navigation stack to prevent going back to splash/onboarding
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "PostPaidDashboard" }],
+          });
         } else {
-          navigation.replace("OnBoarding");
+          // No user - show onboarding
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "OnBoarding" }],
+          });
         }
       }, 2000); // Minimum 2 seconds splash time
     };

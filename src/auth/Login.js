@@ -104,7 +104,13 @@ const Login = ({ navigation }) => {
           [
             {
               text: "Continue",
-              onPress: () => navigation.replace("Dashboard")
+              onPress: () => {
+                // Reset navigation stack - removes Login from history
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "PostPaidDashboard" }],
+                });
+              }
             }
           ]
         );
@@ -198,8 +204,12 @@ const Login = ({ navigation }) => {
           consumerNumber: consumerInfo.consumerNumber
         });
         
-        // Navigate to PostPaidDashboard
-        navigation.navigate("PostPaidDashboard");
+        // Reset navigation stack - removes Login from history
+        // This ensures pressing back on Dashboard will exit the app, not go to Login
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "PostPaidDashboard" }],
+        });
       } else {
         throw new Error(result.message || "Invalid response from server");
       }

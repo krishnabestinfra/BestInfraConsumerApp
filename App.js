@@ -1,9 +1,10 @@
-import { StyleSheet, View, ActivityIndicator } from "react-native";
+import { StyleSheet, View, ActivityIndicator, BackHandler, ToastAndroid, Platform } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as Font from "expo-font";
 import { checkForAppUpdates } from "./src/utils/updateChecker";
+import Toast from 'react-native-toast-message';
 
 import SplashScreen from "./src/splashScreen/SplashScreen";
 import OnBoarding from "./src/screens/OnBoarding";
@@ -38,6 +39,8 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const navigationRef = useRef(null);
+  const lastBackPressTime = useRef(0);
 
   const loadFonts = async () => {
     await Font.loadAsync({
@@ -50,6 +53,19 @@ export default function App() {
       "Manrope-ExtraLight": require("./assets/fonts/Manrope-ExtraLight.ttf"),
     });
     setFontsLoaded(true);
+  };
+
+  const showToast = (message) => {
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
+    } else {
+      Toast.show({
+        type: 'info',
+        text1: message,
+        position: 'bottom',
+        visibilityTime: 2000,
+      });
+    }
   };
 
   const linking = {
@@ -67,6 +83,73 @@ export default function App() {
     checkForAppUpdates();
   }, []);
 
+  // Global Back Button Handler
+  useEffect(() => {
+    const handleBackPress = () => {
+      // Check if navigation is ready
+      if (!navigationRef.current) {
+        return false;
+      }
+
+      const currentRoute = navigationRef.current.getCurrentRoute();
+      const routeName = currentRoute?.name;
+
+      console.log('Back button pressed on:', routeName);
+
+      // Define auth screens - allow default back behavior
+      const authScreens = ['Splash', 'OnBoarding', 'Login', 'ForgotPassword', 'ResetPassword', 'GuestLogin'];
+      
+      if (authScreens.includes(routeName)) {
+        // Allow default back behavior on auth screens
+        return false;
+      }
+
+      // Define dashboard screens
+      const dashboardScreens = ['PostPaidDashboard', 'Dashboard'];
+      
+      if (dashboardScreens.includes(routeName)) {
+        // On Dashboard - press back to exit
+        const now = Date.now();
+        const DOUBLE_PRESS_DELAY = 2000; // 2 seconds
+
+        if (now - lastBackPressTime.current < DOUBLE_PRESS_DELAY) {
+          // Second press - exit app
+          BackHandler.exitApp();
+          return true;
+        } else {
+          // First press - show toast
+          lastBackPressTime.current = now;
+          showToast('Press back again to exit');
+          return true;
+        }
+      }
+
+      // From any other screen - navigate to Dashboard
+      try {
+        navigationRef.current.reset({
+          index: 0,
+          routes: [{ name: 'PostPaidDashboard' }],
+        });
+        showToast('Returned to Dashboard');
+      } catch (error) {
+        console.error('Navigation error:', error);
+        // Fallback navigation
+        navigationRef.current.navigate('PostPaidDashboard');
+      }
+
+      return true; // Prevent default back behavior
+    };
+
+    // Add back button event listener
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      handleBackPress
+    );
+
+    // Cleanup on unmount
+    return () => backHandler.remove();
+  }, []);
+
   if (!fontsLoaded) {
     return (
       <View style={styles.container}>
@@ -81,7 +164,7 @@ export default function App() {
         <NavigationProvider>
           <NotificationsProvider>
             <TabProvider>
-              <NavigationContainer linking={linking}> 
+              <NavigationContainer ref={navigationRef} linking={linking}> 
             <Stack.Navigator
               initialRouteName="Splash"
               screenOptions={{ headerShown: false }}

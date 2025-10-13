@@ -4,7 +4,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import React, { useEffect, useState, useCallback } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -22,7 +23,6 @@ import { API, API_ENDPOINTS } from "../constants/constants";
 import { getUser, getToken } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
-import { showSuccess, showError } from '../components/global/Toastify';
 import { apiClient } from '../services/apiClient';
 
 // import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -74,34 +74,32 @@ const PostPaidDashboard = ({ navigation, route }) => {
 
 
   // Fetch API data
-  useEffect(() => {
-    const fetchConsumerData = async () => {
-      try {
-        setLoading(true);
+  const fetchConsumerData = useCallback(async () => {
+    try {
+      setLoading(true);
 
-        // Get authenticated user data
-        const user = await getUser();
+      // Get authenticated user data
+      const user = await getUser();
 
-        if (!user || !user.identifier) {
-          console.error("No authenticated user found");
-          setLoading(false);
-          return;
-        }
+      if (!user || !user.identifier) {
+        console.error("No authenticated user found");
+        setLoading(false);
+        return;
+      }
 
-        console.log("🔄 Fetching consumer data for:", user.identifier);
+      console.log("🔄 Fetching consumer data for:", user.identifier);
 
-        // Use the centralized API client
-        const result = await apiClient.getConsumerData(user.identifier);
+      // Use the centralized API client
+      const result = await apiClient.getConsumerData(user.identifier);
 
-        if (result.success) {
-          setConsumerData(result.data);
-          console.log("📊 Consumer Data Set:", result.data);
-          showSuccess("Data fetched Successfully");
-        } else {
-          throw new Error(result.error);
-        }
-      } catch (error) {
-        console.error("❌ API error:", error);
+      if (result.success) {
+        setConsumerData(result.data);
+        console.log("📊 Consumer Data Set:", result.data);
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error("❌ API error:", error);
         
         // Provide specific error messages based on error type
         let errorMessage = "Failed to load Data";
@@ -119,7 +117,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
           errorMessage = "Network error - please check your connection";
         }
         
-        showError(errorMessage);
+        console.log("❌ Error:", errorMessage);
         
         // Set fallback data with user's actual identifier
         const user = await getUser();
@@ -137,10 +135,11 @@ const PostPaidDashboard = ({ navigation, route }) => {
       } finally {
         setLoading(false);
       }
-    };
+  }, [setLoading]);
 
+  useEffect(() => {
     fetchConsumerData();
-  }, []);
+  }, [fetchConsumerData]);
 
   // Load table data from API alerts
   useEffect(() => {
@@ -393,6 +392,14 @@ const PostPaidDashboard = ({ navigation, route }) => {
         style={styles.Container}
         contentContainerStyle={{ paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={fetchConsumerData}
+            colors={[COLORS.secondaryColor]}
+            tintColor={COLORS.secondaryColor}
+          />
+        }
       >
         <View style={styles.Container}>
           <StatusBar style="dark" />
