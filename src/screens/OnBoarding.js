@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   Dimensions,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import Arrow from "react-native-vector-icons/FontAwesome6";
+import Arrow from "../../assets/icons/upArrow.svg";
 import { COLORS } from "../constants/colors";
 import OnBoardingSlides from "../components/OnBoardingSlides";
 import RippleEffect from "../components/RippleEffect";
@@ -18,6 +18,21 @@ const { width, height } = Dimensions.get("window");
 
 const OnBoarding = ({ navigation }) => {
   const moveAnim = useRef(new Animated.Value(20)).current;
+  const [activeIndex, setActiveIndex] = useState(0); 
+  const scrollRef = useRef(null); 
+  
+  
+//   useEffect(() => {
+//   const interval = setInterval(() => {
+//     setActiveIndex(prev => {
+//       const next = (prev + 1) % 3;
+//       scrollRef.current?.scrollTo({ x: next * width, animated: true });
+//       return next;
+//     });
+//   }, 3000);
+
+//   return () => clearInterval(interval);
+// }, []);
 
   useEffect(() => {
     Animated.loop(
@@ -36,6 +51,20 @@ const OnBoarding = ({ navigation }) => {
     ).start();
   }, [moveAnim]);
 
+  // Button slide
+
+const handleButtonPress = () => {
+  const next = activeIndex + 1;
+  if (next < 3) {
+    scrollRef.current?.scrollTo({ x: next * width, animated: true });
+    setActiveIndex(next);
+  } else {
+    navigation.navigate("Login"); // Navigate only when next index exceeds last slide
+  }
+};
+
+
+
 
   return (
     <View style={styles.container}>
@@ -52,10 +81,14 @@ const OnBoarding = ({ navigation }) => {
       <View style={styles.overlay} />
 
       <RippleEffect />
-      <OnBoardingSlides />
+      <OnBoardingSlides  scrollRef={scrollRef} onIndexChange={setActiveIndex}  /> 
 
       <View style={styles.ButtonBox}>
-        <Button style={styles.buttonContainer} variant="primary" title="Get Started" onPress={()=>navigation.navigate('Login')}/>
+        <Button style={styles.buttonContainer} 
+          variant="primary" 
+          title={activeIndex === 2 ? "Get Started" : "Next"}
+          onPress={handleButtonPress}
+        />
       </View>
 
       <View style={styles.arrowContainer}>
@@ -70,7 +103,13 @@ const OnBoarding = ({ navigation }) => {
           <Text style={styles.donthavetext}>
             Don't have an account? Need Help!
           </Text>
-          <Button title="Login" variant="secondary" size="small" style={styles.loginBox} onPress={()=>navigation.navigate('Login')}/>
+          <Button 
+           title="Login" 
+           variant="secondary"
+            size="small" 
+            style={styles.loginBox} 
+            onPress={()=>navigation.navigate('Login')}
+          />
         </View>
       </View>
     </View>
@@ -89,7 +128,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     width: width,
-    height: "100% ",
+    height: "100%",
   },
   overlay: {
     position: "absolute",
@@ -117,7 +156,6 @@ const styles = StyleSheet.create({
   /////Arrow \\\\\\
   arrowContainer: {
     height: "15%",
-    display: "flex",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1, // Ensure arrow is above background
@@ -127,7 +165,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "15%",
     justifyContent: "center",
-    display: "flex",
     alignItems: "center",
     zIndex: 1, // Ensure login container is above background
   },

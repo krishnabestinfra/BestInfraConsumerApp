@@ -15,6 +15,8 @@ import { useContext } from "react";
 import { TabContext } from "../context/TabContext"; 
 import SideMenuNavigation from "../components/SideMenuNavigation";
 import Logo from "../components/global/Logo";
+import { logoutUser } from "../utils/storage";
+import CrossIcon from "../../assets/icons/crossWhite.svg";
 
 const SideMenu = ({ navigation }) => {
   const { activeItem, setActiveItem } = useContext(TabContext);
@@ -24,7 +26,8 @@ const SideMenu = ({ navigation }) => {
     navigation.navigate(item);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logoutUser(); // Clear all data and cache
     setActiveItem("Logout");
     navigation.replace("Login"); 
   };
@@ -39,8 +42,6 @@ const SideMenu = ({ navigation }) => {
         return <PostPaidRechargePayments />;
       case "Transactions":
         return <Transactions />;
-      case "Tickets":
-        return <Tickets />;
       case "Settings":
         return <Settings />;
       default:
@@ -51,13 +52,14 @@ const SideMenu = ({ navigation }) => {
     <View style={styles.Container}>
       <StatusBar style="light"/>
       <View style={styles.TopMenu}>
-        <View style={styles.barsIcon}>
-          <Menu width={18} height={18} fill="#ffffff" />
-        </View>
+        <Pressable style={styles.barsIcon} onPress={() => navigation.navigate("PostPaidDashboard")}>
+          <Menu width={18} height={18} fill="#ffffff"/>
+          {/* <CrossIcon width={30} height={30} fill="#ffffff"/> */}
+        </Pressable>
         <Pressable
          onPress={() => {
-          setActiveItem("Dashboard");  
-          navigation.navigate("Dashboard");
+          setActiveItem("PostPaidDashboard");  
+          navigation.navigate("PostPaidDashboard");
          }}>
           {/* <BiLogo width={45} height={45} /> */}
           <Logo variant="white" size="medium" />
@@ -84,7 +86,7 @@ const SideMenu = ({ navigation }) => {
             </View>
           </ScrollView>
           <ScrollView scrollEnabled={false} style={styles.LoginComponentsbar}>
-            <BlurView intensity={50} tint="dark" style={styles.blurContainer}>
+            <BlurView tint="dark" style={styles.blurContainer}>
               <View>{renderContent()}</View>
             </BlurView>
           </ScrollView>
@@ -94,20 +96,20 @@ const SideMenu = ({ navigation }) => {
   );
 };
 
+
 export default SideMenu;
 
 const styles = StyleSheet.create({
   Container: {
-    backgroundColor: COLORS.primaryColor,
+    backgroundColor: COLORS.brandBlueColor,
     height: "100%",
   },
   TopMenu: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 75,
-    paddingBottom: 45,
+    paddingBottom: 35,
     paddingHorizontal: 30,
   },
   barsIcon: {
@@ -116,17 +118,13 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
-    // iOS shadow
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    // Android shadow
     elevation: 5,
   },
-  logoImage: {},
   logo: {
     width: 80,
     height: 80,
@@ -138,39 +136,28 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
-    // iOS shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    // Android shadow
-    elevation: 5,
   },
   MenuContainer: {
     flexDirection: "row",
   },
   menubar: {
-    width: "45%",
     paddingLeft: 30,
     paddingTop: 30,
-    display: "flex",
     justifyContent: "space-between",
     height:"87%"
   },
   componentsbar: {
     position: "relative",
-    height: "75%",
+    height: "77%",
   },
   DashComponentsbar: {
     top:40,
     height: "100%",
     backgroundColor: "#eef8f0",
-    borderTopLeftRadius: 30,
-     borderBottomLeftRadius: 30,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
     zIndex: 999,
-    // bottom:70,
     marginLeft: 60,
     elevation: 10,
   },
@@ -181,65 +168,15 @@ const styles = StyleSheet.create({
     top: 80,
     backgroundColor: "#eef8f0",
     borderTopLeftRadius: 30,
-    borderBottomLeftRadius: 30,
+    borderBottomLeftRadius: 20,
     elevation: 10,
     opacity: 0.3,
   },
-  Topmenubar: {},
   Bottommenubar: {
     paddingBottom: 30,
   },
-  flex: {
-    display: "flex",
-    flexDirection: "row",
-    padding: 10,
-    alignItems: "center",
-  },
-  activeText: {
-    fontSize: 16,
-    fontFamily: "Manrope-Bold",
-    color: COLORS.secondaryFontColor,
-  },
-  menuText: {
-    fontSize: 16,
-    fontFamily: "Manrope-Medium",
-    color: COLORS.secondaryFontColor,
-    opacity: 0.7,
-  },
-  versionText: {
-    fontSize: 12,
-    fontFamily: "Manrope-Medium",
-    color: "#89A1F3",
-  },
-  iconStyle: {
-    color: COLORS.secondaryFontColor,
-    opacity: 0.7,
-    marginRight: 20,
-  },
-  ActiveiconStyle: {
-    marginRight: 20,
-  },
-  activeText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 16,
-    fontFamily: "Manrope-Bold",
-    opacity: 1,
-  },
-  menuText: {
-    color: COLORS.secondaryFontColor,
-    opacity: 0.6,
-    fontSize: 16,
-    fontFamily: "Manrope-Medium",
-  },
-  iconStyle: {
-    marginRight: 20,
-    opacity: 0.5,
-  },
-  activeIcon: {
-    opacity: 1,
-    color: COLORS.secondaryColor,
-  },
   blurContainer: {
-    borderTopLeftRadius: 30,
+    flex: 1,
+    width: "100%",
   },
 });

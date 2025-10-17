@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Image, Dimensions } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
@@ -19,20 +19,47 @@ const getUser = async () => {
 
 const SplashScreen = () => {
   const navigation = useNavigation();
+  const [splashComplete, setSplashComplete] = useState(false);
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
-      const user = await getUser();
-      setTimeout(() => {
-        if (user) {
-          // navigation.replace("Dashboard");
-          navigation.replace("PostPaidDashboard");
-        } else {
-          navigation.replace("OnBoarding");
-        }
-      }, 3000); // Reduced from 7s to 3s for better UX
+    const initializeApp = async () => {
+      try {
+        console.log('🚀 Initializing app...');
+        
+        // Proceed with normal app flow
+        await proceedToMainApp();
+        
+      } catch (error) {
+        console.error('❌ Error during app initialization:', error);
+        // On error, proceed to main app (graceful degradation)
+        await proceedToMainApp();
+      }
     };
-    checkLoginStatus();
+
+    const proceedToMainApp = async () => {
+      const user = await getUser();
+      
+      // Add minimum splash time for better UX
+      setTimeout(() => {
+        setSplashComplete(true);
+        if (user) {
+          // User is already logged in - go directly to dashboard
+          // Reset navigation stack to prevent going back to splash/onboarding
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "PostPaidDashboard" }],
+          });
+        } else {
+          // No user - show onboarding
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "OnBoarding" }],
+          });
+        }
+      }, 2000); // Minimum 2 seconds splash time
+    };
+
+    initializeApp();
   }, [navigation]);
 
   return (

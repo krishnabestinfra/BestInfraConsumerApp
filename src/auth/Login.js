@@ -17,7 +17,7 @@ import { COLORS } from "../constants/colors";
 import LoginForm from "./LoginForm";
 import { storeUser, storeToken, extractConsumerInfo } from "../utils/storage";
 import { testConsumerCredentials } from "../services/apiService";
-import { GLOBAL_API_URL } from "../constants/constants";
+import { API, API_ENDPOINTS } from "../constants/constants";
 import Button from "../components/global/Button";
 import Logo from "../components/global/Logo";
 import EmailLogin from "./EmailLogin";
@@ -104,7 +104,13 @@ const Login = ({ navigation }) => {
           [
             {
               text: "Continue",
-              onPress: () => navigation.replace("Dashboard")
+              onPress: () => {
+                // Reset navigation stack - removes Login from history
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "PostPaidDashboard" }],
+                });
+              }
             }
           ]
         );
@@ -113,7 +119,7 @@ const Login = ({ navigation }) => {
 
       // Show loading state
       console.log("🔄 Attempting login for consumer:", identifier);
-      console.log("🔍 Login endpoint:", `http://${GLOBAL_API_URL}:4256/api/sub-app/auth/login`);
+      console.log("🔍 Login endpoint:", API_ENDPOINTS.auth.login());
       console.log("🔍 Request payload:", {
         identifier: identifier.trim(),
         password: password.trim()
@@ -138,7 +144,7 @@ const Login = ({ navigation }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch(`http://${GLOBAL_API_URL}:4256/api/sub-app/auth/login`, {
+      const response = await fetch(API_ENDPOINTS.auth.login(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -198,8 +204,12 @@ const Login = ({ navigation }) => {
           consumerNumber: consumerInfo.consumerNumber
         });
         
-        // Navigate to PostPaidDashboard
-        navigation.navigate("PostPaidDashboard");
+        // Reset navigation stack - removes Login from history
+        // This ensures pressing back on Dashboard will exit the app, not go to Login
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "PostPaidDashboard" }],
+        });
       } else {
         throw new Error(result.message || "Invalid response from server");
       }
@@ -449,11 +459,9 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
     fontSize: Platform.OS === "ios" ? 14 : 12,
     textAlign: "center",
-    verticalAlign: "middle",
     fontFamily: "Manrope-SemiBold",
   },
   guestContainer: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",

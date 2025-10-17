@@ -1,45 +1,41 @@
 {
   "expo": {
-    "name": "BestInfraApp",
-    "slug": "BestInfraApp",
-    "version": "1.0.0",
+    "name": "NexusOne",
+    "slug": "NexusOne",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/icon.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
-      "assets/fonts/*"
+      "assets/fonts/*",
+      "assets/icons/*",
+      "assets/images/*"
     ],
-    "updates": {
-      "fallbackToCacheTimeout": 0
-    },
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#1e4a7a"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.krishnajayanth.BestInfraApp"
+      "package": "com.bestinfra.app",
+      "versionCode": 4
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "f0b67060-3d56-43f0-a138-3c32a47b7e16"
+        "projectId": "4023ecc1-2e83-440b-85d7-dd31682d6465"
       }
-    },
-    "plugins": [
-      "expo-font",
-      "expo-secure-store"
-    ]
+    }
   }
 }

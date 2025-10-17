@@ -1,1 +1,2 @@
-export const GLOBAL_API_URL = "192.168.1.60";
+// Centralized API configuration
+export { API, API_ENDPOINTS, ENV_INFO, getApiDebugInfo } from '../config/apiConfig';

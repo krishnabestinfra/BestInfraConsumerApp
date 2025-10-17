@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -21,6 +22,8 @@ import { getCachedConsumerData } from "../utils/cacheManager";
 import { cacheManager } from "../utils/cacheManager";
 import { useLoading } from "../utils/loadingManager";
 import { InstantLoader } from "../utils/loadingManager";
+import { useUltraFastData } from "../hooks/useUltraFastData";
+import UltraFastScreen from "../components/UltraFastScreen";
 
 
 
@@ -32,55 +35,61 @@ const Dashboard = React.memo(({ navigation, route }) => {
   const [isTableLoading, setIsTableLoading] = useState(true);
   const [consumerData, setConsumerData] = useState(null);
   const { isLoading, setLoading } = useLoading('dashboard_loading', true);
+  
+  // Ultra-fast data loading
+  const { data: ultraFastData, isLoading: ultraFastLoading, refresh: ultraFastRefresh } = useUltraFastData('consumerData', {
+    maxLoadingTime: 500,
+    autoRefresh: true
+  });
 
   // Fetch consumer data with caching
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const user = await getUser();
-        
-        if (user && user.identifier) {
-          // Check preloaded data first (ultra-fast)
-          const preloadedData = await cacheManager.getCachedData('consumer_data', user.identifier);
-          if (preloadedData.success) {
-            setConsumerData(preloadedData.data);
-            setLoading(false, 50);
-            console.log('⚡ Dashboard: Using preloaded data');
-          } else {
-            // Try cached data
-            const cachedResult = await getCachedConsumerData(user.identifier);
-            if (cachedResult.success) {
-              setConsumerData(cachedResult.data);
-              setLoading(false, 100);
-              console.log('⚡ Dashboard: Using cached data');
-            }
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const user = await getUser();
+      
+      if (user && user.identifier) {
+        // Check preloaded data first (ultra-fast)
+        const preloadedData = await cacheManager.getCachedData('consumer_data', user.identifier);
+        if (preloadedData.success) {
+          setConsumerData(preloadedData.data);
+          setLoading(false, 50);
+          console.log('⚡ Dashboard: Using preloaded data');
+        } else {
+          // Try cached data
+          const cachedResult = await getCachedConsumerData(user.identifier);
+          if (cachedResult.success) {
+            setConsumerData(cachedResult.data);
+            setLoading(false, 100);
+            console.log('⚡ Dashboard: Using cached data');
           }
-          
-          // Fetch fresh data (will use cache if available, otherwise fetch from API)
-          const result = await fetchConsumerData(user.identifier);
-          if (result.success) {
-            setConsumerData(result.data);
-          }
-          
-          // Background sync for future updates
-          syncConsumerData(user.identifier).then((syncResult) => {
-            if (syncResult.success) {
-              setConsumerData(syncResult.data);
-            }
-          }).catch(error => {
-            console.error('Background sync failed:', error);
-          });
         }
-      } catch (error) {
-        console.error('Error fetching consumer data:', error);
-      } finally {
-        setLoading(false, 50);
+        
+        // Fetch fresh data (will use cache if available, otherwise fetch from API)
+        const result = await fetchConsumerData(user.identifier);
+        if (result.success) {
+          setConsumerData(result.data);
+        }
+        
+        // Background sync for future updates
+        syncConsumerData(user.identifier).then((syncResult) => {
+          if (syncResult.success) {
+            setConsumerData(syncResult.data);
+          }
+        }).catch(error => {
+          console.error('Background sync failed:', error);
+        });
       }
-    };
-
-    fetchData();
+    } catch (error) {
+      console.error('Error fetching consumer data:', error);
+    } finally {
+      setLoading(false, 50);
+    }
   }, [setLoading]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Table data for meter status - memoized for performance
   const meterStatusData = useMemo(() => [
@@ -131,6 +140,14 @@ const Dashboard = React.memo(({ navigation, route }) => {
         style={styles.Container}
         contentContainerStyle={{ paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={fetchData}
+            colors={[COLORS.secondaryColor]}
+            tintColor={COLORS.secondaryColor}
+          />
+        }
       >
         <View style={styles.Container}>
           <StatusBar style="dark" />
@@ -146,7 +163,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
           <View style={styles.meterInfoRow}>
             <Meter width={30} height={30} />
             <Text style={styles.meterConsumerText}>
-              {isLoading ? "Loading..." : (consumerData?.name || "GMR AERO TOWER 2 INCOMER")}
+              {consumerData?.name || "GMR AERO TOWER 2 INCOMER"}
             </Text>
           </View>
            <View style={styles.meterInfoColumn}>
@@ -264,7 +281,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
           loading={isTableLoading}
           skeletonLines={3}
           emptyMessage="No meter status data available"
-          showSerial={false}
+          showSerial={true}
           showPriority={false}
           priorityField="occurredOn"
           priorityMapping={{
@@ -335,7 +352,6 @@ const styles = StyleSheet.create({
   },
   tenPercentageTextContainer: {
     backgroundColor: COLORS.secondaryColor,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -365,7 +381,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingVertical: 15,
     paddingHorizontal: 15,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -374,7 +389,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryLightColor, 
     borderRadius: 5,
     padding: 10,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -434,35 +448,23 @@ lastCommunicationTimeText: {
     color: COLORS.primaryFontColor,
     marginBottom: 10,
   },
-  meterInfoRow: {
-    display: "flex",
-    flexDirection: "row",
+  meterInfoRow: {    flexDirection: "row",
     alignItems: "center",
     gap: 10,
     width: "50%"
   },
-  meterInfoColumn: {
-    display: "flex",
-    flexDirection: "column",
+  meterInfoColumn: {    flexDirection: "column",
     alignItems: "flex-end"
   },
-  energyHeader: {
-    display: "flex",
-    justifyContent: "space-between",
+  energyHeader: {    justifyContent: "space-between",
     flexDirection: "row",
   },
-  toggleContainer: {
-    display: "flex",
-    flexDirection: "row"
+  toggleContainer: {    flexDirection: "row"
   },
-  percentageContainer: {
-    display: "flex",
-    flexDirection: "row",
+  percentageContainer: {    flexDirection: "row",
     marginTop: 10,
   },
-  chartContainer: {
-    display: "flex",
-    alignItems: "center"
+  chartContainer: {    alignItems: "center"
   },
   tableContainer: {
     paddingHorizontal: 20,

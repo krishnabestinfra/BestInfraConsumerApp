@@ -13,7 +13,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GLOBAL_API_URL } from '../constants/constants';
+import { API, API_ENDPOINTS } from '../constants/constants';
 import { getToken, getUser } from './storage';
 
 // Cache configuration
@@ -122,6 +122,13 @@ class UnifiedCacheManager {
   async fetchFreshData(endpoint, identifier = null) {
     try {
       const token = await getToken();
+      const user = await getUser();
+      
+      console.log('🔄 Fetching fresh data from API:');
+      console.log(`   Endpoint: ${endpoint}`);
+      console.log(`   Consumer: ${identifier || user?.identifier || 'unknown'}`);
+      console.log(`   Token present: ${!!token}`);
+      
       const response = await fetch(endpoint, {
         headers: {
           'Content-Type': 'application/json',
@@ -130,11 +137,28 @@ class UnifiedCacheManager {
         },
       });
 
+      console.log(`   Response status: ${response.status}`);
+      console.log(`   Response headers:`, Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to get error details from response
+        let errorDetails = '';
+        try {
+          const errorResponse = await response.json();
+          errorDetails = errorResponse.message || errorResponse.error || '';
+          console.log('❌ API Error Response:', errorResponse);
+        } catch (e) {
+          console.log('❌ Could not parse error response');
+        }
+        
+        const errorMessage = `HTTP ${response.status}: ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`;
+        console.error('❌ API Error:', errorMessage);
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
+      console.log('✅ API Response received:', result);
+      
       const data = result.data || result;
       
       return {
@@ -144,8 +168,13 @@ class UnifiedCacheManager {
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('Error fetching fresh data:', error);
-      return { success: false, fromCache: false, error: error.message };
+      console.error('❌ Error fetching fresh data:', error);
+      return { 
+        success: false, 
+        fromCache: false, 
+        error: error.message,
+        status: error.message.includes('HTTP') ? parseInt(error.message.match(/\d+/)?.[0]) : 0
+      };
     }
   }
 
@@ -216,21 +245,21 @@ class UnifiedCacheManager {
         // Preload consumer data
         await this.getData(
           CACHE_KEYS.CONSUMER_DATA,
-          `http://${GLOBAL_API_URL}:4256/api/consumers/${identifier}`,
+          API_ENDPOINTS.consumers.get(identifier),
           identifier
         );
         
         // Preload ticket stats
         await this.getData(
           CACHE_KEYS.TICKET_STATS,
-          `http://${GLOBAL_API_URL}:4255/api/tickets/stats?uid=${identifier}`,
+          API_ENDPOINTS.tickets.stats(identifier),
           identifier
         );
         
         // Preload ticket table
         await this.getData(
           CACHE_KEYS.TICKET_TABLE,
-          `http://${GLOBAL_API_URL}:4255/api/tickets/table?uid=${identifier}`,
+          API_ENDPOINTS.tickets.table(identifier),
           identifier
         );
         
@@ -299,7 +328,7 @@ export const getCachedConsumerData = (identifier) =>
 export const getConsumerDataWithCache = (identifier, forceRefresh = false) => 
   cacheManager.getData(
     CACHE_KEYS.CONSUMER_DATA,
-    `http://${GLOBAL_API_URL}:4256/api/consumers/${identifier}`,
+    API_ENDPOINTS.consumers.get(identifier),
     identifier,
     forceRefresh
   );
@@ -307,7 +336,7 @@ export const getConsumerDataWithCache = (identifier, forceRefresh = false) =>
 export const backgroundSyncConsumerData = (identifier) => 
   cacheManager.backgroundRefresh(
     CACHE_KEYS.CONSUMER_DATA,
-    `http://${GLOBAL_API_URL}:4256/api/consumers/${identifier}`,
+    API_ENDPOINTS.consumers.get(identifier),
     identifier
   );
 

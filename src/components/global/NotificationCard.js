@@ -103,7 +103,7 @@ const NotificationCard = ({
             ]}>
               {title}
             </Text>
-            {!isRead && <View style={styles.unreadDot} />}
+            {/* {!isRead && <View style={styles.unreadDot} />} */}
           </View>
           {displayDescription && (
             <Text style={[styles.description, descriptionStyle]}>

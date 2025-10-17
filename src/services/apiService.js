@@ -12,12 +12,13 @@
  * - Token management
  */
 
-import { GLOBAL_API_URL } from '../constants/constants';
+import { API, API_ENDPOINTS, ENV_INFO } from '../constants/constants';
 import { getToken } from '../utils/storage';
 import { cacheManager } from '../utils/cacheManager';
 
-const BASE_URL = `http://${GLOBAL_API_URL}:4256/api`;
-const TICKETS_BASE_URL = `http://${GLOBAL_API_URL}:4255/api`;
+// Use centralized API configuration
+const BASE_URL = API.BASE_URL;
+const TICKETS_BASE_URL = API.TICKETS_URL;
 
 /**
  * Make authenticated API request
@@ -55,7 +56,7 @@ export const testConsumerCredentials = async (identifier, password) => {
   try {
     console.log(`🧪 Testing credentials for consumer: ${identifier}`);
     
-    const response = await fetch(`${BASE_URL}/sub-app/auth/login`, {
+    const response = await fetch(API_ENDPOINTS.auth.login(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -94,7 +95,7 @@ export const fetchConsumerData = async (consumerId, forceRefresh = false) => {
   try {
     return await cacheManager.getData(
       'consumer_data',
-      `${BASE_URL}/consumers/${consumerId}`,
+      API_ENDPOINTS.consumers.get(consumerId),
       consumerId,
       forceRefresh
     );
@@ -111,7 +112,7 @@ export const syncConsumerData = async (consumerId) => {
   try {
     return await cacheManager.backgroundRefresh(
       'consumer_data',
-      `${BASE_URL}/consumers/${consumerId}`,
+      API_ENDPOINTS.consumers.get(consumerId),
       consumerId
     );
   } catch (error) {
@@ -125,7 +126,7 @@ export const syncConsumerData = async (consumerId) => {
  */
 export const fetchPostpaidBillingData = async (consumerId) => {
   try {
-    return await makeRequest(`${BASE_URL}/billing/postpaid/table`);
+    return await makeRequest(`${API.BASE_URL}/billing/postpaid/table`);
   } catch (error) {
     console.error("Error fetching postpaid billing data:", error);
     return { success: false, message: error.message };
@@ -139,7 +140,7 @@ export const fetchTicketStats = async (uid) => {
   try {
     return await cacheManager.getData(
       'ticket_stats',
-      `${TICKETS_BASE_URL}/tickets/stats?uid=${uid}`,
+      API_ENDPOINTS.tickets.stats(uid),
       uid
     );
   } catch (error) {
@@ -155,7 +156,7 @@ export const fetchTicketsTable = async (uid) => {
   try {
     return await cacheManager.getData(
       'ticket_table',
-      `${TICKETS_BASE_URL}/tickets/table?uid=${uid}`,
+      API_ENDPOINTS.tickets.table(uid),
       uid
     );
   } catch (error) {
@@ -207,11 +208,55 @@ export const hasValidCache = async (identifier) => {
 export const fetchNotifications = async (uid) => {
   try {
     const url = `${BASE_URL}/notifications?uid=${uid}`;
-    console.log(`🔔 Fetching notifications for UID: ${uid}`);
-    return await makeRequest(url);
+    const token = await getToken();
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+
+    // Handle specific HTTP status codes gracefully
+    if (response.status === 403) {
+      // 403 Forbidden - notifications feature may not be enabled for this consumer
+      // Return success with empty notifications to avoid error logs
+      return { 
+        success: true, 
+        data: { notifications: [] },
+        status: 403,
+        message: 'Notifications not available for this consumer'
+      };
+    }
+
+    if (response.status === 404) {
+      // 404 Not Found - endpoint may not exist yet
+      return { 
+        success: true, 
+        data: { notifications: [] },
+        status: 404,
+        message: 'Notifications endpoint not found'
+      };
+    }
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { success: true, data: data.data || data };
   } catch (error) {
-    console.error("Error fetching notifications:", error);
-    return { success: false, message: error.message };
+    // Only log actual network errors, not HTTP status errors
+    if (!error.message.includes('HTTP error!')) {
+      console.error("Network error fetching notifications:", error);
+    }
+    return { 
+      success: true, // Return success to prevent error propagation
+      data: { notifications: [] },
+      message: error.message 
+    };
   }
 };
 

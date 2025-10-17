@@ -13,8 +13,49 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
 import { View, ActivityIndicator, StyleSheet, Animated } from 'react-native';
 import { COLORS } from '../constants/colors';
+
+// Shimmer effect
+
+const Shimmer = ({ style }) => {
+  const shimmerAnim = useRef(new Animated.Value(-1)).current;
+
+  useEffect(() => {
+     shimmerAnim.setValue(-1);
+    Animated.loop(
+      Animated.timing(shimmerAnim, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [shimmerAnim]);
+
+  const translateX = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-200, 300],
+  });
+
+  return (
+    <View style={[style, { overflow: "hidden", backgroundColor: "#e0e0e0" }]}>
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { transform: [{ translateX }] },
+        ]}
+      >
+        <LinearGradient
+          colors={["#e0e0e0", "#f5f5f5", "#e0e0e0"]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={{ flex: 1 }}
+        />
+      </Animated.View>
+    </View>
+  );
+};
 
 class LoadingManager {
   constructor() {
@@ -97,7 +138,7 @@ class LoadingManager {
         }
       }
     };
-  }
+  } 
 
   /**
    * Notify all callbacks for a key
@@ -194,25 +235,24 @@ export const SkeletonLoader = memo(({
     ));
   };
 
-  //   const renderCardSkeleton = () => (
-  //   <View style={[styles.cardSkeleton, style]}>
-  //     <View style={styles.skeletonAvatar} />
-  //     <View style={styles.skeletonLine} />
-  //     <View style={[styles.skeletonLine, { width: "60%" }]} />
-  //   </View>
-  // );
+      const renderCardSkeleton = () => (
+      <View style={[styles.cardSkeleton, style]}>
+        <Shimmer style={styles.skeletonLine} />
+        <View style={[styles.skeletonLine, { width: "60%" }]} />
+      </View>
+    );
 
 
   const renderBarChartSkeleton = () => (
     <View style={[styles.chartContainer, style]}>
       {Array.from({ length: lines }).map((_, index) => (
-        <View
+        <Shimmer
           key={index}
           style={[
             styles.chartBar,
             {
               height: 60 + Math.random() * 100,
-              width: 20,
+              width: 22,
             },
           ]}
         />
@@ -233,7 +273,7 @@ export const SkeletonLoader = memo(({
       {Array.from({ length: lines }).map((_, rowIndex) => (
         <View key={rowIndex} style={styles.tableRow}>
           {Array.from({ length: columns }).map((_, colIndex) => (
-            <View key={colIndex} style={styles.tableCell} />
+            <Shimmer key={colIndex} style={styles.tableCell} />
           ))}
         </View>
       ))}
@@ -245,8 +285,8 @@ export const SkeletonLoader = memo(({
       return renderBarChartSkeleton();
     case "table":
       return renderTableSkeleton();
-    // case "card":
-    //   return renderCardSkeleton();
+    case "card":
+      return renderCardSkeleton();
     default:
       return renderSkeletonLines();
   }
@@ -448,9 +488,9 @@ const styles = StyleSheet.create({
   paddingHorizontal: 10,
 
   },
-    chartBar: {
+  chartBar: {
   backgroundColor: "#e0e0e0",
-  borderRadius: 6,
+  // borderRadius: 6,
   marginHorizontal: 4
 
   },
@@ -461,6 +501,7 @@ tableContainer: {
   borderRadius: 6,
   overflow: "hidden",
   gap:3,
+  marginBottom: 40,
 },
 tableRow: {
   flexDirection: "row",
@@ -479,6 +520,30 @@ tableCell: {
   marginHorizontal: 6,
   width:5,
 },
+
+ readingCardSkeleton: {
+  flex: 1,
+  backgroundColor: "#F8FAFC",
+  borderRadius: 8,
+  padding: 12,
+  borderLeftWidth: 3,
+  borderColor: "#E2E8F0",
+  marginHorizontal: 4,
+},
+skeletonPhase: {
+  height: 12,
+  width: "50%",
+  backgroundColor: "#E2E8F0", 
+  borderRadius: 4,
+  marginBottom: 6,
+},
+skeletonValue: {
+  height: 18,
+  width: "70%",
+  backgroundColor: "#CBD5E1", 
+  borderRadius: 4,
+},
+
 
   progressContainer: {
     width: 200,

@@ -150,7 +150,7 @@ const ConsumerDataTable = ({ navigation, route }) => {
           data={tableData}
           loading={isTableLoading}
           emptyMessage="No consumption data available"
-          showSerial={false}
+          showSerial={true}
           showPriority={true}
           priorityField="consumption"
           priorityMapping={(value) => {
@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   TopMenu: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -225,7 +224,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     elevation: 5,
   },
@@ -235,7 +233,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     elevation: 5,
   },

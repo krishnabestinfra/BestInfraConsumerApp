@@ -73,7 +73,6 @@ export default ForgotPassword;
 const styles = StyleSheet.create({
   mainContainer: {
     height: "100%",
-    display: "flex",
     justifyContent: "center",
   },
   container: {

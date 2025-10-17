@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View, Pressable, ScrollView, Dimensions, TouchableOpacity, StatusBar, ActivityIndicator, Alert } from "react-native";
+import { StyleSheet, Text, View, Pressable, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { COLORS } from "../constants/colors";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import Button from "../components/global/Button";
 import SuccessIcon from "../../assets/icons/checkmark.svg";
@@ -18,14 +19,20 @@ const PaymentStatus = ({ navigation, route }) => {
         setIsLoading(true);
         setError(null);
 
+        console.log('🔍 PaymentStatus - Route params:', route?.params);
+        console.log('🔍 PaymentStatus - Bill ID:', billId);
+        console.log('🔍 PaymentStatus - Initial payment data:', initialPaymentData);
+
         if (billId) {
           const result = await getPaymentStatus(billId);
           if (result.success) {
+            console.log('🔍 PaymentStatus - Fetched payment data:', result.data);
             setPaymentDetails(result.data);
           } else {
             setError(result.message);
           }
         } else if (initialPaymentData) {
+          console.log('🔍 PaymentStatus - Using initial payment data:', initialPaymentData);
           setPaymentDetails(initialPaymentData);
         } else {
           setError('No payment information available');
@@ -111,10 +118,14 @@ const PaymentStatus = ({ navigation, route }) => {
               <View style={styles.billingAddressValueContainer}>
                 <Text style={styles.billingAddressValueText}>
                   {paymentDetails ? (
-                    `Transaction ID: ${paymentDetails.transaction_id || paymentDetails.razorpay_payment_id || 'N/A'}\n` +
-                    `Payment Date: ${formatPaymentDate(paymentDetails.created_at || paymentDetails.payment_date || new Date())}\n` +
-                    `Status: ${paymentDetails.status || 'Completed'}\n` +
-                    `Bill ID: ${paymentDetails.bill_id || billId || 'N/A'}`
+                    `Transaction ID: ${paymentDetails.transaction_id || paymentDetails.razorpay_payment_id || paymentDetails.payment_id || 'N/A'}\n` +
+                    `Payment ID: ${paymentDetails.razorpay_payment_id || paymentDetails.payment_id || 'N/A'}\n` +
+                    `Order ID: ${paymentDetails.razorpay_order_id || paymentDetails.order_id || 'N/A'}\n` +
+                    `Payment Date: ${formatPaymentDate(paymentDetails.created_at || paymentDetails.payment_date || paymentDetails.verified_at || new Date())}\n` +
+                    `Status: ${paymentDetails.status || paymentDetails.payment_status || 'Completed'}\n` +
+                    `Bill ID: ${paymentDetails.bill_id || billId || 'N/A'}\n` +
+                    `Payment Method: ${paymentDetails.payment_method || 'UPI'}\n` +
+                    `Source: ${paymentDetails.source || 'Mobile App'}`
                   ) : (
                     "Transaction details not available"
                   )}
@@ -195,7 +206,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderTopLeftRadius: 15,
     borderTopRightRadius: 15,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -206,7 +216,6 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 5,
     paddingHorizontal: 15,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",

@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View, ScrollView, StatusBar } from "react-native";
+import { StyleSheet, Text, View, ScrollView} from "react-native";
 import { COLORS } from "../constants/colors";
+import { StatusBar } from "expo-status-bar";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
@@ -150,9 +151,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef8f0",
     padding: 15,
   },
-  TopMenu: {
-    display: "flex",
-    flexDirection: "row",
+  TopMenu: {    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 60,
@@ -164,14 +163,10 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 60,
-    alignItems: "center",
-    verticalAlign: "middle",
-    justifyContent: "center",
+    alignItems: "center",    justifyContent: "center",
     elevation: 5,
     zIndex: 2,
-  },
-  logoImage: {},
-  logo: {
+  },  logo: {
     width: 80,
     height: 80,
     zIndex: 1,
@@ -181,15 +176,11 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 60,
-    alignItems: "center",
-    verticalAlign: "middle",
-    justifyContent: "center",
+    alignItems: "center",    justifyContent: "center",
     elevation: 5,
     zIndex: 2,
   },
-  ProfileBox: {
-    display: "flex",
-    justifyContent: "space-between",
+  ProfileBox: {    justifyContent: "space-between",
     flexDirection: "row",
     marginHorizontal: 4,
   },
@@ -228,7 +219,6 @@ const styles = StyleSheet.create({
   },
   amountContainer: {
     backgroundColor: COLORS.primaryColor,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 10,
@@ -248,9 +238,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: "Manrope-Regular",
   },
-  greenBox: {
-    display: "flex",
-    flexDirection: "row",
+  greenBox: {    flexDirection: "row",
     backgroundColor: COLORS.secondaryColor,
     borderRadius: 8,
     justifyContent: "space-between",
@@ -278,20 +266,14 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor,
     height: 35,
     width: 95,
-    borderRadius: 5,
-    display: "flex",
-    justifyContent: "center",
+    borderRadius: 5,    justifyContent: "center",
   },
   paynowText: {
     color: COLORS.primaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-Medium",
-    textAlign: "center",
-    verticalAlign: "middle",
-  },
-  iconsContainer: {
-    display: "flex",
-    flexDirection: "row",
+    textAlign: "center",  },
+  iconsContainer: {    flexDirection: "row",
     justifyContent: "space-evenly",
     marginTop: 15,
   },
@@ -353,9 +335,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  buttonContainerInner: {
-    display: 'flex',
-    flexDirection: 'row',
+  buttonContainerInner: {    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,

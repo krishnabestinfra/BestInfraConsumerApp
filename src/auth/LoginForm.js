@@ -13,7 +13,8 @@ import { useState, useEffect } from "react";
 import Icon from 'react-native-vector-icons/AntDesign';
 import { z } from 'zod';
 import User from '../../assets/icons/user.svg';
-
+import EyeFill from '../../assets/icons/eyeFill.svg';
+import EyeBlank from '../../assets/icons/eyeBlank.svg';
 // Zod schema for login validation
 const loginSchema = z.object({
   identifier: z
@@ -154,6 +155,7 @@ const LoginForm = ({
               width={20} 
               height={20} 
               fill={COLORS.color_text_secondary} 
+              style={styles.userIcon}
             />
           }
           disabled={isLoading}
@@ -172,11 +174,11 @@ const LoginForm = ({
           rightIcon={
             <Pressable onPress={togglePasswordVisibility} disabled={isLoading}>
               <View style={styles.eyeIconContainer}>
-                <Icon 
-                  name={showPassword ? "eye" : "eyeo"} 
-                  size={20} 
-                  color={COLORS.color_text_secondary} 
-                />
+                {showPassword ? (
+                  <EyeFill width={18} height={18} fill={COLORS.color_text_secondary} />
+                ) : (
+                  <EyeBlank width={18} height={18} fill={COLORS.color_text_secondary} />
+                )}
               </View>
             </Pressable>
           }
@@ -238,7 +240,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   forgetboxContainer: {
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -286,4 +287,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  userIcon:{
+    marginRight: 8,
+  }
 });

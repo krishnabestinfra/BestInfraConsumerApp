@@ -45,8 +45,14 @@ const DirectRazorpayPayment = ({
             razorpay_payment_id: paymentId,
             razorpay_order_id: orderId || 'direct_order',
             razorpay_signature: signature || 'direct_payment_signature',
+            // Include additional payment details from orderData
+            amount: orderData?.amount || 0,
+            currency: orderData?.currency || 'INR',
+            description: orderData?.description || 'Payment',
+            key_id: orderData?.key || orderData?.key_id,
           };
           
+          console.log('🔍 DirectRazorpayPayment - Payment success response:', paymentResponse);
           onSuccess(paymentResponse);
           onClose();
         }
@@ -74,8 +80,14 @@ const DirectRazorpayPayment = ({
           razorpay_payment_id: data.razorpay_payment_id,
           razorpay_order_id: data.razorpay_order_id || 'direct_order',
           razorpay_signature: data.razorpay_signature || 'direct_payment_signature',
+          // Include additional payment details from orderData
+          amount: orderData?.amount || 0,
+          currency: orderData?.currency || 'INR',
+          description: orderData?.description || 'Payment',
+          key_id: orderData?.key || orderData?.key_id,
         };
         
+        console.log('🔍 DirectRazorpayPayment - Message success response:', paymentResponse);
         onSuccess(paymentResponse);
         onClose();
       }
@@ -95,6 +107,17 @@ const DirectRazorpayPayment = ({
     console.error('WebView error:', nativeEvent);
     onError('Payment page failed to load');
     onClose();
+  };
+
+  // Load Razorpay script dynamically
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
   };
 
   // Generate Razorpay payment HTML
@@ -169,7 +192,7 @@ const DirectRazorpayPayment = ({
             <div class="amount">₹${(amount / 100).toFixed(2)}</div>
             <div class="description">${description}</div>
             <div class="test-info">
-              <strong>Test Mode:</strong> Use card number 4111 1111 1111 1111 for testing
+              <strong>UPI Payment:</strong> Pay using UPI apps like PhonePe, Google Pay, Paytm
             </div>
             <button id="pay-button" class="pay-button" onclick="openRazorpay()">
               Pay Now
@@ -177,15 +200,26 @@ const DirectRazorpayPayment = ({
           </div>
         </div>
         
-        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
         <script>
-          console.log('Razorpay script loaded');
+          console.log('Payment page loaded');
           
+          // Load Razorpay script dynamically - YOUR EXACT FUNCTION
+          const loadRazorpayScript = () => {
+            return new Promise((resolve) => {
+              const script = document.createElement("script");
+              script.src = "https://checkout.razorpay.com/v1/checkout.js";
+              script.onload = () => resolve(true);
+              script.onerror = () => resolve(false);
+              document.body.appendChild(script);
+            });
+          };
+          
+          // Payment options - Optimized for UPI
           const options = {
             key: '${key_id}',
             amount: ${amount},
             currency: '${currency}',
-            name: 'BestInfra',
+            name: 'BestInfra Energy',
             description: '${description}',
             prefill: {
               name: '${consumer_name}',
@@ -195,15 +229,27 @@ const DirectRazorpayPayment = ({
             theme: {
               color: '#4CAF50'
             },
+            // UPI Configuration
+            method: {
+              netbanking: false,
+              wallet: false,
+              upi: true,
+              card: false,
+              emi: false
+            },
+            // UPI specific settings
+            upi: {
+              flow: 'collect',
+              vpa: '${consumer_name}@paytm' // Optional: pre-fill UPI ID
+            },
             handler: function (response) {
-              console.log('Payment successful:', response);
-              // For direct payments, we don't have signature, so we'll use a different approach
-              // Instead of URL redirection, we'll use postMessage to communicate with React Native
+              console.log('UPI Payment successful:', response);
               const paymentData = {
                 razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id || 'direct_order',
-                razorpay_signature: response.razorpay_signature || 'direct_payment_signature',
-                status: 'success'
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                status: 'success',
+                payment_method: 'upi'
               };
               
               // Send message to React Native
@@ -213,46 +259,76 @@ const DirectRazorpayPayment = ({
                 // Fallback to URL redirection
                 const successUrl = 'razorpay://success?razorpay_payment_id=' + 
                   response.razorpay_payment_id + 
-                  '&razorpay_order_id=' + (response.razorpay_order_id || 'direct_order') + 
-                  '&razorpay_signature=direct_payment_signature';
+                  '&razorpay_order_id=' + response.razorpay_order_id + 
+                  '&razorpay_signature=' + response.razorpay_signature;
                 window.location.href = successUrl;
               }
             },
             modal: {
               ondismiss: function() {
-                console.log('Payment cancelled by user');
-                // Redirect to failure URL
-                window.location.href = 'razorpay://failure?error=user_cancelled';
+                console.log('UPI Payment cancelled by user');
+                const errorData = {
+                  status: 'error',
+                  message: 'UPI Payment cancelled by user'
+                };
+                
+                if (window.ReactNativeWebView) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify(errorData));
+                } else {
+                  window.location.href = 'razorpay://failure?error=user_cancelled';
+                }
               }
             },
             notes: {
               source: 'react_native_app',
-              test_payment: true
+              payment_type: 'upi'
             }
           };
           
-          function openRazorpay() {
-            console.log('Opening Razorpay with options:', options);
+          // This function runs when button is clicked
+          async function openRazorpay() {
+            console.log('Button clicked - Loading Razorpay script...');
             
             try {
+              // Load Razorpay script when button is clicked
+              const scriptLoaded = await loadRazorpayScript();
+              
+              if (!scriptLoaded) {
+                throw new Error('Failed to load Razorpay script');
+              }
+              
+              console.log('Razorpay script loaded, initializing payment...');
+              
+              // Wait for script to be ready
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              // Check if Razorpay is available
+              if (typeof Razorpay === 'undefined') {
+                throw new Error('Razorpay not available after loading');
+              }
+              
+              console.log('Creating Razorpay instance with options:', options);
+              
               const rzp = new Razorpay(options);
               rzp.open().catch(function(error) {
                 console.error('Razorpay error:', error);
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('payment-form').style.display = 'none';
-                document.getElementById('error').style.display = 'block';
-                document.getElementById('error-message').textContent = 'Error: ' + (error.description || error.message || 'Unknown error');
+                showError('Payment failed: ' + (error.description || error.message || 'Unknown error'));
               });
+              
             } catch (error) {
-              console.error('Error creating Razorpay instance:', error);
-              document.getElementById('loading').style.display = 'none';
-              document.getElementById('payment-form').style.display = 'none';
-              document.getElementById('error').style.display = 'block';
-              document.getElementById('error-message').textContent = 'Failed to initialize payment gateway: ' + error.message;
+              console.error('Error in openRazorpay:', error);
+              showError('Failed to initialize payment: ' + error.message);
             }
           }
           
-          // Show payment form when loaded
+          function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('payment-form').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+          }
+          
+          // Show payment form when page loads
           document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, showing payment form');
             document.getElementById('loading').style.display = 'none';

@@ -2,6 +2,8 @@ import { StyleSheet, Text, View, Dimensions } from "react-native";
 import React, {useState} from "react";
 import { COLORS } from "../../constants/colors";
 import { SkeletonLoader } from "../../utils/loadingManager";
+import Button from "../global/Button";
+
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -29,7 +31,7 @@ const Table = ({
   skeletonLines = 4,
 }) => {
 
-        const [currentPage, setCurrentPage] = useState(1); 
+  const [currentPage, setCurrentPage] = useState(1); 
   const rowsPerPage = 5; 
   const totalPages = Math.ceil(data.length / rowsPerPage); 
 
@@ -157,64 +159,85 @@ const Table = ({
           >
             {showSerial && (
               <View style={[styles.columnContainer, styles.serialColumn]}>
-                <Text style={[styles.dataText, textStyle]}>
+                <Text style={[styles.dataText, styles.serialText, textStyle]}>
                   {(currentPage - 1) * rowsPerPage + index + 1}
                 </Text>
               </View>
             )}
-            {tableColumns.map((column, colIndex) => {
-              const value = item[column.key];
-              const isPriorityField = priorityField === column.key;
-              const priorityLevel = getPriorityLevel(value);
-              const hasPriority = isPriorityField && priorityLevel;
-              
-              return (
-                <View 
-                  key={column.key} 
-                  style={[
-                    { flex: column.flex || 1, paddingRight: 8 },
-                    colIndex === tableColumns.length - 1 && { paddingRight: 0 },
-                    hasPriority && styles.priorityCell
-                  ]}
-                >
-                  {isPriorityField && hasPriority ? (
-                    inlinePriority ? (
-                      <View style={styles.inlinePriorityWrapper}>
-                        <Text style={[styles.dataText, textStyle]}>{value}</Text>
-                        <PriorityTag priority={priorityLevel} />
-                      </View>
-                    ) : (
-                      <>
-                        <Text style={[styles.dataText, textStyle]}>{value}</Text>
-                        <PriorityTag priority={priorityLevel} />
-                      </>
-                    )
-                  ) : (
-                    <Text style={[styles.dataText, textStyle]}>{value}</Text>
-                  )}
-                </View>
-              );
-            })}
+             {tableColumns.map((column, colIndex) => {
+               const value = item[column.key];
+               const isPriorityField = priorityField === column.key;
+               const priorityLevel = getPriorityLevel(value);
+               const hasPriority = isPriorityField && priorityLevel;
+               
+               return (
+                 <View 
+                   key={column.key} 
+                   style={[
+                     { 
+                       flex: column.flex || 1, 
+                       paddingRight: 6,
+                       justifyContent: 'center',
+                     },
+                     colIndex === tableColumns.length - 1 && { paddingRight: 0, alignItems: 'center', justifyContent: 'center' },
+                     hasPriority && styles.priorityCell
+                   ]}
+                 >
+                   {column.render ? (
+                     // Custom render function for action columns (like View button)
+                     column.render(item)
+                   ) : isPriorityField && hasPriority ? (
+                     inlinePriority ? (
+                       <View style={styles.inlinePriorityWrapper}>
+                         <Text style={[styles.dataText, styles.multiLineText, textStyle]}>
+                           {value}
+                         </Text>
+                         <PriorityTag priority={priorityLevel} />
+                       </View>
+                     ) : (
+                       <>
+                         <Text style={[styles.dataText, styles.multiLineText, textStyle]}>
+                           {value}
+                         </Text>
+                         <PriorityTag priority={priorityLevel} />
+                       </>
+                     )
+                   ) : (
+                     <Text style={[styles.dataText, styles.multiLineText, textStyle]}>
+                       {value}
+                     </Text>
+                   )}
+                 </View>
+               );
+             })}
           </View>
         ))
       )}
       {data.length > rowsPerPage && (
         <View style={styles.paginationContainer}>
-            <Text 
-              style={[
-                styles.paginationButton,
-                currentPage === 1 && styles.disabledButton
-              ]}
+            <Button 
+              title="Previous"
+              variant="primary"
+              size="small"
+              disabled={currentPage===1}
+              style={[styles.paginationButton, currentPage === 1 && styles.disabledButton]}
               onPress={() => currentPage > 1 && setCurrentPage(prev => prev - 1)}
-            >
-              Previous
-            </Text>
+            />
 
           <Text style={styles.paginationText}>
             Page {currentPage} of {totalPages}
           </Text>
 
-            <Text 
+            <Button 
+              title="Next"
+              variant="primary"
+              size="small"
+              disabled={currentPage===totalPages}
+              style={[styles.paginationButton, currentPage===totalPages && styles.disabledButton]}
+              onPress={() => currentPage < totalPages && setCurrentPage(prev => prev + 1)}
+            />
+
+            {/* <Text 
               style={[
                 styles.paginationButton,
                 currentPage === totalPages && styles.disabledButton
@@ -222,7 +245,7 @@ const Table = ({
               onPress={() => currentPage < totalPages && setCurrentPage(prev => prev + 1)}
             >
               Next
-            </Text>
+            </Text> */}
         </View>
       )}
     </View>
@@ -231,28 +254,29 @@ const Table = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
   headerRow: {
     backgroundColor: COLORS.secondaryColor,
     borderRadius: 5,
     flexDirection: "row",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     alignItems: "center",
-    minHeight: 48,
+    minHeight: 42,
+    justifyContent: "center",
+    paddingVertical: 10,
   },
   columnContainer: {
     paddingRight: 8,
   },
   headerText: {
     color: COLORS.secondaryFontColor,
-    fontFamily: "Manrope-SemiBold",
-    fontSize: 13,
+    fontFamily: "Manrope-Medium",
+    fontSize: 12,
     textAlign: "left",
     fontWeight: "600",
-    flex: 1,
+    // flex: 1,
   },
   headerTextResponsive: {
     fontSize: screenWidth < 400 ? 11 : 13,
@@ -262,10 +286,10 @@ const styles = StyleSheet.create({
   dataRow: {
     backgroundColor: "#F8F9FA",
     flexDirection: "row",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 5,
-    alignItems: "center",
+    alignItems: 'center',
     marginTop: 2,
     minHeight: 48,
   },
@@ -274,12 +298,14 @@ const styles = StyleSheet.create({
   },
   dataText: {
     color: COLORS.primaryFontColor,
-    fontFamily: "Manrope-Regular",
-    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+    fontSize: 10,
     textAlign: "left",
-    lineHeight: 16,
-    flex: 1,
-    marginRight: 4,
+    lineHeight: 14,
+  },
+  multiLineText: {
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   statusText: {
     fontFamily: "Manrope-Medium",
@@ -296,13 +322,19 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   serialColumn: {
-    width: 50,
-    textAlign: "center",
+    width: 45,
     flex: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingRight: 6,
+  },
+  serialText: {
+    textAlign: "center",
+    fontWeight: "600",
   },
   inlinePriorityWrapper: {
     flexDirection: "row",
-    height: 23,
+    alignItems: 'center',
   },
   priorityTag: {
     borderRadius: 12,
@@ -353,12 +385,11 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     backgroundColor: "#F8F9FA",
-    height:"70%",
+    height: 300,
     alignItems: "center",
     justifyContent: "center",
-    // borderWidth:1,
-    borderRadius:5,
-    borderColor: "#f0f0f0",
+    borderRadius: 5,
+    marginTop: 2,
   },
   emptyText: {
     color: COLORS.color_text_secondary,
@@ -367,24 +398,27 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   paginationContainer: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginTop: 16,
-},
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
 paginationButton: {
+  flex:0.3,
   marginHorizontal: 20,
-  color: COLORS.secondaryColor,
   fontFamily: "Manrope-Medium",
-  fontSize: 14,
+  fontSize: 10,
+  backgroundColor:COLORS.secondaryColor,
 },
 paginationText: {
   fontFamily: "Manrope-Regular",
-  fontSize: 14,
+  fontSize: 10,
   color: COLORS.primaryFontColor,
 },
 disabledButton: {
-  color: '#cccccc',
+  backgroundColor: "#e8eaed",
+  color:"#808080"
 },
 
 });

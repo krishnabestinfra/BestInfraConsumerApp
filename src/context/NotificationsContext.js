@@ -180,7 +180,6 @@ export const NotificationsProvider = ({ children }) => {
   // Fetch notifications for a specific consumer
   const fetchNotificationsData = useCallback(async (uid, forceRefresh = false) => {
     if (!uid) {
-      console.warn('No consumer UID provided for fetching notifications');
       return;
     }
 
@@ -189,7 +188,6 @@ export const NotificationsProvider = ({ children }) => {
     const isStale = existingData && (Date.now() - existingData.lastFetchTime > 300000); // 5 minutes
 
     if (!forceRefresh && existingData && !isStale) {
-      console.log(`📱 Using cached notifications for consumer: ${uid}`);
       dispatch({ type: ActionTypes.SWITCH_CONSUMER, payload: uid });
       return;
     }
@@ -199,44 +197,54 @@ export const NotificationsProvider = ({ children }) => {
       
       const result = await fetchNotifications(uid);
       
-      if (result.success && result.data) {
-        const notifications = result.data.notifications || [];
-        console.log(`✅ Fetched ${notifications.length} notifications for consumer: ${uid}`);
+      if (result.success) {
+        const notifications = result.data?.notifications || [];
+        
+        // Only log successful fetches with actual notifications
+        if (notifications.length > 0) {
+          console.log(`✅ Fetched ${notifications.length} notifications for consumer: ${uid}`);
+        }
+        
         dispatch({ 
           type: ActionTypes.SET_NOTIFICATIONS, 
           payload: notifications,
           consumerUid: uid
         });
       } else {
-        console.error(`❌ Failed to fetch notifications for ${uid}:`, result.message);
-        dispatch({ type: ActionTypes.SET_ERROR, payload: result.message || 'Failed to fetch notifications' });
+        // Silently handle failures by setting empty notifications
+        // This prevents error logs while maintaining functionality
+        dispatch({ 
+          type: ActionTypes.SET_NOTIFICATIONS, 
+          payload: [],
+          consumerUid: uid
+        });
       }
     } catch (error) {
-      console.error(`❌ Error fetching notifications for ${uid}:`, error);
-      dispatch({ type: ActionTypes.SET_ERROR, payload: error.message });
+      // Silently handle errors by setting empty notifications
+      dispatch({ 
+        type: ActionTypes.SET_NOTIFICATIONS, 
+        payload: [],
+        consumerUid: uid
+      });
     }
   }, [state.consumerNotifications]);
 
   // Set consumer UID and fetch notifications
   const setConsumerUid = useCallback((uid) => {
     if (!uid) {
-      console.warn('No consumer UID provided');
       return;
     }
 
     const existingData = state.consumerNotifications[uid];
     
     if (existingData) {
-      console.log(`🔄 Switching to existing notifications for consumer: ${uid}`);
       dispatch({ type: ActionTypes.SWITCH_CONSUMER, payload: uid });
       
       const isStale = Date.now() - existingData.lastFetchTime > 300000; // 5 minutes
       if (isStale) {
-        console.log(`🔄 Data is stale for ${uid}, refreshing...`);
         fetchNotificationsData(uid, true);
       }
     } else {
-      console.log(`🆕 New consumer detected: ${uid}, fetching notifications...`);
       dispatch({ type: ActionTypes.SET_CONSUMER_UID, payload: uid });
       fetchNotificationsData(uid);
     }
@@ -282,7 +290,6 @@ export const NotificationsProvider = ({ children }) => {
   // Refresh notifications
   const refreshNotifications = useCallback(() => {
     if (state.consumerUid) {
-      console.log(`🔄 Refreshing notifications for consumer: ${state.consumerUid}`);
       fetchNotificationsData(state.consumerUid, true);
     }
   }, [state.consumerUid, fetchNotificationsData]);
@@ -293,14 +300,14 @@ export const NotificationsProvider = ({ children }) => {
     dispatch({ type: ActionTypes.CLEAR_CONSUMER_DATA, payload: uid });
   }, []);
 
-  // Auto-refresh notifications every 30 seconds
+  // Auto-refresh notifications every 2 minutes (reduced frequency)
   useEffect(() => {
     if (!state.consumerUid) return;
 
     const interval = setInterval(() => {
-      console.log(`🔄 Auto-refreshing notifications for consumer: ${state.consumerUid}`);
+      // Silent auto-refresh - no console logs
       fetchNotificationsData(state.consumerUid, true);
-    }, 30000); // 30 seconds
+    }, 120000); // 2 minutes instead of 30 seconds
 
     return () => clearInterval(interval);
   }, [state.consumerUid, fetchNotificationsData]);
@@ -310,16 +317,12 @@ export const NotificationsProvider = ({ children }) => {
     const initializeNotifications = async () => {
       try {
         const user = await getUser();
-        console.log('🔍 Initializing notifications with user:', user);
         
         if (user?.identifier) {
-          console.log(`✅ Setting consumer UID to: ${user.identifier}`);
           setConsumerUid(user.identifier);
-        } else {
-          console.warn('❌ No user identifier found, skipping notification initialization');
         }
       } catch (error) {
-        console.error('❌ Error initializing notifications:', error);
+        // Silently handle initialization errors
       }
     };
 

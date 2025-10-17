@@ -9,8 +9,8 @@ import UsageIcon from '../../../assets/icons/usage.svg';
 // White icons for active states
 import ActiveRechargeIcon from '../../../assets/icons/activePayments.svg';
 import ActiveTicketsIcon from '../../../assets/icons/ticketsWhite.svg';
-import ActiveInvoiceIcon from '../../../assets/icons/activeUsageIcon.svg';
-import ActiveUsageIcon from '../../../assets/icons/activeInvoice.svg';
+import ActiveInvoiceIcon from '../../../assets/icons/activeInvoice.svg';
+import ActiveUsageIcon from '../../../assets/icons/activeUsageIcon.svg';
 import Hand from '../../../assets/icons/hand.svg';
 import Arrow from '../../../assets/icons/arrow.svg';
 import Plus from '../../../assets/icons/plus.svg';
@@ -36,6 +36,23 @@ const DashboardHeader = React.memo(({
   const [userName, setUserName] = useState('');
   const [cachedConsumerData, setCachedConsumerData] = useState(null);
   const { isLoading: isUserLoading, setLoading: setUserLoading } = useLoading('user_loading', true);
+
+    const getGreeting = () => {
+    const hour = new Date().getHours(); // 0-23
+    if (hour >= 5 && hour < 12) return "Good Morning";
+    if (hour >= 12 && hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  };
+
+  
+  // Helper function to format amount
+  const formatAmount = (amount) => {
+    if (amount === null || amount === undefined) return "₹0.00";
+    return `₹${Math.abs(amount).toLocaleString('en-IN', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    })}`;
+  };
   
   // Get notification data from context
   const { unreadCount, isLoading: isNotificationsLoading } = useNotifications();
@@ -119,7 +136,7 @@ const DashboardHeader = React.memo(({
       label: 'Invoices',
       route: 'Invoices',
       icon: InvoicesIcon,
-      activeIcon: ActiveInvoiceIcon , // Use same icon for now
+      activeIcon: ActiveUsageIcon, // Use same icon for now
       iconSize: { width: 20, height: 20 }
     },
     {
@@ -135,7 +152,7 @@ const DashboardHeader = React.memo(({
       label: 'Usage',
       route: 'Usage',
       icon: UsageIcon,
-      activeIcon: ActiveUsageIcon ,
+      activeIcon:  ActiveInvoiceIcon,
       iconSize: { width: 20, height: 20 }
     }
   ], []);
@@ -143,7 +160,12 @@ const DashboardHeader = React.memo(({
   // Handle navigation press - memoized for performance
   const handleNavigationPress = useCallback((item) => {
     if (item.route) {
-      navigation.navigate(item.route);
+      // Use smooth navigation if available
+      if (navigation.navigateSmoothly) {
+        navigation.navigateSmoothly(item.route);
+      } else {
+        navigation.navigate(item.route);
+      }
     }
   }, [navigation]);
 
@@ -186,10 +208,10 @@ const DashboardHeader = React.memo(({
           <Menu width={18} height={18} fill="#202d59" />
         </Pressable>
         
-        <View style={styles.logoWrapper}>
+        <Pressable style={styles.logoWrapper} onPress={() => navigation.navigate('PostPaidDashboard')}>
           {showRings && <AnimatedRings />}
           <Logo variant="blue" size="medium" />
-        </View>
+        </Pressable>
         
         <Pressable
           style={styles.bellWrapper}
@@ -210,7 +232,8 @@ const DashboardHeader = React.memo(({
         <View>
           <View style={styles.greetingContainer}>
             <Text style={styles.hiText}>
-              Hi, {getDisplayName()}
+              Hi, {getGreeting()}
+              {/* {getDisplayName()} */}{" "}
             </Text>
             <Hand width={30} height={30} fill="#55B56C" />
           </View>
@@ -223,7 +246,7 @@ const DashboardHeader = React.memo(({
             <Text style={styles.balanceText}>Balance</Text>
             <View style={styles.balanceContainer}>
               <Text style={styles.amountText}>
-                {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ? `₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹1,245")}
+                {isLoading ? "Loading..." : formatAmount((cachedConsumerData || consumerData)?.totalOutstanding)}
               </Text>
               <View style={styles.plusBox}>
                 <Plus width={20} height={20} fill="#55B56C" />
@@ -237,9 +260,9 @@ const DashboardHeader = React.memo(({
       <View style={styles.amountSection}>
         <View style={styles.amountContainer}>
           <Text style={styles.dueText}>
-            Due Amount: {isLoading ? "Loading..." : ((cachedConsumerData || consumerData)?.totalOutstanding ?`₹${(cachedConsumerData || consumerData).totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "₹3,180")}
+            Due Amount: {isLoading ? "Loading..." : formatAmount((cachedConsumerData || consumerData)?.totalOutstanding)}
           </Text>
-          <Text style={styles.dateText}>This Month</Text>
+          {/* <Text style={styles.dateText}>This Month</Text> */}
         </View>
         <View style={styles.greenBox}>
           <View style={styles.payInfoContainer}>
@@ -255,9 +278,9 @@ const DashboardHeader = React.memo(({
               <Text style={styles.avoidText}>Avoid service disruption.</Text>
             </View>
           </View>
-          <View style={styles.paynowbox}>
+          <Pressable style={styles.paynowbox} onPress={() => navigation.navigate('PostPaidRechargePayments')}>
             <Text style={styles.paynowText}>Pay Now</Text>
-          </View>
+          </Pressable>
         </View>
       </View>
       
@@ -272,10 +295,9 @@ const DashboardHeader = React.memo(({
 const styles = StyleSheet.create({
   bluecontainer: {
     backgroundColor: '#eef8f0',
-    padding: 15,
+    padding: 16,
   },
   TopMenu: {
-    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -289,7 +311,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: 'center',
-    verticalAlign: 'middle',
     justifyContent: 'center',
     elevation: 5,
     zIndex: 2,
@@ -305,7 +326,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: 'center',
-    verticalAlign: 'middle',
     justifyContent: 'center',
     elevation: 5,
     zIndex: 2,
@@ -316,34 +336,30 @@ const styles = StyleSheet.create({
 },
 badge: {
   position: 'absolute',
-  right: 0,
-  // top: 4,
-  bottom:33,
+  right: -3,
+  top: -3,
   backgroundColor: 'red',
-  width: 23,
-  height: 23,
+  width: 22,
+  height: 22,
   borderRadius: 15,
   alignItems: 'center',
   justifyContent: 'center',
   borderWidth: 1,
   borderColor: '#fff',
   zIndex: 2,
-
 },
 badgeText: {
   color: '#fff',
-  fontSize: 12,
-  fontFamily:'Manrope-Medium'
+  fontSize: 10,
+  fontFamily:'Manrope-Regular'
 },
 
   ProfileBox: {
-    display: 'flex',
     justifyContent: 'space-between',
     flexDirection: 'row',
     marginHorizontal: 4,
   },
   greetingContainer: {
-    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -364,7 +380,6 @@ badgeText: {
     fontFamily: 'Manrope-Regular',
   },
   balanceContainer: {
-    display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 5,
@@ -383,7 +398,6 @@ badgeText: {
   },
   amountContainer: {
     backgroundColor: COLORS.primaryColor,
-    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 10,
@@ -391,7 +405,7 @@ badgeText: {
     borderTopRightRadius: 16,
     borderRadius: 8,
     alignItems: 'center',
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
   },
   dueText: {
     color: COLORS.secondaryFontColor,
@@ -400,11 +414,10 @@ badgeText: {
   },
   dateText: {
     color: COLORS.secondaryFontColor,
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: 'Manrope-Regular',
   },
   greenBox: {
-    display: 'flex',
     flexDirection: 'row',
     backgroundColor: COLORS.secondaryColor,
     borderRadius: 8,
@@ -415,7 +428,6 @@ badgeText: {
     marginTop: 3,
   },
   payInfoContainer: {
-    display: 'flex',
     flexDirection: 'row',
   },
   shieldIcon: {
@@ -443,7 +455,6 @@ badgeText: {
     height: 35,
     width: 95,
     borderRadius: 5,
-    display: 'flex',
     justifyContent: 'center',
     marginHorizontal:12,
     
@@ -453,10 +464,8 @@ badgeText: {
     fontSize: 12,
     fontFamily: 'Manrope-Medium',
     textAlign: 'center',
-    verticalAlign: 'middle',
   },
   iconsContainer: {
-    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     marginTop: 15,

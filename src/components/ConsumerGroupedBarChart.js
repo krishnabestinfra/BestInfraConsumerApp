@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View, Dimensions, Text, ActivityIndicator, ScrollView } from "react-native";
 import { BarChart as GiftedBarChart } from "react-native-gifted-charts";
 import { COLORS } from "../constants/colors";
+import { SkeletonLoader } from "../utils/loadingManager";
+
 
 const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = false, onBarPress = null }) => {
   const { width } = Dimensions.get("window");
@@ -26,16 +28,31 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
         const latestData = allData.slice(-10);
         const latestLabels = allLabels.slice(-10);
         
+        // Ensure we have valid data
+        if (latestData.length > 0 && latestLabels.length > 0) {
+          setChartData({
+            blue: latestData,
+            labels: latestLabels,
+          });
+        } else {
+          // Use fallback data if API data is empty
+          setChartData({
+            blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
+            labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
+          });
+        }
+      } else {
+        // Use fallback data if no series data
         setChartData({
-          blue: latestData,
-          labels: latestLabels,
+          blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
+          labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
         });
       }
     } else if (!loading) {
-      // Fallback to default data if no API data - same as original
+      // Fallback to default data if no API data
       setChartData({
         blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
-        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "July", "Aug", "Sept", "Oct"],
+        labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
       });
     }
   }, [data, viewType, loading]);
@@ -48,15 +65,15 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
     spacing: 2, // Increased spacing between bars
     labelTextStyle: {
       color: '#333',
-      fontSize: 8,
+      fontSize: 7,
       fontFamily: 'Manrope-Medium',
-      transform: [{ rotate: '-60deg' }], 
+      transform: [{ rotate: '-60deg' }],
     },
     // Add top label component with proper positioning
     topLabelComponent: () => (
       <Text style={{
         color: '#333',
-        fontSize: 8,
+        fontSize: 7,
         fontFamily: 'Manrope-Medium',
       }}>
         {chartData.blue[index] || 0}
@@ -65,35 +82,16 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
   }));
 
   // Calculate width for 10 bars with proper spacing
-  const barWidth = 35;
-  const spacing = 15;
+  const barWidth = 30;
+  const spacing = 11.5;
   const chartWidth = (barWidth + spacing) * 8; // Width for exactly 10 bars
-  const needsScrolling = chartWidth > screenWidth - 80; // Check if scrolling is needed
+  const needsScrolling = chartWidth > screenWidth - 80; // Check if scrolling is neede 
 
   if (loading) {
-    return (
-      <View style={{ 
-        height: 20, 
-        width: width - 40, 
-        marginHorizontal: 20, 
-        borderRadius: 5, 
-        marginTop: 25,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#eef8f0'
-      }}>
-        <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-        <Text style={{ 
-          marginTop: 10, 
-          color: COLORS.primaryFontColor,
-          fontFamily: 'Manrope-Regular',
-          fontSize: 14
-        }}>
-          Loading chart data...
-        </Text>
-      </View>
-    );
-  }
+  return (
+    <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
+  );
+}
 
   // Render chart - no scrolling needed for 10 bars
   const renderChart = () => (
@@ -129,7 +127,7 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
         color: '#333',
         fontSize: 12,
         fontFamily: 'Manrope-Regular',
-        transform: [{ rotate: '-25deg' }], 
+        // transform: [{ rotate: '-25deg' }], 
         textAlign: 'right',
       }}
       // Custom spacing for better grouped bar appearance
@@ -169,13 +167,12 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, alignItems: 'center' }}
-          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: 0, alignItems: 'center' }}
         >
           {renderChart()}
         </ScrollView>
       ) : (
-        <View style={{ paddingHorizontal: 16, alignItems: 'center' }}>
+        <View style={{ paddingHorizontal: 0, alignItems: 'center' }}>
           {renderChart()}
         </View>
       )}

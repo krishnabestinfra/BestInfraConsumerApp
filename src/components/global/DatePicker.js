@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/AntDesign';
 import { COLORS } from '../../constants/colors';
+import CalendarIcon from '../../../assets/icons/calendarBrand.svg';
+import CrossIcon from '../../../assets/icons/cross.svg';
 
 const DatePicker = ({
   placeholder = "Select Date",
@@ -96,11 +98,12 @@ const DatePicker = ({
         </Text>
         
         <View style={styles.iconContainer}>
-          <Icon
+          {/* <Icon
             name="calendar"
             size={iconSize}
             color={disabled ? COLORS.color_text_secondary : iconColor}
-          />
+          /> */}
+          <CalendarIcon width={18} height={18} fill={disabled ? COLORS.color_text_secondary : iconColor} />
         </View>
       </TouchableOpacity>
 
@@ -115,7 +118,7 @@ const DatePicker = ({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Date</Text>
               <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
-                <Icon name="close" size={24} color={COLORS.primaryFontColor} />
+                <CrossIcon width={18} height={18} fill={COLORS.primaryFontColor} />
               </TouchableOpacity>
             </View>
 

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, Dimensions } from "react-native";
+import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, RefreshControl } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/colors";
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -9,6 +9,7 @@ import OpenIcon from "../../assets/icons/open.svg";
 import ProgressIcon from "../../assets/icons/progress.svg";
 import ResolvedIcon from "../../assets/icons/resolved.svg";
 import ClosedIcon from "../../assets/icons/closed.svg";
+import EyeIcon from "../../assets/icons/eyeFill.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
 import { LinearGradient } from "expo-linear-gradient";
 import { fetchConsumerData, syncConsumerData, fetchTicketStats, fetchTicketsTable } from "../services/apiService";
@@ -16,10 +17,8 @@ import { getUser } from "../utils/storage";
 import { getCachedConsumerData } from "../utils/cacheManager";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
+import { SkeletonLoader } from '../utils/loadingManager';
 import CreateNewTicket from "../components/global/CreateNewTicket";
-
-
 
 const Tickets = ({ navigation }) => {
   const bottomSheetRef = useRef(null);
@@ -118,38 +117,37 @@ const Tickets = ({ navigation }) => {
   //   setShowModal(false);
   // };
 
-  // const tableData = [
-  //   {
-  //     id: 1,
-  //     ticketId: 298,
-  //     issueType: "Connection Issue",
-  //     status: "Open",
-
-  //   },
-  //   {
-  //     id: 2,
-  //     ticketId: 286,
-  //     issueType: "Meter Issue",
-  //     status: "Closed",
-  //   },
-  //   {
-  //     id: 3,
-  //     ticketId: 278,
-  //     issueType: "Meter Issue",
-  //     status: "Resolved",
-  //   },
-  // ];
   const handleCreateTicket = (ticketData) => {
-  console.log("New Ticket Created:", ticketData);
+    console.log("New Ticket Created:", ticketData);
   };
+
+  // Handle view ticket details
+  const handleViewTicket = useCallback((ticket) => {
+    console.log("📄 Viewing ticket:", ticket);
+    navigation.navigate('TicketDetails', {
+      ticketId: ticket.ticketNumber || ticket.id,
+      ticketData: ticket,
+      category: ticket.category,
+      status: ticket.status,
+    });
+  }, [navigation]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
 
       <ScrollView
         style={styles.Container}
-        contentContainerStyle={{ paddingBottom: 30 }}
+        contentContainerStyle={{flexGrow: 1}}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={fetchData}
+            colors={[COLORS.secondaryColor]}
+            tintColor={COLORS.secondaryColor}
+          />
+        }
+        nestedScrollEnabled={true}
       >
 
         <DashboardHeader 
@@ -176,9 +174,14 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>Open Tickets</Text>
-              <Text style={styles.TicketBoxNumber}>
-                {statsLoading ? "..." : ticketStats.open}
-              </Text>
+
+              <View style={{ minWidth: 20 }}> 
+                {statsLoading ? (
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 60, width: 10 }} />
+                ) : (
+                  <Text style={styles.TicketBoxNumber}>{ticketStats.open}</Text>
+                )}
+              </View>
             </View>
                 <LinearGradient
                   colors={["#E6F6ED", "#C2EAD2"]}
@@ -192,9 +195,13 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>In Progress</Text>
-              <Text style={styles.TicketBoxNumber}>
-                {statsLoading ? "..." : ticketStats.inProgress}
-              </Text>
+              <View style={{ minWidth: 20 }}> 
+                {statsLoading ? (
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
+                ) : (
+                  <Text style={styles.TicketBoxNumber}>{ticketStats.inProgress}</Text>
+                )}
+              </View>
             </View>
               <LinearGradient
                 colors={["#E6F6ED", "#C2EAD2"]}
@@ -208,9 +215,13 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>Resolved</Text>
-              <Text style={styles.TicketBoxNumber}>
-                {statsLoading ? "..." : ticketStats.resolved}
-              </Text>
+              <View style={{ minWidth: 20 }}> 
+                {statsLoading ? (
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
+                ) : (
+                  <Text style={styles.TicketBoxNumber}>{ticketStats.resolved}</Text>
+                )}
+              </View>
             </View>
               <LinearGradient
                 colors={["#E6F6ED", "#C2EAD2"]}
@@ -224,9 +235,13 @@ const Tickets = ({ navigation }) => {
           <View style={styles.TicketBox}>
             <View style={styles.TicketBoxTextContainer}>
               <Text style={styles.TicketBoxtext}>Closed</Text>
-              <Text style={styles.TicketBoxNumber}>
-                {statsLoading ? "..." : ticketStats.closed}
-              </Text>
+              <View style={{ minWidth: 20 }}> 
+                {statsLoading ? (
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
+                ) : (
+                  <Text style={styles.TicketBoxNumber}>{ticketStats.closed}</Text>
+                )}
+              </View>
             </View>
             <LinearGradient
               colors={["#E6F6ED", "#C2EAD2"]}
@@ -255,9 +270,23 @@ const Tickets = ({ navigation }) => {
               "TECHNICAL": "High"
             }}
             columns={[
-              { key: 'ticketNumber', title: 'Ticket ID', flex: 1 },
-              { key: 'category', title: 'Category', flex: 2 },
-              { key: 'status', title: 'Status', flex: 1 }
+              { key: 'ticketNumber', title: 'Ticket ID', flex: 1.2 },
+              { key: 'category', title: 'Category', flex: 1.5 },
+              { key: 'status', title: 'Status', flex: 1 },
+              { 
+                key: 'view', 
+                title: 'View', 
+                flex: 0.7,
+                render: (ticket) => (
+                  <TouchableOpacity
+                    style={styles.viewIconButton}
+                    onPress={() => handleViewTicket(ticket)}
+                    activeOpacity={0.7}
+                  >
+                    <EyeIcon width={16} height={16} fill="#6C757D" />
+                  </TouchableOpacity>
+                )
+              }
             ]}
           />
         </View>
@@ -273,8 +302,10 @@ const Tickets = ({ navigation }) => {
         enablePanDownToClose={false}
         backgroundStyle={styles.bottomSheetBackground}
         handleIndicatorStyle={styles.bottomSheetIndicator}
-      enableHandlePanningGesture={false} 
-      enableContentPanningGesture={false}
+        enableHandlePanningGesture={false} 
+        enableContentPanningGesture={false}
+        enableOverDrag={false}
+        animateOnMount={false}
       >
         <BottomSheetView style={styles.bottomSheetContent}>
           <CreateNewTicket 
@@ -295,13 +326,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
     borderBottomRightRadius: 30,
+    flex: 1,
   },
   bluecontainer: {
     backgroundColor: "#eef8f0",
     padding: 15,
   },
   TopMenu: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -315,12 +346,10 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     elevation: 5,
     zIndex: 2,
   },
-  logoImage: {},
   logo: {
     width: 80,
     height: 80,
@@ -332,13 +361,11 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     elevation: 5,
     zIndex: 2,
   },
   ProfileBox: {
-    display: "flex",
     justifyContent: "space-between",
     flexDirection: "row",
     marginHorizontal: 4,
@@ -348,7 +375,6 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(186, 190, 204, 0.4)',
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -394,7 +420,6 @@ const styles = StyleSheet.create({
   },
   amountContainer: {
     backgroundColor: COLORS.primaryColor,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 10,
@@ -415,7 +440,6 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-Regular",
   },
   greenBox: {
-    display: "flex",
     flexDirection: "row",
     backgroundColor: COLORS.secondaryColor,
     borderRadius: 8,
@@ -445,7 +469,6 @@ const styles = StyleSheet.create({
     height: 35,
     width: 95,
     borderRadius: 5,
-    display: "flex",
     justifyContent: "center",
   },
   paynowText: {
@@ -453,10 +476,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "Manrope-Medium",
     textAlign: "center",
-    verticalAlign: "middle",
   },
   iconsContainer: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-evenly",
     marginTop: 25,
@@ -505,15 +526,13 @@ const styles = StyleSheet.create({
   },
   TicketContainerTwo: {
     flexWrap: "wrap",
-    display: "flex",
     flexDirection: "row",
     justifyContent: "center",
     // marginHorizontal: 20,
     marginTop: 15,
-    gap: 15
+    gap: 15,
   },
   TicketBox: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
@@ -552,13 +571,34 @@ const styles = StyleSheet.create({
   },
   TicketBoxTextContainer: {
     height: "100%",
-    display: "flex",
     justifyContent: "space-between",
   },
   TicketContainerThree: {
     marginTop: 15,
+    minHeight: 400,
+    flex: 1,
   },
-bottomSheetBackground:{
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-},
+  bottomSheetBackground:{
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  bottomSheetContent: {
+    flex: 1,
+  },
+  viewIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F3F4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    // iOS shadow
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 2,
+    // Android shadow
+    elevation: 1,
+  },
 });

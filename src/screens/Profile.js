@@ -6,11 +6,14 @@ import {
   Pressable,
   Dimensions,
   ActivityIndicator,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import Menu from "../../assets/icons/bars.svg";
 import Notification from "../../assets/icons/notificationsWhite.svg";
+import NotificationIcon from "../../assets/icons/notificationDark.svg";
 import BiLogo from "../../assets/icons/LogoWhite.svg";
 import HandBill from "../../assets/icons/handBill.svg";
 import Calendar from "../../assets/icons/calendar.svg";
@@ -73,7 +76,7 @@ const Profile = ({ navigation, route }) => {
       case 'info':
         return CheapDollar;
       default:
-        return Notification;
+        return NotificationIcon;
     }
   };
 
@@ -118,16 +121,28 @@ const Profile = ({ navigation, route }) => {
         >
           <Menu width={18} height={18} fill="#202d59" />
         </Pressable>
-        <Pressable onPress={() => navigation.navigate("PostPaidDashboard")}>
+        <Pressable onPress={() => navigation.replace("PostPaidDashboard")}>
           {/* <Image icon={BiLogo} size={45} /> */}
           <Logo variant="white" size="medium" />
         </Pressable>
-        <View style={styles.bellIcon}>
+        <Pressable style={styles.bellIcon} onPress={() => navigation.replace("PostPaidDashboard")}>
           <Notification width={18} height={18} fill="#ffffff" />
-        </View>
+        </Pressable>
       </View>
       
-      <View style={styles.notificationsContainer}>
+      <ScrollView
+        style={styles.notificationsContainer}
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refreshNotifications}
+            colors={[COLORS.secondaryFontColor]}
+            tintColor={COLORS.secondaryFontColor}
+          />
+        }
+      >
         {isLoading && displayNotifications.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.secondaryFontColor} />
@@ -164,7 +179,7 @@ const Profile = ({ navigation, route }) => {
             />
           ))
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -173,11 +188,10 @@ export default Profile;
 
 const styles = StyleSheet.create({
   Container: {
-    backgroundColor: COLORS.primaryColor,
+    backgroundColor: COLORS.brandBlueColor,
     height: "100%",
   },
   TopMenu: {
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -191,7 +205,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     // iOS shadow
     shadowColor: "#000",
@@ -212,7 +225,6 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 60,
     alignItems: "center",
-    verticalAlign: "middle",
     justifyContent: "center",
     // iOS shadow
     shadowColor: "#000",
@@ -223,7 +235,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   notificationsContainer: {
-    padding: 20,
+    paddingVertical: 20,
+    paddingHorizontal:25,
     paddingTop: 10,
   },
   loadingContainer: {

@@ -1,6 +1,7 @@
 // utils/storage.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearAllCache } from './cacheManager';
+import { API_ENDPOINTS } from '../constants/constants';
 
 export const storeUser = async (user) => {
   try {
@@ -46,6 +47,9 @@ export const logoutUser = async () => {
   }
 };
 
+// Export clearStorage as an alias for logoutUser
+export const clearStorage = logoutUser;
+
 export const isUserLoggedIn = async () => {
   try {
     const token = await getToken();
@@ -80,7 +84,7 @@ export const testConsumerAuth = async (identifier, password, apiUrl) => {
   try {
     console.log(`🧪 Testing authentication for consumer: ${identifier}`);
     
-    const response = await fetch(`http://${apiUrl}:4256/api/sub-app/auth/login`, {
+    const response = await fetch(API_ENDPOINTS.auth.login(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
