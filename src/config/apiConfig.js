@@ -85,6 +85,11 @@ export const API_ENDPOINTS = {
     history: (uid) => `${API.PAYMENT_URL}/history?uid=${uid}`,
   },
   
+  // Billing endpoints
+  billing: {
+    history: (uid) => `${API.BASE_URL}/billing?uid=${uid}`,
+  },
+  
   // Notifications endpoints
   notifications: {
     list: (uid) => `${API.BASE_URL}/notifications?uid=${uid}`,

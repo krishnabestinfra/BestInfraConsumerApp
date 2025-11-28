@@ -134,6 +134,22 @@ export const fetchPostpaidBillingData = async (consumerId) => {
 };
 
 /**
+ * Fetch billing history for a consumer
+ */
+export const fetchBillingHistory = async (uid) => {
+  if (!uid) {
+    return { success: false, message: 'Missing consumer identifier' };
+  }
+
+  try {
+    return await makeRequest(API_ENDPOINTS.billing.history(uid));
+  } catch (error) {
+    console.error("Error fetching billing history:", error);
+    return { success: false, message: error.message };
+  }
+};
+
+/**
  * Fetch ticket statistics with caching
  */
 export const fetchTicketStats = async (uid) => {
