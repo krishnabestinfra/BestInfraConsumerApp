@@ -29,6 +29,7 @@ const Table = ({
   emptyMessage = "No data available", 
   inlinePriority = false, 
   skeletonLines = 4,
+  minTableWidth,
 }) => {
 
   const [currentPage, setCurrentPage] = useState(1); 
@@ -106,8 +107,48 @@ const Table = ({
     }
   };
 
+  const getColumnAlignmentStyles = (align = "left") => {
+    switch (align) {
+      case "center":
+        return { alignItems: "center", justifyContent: "center" };
+      case "right":
+        return { alignItems: "flex-end", justifyContent: "center" };
+      default:
+        return { alignItems: "flex-start", justifyContent: "center" };
+    }
+  };
+
+  const getTextAlignmentStyle = (align = "left") => {
+    switch (align) {
+      case "center":
+        return { textAlign: "center" };
+      case "right":
+        return { textAlign: "right" };
+      default:
+        return { textAlign: "left" };
+    }
+  };
+
+  const getColumnWrapperStyle = (column, isLastColumn = false) => {
+    const dimensionStyle = column.width
+      ? { width: column.width, flex: undefined }
+      : { flex: column.flex || COLUMN_WIDTHS.default };
+
+    return [
+      styles.columnContainer,
+      dimensionStyle,
+      isLastColumn ? styles.lastColumn : null,
+      getColumnAlignmentStyles(column.align),
+      column.containerStyle,
+    ];
+  };
+
   return (
-    <View style={[styles.container, containerStyle]}>
+    <View style={[
+      styles.container, 
+      minTableWidth ? { minWidth: minTableWidth } : null, 
+      containerStyle
+    ]}>
       {/* Header Row */}
       <View style={[styles.headerRow, headerStyle]}>
         {showSerial && (
@@ -115,23 +156,27 @@ const Table = ({
             <Text style={styles.headerText}>S.No</Text>
           </View>
         )}
-        {tableColumns.map((column, index) => (
-          <View 
-            key={column.key} 
-            style={[
-              { flex: column.flex || 1, paddingRight: 8 },
-              index === tableColumns.length - 1 && { paddingRight: 0 }
-            ]}
-          >
-            <Text 
-              style={[styles.headerText, styles.headerTextResponsive]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
+        {tableColumns.map((column, index) => {
+          const isLastColumn = index === tableColumns.length - 1;
+          return (
+            <View 
+              key={column.key} 
+              style={getColumnWrapperStyle(column, isLastColumn)}
             >
-              {column.title}
-            </Text>
-          </View>
-        ))}
+              <Text 
+                style={[
+                  styles.headerText, 
+                  styles.headerTextResponsive,
+                  getTextAlignmentStyle(column.align)
+                ]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {column.title}
+              </Text>
+            </View>
+          );
+        })}
       </View>
 
       {/* Body: SkeletonLoader when loading, else data rows */}
@@ -169,18 +214,15 @@ const Table = ({
                const isPriorityField = priorityField === column.key;
                const priorityLevel = getPriorityLevel(value);
                const hasPriority = isPriorityField && priorityLevel;
+               const isLastColumn = colIndex === tableColumns.length - 1;
                
                return (
                  <View 
                    key={column.key} 
                    style={[
-                     { 
-                       flex: column.flex || 1, 
-                       paddingRight: 6,
-                       justifyContent: 'center',
-                     },
-                     colIndex === tableColumns.length - 1 && { paddingRight: 0, alignItems: 'center', justifyContent: 'center' },
-                     hasPriority && styles.priorityCell
+                     ...getColumnWrapperStyle(column, isLastColumn),
+                     { paddingRight: isLastColumn ? 0 : 6 },
+                     hasPriority && styles.priorityCell,
                    ]}
                  >
                    {column.render ? (
@@ -196,14 +238,24 @@ const Table = ({
                        </View>
                      ) : (
                        <>
-                         <Text style={[styles.dataText, styles.multiLineText, textStyle]}>
+                        <Text style={[
+                          styles.dataText, 
+                          styles.multiLineText, 
+                          textStyle,
+                          getTextAlignmentStyle(column.align)
+                        ]}>
                            {value}
                          </Text>
                          <PriorityTag priority={priorityLevel} />
                        </>
                      )
                    ) : (
-                     <Text style={[styles.dataText, styles.multiLineText, textStyle]}>
+                    <Text style={[
+                      styles.dataText, 
+                      styles.multiLineText, 
+                      textStyle,
+                      getTextAlignmentStyle(column.align)
+                    ]}>
                        {value}
                      </Text>
                    )}
@@ -269,6 +321,9 @@ const styles = StyleSheet.create({
   },
   columnContainer: {
     paddingRight: 8,
+  },
+  lastColumn: {
+    paddingRight: 0,
   },
   headerText: {
     color: COLORS.secondaryFontColor,

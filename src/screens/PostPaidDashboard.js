@@ -6,8 +6,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Animated,
 } from "react-native";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
 import Arrow from "../../assets/icons/arrow.svg";
@@ -19,11 +20,84 @@ import DatePicker from "../components/global/DatePicker";
 import Meter from "../../assets/icons/meterWhite.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
 import LastCommunicationIcon from "../../assets/icons/signal.svg";
+import EyeIcon from "../../assets/icons/eyeFill.svg";
 import { API, API_ENDPOINTS } from "../constants/constants";
 import { getUser, getToken } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 import { apiClient } from '../services/apiClient';
+
+const FALLBACK_ALERT_ROWS = [
+  {
+    id: 1,
+    meterSerialNumber: "24021286",
+    consumerName: "Safran MRO",
+    eventDateTime: "Nov 26, 2025, 8:42 AM",
+    eventDescription: "R_PH CT Open",
+    status: "Resolved",
+    duration: "0h 4m",
+  },
+  {
+    id: 2,
+    meterSerialNumber: "24021286",
+    consumerName: "Safran MRO",
+    eventDateTime: "Nov 26, 2025, 8:42 AM",
+    eventDescription: "B_PH CT Open",
+    status: "Resolved",
+    duration: "0h 4m",
+  },
+  {
+    id: 3,
+    meterSerialNumber: "18132429",
+    consumerName: "GMR AERO TOWER 2 INCOMER",
+    eventDateTime: "Nov 26, 2025, 12:36 AM",
+    eventDescription: "R_PH CT Open",
+    status: "Active",
+    duration: "1d 9h 40m",
+  }
+];
+
+const useBlinkingOpacity = () => {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.2,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    animation.start();
+    return () => animation.stop();
+  }, [opacity]);
+
+  return opacity;
+};
+
+const StatusBlinkingDot = ({ status }) => {
+  const opacity = useBlinkingOpacity();
+  const normalized = `${status}`.toLowerCase();
+  const isResolved = normalized.includes("resolve");
+  const color = isResolved ? "#2ECC71" : "#FF4D4F";
+
+  return (
+    <Animated.View
+      style={[
+        styles.statusBlinkDot,
+        { backgroundColor: color, opacity }
+      ]}
+    />
+  );
+};
 
 // import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -43,35 +117,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
   // Bottom sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
-
-  // Table data for meter status
-  const meterStatusData = [
-    {
-      id: 1,
-      eventName: "B_PH CT Open",
-      description: "Current transformer circuit opened on B phase",
-      occurredOn: "07/09/2025 6:15 PM",
-      status: "Start",
-      isActive: true
-    },
-    {
-      id: 2,
-      eventName: "B_PH CT Open",
-      description: "Current transformer circuit opened on B phase",
-      occurredOn: "07/09/2025 6:10 PM",
-      status: "End",
-      isActive: false
-    },
-    {
-      id: 3,
-      eventName: "B_PH CT Open",
-      description: "Current transformer circuit opened on B phase",
-      occurredOn: "07/09/2025 6:05 PM",
-      status: "Start",
-      isActive: false
-    }
-  ];
-
 
   // Fetch API data
   const fetchConsumerData = useCallback(async () => {
@@ -141,43 +186,33 @@ const PostPaidDashboard = ({ navigation, route }) => {
     fetchConsumerData();
   }, [fetchConsumerData]);
 
-  // Load table data from API alerts
-  useEffect(() => {
-    const loadTableData = async () => {
-      setIsTableLoading(true);
-      try {
-        if (consumerData && consumerData.alerts && consumerData.alerts.length > 0) {
-          // Process API alerts data
-          const formattedAlerts = consumerData.alerts
-            .sort((a, b) => new Date(b.tamperDatetime) - new Date(a.tamperDatetime)) // Sort by date, latest first
-            .map((alert, index) => ({
-              id: alert.id || index + 1,
-              eventName: getTamperTypeText(alert.tamperType),
-              description: getTamperTypeDescription(alert.tamperType),
-              occurredOn: formatDateTime(alert.tamperDatetime),
-              status: alert.tamperStatus === 1 ? "Start" : "End",
-              isActive: alert.tamperStatus === 1,
-            }));
-          setTableData(formattedAlerts);
-        } else {
-          // Fallback to static data if no API alerts
-          setTableData(meterStatusData);
-        }
-      } catch (error) {
-        console.error('Error loading table data:', error);
-        setTableData(meterStatusData); // Fallback to static data
-      } finally {
-        setIsTableLoading(false);
+  const loadTableData = useCallback(() => {
+    setIsTableLoading(true);
+    try {
+      if (consumerData?.alerts?.length) {
+        const sortedAlerts = [...consumerData.alerts].sort(
+          (a, b) => new Date(b.tamperDatetime) - new Date(a.tamperDatetime)
+        );
+        setTableData(mapTamperEvents(sortedAlerts));
+      } else {
+        setTableData(FALLBACK_ALERT_ROWS);
       }
-    };
+    } catch (error) {
+      console.error('Error loading table data:', error);
+      setTableData(FALLBACK_ALERT_ROWS);
+    } finally {
+      setIsTableLoading(false);
+    }
+  }, [consumerData, mapTamperEvents]);
 
+  useEffect(() => {
     if (consumerData) {
       loadTableData();
     }
-  }, [consumerData]);
+  }, [consumerData, loadTableData]);
 
   // Helper function to map tamper type codes to readable text
-  const getTamperTypeText = (tamperType) => {
+  const getTamperTypeText = useCallback((tamperType) => {
     const tamperTypes = {
       1: "Cover Tamper",
       2: "Magnetic Tamper",
@@ -198,10 +233,10 @@ const PostPaidDashboard = ({ navigation, route }) => {
       25: "Tamper Type 25"
     };
     return tamperTypes[tamperType] || `Tamper Type ${tamperType}`;
-  };
+  }, []);
 
   // Helper function to get tamper type description
-  const getTamperTypeDescription = (tamperType) => {
+  const getTamperTypeDescription = useCallback((tamperType) => {
     const tamperDescriptions = {
       1: "Meter cover has been removed or tampered with",
       2: "Magnetic interference detected on meter",
@@ -222,24 +257,116 @@ const PostPaidDashboard = ({ navigation, route }) => {
       25: "Custom tamper detection type 25 - specific to your meter system"
     };
     return tamperDescriptions[tamperType] || `Unknown tamper type ${tamperType}`;
-  };
+  }, []);
 
-  // Helper function to format datetime
-  const formatDateTime = (dateString) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-    } catch (error) {
-      return dateString;
+  const formatEventDateTime = useCallback((value) => {
+    if (!value) {
+      return "--";
     }
-  };
+
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return value;
+    }
+
+    return parsedDate.toLocaleString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }, []);
+
+  const formatDuration = useCallback((durationValue) => {
+    if (typeof durationValue === "string" && durationValue.trim().length > 0) {
+      return durationValue;
+    }
+
+    if (typeof durationValue === "number" && durationValue >= 0) {
+      const hours = Math.floor(durationValue / 60);
+      const minutes = durationValue % 60;
+      return `${hours}h ${minutes}m`;
+    }
+
+    if (durationValue && typeof durationValue === "object") {
+      const hours = durationValue.hours ?? 0;
+      const minutes = durationValue.minutes ?? durationValue.mins ?? 0;
+      return `${hours}h ${minutes}m`;
+    }
+
+    return "--";
+  }, []);
+
+  const formatStatus = useCallback((statusValue) => {
+    if (!statusValue) {
+      return "Active";
+    }
+
+    const normalized = `${statusValue}`.trim().toLowerCase();
+    if (normalized.includes("resolve")) {
+      return "Resolved";
+    }
+    if (normalized.includes("active")) {
+      return "Active";
+    }
+
+    return `${statusValue}`.charAt(0).toUpperCase() + `${statusValue}`.slice(1);
+  }, []);
+
+  const mapTamperEvents = useCallback((rawData = []) => {
+    if (!Array.isArray(rawData)) {
+      return [];
+    }
+
+    const fallbackConsumerName = consumerData?.name || "--";
+    const fallbackMeterSerial =
+      consumerData?.meterSerialNumber ||
+      consumerData?.meterNumber ||
+      "--";
+
+    return rawData.map((event, index) => {
+      const durationValue =
+        event?.duration ||
+        event?.durationMinutes ||
+        event?.durationInMinutes ||
+        event?.durationInMins ||
+        event?.durationSeconds ||
+        event?.durationText;
+
+      return {
+        id: event?.id || event?.eventId || `tamper-event-${index}`,
+        meterSerialNumber:
+          event?.meterSerialNumber ||
+          event?.meterNumber ||
+          event?.meterSlNo ||
+          fallbackMeterSerial,
+        consumerName:
+          event?.consumerName ||
+          event?.consumer?.name ||
+          fallbackConsumerName,
+        eventDateTime: formatEventDateTime(
+          event?.tamperDatetime ||
+            event?.occurredOn ||
+            event?.eventDateTime ||
+            event?.eventTimestamp
+        ),
+        eventDescription:
+          event?.eventDescription ||
+          event?.tamperTypeDesc ||
+          getTamperTypeDescription(event?.tamperType) ||
+          getTamperTypeText(event?.tamperType) ||
+          "--",
+        status: formatStatus(
+          event?.status ||
+            event?.eventStatus ||
+            (event?.tamperStatus === 1 ? "Active" : "Resolved")
+        ),
+        duration: formatDuration(durationValue),
+        raw: event,
+      };
+    });
+  }, [consumerData, formatDuration, formatEventDateTime, formatStatus, getTamperTypeDescription, getTamperTypeText]);
 
   // Helper function to get daily usage from chart data
   const getDailyUsage = () => {
@@ -386,6 +513,10 @@ const PostPaidDashboard = ({ navigation, route }) => {
     });
   }, [navigation, consumerData, isLoading, selectedView]);
 
+  const handleViewTamperEvent = useCallback((event) => {
+    console.log("🔎 View tamper event", event?.raw || event);
+  }, []);
+
   return (
     <>
       <ScrollView
@@ -423,9 +554,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     <Text style={styles.meterConsumerText}>
                       {consumerData?.name || consumerData?.consumerName || "Loading..."}
                     </Text>
-                    <Text style={styles.meterNumberText}>
-                      Meter SL No: {consumerData?.meterSerialNumber || "Loading..."}
-                    </Text>
+                  <Text style={styles.meterNumberText}>
+                    Meter SL No: {consumerData?.meterSerialNumber || "Loading..."}
+                  </Text>
                   </View>
                 </View>
               </View>
@@ -599,27 +730,77 @@ const PostPaidDashboard = ({ navigation, route }) => {
           <View style={styles.tableContainer}>
             <Text style={styles.tableTitle}>Alerts</Text>
           </View>
-          <Table
-            data={tableData}
-            loading={isTableLoading}
-            skeletonLines={5}
-            emptyMessage={consumerData?.alerts?.length === 0 ? "No tamper alerts available" : "No meter status data available"}
-            showSerial={true}
-            showPriority={false}
-            priorityField="occurredOn"
-            priorityMapping={{
-              "Cover Tamper": "high",
-              "CT Open": "high",
-              "Magnetic Tamper": "medium",
-              "Reverse Current": "high"
-            }}
-            columns={[
-              { key: 'eventName', title: 'Name', flex: 1 },
-              { key: 'description', title: 'Description', flex: 2 },
-              { key: 'occurredOn', title: 'Occurred On', flex: 2 },
-              { key: 'status', title: 'Status', flex: 1 }
-            ]}
-          />
+          <View style={styles.tableScrollWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tableScrollContent}
+            >
+              <View style={styles.tableContent}>
+                <Table
+                  data={tableData}
+                  loading={isTableLoading}
+                  skeletonLines={5}
+                  emptyMessage="No tamper events available"
+                  showSerial={true}
+                  showPriority={false}
+                  containerStyle={styles.alertsTable}
+                  minTableWidth={940}
+                  columns={[
+                    { 
+                      key: 'meterSerialNumber', 
+                      title: 'Meter SI No', 
+                      flex: 1,
+                      align: 'left',
+                      render: (item) => (
+                        <View style={styles.meterSiCell}>
+                          <StatusBlinkingDot status={item.status} />
+                          <Text style={styles.meterSiText}>{item.meterSerialNumber}</Text>
+                        </View>
+                      )
+                    },
+                    { key: 'consumerName', title: 'Consumer Name', flex: 1.6 },
+                    { key: 'eventDateTime', title: 'Event Date Time', flex: 1.6 },
+                    { key: 'eventDescription', title: 'Event Description', flex: 1.6 },
+                    {
+                      key: 'status',
+                      title: 'Status',
+                      flex: 1,
+                      render: (item) => (
+                        <View style={[
+                          styles.statusBadge,
+                          item.status === "Resolved" ? styles.statusResolved : styles.statusActive
+                        ]}>
+                          <Text style={[
+                            styles.statusBadgeText,
+                            item.status === "Resolved" ? styles.statusResolvedText : styles.statusActiveText
+                          ]}>
+                            {item.status}
+                          </Text>
+                        </View>
+                      )
+                    },
+                    { key: 'duration', title: 'Duration', flex: 1 },
+                    {
+                      key: 'actions',
+                      title: 'Actions',
+                      flex: 0.8,
+                      render: (item) => (
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={() => handleViewTamperEvent(item)}
+                          accessibilityRole="button"
+                          accessibilityLabel="View tamper event details"
+                        >
+                          <EyeIcon width={18} height={18} />
+                        </TouchableOpacity>
+                      )
+                    }
+                  ]}
+                />
+              </View>
+            </ScrollView>
+          </View>
         </View>
       </ScrollView>
 
@@ -842,6 +1023,68 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Manrope-SemiBold',
     color: COLORS.primaryFontColor,
+  },
+  tableScrollWrapper: {
+    paddingHorizontal: 16,
+    marginTop: 10,
+  },
+  tableScrollContent: {
+    paddingBottom: 10,
+  },
+  tableContent: {
+    minWidth: 920,
+  },
+  alertsTable: {
+    paddingHorizontal: 0,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 90,
+  },
+  statusBadgeText: {
+    fontFamily: "Manrope-SemiBold",
+    fontSize: 12,
+  },
+  statusBlinkDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  meterSiCell: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  meterSiText: {
+    color: COLORS.primaryFontColor,
+    fontFamily: "Manrope-Medium",
+    fontSize: 12,
+  },
+  statusResolved: {
+    backgroundColor: "#DEF5E5",
+  },
+  statusResolvedText: {
+    color: "#1E7A3F",
+  },
+  statusActive: {
+    backgroundColor: "#FFF4E5",
+  },
+  statusActiveText: {
+    color: "#C17B00",
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E2E6F0",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.secondaryFontColor,
   },
   viewTableButton: {
     flexDirection: 'row',

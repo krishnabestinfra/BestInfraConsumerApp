@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
 import Arrow from "../../assets/icons/arrow.svg";
@@ -16,6 +16,7 @@ import Table from "../components/global/Table";
 import DatePicker from "../components/global/DatePicker";
 import Meter from "../../assets/icons/meterWhite.svg";
 import LastCommunicationIcon from "../../assets/icons/signal.svg";
+import EyeIcon from "../../assets/icons/eyeFill.svg";
 import { fetchConsumerData, syncConsumerData } from "../services/apiService";
 import { getUser } from "../utils/storage";
 import { getCachedConsumerData } from "../utils/cacheManager";
@@ -33,6 +34,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
   const [endDate, setEndDate] = useState(new Date());
   const [tableData, setTableData] = useState([]);
   const [isTableLoading, setIsTableLoading] = useState(true);
+  const [tableError, setTableError] = useState(null);
   const [consumerData, setConsumerData] = useState(null);
   const { isLoading, setLoading } = useLoading('dashboard_loading', true);
   
@@ -91,48 +93,144 @@ const Dashboard = React.memo(({ navigation, route }) => {
     fetchData();
   }, [fetchData]);
 
-  // Table data for meter status - memoized for performance
-  const meterStatusData = useMemo(() => [
-    {
-      id: 1,
-      eventName: "B_PH CT Open",
-      occurredOn: "07/09/2025 6:15 PM",
-      status: "Start",
-      isActive: true
-    },
-    {
-      id: 2,
-      eventName: "B_PH CT Open", 
-      occurredOn: "07/09/2025 6:10 PM",
-      status: "End",
-      isActive: false
-    },
-    {
-      id: 3,
-      eventName: "B_PH CT Open",
-      occurredOn: "07/09/2025 6:05 PM", 
-      status: "Start",
-      isActive: false
+  const formatEventDateTime = useCallback((value) => {
+    if (!value) {
+      return "--";
     }
-  ], []);
 
-  // Load table data
-  useEffect(() => {
-    const loadTableData = async () => {
-      setIsTableLoading(true);
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setTableData(meterStatusData);
-      } catch (error) {
-        console.error('Error loading table data:', error);
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return value;
+    }
+
+    return parsedDate.toLocaleString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }, []);
+
+  const formatDuration = useCallback((durationValue) => {
+    if (typeof durationValue === "string" && durationValue.trim().length > 0) {
+      return durationValue;
+    }
+
+    if (typeof durationValue === "number" && durationValue >= 0) {
+      const hours = Math.floor(durationValue / 60);
+      const minutes = durationValue % 60;
+      return `${hours}h ${minutes}m`;
+    }
+
+    if (durationValue && typeof durationValue === "object") {
+      const hours = durationValue.hours ?? 0;
+      const minutes = durationValue.minutes ?? durationValue.mins ?? 0;
+      return `${hours}h ${minutes}m`;
+    }
+
+    return "--";
+  }, []);
+
+  const formatStatus = useCallback((statusValue) => {
+    if (!statusValue) {
+      return "Active";
+    }
+
+    const normalized = `${statusValue}`.trim().toLowerCase();
+    if (normalized.includes("resolve")) {
+      return "Resolved";
+    }
+    if (normalized.includes("active")) {
+      return "Active";
+    }
+
+    return `${statusValue}`.charAt(0).toUpperCase() + `${statusValue}`.slice(1);
+  }, []);
+
+  const mapTamperEvents = useCallback((rawData = [], consumerName = "") => {
+    if (!Array.isArray(rawData)) {
+      return [];
+    }
+
+    return rawData.map((event, index) => {
+      const durationValue =
+        event?.duration ??
+        event?.durationMinutes ??
+        event?.durationInMinutes ??
+        event?.durationInMins ??
+        event?.durationSeconds;
+
+      return {
+        id: event?.id || event?.eventId || `tamper-event-${index}`,
+        meterSerialNumber:
+          event?.meterSerialNumber ||
+          event?.meterNumber ||
+          event?.meterSlNo ||
+          event?.meterSI ||
+          event?.meterSerial ||
+          "--",
+        consumerName:
+          event?.consumerName ||
+          event?.consumer?.name ||
+          event?.consumer_name ||
+          consumerName ||
+          "--",
+        eventDateTime: formatEventDateTime(
+          event?.eventDateTime ||
+            event?.eventDate ||
+            event?.occurredOn ||
+            event?.tamperDatetime ||
+            event?.eventTimestamp
+        ),
+        eventDescription:
+          event?.eventDescription || 
+          event?.tamperTypeDesc || 
+          event?.eventName || 
+          event?.description || 
+          "--",
+        status: formatStatus(event?.status || event?.eventStatus || event?.state),
+        duration: formatDuration(durationValue || event?.durationText),
+        raw: event,
+      };
+    });
+  }, [formatDuration, formatEventDateTime, formatStatus]);
+
+  const loadConsumerAlerts = useCallback(() => {
+    setIsTableLoading(true);
+    setTableError(null);
+    try {
+      if (consumerData && consumerData.alerts && Array.isArray(consumerData.alerts)) {
+        const alerts = consumerData.alerts;
+        const consumerName = consumerData.name || "";
+        setTableData(mapTamperEvents(alerts, consumerName));
+        setTableError(null);
+      } else {
         setTableData([]);
-      } finally {
-        setIsTableLoading(false);
+        setTableError("No alerts available for this consumer");
       }
-    };
+    } catch (error) {
+      console.error("Error loading consumer alerts:", error);
+      setTableError(error.message);
+      setTableData([]);
+    } finally {
+      setIsTableLoading(false);
+    }
+  }, [consumerData, mapTamperEvents]);
 
-    loadTableData();
+  useEffect(() => {
+    if (consumerData) {
+      loadConsumerAlerts();
+    }
+  }, [consumerData, loadConsumerAlerts]);
+
+  const handleRefresh = useCallback(async () => {
+    await fetchData();
+    // loadConsumerAlerts will be triggered by the consumerData useEffect
+  }, [fetchData]);
+
+  const handleViewTamperEvent = useCallback((event) => {
+    console.log("🔎 View tamper event", event?.raw || event);
   }, []);
   return (
     <InstantLoader dataKey="dashboard_data" onDataReady={(data) => setConsumerData(data.data)}>
@@ -143,7 +241,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
-            onRefresh={fetchData}
+            onRefresh={handleRefresh}
             colors={[COLORS.secondaryColor]}
             tintColor={COLORS.secondaryColor}
           />
@@ -280,19 +378,51 @@ const Dashboard = React.memo(({ navigation, route }) => {
           data={tableData}
           loading={isTableLoading}
           skeletonLines={3}
-          emptyMessage="No meter status data available"
+          emptyMessage={tableError || "No alerts available"}
           showSerial={true}
           showPriority={false}
-          priorityField="occurredOn"
-          priorityMapping={{
-            "Connection Issue": "high",
-            "Meter Issue": "medium",
-            "Power Outage": "high"
-          }}
+          minTableWidth={920}
           columns={[
-            { key: 'eventName', title: 'Event Name', flex: 1 },
-            { key: 'occurredOn', title: 'Occurred On', flex: 2 },
-            { key: 'status', title: 'Status', flex: 1 }
+            { key: 'meterSerialNumber', title: 'Meter SI No', width: 140 },
+            { key: 'consumerName', title: 'Consumer Name', width: 190 },
+            { key: 'eventDateTime', title: 'Event Date Time', width: 190 },
+            { key: 'eventDescription', title: 'Event Description', width: 200 },
+            { 
+              key: 'status', 
+              title: 'Status', 
+              width: 120,
+              align: 'center',
+              render: (item) => (
+                <View style={[
+                  styles.statusBadge,
+                  item.status === "Resolved" ? styles.statusResolved : styles.statusActive
+                ]}>
+                  <Text style={[
+                    styles.statusBadgeText,
+                    item.status === "Resolved" ? styles.statusResolvedText : styles.statusActiveText
+                  ]}>
+                    {item.status}
+                  </Text>
+                </View>
+              )
+            },
+            { key: 'duration', title: 'Duration', width: 110 },
+            {
+              key: 'actions',
+              title: 'Actions',
+              width: 90,
+              align: 'center',
+              render: (item) => (
+                <TouchableOpacity 
+                  style={styles.actionButton}
+                  onPress={() => handleViewTamperEvent(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel="View tamper event details"
+                >
+                  <EyeIcon width={18} height={18} />
+                </TouchableOpacity>
+              )
+            }
           ]}
         />
         
@@ -474,5 +604,39 @@ lastCommunicationTimeText: {
     fontFamily: 'Manrope-SemiBold',
     color: COLORS.primaryFontColor,
     marginBottom: 10,
-  }
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 90,
+  },
+  statusBadgeText: {
+    fontFamily: "Manrope-SemiBold",
+    fontSize: 12,
+  },
+  statusResolved: {
+    backgroundColor: "#DEF5E5",
+  },
+  statusResolvedText: {
+    color: "#1E7A3F",
+  },
+  statusActive: {
+    backgroundColor: "#FFF4E5",
+  },
+  statusActiveText: {
+    color: "#C17B00",
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E2E6F0",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.secondaryFontColor,
+  },
 });
