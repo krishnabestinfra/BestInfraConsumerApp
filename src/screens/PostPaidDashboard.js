@@ -105,6 +105,7 @@ const StatusBlinkingDot = ({ status }) => {
 
 const PostPaidDashboard = ({ navigation, route }) => {
   const [selectedView, setSelectedView] = useState("daily");
+  const [displayMode, setDisplayMode] = useState("chart"); // "chart" or "table"
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [tableData, setTableData] = useState([]);
@@ -382,6 +383,49 @@ const PostPaidDashboard = ({ navigation, route }) => {
     return monthlyData[monthlyData.length - 1] || 0; // Get last value
   };
 
+  // Transform chart data into table format
+  const getConsumptionTableData = useCallback(() => {
+    if (!consumerData?.chartData) return [];
+
+    const chartType = selectedView === "daily" 
+      ? consumerData.chartData.daily 
+      : consumerData.chartData.monthly;
+
+    if (!chartType?.seriesData?.[0]?.data || !chartType?.xAxisData) {
+      return [];
+    }
+
+    const data = chartType.seriesData[0].data;
+    const labels = chartType.xAxisData;
+
+    // Check if data is cumulative
+    const isCumulative = data.every((value, index) => index === 0 || value >= data[index - 1]);
+
+    // Calculate actual consumption values
+    let consumptions = [];
+    if (isCumulative) {
+      for (let i = 0; i < data.length; i++) {
+        if (i === 0) {
+          consumptions.push(data[i] || 0);
+        } else {
+          const currentCumulative = data[i] || 0;
+          const previousCumulative = data[i - 1] || 0;
+          consumptions.push(currentCumulative - previousCumulative);
+        }
+      }
+    } else {
+      consumptions = data;
+    }
+
+    // Transform to table rows
+    return labels.map((label, index) => ({
+      id: index + 1,
+      period: label,
+      consumption: consumptions[index] || 0,
+      cumulative: data[index] || 0,
+    })).reverse(); // Show latest first
+  }, [consumerData, selectedView]);
+
   // Dynamic Daily Trend Calculation - works with cumulative data for any date range
   const getDailyTrendPercentage = () => {
     if (!consumerData?.chartData?.daily?.seriesData?.[0]?.data) {
@@ -583,48 +627,62 @@ const PostPaidDashboard = ({ navigation, route }) => {
           </View>
 
           <View style={styles.graphSection}>
-            <View
-              style={{                justifyContent: "space-between",
-    flexDirection: "row",
-              }}
-            >
+            <View style={styles.energySummaryHeader}>
               <Text style={styles.energyText}>Energy Summary</Text>
-              <View style={{ flexDirection: "row" }}>
-                <TouchableOpacity onPress={() => setSelectedView("daily")}>
-                  <Text
-                    style={
-                      selectedView === "daily"
-                        ? styles.monthlyText
-                        : styles.dailyText
-                    }
-                  >
-                    Daily
-                  </Text>
-                </TouchableOpacity>
-                <Text style={styles.separator}>{' / '}</Text>
-                <TouchableOpacity onPress={() => setSelectedView("monthly")}>
-                  <Text
-                    style={
-                      selectedView === "monthly"
-                        ? styles.monthlyText
-                        : styles.dailyText
-                    }
-                  >
-                    Monthly
-                  </Text>
-                </TouchableOpacity>
-                {/* <Text> / </Text>
-                <TouchableOpacity onPress={() => setSelectedView("monthly")}>
-                  <Text
-                    style={
-                      selectedView === "monthly"
-                        ? styles.monthlyText
-                        : styles.dailyText
-                    }
-                  >
-                    Pick Date
-                  </Text>
-                </TouchableOpacity> */}
+              <View style={styles.toggleGroupColumn}>
+                {/* Daily/Monthly Toggle - Original Text Style */}
+                <View style={styles.textToggleContainer}>
+                  <TouchableOpacity onPress={() => setSelectedView("daily")}>
+                    <Text
+                      style={
+                        selectedView === "daily"
+                          ? styles.monthlyText
+                          : styles.dailyText
+                      }
+                    >
+                      Daily
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={styles.separator}>{' / '}</Text>
+                  <TouchableOpacity onPress={() => setSelectedView("monthly")}>
+                    <Text
+                      style={
+                        selectedView === "monthly"
+                          ? styles.monthlyText
+                          : styles.dailyText
+                      }
+                    >
+                      Monthly
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Chart/Table Toggle - Text Style */}
+                <View style={[styles.textToggleContainer, { marginTop: 8 }]}>
+                  <TouchableOpacity onPress={() => setDisplayMode("chart")}>
+                    <Text
+                      style={
+                        displayMode === "chart"
+                          ? styles.monthlyText
+                          : styles.dailyText
+                      }
+                    >
+                      Chart
+                    </Text>
+                  </TouchableOpacity>
+                  <Text style={styles.separator}>{' / '}</Text>
+                  <TouchableOpacity onPress={() => setDisplayMode("table")}>
+                    <Text
+                      style={
+                        displayMode === "table"
+                          ? styles.monthlyText
+                          : styles.dailyText
+                      }
+                    >
+                      Table
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
 
@@ -642,6 +700,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
             </View> */}
 
             <View style={styles.graphsContainer}>
+              {/* Summary Header */}
               {selectedView === "daily" ? (
                 <>
                   <Text style={styles.thismonthText}>
@@ -669,18 +728,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
                       />
                     </View>
                     <Text style={styles.lastText}>Yesterday.</Text>
-                  </View>
-                  <View style={{ alignItems: "center" }}>
-                    {isLoading ? (
-                      <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={10} />
-                    ) : (
-                      <ConsumerGroupedBarChart
-                        viewType="daily"
-                        data={consumerData}
-                        loading={isLoading}
-                        onBarPress={handleBarPress}
-                      />
-                    )}
                   </View>
                 </>
               ) : (
@@ -711,19 +758,68 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     </View>
                     <Text style={styles.lastText}>Last Month.</Text>
                   </View>
-                  <View style={{ alignItems: "center" }}>
-                    {isLoading ? (
-                      <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
-                    ) : (
-                      <ConsumerGroupedBarChart
-                        viewType="monthly"
-                        data={consumerData}
-                        loading={isLoading}
-                        onBarPress={handleBarPress}
-                      />
-                    )}
-                  </View>
                 </>
+              )}
+
+              {/* Chart or Table View */}
+              {displayMode === "chart" ? (
+                <View style={{ alignItems: "center", marginTop: 10 }}>
+                  {isLoading ? (
+                    <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={selectedView === "daily" ? 10 : 12} />
+                  ) : (
+                    <ConsumerGroupedBarChart
+                      viewType={selectedView}
+                      data={consumerData}
+                      loading={isLoading}
+                      onBarPress={handleBarPress}
+                    />
+                  )}
+                </View>
+              ) : (
+                <View style={{ marginTop: 15 }}>
+                  {isLoading ? (
+                    <SkeletonLoader variant="table" style={{ marginVertical: 20 }} lines={5} columns={3} />
+                  ) : (
+                    <Table
+                      data={getConsumptionTableData()}
+                      loading={isLoading}
+                      emptyMessage={`No ${selectedView} consumption data available`}
+                      showSerial={true}
+                      showPriority={false}
+                      containerStyle={styles.consumptionTable}
+                      columns={[
+                        { 
+                          key: 'period', 
+                          title: selectedView === "daily" ? 'Date' : 'Month', 
+                          flex: 1.5,
+                          align: 'left'
+                        },
+                        { 
+                          key: 'consumption', 
+                          title: 'Consumption (kWh)', 
+                          flex: 1.5,
+                          align: 'right',
+                          render: (item) => (
+                            <Text style={styles.consumptionValue}>
+                              {item.consumption.toFixed(2)}
+                            </Text>
+                          )
+                        },
+                        { 
+                          key: 'cumulative', 
+                          title: 'Cumulative (kWh)', 
+                          flex: 1.5,
+                          align: 'right',
+                          render: (item) => (
+                            <Text style={styles.cumulativeValue}>
+                              {item.cumulative.toFixed(2)}
+                            </Text>
+                          )
+                        }
+                      ]}
+                    />
+                  )}
+                </View>
               )}
             </View>
           </View>
@@ -825,27 +921,56 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 20,
   },
+  energySummaryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
   energyText: {
     color: COLORS.primaryFontColor,
     fontSize: 14,
     fontFamily: "Manrope-Bold",
-    marginBottom: 10,
+  },
+  toggleGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  toggleGroupColumn: {
+    flexDirection: "column",
+    alignItems: "flex-end",
+    minWidth: 130,
   },
   dailyText: {
     color: COLORS.primaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-Medium",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 50,
+    textAlign: "center",
   },
   monthlyText: {
     color: COLORS.secondaryColor,
     fontSize: 12,
     fontFamily: "Manrope-Medium",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 50,
+    textAlign: "center",
   },
   separator: {
-    // color: COLORS.primaryFontColor,
-    // fontSize: 12,
-    // fontFamily: "Manrope-Regular",
-    // marginHorizontal: 5,
+    color: COLORS.primaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    marginHorizontal: 4,
+    paddingVertical: 4,
+  },
+  textToggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    minWidth: 120,
+    justifyContent: "flex-end",
   },
   toggleButton: {
     minHeight: 30,
@@ -1115,5 +1240,50 @@ const styles = StyleSheet.create({
   },
   negativeTrendContainer: {
     backgroundColor: "#FF6B6B",
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    backgroundColor: COLORS.secondaryFontColor,
+    borderRadius: 6,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: "#E2E6F0",
+    height: 32,
+  },
+  toggleButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 4,
+    minWidth: 65,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 28,
+  },
+  toggleButtonActive: {
+    backgroundColor: COLORS.secondaryColor,
+  },
+  toggleTextActive: {
+    color: COLORS.secondaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-SemiBold",
+  },
+  toggleTextInactive: {
+    color: COLORS.primaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+  },
+  consumptionTable: {
+    paddingHorizontal: 0,
+    paddingVertical: 8,
+  },
+  consumptionValue: {
+    color: COLORS.secondaryColor,
+    fontFamily: "Manrope-SemiBold",
+    fontSize: 12,
+  },
+  cumulativeValue: {
+    color: COLORS.primaryFontColor,
+    fontFamily: "Manrope-Medium",
+    fontSize: 12,
   }
 });
