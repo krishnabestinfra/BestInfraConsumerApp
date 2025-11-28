@@ -152,8 +152,8 @@ const styles = StyleSheet.create({
     height: "77%",
   },
   DashComponentsbar: {
-    top:40,
-    height: "100%",
+    top:10,
+    height: "50%",
     backgroundColor: "#eef8f0",
     borderTopLeftRadius: 20,
     borderBottomLeftRadius: 20,
