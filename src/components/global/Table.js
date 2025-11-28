@@ -459,13 +459,14 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 8,
   },
-paginationButton: {
-  flex:0.3,
-  marginHorizontal: 20,
-  fontFamily: "Manrope-Medium",
-  fontSize: 10,
-  backgroundColor:COLORS.secondaryColor,
-},
+  paginationButton: {
+    minWidth: 120,
+    flex: 0.35,
+    marginHorizontal: 20,
+    fontFamily: "Manrope-Medium",
+    fontSize: 10,
+    backgroundColor: COLORS.secondaryColor,
+  },
 paginationText: {
   fontFamily: "Manrope-Regular",
   fontSize: 10,
