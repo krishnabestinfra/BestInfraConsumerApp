@@ -2,27 +2,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearAllCache } from './cacheManager';
 import { API_ENDPOINTS } from '../constants/constants';
+import { authService } from '../services/authService';
 
-export const storeUser = async (user) => {
-  try {
-    await AsyncStorage.setItem('user', JSON.stringify(user));
-  } catch (e) {
-    // Silent error handling for production
-  }
-};
-
-export const getUser = async () => {
-  try {
-    const userData = await AsyncStorage.getItem('user');
-    return userData != null ? JSON.parse(userData) : { name: "Guest" };
-  } catch (e) {
-    return { name: "Guest" };
-  }
-};
-
+// Legacy token functions - now use authService
 export const storeToken = async (token) => {
   try {
-    await AsyncStorage.setItem('token', token);
+    await authService.storeAccessToken(token);
   } catch (e) {
     // Silent error handling for production
   }
@@ -30,16 +15,36 @@ export const storeToken = async (token) => {
 
 export const getToken = async () => {
   try {
-    return await AsyncStorage.getItem('token');
+    // Get valid token (refresh if needed)
+    return await authService.getValidAccessToken();
   } catch (e) {
     return null;
   }
 };
 
+// User storage functions
+export const storeUser = async (user) => {
+  try {
+    await authService.storeUser(user);
+  } catch (e) {
+    // Silent error handling for production
+  }
+};
+
+export const getUser = async () => {
+  try {
+    const user = await authService.getUser();
+    return user || { name: "Guest" };
+  } catch (e) {
+    return { name: "Guest" };
+  }
+};
+
+// Logout function - now uses authService
 export const logoutUser = async () => {
   try {
-    await AsyncStorage.removeItem('user');
-    await AsyncStorage.removeItem('token');
+    // Use authService logout which handles server-side token revocation
+    await authService.logout();
     // Clear all cached consumer data on logout
     await clearAllCache();
   } catch (e) {
@@ -52,9 +57,10 @@ export const clearStorage = logoutUser;
 
 export const isUserLoggedIn = async () => {
   try {
-    const token = await getToken();
+    // Use authService to check authentication
+    const isAuth = await authService.isAuthenticated();
     const user = await getUser();
-    return !!(token && user && user.name);
+    return !!(isAuth && user && user.name);
   } catch (e) {
     return false;
   }

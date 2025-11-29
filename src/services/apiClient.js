@@ -11,6 +11,7 @@
 
 import { getToken, getUser } from '../utils/storage';
 import { API_ENDPOINTS } from '../constants/constants';
+import { authService } from './authService';
 
 class ApiClient {
   constructor() {
@@ -76,8 +77,8 @@ class ApiClient {
     } = options;
 
     try {
-      // Get authentication token
-      const token = await getToken();
+      // Get valid authentication token (will refresh if expired)
+      const token = await authService.getValidAccessToken();
       const user = await getUser();
 
       if (showLogs) {
@@ -182,13 +183,91 @@ class ApiClient {
 
     // Handle specific error cases
     if (response.status === 401) {
-      // Token expired or invalid - don't retry
-      return {
-        success: false,
-        error: 'Authentication failed - please login again',
-        status: 401,
-        requiresReauth: true
-      };
+      // Token expired or invalid - try to refresh
+      console.log('🔄 Access token expired, attempting refresh...');
+      
+      try {
+        // Attempt to refresh the token
+        await authService.refreshAccessToken();
+        
+        // Get the new token
+        const newToken = await authService.getAccessToken();
+        
+        if (newToken) {
+          // Retry the original request with new token
+          console.log('✅ Token refreshed, retrying original request...');
+          
+          // Extract original request parameters
+          const {
+            method = 'GET',
+            headers: originalHeaders = {},
+            body: originalBody = null,
+            timeout = this.baseTimeout,
+          } = originalOptions;
+          
+          // Prepare headers with new token
+          const retryHeaders = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Authorization': `Bearer ${newToken}`,
+            ...originalHeaders,
+          };
+          
+          // Create abort controller for timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+          
+          // Retry the request
+          const retryResponse = await fetch(endpoint, {
+            method,
+            headers: retryHeaders,
+            body: originalBody ? JSON.stringify(originalBody) : null,
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (retryResponse.ok) {
+            const retryResult = await retryResponse.json();
+            console.log('✅ Request succeeded after token refresh');
+            return {
+              success: true,
+              data: retryResult.data || retryResult,
+              status: retryResponse.status,
+              headers: Object.fromEntries(retryResponse.headers.entries()),
+              wasRefreshed: true
+            };
+          } else {
+            // If retry still fails, token refresh might have failed
+            console.error('❌ Request failed even after token refresh');
+            return {
+              success: false,
+              error: 'Authentication failed - please login again',
+              status: 401,
+              requiresReauth: true
+            };
+          }
+        } else {
+          // No new token available
+          console.error('❌ No new token after refresh');
+          return {
+            success: false,
+            error: 'Authentication failed - please login again',
+            status: 401,
+            requiresReauth: true
+          };
+        }
+      } catch (refreshError) {
+        // Token refresh failed - user needs to login again
+        console.error('❌ Token refresh failed:', refreshError);
+        return {
+          success: false,
+          error: 'Session expired - please login again',
+          status: 401,
+          requiresReauth: true
+        };
+      }
     }
 
     if (response.status === 403) {

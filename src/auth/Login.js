@@ -15,9 +15,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
 import LoginForm from "./LoginForm";
-import { storeUser, storeToken, extractConsumerInfo } from "../utils/storage";
+import { storeUser, extractConsumerInfo } from "../utils/storage";
 import { testConsumerCredentials } from "../services/apiService";
 import { API, API_ENDPOINTS } from "../constants/constants";
+import { authService } from "../services/authService";
 import Button from "../components/global/Button";
 import Logo from "../components/global/Logo";
 import EmailLogin from "./EmailLogin";
@@ -94,7 +95,8 @@ const Login = ({ navigation }) => {
 
         // Store dummy user data
         await storeUser(dummyUserData);
-        await storeToken("demo-token-" + Date.now());
+        // Store demo access token using auth service
+        await authService.storeAccessToken("demo-token-" + Date.now());
 
         console.log("✅ DEMO LOGIN SUCCESSFUL:", dummyUserData);
         
@@ -178,9 +180,14 @@ const Login = ({ navigation }) => {
       const result = await response.json();
       console.log("✅ Login response:", result);
 
-      if (result.success && result.data && result.data.token) {
-        // Store token and user data
-        await storeToken(result.data.token);
+      // Check if login was successful
+      if (result.success && result.data) {
+        // Handle tokens using authService
+        const tokens = await authService.handleLoginResponse(response, result);
+        
+        if (!tokens.accessToken) {
+          throw new Error("No access token received from server");
+        }
         
         // Extract consumer information using helper function
         const consumerInfo = extractConsumerInfo(result, identifier);
@@ -194,7 +201,7 @@ const Login = ({ navigation }) => {
           consumerNumber: consumerInfo.consumerNumber,
           meterSerialNumber: consumerInfo.meterSerialNumber,
           uniqueIdentificationNo: consumerInfo.uniqueIdentificationNo,
-          token: result.data.token
+          accessToken: tokens.accessToken // Store access token reference
         };
         
         await storeUser(userData);

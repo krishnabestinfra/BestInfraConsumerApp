@@ -55,11 +55,25 @@ const SideMenuNavigation = ({ navigation }) => {
   };
 
  const handleLogout = async () => {
-  await logoutUser();
-  navigation.reset({
-    index: 0,
-    routes: [{ name: "Splash" }],
-  });
+  try {
+    console.log('🔄 User initiated logout from side menu...');
+    // Call logout which handles server token revocation and local cleanup
+    await logoutUser(); // This calls authService.logout() which revokes tokens on server
+    
+    // Navigate to Splash screen which will check auth and route appropriately
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Splash" }],
+    });
+    console.log('✅ Logout complete - navigated to Splash');
+  } catch (error) {
+    console.error('❌ Error during logout:', error);
+    // Still navigate to splash even if logout had errors
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Splash" }],
+    });
+  }
 };
 
   return (

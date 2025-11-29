@@ -2,20 +2,12 @@ import React, { useEffect, useState } from "react";
 import { View, StyleSheet, Image, Dimensions } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getUser, isUserLoggedIn } from "../utils/storage";
+import { authService } from "../services/authService";
 import Logo from "../components/global/Logo";
 import AnimatedRings from "../components/global/AnimatedRings";
 
 const { width, height } = Dimensions.get("window");
-
-const getUser = async () => {
-  try {
-    const userData = await AsyncStorage.getItem("user"); 
-    return userData ? JSON.parse(userData) : null;
-  } catch (error) {
-    return null;
-  }
-};
 
 const SplashScreen = () => {
   const navigation = useNavigation();
@@ -37,20 +29,24 @@ const SplashScreen = () => {
     };
 
     const proceedToMainApp = async () => {
+      // Check if user is authenticated (has valid tokens)
+      const isAuthenticated = await authService.isAuthenticated();
       const user = await getUser();
       
       // Add minimum splash time for better UX
       setTimeout(() => {
         setSplashComplete(true);
-        if (user) {
-          // User is already logged in - go directly to dashboard
+        if (isAuthenticated && user) {
+          // User is already logged in with valid tokens - go directly to dashboard
           // Reset navigation stack to prevent going back to splash/onboarding
+          console.log('✅ User authenticated, navigating to dashboard');
           navigation.reset({
             index: 0,
             routes: [{ name: "PostPaidDashboard" }],
           });
         } else {
-          // No user - show onboarding
+          // No valid authentication - show onboarding/login
+          console.log('ℹ️ No valid authentication, navigating to onboarding');
           navigation.reset({
             index: 0,
             routes: [{ name: "OnBoarding" }],

@@ -2,7 +2,7 @@ import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl }
 import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
 import Table from "../components/global/Table";
-import { getUser } from "../utils/storage";
+import { getUser, getToken } from "../utils/storage";
 import { API_ENDPOINTS } from "../constants/constants";
 import { 
   getCachedConsumerData, 
@@ -12,6 +12,8 @@ import {
 import DashboardHeader from "../components/global/DashboardHeader";
 import DownloadButton from "../components/global/DownloadButton";
 import { handleViewBill } from "../services/InvoicePDFService";
+import { authService } from "../services/authService";
+import { apiClient } from "../services/apiClient";
 
 const formatDateDisplay = (dateString) => {
   if (!dateString) return 'N/A';
@@ -138,16 +140,24 @@ const Invoices = ({ navigation }) => {
         setConsumerData(cachedResult.data);
       }
 
-      // Fetch latest consumer details for header context
+      // Fetch latest consumer details for header context with access token
+      // Using apiClient for automatic token management and refresh
       try {
-        const response = await fetch(API_ENDPOINTS.consumers.get(identifier));
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            setConsumerData(data.data);
-          }
+        const consumerEndpoint = API_ENDPOINTS.consumers.get(identifier);
+        const result = await apiClient.request(consumerEndpoint, {
+          method: 'GET',
+          showLogs: false, // Reduce logging for this call
+        });
+        
+        if (result.success && result.data) {
+          setConsumerData(result.data);
+          console.log('✅ Consumer data fetched successfully with access token');
         } else {
-          console.error('Failed to fetch consumer data:', response.status);
+          console.warn('⚠️ Failed to fetch consumer data:', result.error || 'Unknown error');
+          // If authentication failed, apiClient would have attempted token refresh
+          if (result.requiresReauth) {
+            console.error('❌ Authentication required - user may need to login again');
+          }
         }
       } catch (consumerError) {
         console.error('Error fetching consumer data:', consumerError);
@@ -155,9 +165,18 @@ const Invoices = ({ navigation }) => {
 
       // Fetch billing history for invoices table
       const billingResult = await fetchBillingHistory(identifier);
-      if (billingResult.success && billingResult.data) {
-        const normalizedInvoices = normalizeBillingData(billingResult.data);
-        setTableData(transformInvoicesToRows(normalizedInvoices));
+      if (billingResult.success) {
+        if (billingResult.data && (Array.isArray(billingResult.data) ? billingResult.data.length > 0 : true)) {
+          const normalizedInvoices = normalizeBillingData(billingResult.data);
+          setTableData(transformInvoicesToRows(normalizedInvoices));
+          console.log(`✅ Loaded ${normalizedInvoices.length} invoices`);
+        } else {
+          // No billing data available
+          setTableData([]);
+          if (billingResult.warning) {
+            console.warn('ℹ️', billingResult.message || 'No billing history available');
+          }
+        }
       } else {
         console.error('Failed to fetch billing history:', billingResult.message);
         setTableData([]);
