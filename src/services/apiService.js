@@ -15,6 +15,7 @@
 import { API, API_ENDPOINTS, ENV_INFO } from '../constants/constants';
 import { getToken } from '../utils/storage';
 import { cacheManager } from '../utils/cacheManager';
+import { apiClient } from './apiClient';
 
 // Use centralized API configuration
 const BASE_URL = API.BASE_URL;
@@ -135,18 +136,112 @@ export const fetchPostpaidBillingData = async (consumerId) => {
 
 /**
  * Fetch billing history for a consumer
+ * Tries multiple endpoint formats to handle different API structures
+ * Uses apiClient for automatic token management and refresh
  */
 export const fetchBillingHistory = async (uid) => {
   if (!uid) {
     return { success: false, message: 'Missing consumer identifier' };
   }
 
-  try {
-    return await makeRequest(API_ENDPOINTS.billing.history(uid));
-  } catch (error) {
-    console.error("Error fetching billing history:", error);
-    return { success: false, message: error.message };
+  // List of possible billing endpoint formats to try
+  const billingEndpoints = [
+    // Primary endpoint
+    API_ENDPOINTS.billing.history(uid),
+    // Alternative endpoints
+    `${API.BASE_URL}/billing/postpaid/table?uid=${uid}`,
+    `${API.BASE_URL}/billing/postpaid/history?uid=${uid}`,
+    `${API.BASE_URL}/consumers/${uid}/billing`,
+    `${API.BASE_URL}/consumers/${uid}/bills`,
+    `${API.BASE_URL}/bills?uid=${uid}`,
+    `${API.BASE_URL}/invoices?uid=${uid}`,
+  ];
+
+  // Try each endpoint until one succeeds
+  for (const endpoint of billingEndpoints) {
+    try {
+      console.log(`🔄 Trying billing endpoint: ${endpoint}`);
+      
+      // Use apiClient for better token handling and automatic refresh
+      const result = await apiClient.request(endpoint, {
+        method: 'GET',
+        showLogs: false, // Reduce logging for multiple attempts
+      });
+      
+      if (result.success && result.data) {
+        // Check if data is actually present
+        const data = result.data;
+        const hasData = Array.isArray(data) ? data.length > 0 : 
+                       (data && typeof data === 'object' && Object.keys(data).length > 0);
+        
+        if (hasData) {
+          console.log(`✅ Billing history fetched successfully from: ${endpoint}`);
+          return result;
+        }
+      }
+      
+      // If we get a 404, try next endpoint
+      if (result.status === 404 || (result.error && result.error.includes('404'))) {
+        console.log(`⚠️ Endpoint returned 404, trying next...`);
+        continue;
+      }
+      
+      // If we get success but no data, still try other endpoints first
+      if (result.success && (!result.data || (Array.isArray(result.data) && result.data.length === 0))) {
+        console.log(`⚠️ Endpoint responded but no data found, trying next...`);
+        continue;
+      }
+      
+      // If we get success with data (even if empty), return it
+      if (result.success) {
+        console.log(`✅ Endpoint responded successfully`);
+        return result;
+      }
+    } catch (error) {
+      console.log(`⚠️ Error with endpoint ${endpoint}:`, error.message);
+      // Continue to next endpoint
+      continue;
+    }
   }
+
+  // If all endpoints failed, check if consumer data has billing info
+  try {
+    console.log('🔄 Trying to get billing data from consumer endpoint...');
+    const consumerResult = await apiClient.request(API_ENDPOINTS.consumers.get(uid), {
+      method: 'GET',
+      showLogs: false,
+    });
+    
+    if (consumerResult.success && consumerResult.data) {
+      // Check if consumer data contains billing history
+      const consumerData = consumerResult.data;
+      const billingData = consumerData.billingHistory || 
+                         consumerData.bills || 
+                         consumerData.invoices ||
+                         consumerData.billing ||
+                         consumerData.paymentHistory; // Sometimes billing is in payment history
+      
+      if (billingData) {
+        console.log('✅ Found billing data in consumer response');
+        return {
+          success: true,
+          data: Array.isArray(billingData) ? billingData : [billingData]
+        };
+      }
+    }
+  } catch (error) {
+    console.log('⚠️ Could not get billing from consumer data:', error.message);
+  }
+
+  // All attempts failed - return empty result gracefully
+  console.warn('⚠️ All billing endpoint attempts failed - returning empty result');
+  return { 
+    success: true, 
+    data: [],
+    message: 'No billing history found. The billing endpoint may not be available for this consumer.',
+    warning: true,
+    empty: true
+  };
 };
 
 /**

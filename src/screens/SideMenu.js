@@ -27,9 +27,27 @@ const SideMenu = ({ navigation }) => {
   };
 
   const handleLogout = async () => {
-    await logoutUser(); // Clear all data and cache
-    setActiveItem("Logout");
-    navigation.replace("Login"); 
+    try {
+      console.log('🔄 User initiated logout...');
+      // Call logout which handles server token revocation and local cleanup
+      await logoutUser(); // This calls authService.logout() which revokes tokens on server
+      setActiveItem("Logout");
+      
+      // Navigate to Login screen after logout
+      // Use reset to clear navigation stack
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+      console.log('✅ Logout complete - navigated to Login');
+    } catch (error) {
+      console.error('❌ Error during logout:', error);
+      // Still navigate to login even if logout had errors
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" }],
+      });
+    }
   };
 
   const renderContent = () => {
