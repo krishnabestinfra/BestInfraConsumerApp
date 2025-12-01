@@ -195,14 +195,18 @@ export const NotificationsProvider = ({ children }) => {
     try {
       dispatch({ type: ActionTypes.SET_LOADING, payload: true });
       
-      const result = await fetchNotifications(uid);
+      // Fetch notifications with pagination (page 1, limit 10 for initial load)
+      const result = await fetchNotifications(uid, 1, 10);
       
       if (result.success) {
         const notifications = result.data?.notifications || [];
         
-        // Only log successful fetches with actual notifications
+        // Log successful fetches
         if (notifications.length > 0) {
           console.log(`✅ Fetched ${notifications.length} notifications for consumer: ${uid}`);
+          console.log(`   Total available: ${result.data?.pagination?.total || notifications.length}`);
+        } else {
+          console.log(`ℹ️ No notifications found for consumer: ${uid}`);
         }
         
         dispatch({ 
@@ -211,8 +215,7 @@ export const NotificationsProvider = ({ children }) => {
           consumerUid: uid
         });
       } else {
-        // Silently handle failures by setting empty notifications
-        // This prevents error logs while maintaining functionality
+        console.error(`❌ Failed to fetch notifications for ${uid}:`, result.message);
         dispatch({ 
           type: ActionTypes.SET_NOTIFICATIONS, 
           payload: [],

@@ -59,8 +59,8 @@ const Profile = ({ navigation, route }) => {
     }
   }, [consumerUid, currentConsumerUid, setConsumerUid]);
 
-  // Get only the first 2 notifications as per requirement
-  const displayNotifications = notifications.slice(0, 2);
+  // Display all notifications
+  const displayNotifications = notifications;
 
   // Get appropriate icon based on notification type
   const getNotificationIcon = (type) => {

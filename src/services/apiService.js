@@ -372,25 +372,45 @@ export const hasValidCache = async (identifier) => {
 
 /**
  * Fetch notifications for a specific consumer
+ * Uses bearer token from logged-in user
  */
-export const fetchNotifications = async (uid) => {
+export const fetchNotifications = async (uid, page = 1, limit = 10) => {
   try {
-    const url = `${BASE_URL}/notifications?uid=${uid}`;
-    const token = await getToken();
+    // Get valid access token (will auto-refresh if expired)
+    const token = await authService.getValidAccessToken();
+    if (!token) {
+      console.error('❌ No access token available for notifications');
+      return { 
+        success: false, 
+        data: { notifications: [] },
+        message: 'No access token available. Please login again.'
+      };
+    }
+
+    // Use the correct API endpoint with page and limit
+    const url = API_ENDPOINTS.notifications.list(page, limit);
+    
+    console.log('🔄 Fetching notifications:', {
+      url,
+      page,
+      limit,
+      tokenPresent: !!token
+    });
     
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        'Authorization': `Bearer ${token}`,
       },
     });
 
+    console.log('📬 Notifications API response status:', response.status);
+
     // Handle specific HTTP status codes gracefully
     if (response.status === 403) {
-      // 403 Forbidden - notifications feature may not be enabled for this consumer
-      // Return success with empty notifications to avoid error logs
+      console.warn('⚠️ 403 Forbidden - notifications not available');
       return { 
         success: true, 
         data: { notifications: [] },
@@ -400,7 +420,7 @@ export const fetchNotifications = async (uid) => {
     }
 
     if (response.status === 404) {
-      // 404 Not Found - endpoint may not exist yet
+      console.warn('⚠️ 404 Not Found - notifications endpoint not found');
       return { 
         success: true, 
         data: { notifications: [] },
@@ -410,18 +430,42 @@ export const fetchNotifications = async (uid) => {
     }
 
     if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('❌ Notifications API error:', response.status, errorText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json();
-    return { success: true, data: data.data || data };
-  } catch (error) {
-    // Only log actual network errors, not HTTP status errors
-    if (!error.message.includes('HTTP error!')) {
-      console.error("Network error fetching notifications:", error);
+    const result = await response.json();
+    console.log('✅ Notifications API response:', {
+      success: result.success,
+      notificationsCount: result.data?.notifications?.length || 0,
+      total: result.data?.pagination?.total || 0
+    });
+
+    // Handle response structure: { success: true, data: { notifications: [], pagination: {} } }
+    if (result.success && result.data) {
+      const notifications = result.data.notifications || [];
+      return { 
+        success: true, 
+        data: {
+          notifications: notifications,
+          pagination: result.data.pagination || {}
+        }
+      };
     }
+
+    // Fallback for different response structures
     return { 
-      success: true, // Return success to prevent error propagation
+      success: true, 
+      data: { 
+        notifications: result.notifications || result.data || [],
+        pagination: result.pagination || {}
+      }
+    };
+  } catch (error) {
+    console.error('❌ Error fetching notifications:', error);
+    return { 
+      success: false,
       data: { notifications: [] },
       message: error.message 
     };
@@ -430,16 +474,26 @@ export const fetchNotifications = async (uid) => {
 
 /**
  * Mark a notification as read
+ * Uses bearer token from logged-in user
  */
 export const markNotificationAsRead = async (notificationId) => {
   try {
-    const url = `${BASE_URL}/notifications/${notificationId}/read`;
-    const token = await getToken();
+    // Get valid access token (will auto-refresh if expired)
+    const token = await authService.getValidAccessToken();
+    if (!token) {
+      return { 
+        success: false, 
+        message: 'No access token available. Please login again.' 
+      };
+    }
+
+    const url = API_ENDPOINTS.notifications.markRead(notificationId);
     
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
     });
@@ -450,25 +504,35 @@ export const markNotificationAsRead = async (notificationId) => {
 
     const data = await response.json();
     console.log(`✅ Marked notification ${notificationId} as read`);
-    return data;
+    return { success: true, data };
   } catch (error) {
-    console.error("Error marking notification as read:", error);
+    console.error("❌ Error marking notification as read:", error);
     return { success: false, message: error.message };
   }
 };
 
 /**
  * Mark all notifications as read for a consumer
+ * Uses bearer token from logged-in user
  */
 export const markAllNotificationsAsRead = async (uid) => {
   try {
-    const url = `${BASE_URL}/notifications/${uid}/read-all`;
-    const token = await getToken();
+    // Get valid access token (will auto-refresh if expired)
+    const token = await authService.getValidAccessToken();
+    if (!token) {
+      return { 
+        success: false, 
+        message: 'No access token available. Please login again.' 
+      };
+    }
+
+    const url = API_ENDPOINTS.notifications.markAllRead(uid);
     
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
     });
@@ -479,9 +543,9 @@ export const markAllNotificationsAsRead = async (uid) => {
 
     const data = await response.json();
     console.log(`✅ Marked all notifications as read for UID: ${uid}`);
-    return data;
+    return { success: true, data };
   } catch (error) {
-    console.error("Error marking all notifications as read:", error);
+    console.error("❌ Error marking all notifications as read:", error);
     return { success: false, message: error.message };
   }
 };

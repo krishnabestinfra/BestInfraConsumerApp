@@ -92,8 +92,18 @@ export const API_ENDPOINTS = {
   
   // Notifications endpoints
   notifications: {
-    list: (uid) => `${API.BASE_URL}/notifications?uid=${uid}`,
-    markRead: (id) => `${API.BASE_URL}/notifications/${id}/read`,
+    list: (page = 1, limit = 10) => {
+      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      return `${baseUrl}/notifications?page=${page}&limit=${limit}`;
+    },
+    markRead: (id) => {
+      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      return `${baseUrl}/notifications/${id}/read`;
+    },
+    markAllRead: (uid) => {
+      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      return `${baseUrl}/notifications/${uid}/read-all`;
+    },
   },
   
   // LS Data endpoints (15-minute interval consumption data)
