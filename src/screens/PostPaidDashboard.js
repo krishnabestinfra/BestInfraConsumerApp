@@ -547,15 +547,182 @@ const PostPaidDashboard = ({ navigation, route }) => {
     setSelectedConsumerUid(null);
   }, []);
 
+  // Helper function to parse and format date from bar label
+  const parseDateFromBarLabel = useCallback((label, viewType) => {
+    if (!label) return null;
+
+    try {
+      let date;
+      const currentYear = new Date().getFullYear();
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      if (viewType === "daily") {
+        // For daily view, label could be in various formats:
+        // "21st Nov 2025", "Nov 21, 2025", "21-Nov-2025", "2025-11-21", "21/11/2025", "25 Nov", etc.
+        
+        // First, try to parse it directly as a date
+        date = new Date(label);
+        
+        // If parsing failed, try to extract date parts from common formats
+        if (isNaN(date.getTime())) {
+          // Try format like "21st Nov 2025" or "21 Nov 2025" (with year)
+          const dateMatch = label.match(/(\d{1,2})(?:st|nd|rd|th)?\s+(\w+)\s+(\d{4})/i);
+          if (dateMatch) {
+            const day = parseInt(dateMatch[1]);
+            const monthName = dateMatch[2];
+            const year = parseInt(dateMatch[3]);
+            const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+            if (!isNaN(monthIndex)) {
+              date = new Date(year, monthIndex, day);
+            }
+          }
+          
+          // If still invalid, try format like "25 Nov" or "25th Nov" (without year - use current year)
+          if (isNaN(date.getTime())) {
+            const dateMatchNoYear = label.match(/(\d{1,2})(?:st|nd|rd|th)?\s+(\w+)/i);
+            if (dateMatchNoYear) {
+              const day = parseInt(dateMatchNoYear[1]);
+              const monthName = dateMatchNoYear[2];
+              const monthIndex = monthNames.findIndex(m => 
+                m.toLowerCase() === monthName.substring(0, 3).toLowerCase()
+              );
+              if (monthIndex !== -1) {
+                date = new Date(currentYear, monthIndex, day);
+                console.log(`✅ Parsed date from "${label}": ${date.toISOString()}`);
+              }
+            }
+          }
+          
+          // If still invalid, try format like "DD-MM-YYYY" or "DD/MM/YYYY"
+          if (isNaN(date.getTime())) {
+            const dateMatch2 = label.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+            if (dateMatch2) {
+              const day = parseInt(dateMatch2[1]);
+              const month = parseInt(dateMatch2[2]) - 1; // Month is 0-indexed
+              const year = parseInt(dateMatch2[3]);
+              date = new Date(year, month, day);
+            }
+          }
+          
+          // If still invalid, try format like "YYYY-MM-DD"
+          if (isNaN(date.getTime())) {
+            const dateMatch3 = label.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+            if (dateMatch3) {
+              const year = parseInt(dateMatch3[1]);
+              const month = parseInt(dateMatch3[2]) - 1; // Month is 0-indexed
+              const day = parseInt(dateMatch3[3]);
+              date = new Date(year, month, day);
+            }
+          }
+          
+          // Last resort: use today's date
+          if (isNaN(date.getTime())) {
+            console.warn('Could not parse date from label:', label, 'Using today\'s date');
+            date = new Date();
+          }
+        }
+      } else {
+        // For monthly view, label is month name like "Jan", "Feb", etc.
+        // Get the first day of that month in the current year
+        const monthIndex = monthNames.findIndex(m => 
+          m.toLowerCase() === label.substring(0, 3).toLowerCase()
+        );
+        
+        if (monthIndex !== -1) {
+          date = new Date(currentYear, monthIndex, 1);
+        } else {
+          // Fallback: use first day of current month
+          date = new Date();
+          date.setDate(1);
+        }
+      }
+
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date parsed, using today:', label);
+        date = new Date();
+      }
+
+      // Format as YYYY-MM-DD for API
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error('Error parsing date from label:', label, error);
+      // Fallback: return today's date in YYYY-MM-DD format
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }, []);
+
   // Handle bar press from chart - navigate to dedicated table page
-  const handleBarPress = useCallback((barData) => {
+  const handleBarPress = useCallback(async (barData) => {
     console.log('📊 Bar pressed:', barData);
-    navigation.navigate('ConsumerDataTable', {
-      consumerData,
-      loading: isLoading,
-      viewType: selectedView
+    
+    // Extract date from bar data - prefer originalLabel if available (from full data array)
+    const barLabel = barData?.originalLabel || barData?.date || barData?.label || '';
+    const viewTypeForParsing = barData?.viewType || selectedView;
+    const formattedDate = parseDateFromBarLabel(barLabel, viewTypeForParsing);
+    
+    // Get meterId - priority: consumerData > logged-in user
+    let meterId = consumerData?.meterId || 
+                  consumerData?.meterSerialNumber || 
+                  consumerData?.meterNumber || 
+                  null;
+
+    // If not found in consumerData, try to get from logged-in user
+    if (!meterId) {
+      try {
+        const user = await getUser();
+        meterId = user?.meterId || user?.meterSerialNumber || null;
+        console.log('📋 MeterId from logged-in user:', meterId);
+      } catch (error) {
+        console.error('❌ Error getting user data:', error);
+      }
+    }
+
+    // Convert to string if it's a number (API expects string)
+    if (meterId) {
+      meterId = String(meterId).trim();
+    }
+
+    console.log('📅 Extracted date info:', {
+      originalLabel: barData?.originalLabel,
+      displayLabel: barData?.label,
+      barLabel: barLabel,
+      formattedDate,
+      viewType: viewTypeForParsing,
+      meterId,
+      originalIndex: barData?.index,
+      displayIndex: barData?.displayIndex,
+      consumerDataMeterId: consumerData?.meterId,
+      consumerDataMeterSerial: consumerData?.meterSerialNumber
     });
-  }, [navigation, consumerData, isLoading, selectedView]);
+
+    if (!formattedDate) {
+      console.error('❌ Could not parse date from bar label:', barLabel);
+      return;
+    }
+
+    if (!meterId) {
+      console.error('❌ Meter ID not found');
+      return;
+    }
+
+    // Navigate with all necessary data
+    navigation.navigate('ConsumerDataTable', {
+      date: formattedDate,
+      meterId: meterId, // Pass as string
+      viewType: viewTypeForParsing,
+      barData: barData,
+      consumerData: consumerData // Pass full consumerData for fallback
+    });
+  }, [navigation, consumerData, isLoading, selectedView, parseDateFromBarLabel]);
 
   const handleViewTamperEvent = useCallback((event) => {
     console.log("🔎 View tamper event", event?.raw || event);

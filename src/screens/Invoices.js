@@ -73,28 +73,184 @@ const getInvoiceDateValue = (invoice) => {
 
 const mapInvoiceForPDF = (invoice) => {
   const taxes = invoice?.taxes || {};
+  
+  // Format dates for PDF
+  const formatDateForPDF = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch {
+      return dateString || '';
+    }
+  };
+  
+  // Extract ALL possible fields to ensure nothing is missing
   return {
+    // Spread all original invoice data first (ensures nothing is lost)
     ...invoice,
-    transactionId: invoice?.billNumber || invoice?.id?.toString() || 'N/A',
-    billNumber: invoice?.billNumber,
-    billDate: invoice?.fromDate,
-    invoiceDate: invoice?.createdAt || invoice?.fromDate,
-    paymentDate: invoice?.createdAt || invoice?.updatedAt || invoice?.fromDate,
-    dueDate: invoice?.dueDate,
-    previousReading: invoice?.previousReading,
-    currentReading: invoice?.currentReading,
-    unitsConsumed: invoice?.unitsConsumed,
-    fixedCharges: invoice?.fixedCharge,
-    energyCharges: invoice?.energyCharge,
-    taxAmount: taxes.total ?? taxes.gst ?? 0,
-    cgst: taxes.cgst ?? 0,
-    sgst: taxes.sgst ?? 0,
-    igst: taxes.igst ?? 0,
-    totalAmount: invoice?.totalAmount,
-    creditAmount: invoice?.isPaid ? invoice?.totalAmount : 0,
+    
+    // ========== BASIC INVOICE FIELDS (ALL VARIATIONS) ==========
+    transactionId: invoice?.billNumber || invoice?.transactionId || invoice?.id?.toString() || 'N/A',
+    billNumber: invoice?.billNumber || invoice?.invoiceNumber || invoice?.billNo || invoice?.id?.toString(),
+    invoiceNumber: invoice?.billNumber || invoice?.invoiceNumber || invoice?.invoiceNo || invoice?.id?.toString(),
+    billNo: invoice?.billNumber || invoice?.billNo || invoice?.id?.toString(),
+    invoiceNo: invoice?.invoiceNumber || invoice?.invoiceNo || invoice?.billNumber,
+    
+    // ========== DATES (ALL VARIATIONS) ==========
+    billDate: formatDateForPDF(invoice?.fromDate || invoice?.billDate || invoice?.invoiceDate),
+    invoiceDate: formatDateForPDF(invoice?.createdAt || invoice?.fromDate || invoice?.billDate || invoice?.invoiceDate),
+    paymentDate: formatDateForPDF(invoice?.createdAt || invoice?.updatedAt || invoice?.fromDate || invoice?.paymentDate),
+    transactionDate: formatDateForPDF(invoice?.paymentDate || invoice?.transactionDate || invoice?.createdAt),
+    dueDate: formatDateForPDF(invoice?.dueDate),
+    fromDate: formatDateForPDF(invoice?.fromDate),
+    toDate: formatDateForPDF(invoice?.toDate),
+    readingDate: formatDateForPDF(invoice?.readingDate || invoice?.fromDate || invoice?.billDate),
+    
+    // ========== BILL TYPE AND PERIOD (ALL VARIATIONS) ==========
+    billType: invoice?.billType || invoice?.connectionType || invoice?.tariffCategory || 'Postpaid',
+    connectionType: invoice?.connectionType || invoice?.billType || 'Domestic',
+    tariffCategory: invoice?.tariffCategory || invoice?.billType || invoice?.category || 'Domestic',
+    category: invoice?.category || invoice?.tariffCategory || 'Domestic',
+    
     billingMonth: formatBillingMonth(invoice?.billMonth, invoice?.billYear),
+    billMonth: invoice?.billMonth || new Date().getMonth() + 1,
+    billYear: invoice?.billYear || new Date().getFullYear(),
+    billingYear: invoice?.billYear || new Date().getFullYear(),
     billingPeriod: `${formatDateDisplay(invoice?.fromDate)} - ${formatDateDisplay(invoice?.toDate)}`,
+    period: `${formatDateDisplay(invoice?.fromDate)} - ${formatDateDisplay(invoice?.toDate)}`,
+    
+    // ========== METER READINGS (ALL VARIATIONS) ==========
+    previousReading: invoice?.previousReading || invoice?.prevReading || invoice?.lastReading || invoice?.oldReading || invoice?.initialReading || 0,
+    prevReading: invoice?.previousReading || invoice?.prevReading || 0,
+    lastReading: invoice?.lastReading || invoice?.previousReading || 0,
+    oldReading: invoice?.oldReading || invoice?.previousReading || 0,
+    initialReading: invoice?.initialReading || invoice?.previousReading || 0,
+    
+    currentReading: invoice?.currentReading || invoice?.finalReading || invoice?.presentReading || invoice?.newReading || invoice?.meterReading || 0,
+    finalReading: invoice?.currentReading || invoice?.finalReading || 0,
+    presentReading: invoice?.presentReading || invoice?.currentReading || 0,
+    newReading: invoice?.newReading || invoice?.currentReading || 0,
+    meterReading: invoice?.meterReading || invoice?.currentReading || 0,
+    
+    unitsConsumed: invoice?.unitsConsumed || invoice?.consumption || invoice?.units || invoice?.totalUnits || invoice?.consumedUnits || 0,
+    consumption: invoice?.consumption || invoice?.unitsConsumed || 0,
+    units: invoice?.units || invoice?.unitsConsumed || 0,
+    totalUnits: invoice?.totalUnits || invoice?.unitsConsumed || 0,
+    consumedUnits: invoice?.consumedUnits || invoice?.unitsConsumed || 0,
+    
+    // ========== CHARGES (ALL VARIATIONS) ==========
+    fixedCharges: invoice?.fixedCharge || invoice?.fixedCharges || 0,
+    fixedCharge: invoice?.fixedCharge || invoice?.fixedCharges || 0,
+    
+    energyCharges: invoice?.energyCharge || invoice?.energyCharges || invoice?.consumptionCharges || 0,
+    energyCharge: invoice?.energyCharge || invoice?.energyCharges || 0,
+    consumptionCharges: invoice?.consumptionCharges || invoice?.energyCharges || 0,
+    
+    demandCharges: invoice?.demandCharges || invoice?.demandCharge || 0,
+    demandCharge: invoice?.demandCharges || invoice?.demandCharge || 0,
+    
+    powerFactorCharges: invoice?.powerFactorCharges || invoice?.powerFactorCharge || 0,
+    powerFactorCharge: invoice?.powerFactorCharges || invoice?.powerFactorCharge || 0,
+    
+    electricityDuty: invoice?.electricityDuty || invoice?.duty || 0,
+    duty: invoice?.duty || invoice?.electricityDuty || 0,
+    
+    imcCharges: invoice?.imcCharges || invoice?.imcCharge || invoice?.imc || 0,
+    imcCharge: invoice?.imcCharges || invoice?.imcCharge || 0,
+    imc: invoice?.imc || invoice?.imcCharges || 0,
+    
+    // ========== TAX INFORMATION (ALL VARIATIONS) ==========
+    taxAmount: taxes.total ?? taxes.gst ?? invoice?.taxAmount ?? invoice?.gst ?? invoice?.tax ?? 0,
+    tax: invoice?.tax || taxes.total || taxes.gst || 0,
+    gst: invoice?.gst || taxes.gst || taxes.total || 0,
+    totalTax: taxes.total || invoice?.taxAmount || invoice?.gst || 0,
+    
+    cgst: taxes.cgst ?? invoice?.cgst ?? (taxes.total ? taxes.total / 2 : 0),
+    centralGST: taxes.cgst ?? invoice?.cgst ?? 0,
+    
+    sgst: taxes.sgst ?? invoice?.sgst ?? (taxes.total ? taxes.total / 2 : 0),
+    stateGST: taxes.sgst ?? invoice?.sgst ?? 0,
+    
+    igst: taxes.igst ?? invoice?.igst ?? 0,
+    integratedGST: taxes.igst ?? invoice?.igst ?? 0,
+    
+    // ========== AMOUNTS (ALL VARIATIONS) ==========
+    totalAmount: invoice?.totalAmount || invoice?.amount || invoice?.grandTotal || invoice?.netAmount || 0,
+    amount: invoice?.amount || invoice?.totalAmount || 0,
+    grandTotal: invoice?.grandTotal || invoice?.totalAmount || 0,
+    netAmount: invoice?.netAmount || invoice?.totalAmount || 0,
+    creditAmount: invoice?.isPaid ? (invoice?.totalAmount || invoice?.creditAmount || 0) : 0,
+    
+    // Calculate subtotal
+    subTotal: (invoice?.energyCharges || invoice?.energyCharge || 0) +
+              (invoice?.fixedCharges || invoice?.fixedCharge || 0) +
+              (invoice?.demandCharges || invoice?.demandCharge || 0) +
+              (invoice?.powerFactorCharges || invoice?.powerFactorCharge || 0) +
+              (invoice?.electricityDuty || 0) +
+              (invoice?.imcCharges || invoice?.imcCharge || 0),
+    
+    // ========== PAYMENT INFORMATION (ALL VARIATIONS) ==========
+    paymentStatus: invoice?.isPaid || invoice?.paymentStatus === 'Paid' || invoice?.status === 'Paid' || (invoice?.creditAmount > 0) ? 'Paid' : (invoice?.status || invoice?.paymentStatus || 'Pending'),
     status: invoice?.isPaid ? 'Paid' : (invoice?.status || 'Pending'),
+    billStatus: invoice?.isPaid ? 'Paid' : (invoice?.status || 'Pending'),
+    invoiceStatus: invoice?.isPaid ? 'Paid' : (invoice?.status || 'Pending'),
+    
+    paymentMode: invoice?.paymentMode || invoice?.paymentMethod || invoice?.mode || 'N/A',
+    paymentMethod: invoice?.paymentMethod || invoice?.paymentMode || 'N/A',
+    mode: invoice?.mode || invoice?.paymentMode || 'N/A',
+    
+    isPaid: invoice?.isPaid || invoice?.paymentStatus === 'Paid' || invoice?.status === 'Paid' || (invoice?.creditAmount > 0),
+    paid: invoice?.isPaid || false,
+    
+    // ========== LAST MONTH DATA (ALL VARIATIONS) ==========
+    lastMonth: invoice?.lastMonth || invoice?.previousBill || invoice?.previousPeriod || {
+      previousReading: invoice?.lastMonthPreviousReading || invoice?.previousReading || 0,
+      finalReading: invoice?.lastMonthFinalReading || invoice?.currentReading || 0,
+      consumption: invoice?.lastMonthConsumption || invoice?.unitsConsumed || 0,
+      totalAmount: invoice?.lastMonthTotalAmount || 0,
+    },
+    previousBill: invoice?.previousBill || invoice?.lastMonth || {},
+    previousPeriod: invoice?.previousPeriod || invoice?.lastMonth || {},
+    
+    lastMonthPreviousReading: invoice?.lastMonthPreviousReading || invoice?.lastMonth?.previousReading || invoice?.previousReading || 0,
+    lastMonthFinalReading: invoice?.lastMonthFinalReading || invoice?.lastMonth?.finalReading || invoice?.currentReading || 0,
+    lastMonthConsumption: invoice?.lastMonthConsumption || invoice?.lastMonth?.consumption || invoice?.unitsConsumed || 0,
+    lastMonthTotalAmount: invoice?.lastMonthTotalAmount || invoice?.lastMonth?.totalAmount || 0,
+    lastMonthUnits: invoice?.lastMonthConsumption || invoice?.lastMonth?.consumption || invoice?.unitsConsumed || 0,
+    
+    // ========== MERIT DATA (ALL VARIATIONS) ==========
+    merit: invoice?.merit || invoice?.meritData || invoice?.meritCharges || invoice?.additionalCharges || [],
+    meritData: invoice?.meritData || invoice?.merit || [],
+    meritCharges: invoice?.meritCharges || invoice?.merit || [],
+    additionalCharges: invoice?.additionalCharges || invoice?.merit || [],
+    
+    meritDueDate: formatDateForPDF(invoice?.meritDueDate || invoice?.dueDate),
+    meritAmount: invoice?.meritAmount || invoice?.totalAmount || 0,
+    
+    // ========== METER SERVICES (ALL VARIATIONS) ==========
+    meterServices: invoice?.meterServices || invoice?.services || invoice?.serviceCharges || [
+      {
+        serviceType: 'Energy Charges',
+        previousReadings: String(invoice?.previousReading || 0),
+        finalReadings: String(invoice?.currentReading || 0),
+        consumption: String(invoice?.unitsConsumed || 0),
+        unitRate: String(invoice?.unitRate || invoice?.tariffRate || invoice?.rate || 0),
+        amount: String(invoice?.energyCharge || invoice?.energyCharges || 0),
+      }
+    ],
+    services: invoice?.services || invoice?.meterServices || [],
+    serviceCharges: invoice?.serviceCharges || invoice?.meterServices || [],
+    
+    // ========== TARIFF & RATE INFORMATION (ALL VARIATIONS) ==========
+    unitRate: invoice?.unitRate || invoice?.tariffRate || invoice?.rate || invoice?.perUnitRate || 0,
+    tariffRate: invoice?.tariffRate || invoice?.unitRate || invoice?.rate || 0,
+    rate: invoice?.rate || invoice?.tariffRate || invoice?.unitRate || 0,
+    perUnitRate: invoice?.perUnitRate || invoice?.unitRate || invoice?.tariffRate || 0,
+    
+    // ========== PRESERVE ALL TAX DATA ==========
+    taxes: taxes,
+    tax: taxes,
   };
 };
 

@@ -96,6 +96,14 @@ export const API_ENDPOINTS = {
     markRead: (id) => `${API.BASE_URL}/notifications/${id}/read`,
   },
   
+  // LS Data endpoints (15-minute interval consumption data)
+  lsdata: {
+    consumption: (startDate, endDate, meterId) => {
+      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      return `${baseUrl}/lsdata/consumption?startDate=${startDate}&endDate=${endDate}&meterId=${meterId}`;
+    },
+  },
+  
   // Utility endpoints
   health: () => `${API.HEALTH_URL}/`,
   version: () => `${API.BASE_URL}/version`,
