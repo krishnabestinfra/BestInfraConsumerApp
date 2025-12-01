@@ -181,10 +181,18 @@ class ApiClient {
     const errorMessage = `HTTP ${response.status}: ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`;
     console.error('❌ API Error:', errorMessage);
 
+    // Check for token expiration errors (401 status or specific error messages)
+    const isTokenExpired = response.status === 401 || 
+                          errorDetails.toLowerCase().includes('token_expired') ||
+                          errorDetails.toLowerCase().includes('token expired') ||
+                          errorDetails.toLowerCase().includes('invalid token') ||
+                          errorDetails.toLowerCase().includes('unauthorized');
+
     // Handle specific error cases
-    if (response.status === 401) {
+    if (isTokenExpired) {
       // Token expired or invalid - try to refresh
-      console.log('🔄 Access token expired, attempting refresh...');
+      console.log('🔄 Access token expired or invalid, attempting refresh...');
+      console.log(`   Error details: ${errorDetails || '401 Unauthorized'}`);
       
       try {
         // Attempt to refresh the token

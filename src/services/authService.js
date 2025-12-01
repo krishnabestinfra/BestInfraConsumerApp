@@ -168,22 +168,31 @@ class AuthService {
       }
 
       console.log('🔄 Refreshing access token...');
+      console.log(`   Refresh endpoint: ${API_ENDPOINTS.auth.refresh()}`);
 
       // Prepare request body - include refreshToken if we have it
       const requestBody = refreshToken ? { refreshToken } : {};
       
-      const response = await fetch(API_ENDPOINTS.auth.refresh(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        // Note: In React Native, cookies (including httpOnly) are automatically sent
-        // by the underlying network layer if they were set by the server
-        body: Object.keys(requestBody).length > 0 ? JSON.stringify(requestBody) : undefined,
-      });
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      try {
+        const response = await fetch(API_ENDPOINTS.auth.refresh(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          // Note: In React Native, cookies (including httpOnly) are automatically sent
+          // by the underlying network layer if they were set by the server
+          body: Object.keys(requestBody).length > 0 ? JSON.stringify(requestBody) : undefined,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
 
-      if (!response.ok) {
+        if (!response.ok) {
         // If refresh fails, clear tokens and require re-login
         if (response.status === 401 || response.status === 403) {
           console.error('❌ Refresh token invalid or expired');
@@ -198,9 +207,18 @@ class AuthService {
       const result = await response.json();
       
       // Extract new tokens from response
-      const newAccessToken = result.data?.accessToken || result.accessToken || result.data?.token;
-      const newRefreshToken = result.data?.refreshToken || result.refreshToken || 
-                              this.extractRefreshTokenFromResponse(response) || refreshToken;
+      // Support multiple naming conventions: accessToken, token, gmrToken
+      const newAccessToken = result.data?.accessToken || 
+                            result.data?.gmrToken ||
+                            result.accessToken || 
+                            result.gmrToken ||
+                            result.data?.token;
+      // Support multiple naming conventions: refreshToken, gmrRefreshToken
+      const newRefreshToken = result.data?.refreshToken || 
+                             result.data?.gmrRefreshToken ||
+                             result.refreshToken || 
+                             result.gmrRefreshToken ||
+                             this.extractRefreshTokenFromResponse(response) || refreshToken;
 
       if (!newAccessToken) {
         throw new Error('No access token in refresh response');
@@ -214,15 +232,41 @@ class AuthService {
 
       console.log('✅ Access token refreshed successfully');
       
-      return {
-        success: true,
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken
-      };
-
+        return {
+          success: true,
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken
+        };
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        
+        // Handle network errors
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Token refresh timeout - please check your connection');
+        }
+        
+        if (fetchError.message && fetchError.message.includes('Network request failed')) {
+          throw new Error('Network error - cannot refresh token. Please check your internet connection.');
+        }
+        
+        // Re-throw other errors
+        throw fetchError;
+      }
     } catch (error) {
       console.error('❌ Token refresh failed:', error);
-      await this.clearTokens();
+      
+      // Only clear tokens if it's an authentication error, not network error
+      // Network errors might be temporary
+      if (error.message && (
+        error.message.includes('Session expired') ||
+        error.message.includes('invalid') ||
+        error.message.includes('expired') ||
+        error.message.includes('401') ||
+        error.message.includes('403')
+      )) {
+        await this.clearTokens();
+      }
+      
       throw error;
     }
   }
@@ -236,7 +280,15 @@ class AuthService {
       
       if (isExpired) {
         console.log('🔄 Access token expired, refreshing...');
-        await this.refreshAccessToken();
+        try {
+          await this.refreshAccessToken();
+        } catch (refreshError) {
+          console.error('❌ Token refresh failed in getValidAccessToken:', refreshError);
+          // If refresh fails, clear tokens and return null
+          // This will force user to login again
+          await this.clearTokens();
+          return null;
+        }
       }
       
       return await this.getAccessToken();
@@ -276,18 +328,25 @@ class AuthService {
   async handleLoginResponse(response, responseData) {
     try {
       // Extract access token from response
+      // Support multiple naming conventions: accessToken, token, gmrToken
       const accessToken = responseData?.data?.accessToken || 
+                         responseData?.data?.gmrToken ||
                          responseData?.accessToken || 
+                         responseData?.gmrToken ||
                          responseData?.data?.token;
       
       if (!accessToken) {
+        console.error('❌ Available response data keys:', Object.keys(responseData?.data || {}));
         throw new Error('No access token in login response');
       }
 
       // Extract refresh token from response body first (preferred for React Native)
+      // Support multiple naming conventions: refreshToken, gmrRefreshToken
       // Then try cookies as fallback
       let refreshToken = responseData?.data?.refreshToken || 
+                       responseData?.data?.gmrRefreshToken ||
                        responseData?.refreshToken ||
+                       responseData?.gmrRefreshToken ||
                        this.extractRefreshTokenFromResponse(response);
 
       // Note: In React Native, httpOnly cookies set by the server are automatically
@@ -456,13 +515,44 @@ class AuthService {
 
   /**
    * Check if user is authenticated
+   * This checks if tokens exist AND are valid (not expired)
    */
   async isAuthenticated() {
     try {
       const accessToken = await this.getAccessToken();
       const refreshToken = await this.getRefreshToken();
-      return !!(accessToken || refreshToken);
+      
+      // If no tokens at all, not authenticated
+      if (!accessToken && !refreshToken) {
+        return false;
+      }
+      
+      // If we have access token, check if it's expired
+      if (accessToken) {
+        const isExpired = await this.isAccessTokenExpired();
+        // If access token is valid, user is authenticated
+        if (!isExpired) {
+          return true;
+        }
+      }
+      
+      // If access token expired but we have refresh token, try to refresh
+      // This validates that refresh token is still valid
+      if (refreshToken) {
+        try {
+          // Try to get valid token (will refresh if needed)
+          const validToken = await this.getValidAccessToken();
+          return !!validToken;
+        } catch (error) {
+          // If refresh fails, user is not authenticated
+          console.log('⚠️ Token refresh failed during auth check, user needs to login');
+          return false;
+        }
+      }
+      
+      return false;
     } catch (error) {
+      console.error('❌ Error checking authentication:', error);
       return false;
     }
   }

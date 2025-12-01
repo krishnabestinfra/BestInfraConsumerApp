@@ -134,12 +134,28 @@ const Login = ({ navigation }) => {
       // 2. Use a different authentication endpoint
       // 3. Configure the API to accept all consumer identifiers with a common password
       
-      // First, let's test if this consumer has valid credentials
-      const credentialTest = await testConsumerCredentials(identifier, password);
-      console.log("🔍 Credential test result:", credentialTest);
-      
-      if (!credentialTest.hasValidCredentials) {
-        throw new Error(`Consumer ${identifier} does not have valid credentials in the authentication system. Please contact support to add this consumer to the system.`);
+      // Optional: Test credentials first (skip if network error - actual login will validate)
+      // This is just a pre-check, not required for login to proceed
+      try {
+        const credentialTest = await testConsumerCredentials(identifier, password);
+        console.log("🔍 Credential test result:", credentialTest);
+        
+        // Only fail if we got a clear authentication error (401/403), not network errors
+        if (credentialTest.hasValidCredentials === false && 
+            credentialTest.status !== 0 && 
+            (credentialTest.status === 401 || credentialTest.status === 403)) {
+          throw new Error(`Consumer ${identifier} does not have valid credentials in the authentication system. Please contact support to add this consumer to the system.`);
+        }
+        // If network error (status 0), continue anyway - actual login will handle it
+      } catch (testError) {
+        // If credential test fails with network error, continue to actual login
+        // The actual login call will handle validation properly
+        if (testError.message && !testError.message.includes('does not have valid credentials')) {
+          console.warn("⚠️ Credential test failed, but proceeding with login:", testError.message);
+        } else {
+          // Re-throw if it's a validation error (not network error)
+          throw testError;
+        }
       }
 
       // Make API call to login endpoint with timeout
@@ -200,6 +216,7 @@ const Login = ({ navigation }) => {
           consumerName: consumerInfo.name, // Explicitly store consumer name
           consumerNumber: consumerInfo.consumerNumber,
           meterSerialNumber: consumerInfo.meterSerialNumber,
+          meterId: consumerInfo.meterId, // Store meterId from login (for consumers 1-19)
           uniqueIdentificationNo: consumerInfo.uniqueIdentificationNo,
           accessToken: tokens.accessToken // Store access token reference
         };
@@ -208,8 +225,17 @@ const Login = ({ navigation }) => {
         console.log("✅ User data stored successfully:", {
           name: consumerInfo.name,
           identifier: consumerInfo.identifier,
-          consumerNumber: consumerInfo.consumerNumber
+          consumerNumber: consumerInfo.consumerNumber,
+          meterId: consumerInfo.meterId, // Log meterId from login
+          meterSerialNumber: consumerInfo.meterSerialNumber
         });
+        
+        // Log meterId specifically for LS data API
+        if (consumerInfo.meterId) {
+          console.log("🔢 MeterId stored for LS data API:", consumerInfo.meterId);
+        } else {
+          console.warn("⚠️ MeterId not found in login response. LS data API may not work.");
+        }
         
         // Reset navigation stack - removes Login from history
         // This ensures pressing back on Dashboard will exit the app, not go to Login

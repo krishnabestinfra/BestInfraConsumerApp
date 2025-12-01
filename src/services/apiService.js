@@ -16,19 +16,26 @@ import { API, API_ENDPOINTS, ENV_INFO } from '../constants/constants';
 import { getToken } from '../utils/storage';
 import { cacheManager } from '../utils/cacheManager';
 import { apiClient } from './apiClient';
+import { authService } from './authService';
 
 // Use centralized API configuration
 const BASE_URL = API.BASE_URL;
 const TICKETS_BASE_URL = API.TICKETS_URL;
 
 /**
- * Make authenticated API request
+ * Make authenticated API request with automatic token refresh
+ * This function now handles 401 errors and token refresh automatically
+ * 
+ * @deprecated Consider using apiClient.request() directly for better consistency
+ * This function is kept for backward compatibility
  */
 const makeRequest = async (url, options = {}) => {
   try {
-    const token = await getToken();
+    // Get valid access token (will auto-refresh if expired)
+    const token = await authService.getValidAccessToken();
+    
     const response = await fetch(url, {
-      method: 'GET',
+      method: options.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -38,8 +45,58 @@ const makeRequest = async (url, options = {}) => {
       ...options,
     });
 
+    // Handle 401 errors with token refresh
+    if (response.status === 401) {
+      console.log('🔄 401 error detected in makeRequest, attempting token refresh...');
+      
+      try {
+        // Try to refresh the token
+        await authService.refreshAccessToken();
+        
+        // Get new token
+        const newToken = await authService.getAccessToken();
+        
+        if (newToken) {
+          // Retry the request with new token
+          console.log('✅ Token refreshed, retrying request...');
+          const retryResponse = await fetch(url, {
+            method: options.method || 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${newToken}`,
+              ...options.headers,
+            },
+            ...options,
+          });
+          
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            return { success: true, data: retryData.data || retryData };
+          } else {
+            // If retry still fails, return error
+            const errorData = await retryResponse.json().catch(() => ({}));
+            return { 
+              success: false, 
+              message: errorData.message || `HTTP error! status: ${retryResponse.status}`,
+              status: retryResponse.status,
+              requiresReauth: true
+            };
+          }
+        }
+      } catch (refreshError) {
+        console.error('❌ Token refresh failed in makeRequest:', refreshError);
+        return { 
+          success: false, 
+          message: 'Session expired. Please login again.',
+          requiresReauth: true
+        };
+      }
+    }
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
     const data = await response.json();

@@ -14,7 +14,14 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "July", "Aug", "Sept", "Oct"],
   });
 
-  // Process API data for chart - show only latest 10 bars
+  // Store original full data for date lookup
+  const [originalData, setOriginalData] = useState({
+    allLabels: [],
+    allData: [],
+    startIndex: 0 // Index where the displayed data starts in the original array
+  });
+
+  // Process API data for chart - show only latest 10 bars (excluding current date for daily view)
   useEffect(() => {
     if (data && data.chartData) {
       const chartType = viewType === "daily" ? data.chartData.daily : data.chartData.monthly;
@@ -24,9 +31,89 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
         const allData = seriesData.data || [];
         const allLabels = chartType.xAxisData || [];
         
-        // Get only the latest 10 bars
-        const latestData = allData.slice(-10);
-        const latestLabels = allLabels.slice(-10);
+        let latestData, latestLabels, startIndex;
+        
+        if (viewType === "daily") {
+          // For daily view, exclude current date and show only last 10 days
+          const today = new Date();
+          today.setHours(0, 0, 0, 0); // Reset time to start of day
+          
+          // Helper function to parse date from label
+          const parseDateFromLabel = (label) => {
+            if (!label) return null;
+            try {
+              // Try various formats: "25 Nov", "25th Nov", "Nov 25", etc.
+              const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+              
+              // Format: "25 Nov" or "25th Nov"
+              const match1 = label.match(/(\d{1,2})(?:st|nd|rd|th)?\s+(\w+)/i);
+              if (match1) {
+                const day = parseInt(match1[1]);
+                const monthName = match1[2].substring(0, 3);
+                const monthIndex = monthNames.findIndex(m => 
+                  m.toLowerCase() === monthName.toLowerCase()
+                );
+                if (monthIndex !== -1) {
+                  const year = today.getFullYear();
+                  return new Date(year, monthIndex, day);
+                }
+              }
+              
+              // Try direct date parsing
+              const parsed = new Date(label);
+              if (!isNaN(parsed.getTime())) {
+                return parsed;
+              }
+              
+              return null;
+            } catch {
+              return null;
+            }
+          };
+          
+          // Find the index of today's date in the labels array
+          let todayIndex = -1;
+          for (let i = allLabels.length - 1; i >= 0; i--) {
+            const label = allLabels[i];
+            const labelDate = parseDateFromLabel(label);
+            if (labelDate) {
+              labelDate.setHours(0, 0, 0, 0);
+              if (labelDate.getTime() === today.getTime()) {
+                todayIndex = i;
+                break;
+              }
+            }
+          }
+          
+          // If today's date is found, exclude it and get 10 days before it
+          // Otherwise, just get the last 10 days
+          if (todayIndex >= 0) {
+            // Exclude today, get 10 days before today
+            const endIndex = todayIndex; // Exclude today
+            const startIdx = Math.max(0, endIndex - 10);
+            latestData = allData.slice(startIdx, endIndex);
+            latestLabels = allLabels.slice(startIdx, endIndex);
+            startIndex = startIdx;
+          } else {
+            // Today not found, just get last 10 days (excluding the last one which might be today)
+            startIndex = Math.max(0, allLabels.length - 11);
+            latestData = allData.slice(startIndex, allLabels.length - 1);
+            latestLabels = allLabels.slice(startIndex, allLabels.length - 1);
+          }
+        } else {
+          // For monthly view, just get last 10 months
+          startIndex = Math.max(0, allLabels.length - 10);
+          latestData = allData.slice(startIndex);
+          latestLabels = allLabels.slice(startIndex);
+        }
+        
+        // Store original full data
+        setOriginalData({
+          allLabels: allLabels,
+          allData: allData,
+          startIndex: startIndex
+        });
         
         // Ensure we have valid data
         if (latestData.length > 0 && latestLabels.length > 0) {
@@ -40,6 +127,11 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
             blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
             labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
           });
+          setOriginalData({
+            allLabels: [],
+            allData: [],
+            startIndex: 0
+          });
         }
       } else {
         // Use fallback data if no series data
@@ -47,12 +139,22 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
           blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
           labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
         });
+        setOriginalData({
+          allLabels: [],
+          allData: [],
+          startIndex: 0
+        });
       }
     } else if (!loading) {
       // Fallback to default data if no API data
       setChartData({
         blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
         labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
+      });
+      setOriginalData({
+        allLabels: [],
+        allData: [],
+        startIndex: 0
       });
     }
   }, [data, viewType, loading]);
@@ -143,12 +245,19 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
       // Enable bar press functionality
       onPress={(item, index) => {
         if (onBarPress) {
+          // Calculate the original index in the full data array
+          const originalIndex = originalData.startIndex + index;
+          const originalLabel = originalData.allLabels[originalIndex] || item.label;
+          
           onBarPress({
-            index,
-            label: item.label,
+            index: originalIndex, // Original index in full array
+            displayIndex: index, // Index in displayed array (0-9)
+            label: item.label, // Display label
+            originalLabel: originalLabel, // Original label from full data
             value: item.value,
-            date: item.label,
-            consumption: item.value
+            date: originalLabel, // Use original label for date parsing
+            consumption: item.value,
+            viewType: viewType // Pass view type for date parsing
           });
         }
       }}

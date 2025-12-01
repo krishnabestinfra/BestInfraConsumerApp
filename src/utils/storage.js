@@ -73,12 +73,22 @@ export const extractConsumerInfo = (apiResponse, identifier) => {
   // Ensure we never use identifier as name - only use actual names
   const consumerName = consumerInfo?.name || consumerInfo?.consumerName;
   
+  // Extract meterId from various possible locations in API response
+  // Check multiple possible field names: meterId, meter.id, meterId, etc.
+  const meterId = consumerInfo?.meterId || 
+                 consumerInfo?.meter?.id || 
+                 consumerInfo?.meter?.meterId ||
+                 consumerInfo?.meterId ||
+                 consumerInfo?.id || // Sometimes meterId might be in id field
+                 null;
+  
   return {
     name: consumerName || "Consumer", // Fallback to "Consumer" instead of identifier
     identifier: consumerInfo?.identifier || consumerInfo?.consumerNumber || identifier,
     email: consumerInfo?.emailId || consumerInfo?.email || "",
     consumerNumber: consumerInfo?.consumerNumber || identifier,
     meterSerialNumber: consumerInfo?.meterSerialNumber,
+    meterId: meterId, // Store meterId from login response
     uniqueIdentificationNo: consumerInfo?.uniqueIdentificationNo,
     totalOutstanding: consumerInfo?.totalOutstanding,
     // Add other relevant fields as needed
