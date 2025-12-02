@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl } from "react-native";
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
 import Table from "../components/global/Table";
@@ -359,19 +359,78 @@ const Invoices = ({ navigation }) => {
   const handleRowPress = useCallback(async (row) => {
     try {
       setIsGeneratingPDF(true);
-      console.log('📄 Opening invoice for billing number:', row.invoiceNo);
+      console.log('📄 Fetching invoice data for bill number:', row.invoiceNo);
       
-      // Get original payment data
-      const paymentData = row._originalData;
+      const billNumber = row.invoiceNo;
+      if (!billNumber) {
+        throw new Error('Bill number is required');
+      }
+
+      // Fetch detailed invoice data from API for this specific consumer and bill
+      const token = await authService.getValidAccessToken();
+      if (!token) {
+        throw new Error('No access token available. Please login again.');
+      }
+
+      const invoiceUrl = API_ENDPOINTS.billing.invoice(billNumber);
+      console.log('🔄 Fetching invoice from:', invoiceUrl);
       
-      // Generate and view PDF
-      const result = await handleViewBill(paymentData, consumerData);
-      
-      if (!result.success) {
-        console.error('Failed to generate invoice PDF');
+      const response = await fetch(invoiceUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+      console.log('✅ Invoice data received for consumer:', consumerData?.uniqueIdentificationNo || consumerData?.identifier);
+
+      if (result.status === 'success' && result.data) {
+        // Use the API response data directly - it contains all consumer-specific invoice data
+        const invoiceData = result.data;
+        console.log('📋 Invoice data for consumer:', {
+          consumer_uid: invoiceData.consumer_uid,
+          bill_no: invoiceData.bill_no,
+          customer_name: invoiceData.customer_name,
+          customer_email: invoiceData.customer_email,
+          customer_contact: invoiceData.customer_contact,
+        });
+        
+        // CRITICAL: Log LAST MONTH section fields from API
+        console.log('🔍 LAST MONTH Section - API Response Fields:');
+        console.log('  final_reading:', invoiceData.final_reading);
+        console.log('  consumption:', invoiceData.consumption);
+        console.log('  prev_reading:', invoiceData.prev_reading);
+        console.log('  last_month_label:', invoiceData.last_month_label);
+        console.log('  last_month_amount:', invoiceData.last_month_amount);
+        console.log('  All API keys:', Object.keys(invoiceData).filter(k => 
+          k.includes('reading') || k.includes('consumption') || k.includes('final') || k.includes('prev')
+        ));
+        
+        // Generate and view PDF with consumer-specific invoice data
+        const pdfResult = await handleViewBill(invoiceData, consumerData);
+        
+        if (!pdfResult.success) {
+          console.error('Failed to generate invoice PDF');
+        }
+      } else {
+        throw new Error('Invalid invoice data received from API');
       }
     } catch (error) {
-      console.error('Error opening invoice:', error);
+      console.error('Error fetching/opening invoice:', error);
+      Alert.alert(
+        'Error',
+        `Failed to load invoice. Please try again.\n\n${error.message}`,
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsGeneratingPDF(false);
     }

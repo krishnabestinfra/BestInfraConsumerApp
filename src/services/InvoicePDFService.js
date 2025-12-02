@@ -10,7 +10,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 import { Asset } from 'expo-asset';
-import { Platform, Alert } from 'react-native';
+import { Platform, Alert, Linking } from 'react-native';
 
 /**
  * Helper: Calculate due date (30 days from bill date)
@@ -40,35 +40,274 @@ const calculateSubTotal = (payment) => {
 };
 
 /**
+ * Sanitize text for PDF - removes currency symbols and special characters
+ * Matches TypeScript implementation
+ * IMPORTANT: For readings and consumption, preserve the full value including units
+ */
+const sanitizeTextForPDF = (text, preserveFormat = false) => {
+  if (text === undefined || text === null) return "";
+  let str = String(text);
+  
+  // For readings and consumption, preserve the format (including units like "kVAh")
+  if (preserveFormat) {
+    // Only remove currency symbols, keep everything else including decimals and units
+    str = str
+      .replace(/₹/g, "") 
+      .replace(/Rs\./g, "") 
+      .replace(/Rs\s/g, "") 
+      .replace(/INR\s/g, "") 
+      .trim();
+    str = str.replace(/\s+/g, " ").trim(); // Normalize whitespace only
+    return str;
+  }
+  
+  // For other fields, use standard sanitization
+  str = str
+    .replace(/₹/g, "") 
+    .replace(/Rs\./g, "") 
+    .replace(/Rs\s/g, "") 
+    .replace(/INR\s/g, "") 
+    .replace(/[^\x20-\x7E\s]/g, "") 
+    .trim();
+  str = str.replace(/\.\d+/g, "");
+  str = str.replace(/\s+/g, " ").trim();
+  return str;
+};
+
+/**
+ * Get value from bill data with fallback fields
+ * Matches TypeScript implementation
+ * Also checks originalPaymentData for API response fields
+ */
+const getValueFromBill = (bill, sourceFields, defaultValue) => {
+  // First check billData fields
+  for (const field of sourceFields) {
+    if (
+      bill[field] !== undefined &&
+      bill[field] !== null &&
+      bill[field] !== ""
+    ) {
+      return String(bill[field]);
+    }
+  }
+  
+  // Also check originalPaymentData (API response) for direct field access
+  if (bill.originalPaymentData) {
+    for (const field of sourceFields) {
+      const apiValue = bill.originalPaymentData[field];
+      if (
+        apiValue !== undefined &&
+        apiValue !== null &&
+        apiValue !== ""
+      ) {
+        return String(apiValue);
+      }
+    }
+  }
+  
+  return defaultValue || "";
+};
+
+/**
  * BillData Interface - Complete invoice data structure
  * Updated to match EXACT web-generated invoice PDF structure
  * Includes ALL possible fields to ensure nothing is missing
  */
 export const createBillData = (payment, consumerData) => {
-  // Format dates consistently (DD/MM/YYYY)
+  // Check if this is API response data (has API-specific fields)
+  const isApiResponse = payment?.statement_for || payment?.bill_date || payment?.meter_sl_no || payment?.consumer_uid;
+  
+  console.log('🔍 createBillData - API Response Detection:');
+  console.log('  isApiResponse:', isApiResponse);
+  console.log('  payment keys:', Object.keys(payment || {}));
+  
+  // Format dates consistently (DD/MM/YYYY or preserve API format)
   const formatDate = (dateString) => {
     if (!dateString) return '';
     try {
+      // If already formatted (like "Nov 20, 2025"), try to parse it
       const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString; // Return as-is if can't parse
+      }
       return date.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
     } catch {
       return dateString || '';
     }
   };
 
-  // Format currency with 2 decimal places
+  // Format currency - keep as-is if already formatted (e.g., "₹ 30,83,284.40")
   const formatCurrency = (amount) => {
     if (!amount && amount !== 0) return '0.00';
+    // If already formatted with currency symbol, return as-is
+    if (typeof amount === 'string' && (amount.includes('₹') || amount.includes(','))) {
+      return amount;
+    }
     const num = Number(amount);
     return isNaN(num) ? '0.00' : num.toFixed(2);
   };
 
-  // Format number without decimals (for readings)
+  // Format number - keep as-is if already formatted with units (e.g., "11863500 kVAh")
   const formatNumber = (value) => {
     if (!value && value !== 0) return '0';
+    // If already formatted with units, extract just the number
+    if (typeof value === 'string' && (value.includes('kVAh') || value.includes('kWh') || value.includes('KL'))) {
+      const numMatch = value.match(/([\d,]+)/);
+      return numMatch ? numMatch[1].replace(/,/g, '') : '0';
+    }
     const num = Number(value);
     return isNaN(num) ? '0' : Math.floor(num).toString();
   };
+
+  // Extract readings from formatted strings (e.g., "11863500 kVAh" -> "11863500")
+  const extractReading = (value) => {
+    if (!value) return '0';
+    if (typeof value === 'string') {
+      const numMatch = value.match(/([\d,]+)/);
+      return numMatch ? numMatch[1].replace(/,/g, '') : '0';
+    }
+    return String(value || '0');
+  };
+
+  // If API response, use API fields directly - PRESERVE EXACT FORMAT
+  if (isApiResponse) {
+    console.log('  ✅ Detected API response format');
+    
+    // Build meter services from API response (service_type_1, service_prev_1, etc.)
+    const buildMeterServicesFromApi = () => {
+      const services = [];
+      for (let i = 1; i <= 4; i++) {
+        const serviceType = payment[`service_type_${i}`];
+        if (serviceType) {
+          services.push({
+            serviceType: serviceType,
+            // Preserve exact format with units (e.g., "11863500 kVAh", "0 KL")
+            previousReadings: payment[`service_prev_${i}`] || '0',
+            finalReadings: payment[`service_final_${i}`] || '0',
+            // For consumption, keep number only (no units in table)
+            consumption: String(payment[`service_consumption_${i}`] || '0'),
+            // Preserve unit rate as-is
+            unitRate: String(payment[`service_unit_rate_${i}`] || '0'),
+            // Preserve amount with currency symbol (e.g., "₹ 30,83,284.40")
+            amount: payment[`service_amount_${i}`] || '₹ 0',
+          });
+        }
+      }
+      return services;
+    };
+
+    // Combine address lines
+    const fullAddress = [
+      payment.customer_address_line1,
+      payment.customer_address_line2
+    ].filter(Boolean).join(', ');
+
+    // Get customer name with prefix
+    const customerName = payment.customer_name || 'Consumer';
+    let customerNameWithPrefix = customerName;
+    if (!customerName.startsWith('Mr.') && 
+        !customerName.startsWith('Mrs.') && 
+        !customerName.startsWith('Ms.') && 
+        !customerName.startsWith('Dr.') && 
+        !customerName.startsWith('Prof.')) {
+      customerNameWithPrefix = `${customerName}`;
+    }
+
+    // Format bill date - preserve format from API (e.g., "Nov 20, 2025")
+    const billDateFormatted = payment.bill_date || payment.statement_date || '';
+    
+    // Format due date - preserve format from API (e.g., "09/10/2025")
+    const dueDateFormatted = payment.due_date || '';
+
+    const billData = {
+      // ========== TOP SECTION FIELDS (API Response) - EXACT GMR FORMAT ==========
+      statementFor: String(payment.statement_for || 'POSTPAID'),
+      meterSLNo: String(payment.meter_sl_no || 'N/A'),
+      consumerUID: String(payment.consumer_uid || 'N/A'),
+      // Use statement_for for billType (not bill_type which might be meter number)
+      billType: String(payment.statement_for || 'POSTPAID'),
+      billNumber: String(payment.bill_no || 'N/A'),
+      customerName: customerNameWithPrefix,
+      customerNameWithPrefix: customerNameWithPrefix,
+      address: String(fullAddress || 'N/A'),
+      // Extract email and contact directly from API - don't default to 'N/A' if empty
+      emailAddress: payment.customer_email ? String(payment.customer_email) : '',
+      contactNo: payment.customer_contact ? String(payment.customer_contact) : '',
+      // Also store original API fields for direct access
+      customer_email: payment.customer_email || '',
+      customer_contact: payment.customer_contact || '',
+      customer_address_line1: payment.customer_address_line1 || '',
+      customer_address_line2: payment.customer_address_line2 || '',
+      billDate: billDateFormatted,
+      billingPeriod: payment.statement_period || '',
+      totalAmountPayable: payment.total_amount_payable || '0.00',
+      dueDate: dueDateFormatted,
+      
+      // ========== LAST MONTH SECTION (API Response) ==========
+      lastMonthLabel: payment.last_month_label || '',
+      lastMonthPrevReading: payment.prev_reading || '0',
+      // Ensure final_reading is extracted correctly (e.g., "12291140 kVAh")
+      // Preserve exact format from API with units - DO NOT MODIFY
+      lastMonthFinalReading: payment.final_reading || payment.finalReading || '0',
+      // Ensure consumption is extracted correctly (e.g., "427640")
+      // Keep as string to preserve exact value - DO NOT MODIFY
+      lastMonthConsumption: String(payment.consumption || payment.consumptionUnits || '0'),
+      // Also store for general use - these are used in field mappings
+      finalReading: payment.final_reading || payment.finalReading || '0',
+      consumption: String(payment.consumption || payment.consumptionUnits || '0'),
+      // Store direct API fields for getValueFromBill to access (with underscore)
+      final_reading: payment.final_reading || '0',
+      lastMonthTotalAmount: payment.last_month_amount || '₹ 0',
+      lastMonthStatus: payment.last_month_status || 'N/A',
+      
+      // ========== METER SERVICES TABLE (API Response) ==========
+      meterServices: buildMeterServicesFromApi(),
+      
+      // Debug: Log the actual values from API (after billData is created)
+      // This will be logged after the return statement
+      
+      // Charges - preserve formats exactly
+      imcCharges: payment.imc_charges || '₹ 0',
+      demandCharges: payment.demand_charges || '₹ 0',
+      totalAmount: payment.total_amount || '₹ 0',
+      energyCharges: payment.energy_charges || '₹ 0',
+      
+      // ========== METER READINGS (API Response) ==========
+      previousReading: payment.prev_reading || '0',
+      finalReading: payment.final_reading || '0',
+      consumption: String(payment.consumption || '0'),
+      
+      // ========== ADDITIONAL API FIELDS ==========
+      gst: payment.gst || 'N/A',
+      qrCodeLink: payment.qr_code_link || '',
+      qrCodeData: payment.qr_code_link || '',
+      
+      // Preserve original data
+      originalPaymentData: payment,
+      originalConsumerData: consumerData,
+    };
+    
+    console.log('📊 createBillData - Created Bill Data (API Response):');
+    console.log('  Statement FOR:', billData.statementFor);
+    console.log('  Meter SL No:', billData.meterSLNo);
+    console.log('  Consumer UID:', billData.consumerUID);
+    console.log('  Bill No:', billData.billNumber);
+    console.log('  Customer Name:', billData.customerName);
+    console.log('  Meter Services Count:', billData.meterServices?.length || 0);
+    console.log('  📋 LAST MONTH Section - Raw API Values:');
+    console.log('    payment.final_reading:', payment.final_reading);
+    console.log('    payment.consumption:', payment.consumption);
+    console.log('    payment.finalReading:', payment.finalReading);
+    console.log('    payment.consumptionUnits:', payment.consumptionUnits);
+    console.log('  📋 LAST MONTH Section - Extracted Values:');
+    console.log('    lastMonthFinalReading:', billData.lastMonthFinalReading);
+    console.log('    lastMonthConsumption:', billData.lastMonthConsumption);
+    console.log('    finalReading:', billData.finalReading);
+    console.log('    consumption:', billData.consumption);
+    console.log('    final_reading:', billData.final_reading);
+    
+    return billData;
+  }
 
   // Get customer name with prefix
   const customerName = consumerData?.name || consumerData?.consumerName || payment?.customerName || 'Consumer';
@@ -556,11 +795,143 @@ export const inspectPDFFields = async () => {
 /**
  * 📝 COMPREHENSIVE FIELD MAPPING
  * Maps invoice data to PDF form field names (Invoice2.pdf structure)
- * Updated to match exact field names from Invoice2.pdf
+ * Updated to match EXACT TypeScript implementation field mappings
+ * 
+ * PDF Structure (Invoice2.pdf):
+ * 1. STATEMENT FOR (header)
+ * 2. Top Section: Meter SL No, Bill Type, Consumer UID, Bill No, Customer Name, Address, 
+ *    Bill Date, Bill Period, Total Amount Payable, Email Address, Contact No, Due Date
+ * 3. LAST MONTH Section: Prev Reading, Final Reading, Consumption, Total Amount
+ * 4. MERIT Sections (3 sections): Each with Due Date, Prev Reading, Final Reading, Consumption, Total Amount
+ * 5. Meter Services Table: 4 service rows, IMC Charges, Demand Charges, TOTAL AMOUNT
  */
 const createFieldMappings = (billData) => {
+  // Get today's date in format "Nov 20, 2025"
+  const getTodayDate = () => {
+    const now = new Date();
+    return now.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  // Create comprehensive field mappings matching TypeScript implementation
+  const pdfFieldMapping = {
+    // Organization and company info
+    'organization_name': getValueFromBill(billData, ['organization_name'], 'GMR GROUP NEW UDAAN BHAWAN'),
+    'Client_Address': getValueFromBill(billData, [], 'Opp. Terminal 3, IGI Airport New Delhi, India - 110037'),
+    'Contact_No': getValueFromBill(billData, [], '+91 8801711851'),
+    'clientAddress1': getValueFromBill(billData, [], 'GMR GROUP NEW UDAAN BHAWAN'),
+    'clientAddress2': getValueFromBill(billData, [], 'Opp. Terminal 3, IGI Airport New Delhi, India - 110037'),
+    'clientAddress3': getValueFromBill(billData, [], 'Andhra Pradesh, India'),
+    
+    // Statement and billing info - EXACT CASE from TypeScript
+    'Statment_For': getValueFromBill(billData, ['statement_for', 'statementFor', 'billType', 'tariffType'], 'POSTPAID'),
+    'StatementType': getValueFromBill(billData, ['StatementType', 'statementFor', 'bill_type', 'statement_for'], 'POSTPAID'),
+    'bill_date': getValueFromBill(billData, ['bill_date', 'billDate'], getTodayDate()),
+    'statement_date': getValueFromBill(billData, ['statement_date', 'billDate'], ''),
+    'statement_period': getValueFromBill(billData, ['statement_period', 'billingPeriod'], ''),
+    
+    // Meter and consumer info
+    'meter_sl_no': getValueFromBill(billData, ['meter_sl_no', 'meterSLNo', 'meterSerial', 'meterNo'], ''),
+    'consumer_uid': getValueFromBill(billData, ['consumer_uid', 'consumerUID', 'aldCompanyCode', 'consumerNumber'], ''),
+    // Use statement_for for bill_type (not bill_type field which might be meter number)
+    'bill_type': getValueFromBill(billData, ['statement_for', 'statementFor'], 'POSTPAID'),
+    'BillingType': getValueFromBill(billData, ['statement_for', 'statementFor', 'BillingType'], 'POSTPAID'),
+    'BillType': getValueFromBill(billData, ['statement_for', 'statementFor', 'billType'], 'POSTPAID'),
+    'bill_no': getValueFromBill(billData, ['bill_no', 'billNumber', 'id', 'billId'], ''),
+    
+    // Customer info - Check API response directly first
+    'customer_name': getValueFromBill(billData, ['customer_name', 'customerName', 'unitName', 'Name'], 'Consumer'),
+    'customer_address_line': getValueFromBill(billData, ['customer_address_line1', 'address', 'Address', 'consumerAddress'], ''),
+    'customer_pincode_state': getValueFromBill(billData, ['customer_address_line2'], ''),
+    'customer_email': getValueFromBill(billData, ['customer_email', 'emailAddress', 'aldCompanyEmail', 'EmailAddress', 'Email', 'email'], ''),
+    'customer_contact': getValueFromBill(billData, ['customer_contact', 'contactNo', 'aldCompanyPhone', 'PhoneNumber', 'phoneNumber', 'phone'], ''),
+    'consumerAddress2': getValueFromBill(billData, ['customer_address_line2'], ''),
+    
+    // Dates and amounts
+    'due_date': getValueFromBill(billData, ['due_date', 'dueDate', 'DueDate'], ''),
+    'totalAmount': getValueFromBill(billData, ['totalAmount'], ''),
+    'total_amount_payable': getValueFromBill(billData, ['total_amount_payable', 'totalAmountPayable'], ''),
+    'total_amount': getValueFromBill(billData, ['total_amount', 'TotalAmount', 'totalAmount', 'totalCharges'], ''),
+    
+    // Last month section - ensure Final Reading and Consumption are filled
+    // IMPORTANT: Use direct API fields first, then fallback to billData
+    'last_month_label': getValueFromBill(billData, ['last_month_label', 'lastMonthLabel'], ''),
+    'prev_reading': getValueFromBill(billData, ['prev_reading', 'previousReading1', 'openingReading', 'lastMonthPrevReading'], '0'),
+    // Final Reading - check API response directly first, then billData fields
+    'final_reading': getValueFromBill(billData, [
+      'final_reading',           // Direct API field
+      'lastMonthFinalReading',   // From billData
+      'finalReading',             // From billData
+      'FinalReading1',           // Alternative
+      'closingReading'           // Alternative
+    ], '0'),
+    // Consumption - check API response directly first, then billData fields
+    'consumption': getValueFromBill(billData, [
+      'consumption',             // Direct API field
+      'lastMonthConsumption',    // From billData
+      'consumption1',            // Alternative
+      'service_consumption_1',    // Alternative
+      'consumptionUnits'         // Alternative
+    ], '0'),
+    'last_month_amount': getValueFromBill(billData, ['last_month_amount', 'lastMonthTotalAmount'], '₹ 0'),
+    'last_month_status': getValueFromBill(billData, ['last_month_status', 'lastMonthStatus'], 'N/A'),
+    
+    // Service fields (1-4) - Check API response directly first
+    'service_type_1': getValueFromBill(billData, ['service_type_1'], billData.meterServices?.[0]?.serviceType || ''),
+    'service_prev_1': getValueFromBill(billData, ['service_prev_1', 'prev_reading'], billData.meterServices?.[0]?.previousReadings || ''),
+    'service_final_1': getValueFromBill(billData, ['service_final_1', 'final_reading'], billData.meterServices?.[0]?.finalReadings || ''),
+    'service_consumption_1': getValueFromBill(billData, ['service_consumption_1', 'consumption'], billData.meterServices?.[0]?.consumption || ''),
+    'service_unit_rate_1': getValueFromBill(billData, ['service_unit_rate_1', 'unitRate', 'UnitRate1'], billData.meterServices?.[0]?.unitRate || ''),
+    'service_amount_1': getValueFromBill(billData, ['service_amount_1', 'energyCharges', 'electricity_charge', 'Amount1'], billData.meterServices?.[0]?.amount || ''),
+    
+    'service_type_2': getValueFromBill(billData, ['service_type_2'], billData.meterServices?.[1]?.serviceType || ''),
+    'service_prev_2': getValueFromBill(billData, ['service_prev_2'], billData.meterServices?.[1]?.previousReadings || ''),
+    'service_final_2': getValueFromBill(billData, ['service_final_2'], billData.meterServices?.[1]?.finalReadings || ''),
+    'service_consumption_2': getValueFromBill(billData, ['service_consumption_2'], billData.meterServices?.[1]?.consumption || ''),
+    'service_unit_rate_2': getValueFromBill(billData, ['service_unit_rate_2'], billData.meterServices?.[1]?.unitRate || ''),
+    'service_amount_2': getValueFromBill(billData, ['service_amount_2'], billData.meterServices?.[1]?.amount || ''),
+    
+    'service_type_3': getValueFromBill(billData, ['service_type_3'], billData.meterServices?.[2]?.serviceType || ''),
+    'service_prev_3': getValueFromBill(billData, ['service_prev_3'], billData.meterServices?.[2]?.previousReadings || ''),
+    'service_final_3': getValueFromBill(billData, ['service_final_3'], billData.meterServices?.[2]?.finalReadings || ''),
+    'service_consumption_3': getValueFromBill(billData, ['service_consumption_3'], billData.meterServices?.[2]?.consumption || ''),
+    'service_unit_rate_3': getValueFromBill(billData, ['service_unit_rate_3'], billData.meterServices?.[2]?.unitRate || ''),
+    'service_amount_3': getValueFromBill(billData, ['service_amount_3'], billData.meterServices?.[2]?.amount || ''),
+    
+    'service_type_4': getValueFromBill(billData, ['service_type_4'], billData.meterServices?.[3]?.serviceType || ''),
+    'service_prev_4': getValueFromBill(billData, ['service_prev_4'], billData.meterServices?.[3]?.previousReadings || ''),
+    'service_final_4': getValueFromBill(billData, ['service_final_4'], billData.meterServices?.[3]?.finalReadings || ''),
+    'service_consumption_4': getValueFromBill(billData, ['service_consumption_4'], billData.meterServices?.[3]?.consumption || ''),
+    'service_unit_rate_4': getValueFromBill(billData, ['service_unit_rate_4'], billData.meterServices?.[3]?.unitRate || ''),
+    'service_amount_4': getValueFromBill(billData, ['service_amount_4'], billData.meterServices?.[3]?.amount || ''),
+    
+    // Charges
+    'imc_charges': getValueFromBill(billData, ['imc_charges', 'imcCharges'], '₹ 0'),
+    'demand_charges': getValueFromBill(billData, ['demand_charges', 'demandCharges'], '₹ 0'),
+    
+    // Additional fields
+    'gst': getValueFromBill(billData, ['gst', 'GST'], 'N/A'),
+    'qr_code_link': getValueFromBill(billData, ['qr_code_link', 'qrCodeLink'], ''),
+  };
+
+  // Merge with comprehensive field mappings for backward compatibility
   return {
-    // ========== TOP SECTION (Invoice2.pdf) ==========
+    // Primary mappings from TypeScript implementation
+    ...pdfFieldMapping,
+    
+    // Additional variations for compatibility
+    // ========== TOP SECTION (Invoice2.pdf - GMR Format) ==========
+    // Statement FOR
+    'STATEMENT FOR': billData.statementFor,
+    'Statement FOR': billData.statementFor,
+    'StatementFor': billData.statementFor,
+    'statement_for': billData.statementFor,
+    'Statment_For': billData.statementFor,
+    'STATEMENT_FOR': billData.statementFor,
+    
     // Meter Information
     'Meter SL No': billData.meterSLNo,
     'MeterSLNo': billData.meterSLNo,
@@ -590,10 +961,11 @@ const createFieldMappings = (billData) => {
     'account_no': billData.consumerId,
     
     // Bill Type
-    'Bill Type': billData.billType,
-    'BillType': billData.billType,
-    'bill_type': billData.billType,
-    'BILL_TYPE': billData.billType,
+    'Bill Type': billData.billType || billData.statementFor || 'POSTPAID',
+    'Bill Type:': billData.billType || billData.statementFor || 'POSTPAID',
+    'BillType': billData.billType || billData.statementFor || 'POSTPAID',
+    'bill_type': billData.billType || billData.statementFor || 'POSTPAID',
+    'BILL_TYPE': billData.billType || billData.statementFor || 'POSTPAID',
     'ConnectionType': billData.connectionType,
     'connection_type': billData.connectionType,
     
@@ -610,8 +982,11 @@ const createFieldMappings = (billData) => {
     
     // Customer Name (with Mr./Mrs./Ms. prefix)
     'Customer Name': billData.customerNameWithPrefix,
+    'Customer Name:': billData.customerNameWithPrefix,
     'CustomerName': billData.customerNameWithPrefix,
     'customer_name': billData.customerNameWithPrefix,
+    'Name': billData.customerNameWithPrefix,
+    'unitName': billData.customerNameWithPrefix,
     'ConsumerName': billData.consumerName,
     'consumer_name': billData.consumerName,
     'CONSUMER_NAME': billData.consumerName,
@@ -620,15 +995,22 @@ const createFieldMappings = (billData) => {
     
     // Address
     'Address': billData.address,
+    'Address:': billData.address,
     'address': billData.address,
     'ConsumerAddress': billData.address,
+    'customer_address_line1': billData.address,
+    'customer_address_line': billData.address,
     'consumer_address': billData.address,
     'CONSUMER_ADDRESS': billData.address,
     
     // Email Address
     'Email Address': billData.emailAddress,
+    'Email Address:': billData.emailAddress,
     'EmailAddress': billData.emailAddress,
     'email_address': billData.emailAddress,
+    'customer_email': billData.emailAddress,
+    'Email': billData.emailAddress,
+    'aldCompanyEmail': billData.emailAddress,
     'EMAIL_ADDRESS': billData.emailAddress,
     'Email': billData.emailAddress,
     'email': billData.emailAddress,
@@ -637,8 +1019,12 @@ const createFieldMappings = (billData) => {
     
     // Contact No
     'Contact No': billData.contactNo,
+    'Contact No:': billData.contactNo,
     'ContactNo': billData.contactNo,
     'contact_no': billData.contactNo,
+    'customer_contact': billData.contactNo,
+    'PhoneNumber': billData.contactNo,
+    'aldCompanyPhone': billData.contactNo,
     'CONTACT_NO': billData.contactNo,
     'Phone': billData.contactNo,
     'phone': billData.contactNo,
@@ -649,8 +1035,10 @@ const createFieldMappings = (billData) => {
     
     // Bill Date
     'Bill Date': billData.billDate,
+    'Bill Date:': billData.billDate,
     'BillDate': billData.billDate,
     'bill_date': billData.billDate,
+    'statement_date': billData.billDate,
     'BILL_DATE': billData.billDate,
     'InvoiceDate': billData.invoiceDate,
     'invoice_date': billData.invoiceDate,
@@ -660,8 +1048,10 @@ const createFieldMappings = (billData) => {
     
     // Bill Period
     'Bill Period': billData.billingPeriod,
+    'Bill Period:': billData.billingPeriod,
     'BillPeriod': billData.billingPeriod,
     'bill_period': billData.billingPeriod,
+    'statement_period': billData.billingPeriod,
     'BILL_PERIOD': billData.billingPeriod,
     'BillingPeriod': billData.billingPeriod,
     'billing_period': billData.billingPeriod,
@@ -670,8 +1060,10 @@ const createFieldMappings = (billData) => {
     
     // Total Amount Payable
     'Total Amount Payable': billData.totalAmountPayable,
+    'Total Amount Payable:': billData.totalAmountPayable,
     'TotalAmountPayable': billData.totalAmountPayable,
     'total_amount_payable': billData.totalAmountPayable,
+    'totalAmount': billData.totalAmountPayable,
     'TOTAL_AMOUNT_PAYABLE': billData.totalAmountPayable,
     'AmountPayable': billData.totalAmountPayable,
     'amount_payable': billData.totalAmountPayable,
@@ -684,26 +1076,38 @@ const createFieldMappings = (billData) => {
     'PaymentDueDate': billData.dueDate,
     'payment_due_date': billData.dueDate,
     
-    // ========== LAST MONTH SECTION ==========
+    // ========== LAST MONTH SECTION (GMR Format) ==========
+    'LAST MONTH': billData.lastMonthLabel,
+    'Last Month': billData.lastMonthLabel,
+    'LastMonth': billData.lastMonthLabel,
+    'last_month': billData.lastMonthLabel,
+    
     'Prev Reading': billData.lastMonthPrevReading,
+    'Prev Reading:': billData.lastMonthPrevReading,
     'PrevReading': billData.lastMonthPrevReading,
     'prev_reading': billData.lastMonthPrevReading,
     'PREV_READING': billData.lastMonthPrevReading,
     'LastMonthPrevReading': billData.lastMonthPrevReading,
     'last_month_prev_reading': billData.lastMonthPrevReading,
     
-    'Final Reading': billData.lastMonthFinalReading,
-    'FinalReading': billData.lastMonthFinalReading,
-    'final_reading': billData.lastMonthFinalReading,
-    'FINAL_READING': billData.lastMonthFinalReading,
-    'LastMonthFinalReading': billData.lastMonthFinalReading,
-    'last_month_final_reading': billData.lastMonthFinalReading,
+    // Final Reading - LAST MONTH section (with all variations including colons)
+    // IMPORTANT: Preserve exact format from API (e.g., "12291140 kVAh")
+    'Final Reading': billData.lastMonthFinalReading || billData.finalReading || billData.final_reading || billData.originalPaymentData?.final_reading || '0',
+    'Final Reading:': billData.lastMonthFinalReading || billData.finalReading || billData.final_reading || billData.originalPaymentData?.final_reading || '0',
+    'FinalReading': billData.lastMonthFinalReading || billData.finalReading || billData.final_reading || billData.originalPaymentData?.final_reading || '0',
+    'final_reading': billData.lastMonthFinalReading || billData.finalReading || billData.final_reading || billData.originalPaymentData?.final_reading || '0',
+    'FINAL_READING': billData.lastMonthFinalReading || billData.finalReading || billData.final_reading || billData.originalPaymentData?.final_reading || '0',
+    'LastMonthFinalReading': billData.lastMonthFinalReading || billData.finalReading || billData.final_reading || billData.originalPaymentData?.final_reading || '0',
+    'last_month_final_reading': billData.lastMonthFinalReading || billData.finalReading || billData.final_reading || billData.originalPaymentData?.final_reading || '0',
     
-    'Consumption': billData.lastMonthConsumption,
-    'consumption': billData.lastMonthConsumption,
-    'CONSUMPTION': billData.lastMonthConsumption,
-    'LastMonthConsumption': billData.lastMonthConsumption,
-    'last_month_consumption': billData.lastMonthConsumption,
+    // Consumption - LAST MONTH section (with all variations including colons)
+    // IMPORTANT: Preserve exact value from API (e.g., "427640")
+    'Consumption': billData.lastMonthConsumption || billData.consumption || billData.originalPaymentData?.consumption || '0',
+    'Consumption:': billData.lastMonthConsumption || billData.consumption || billData.originalPaymentData?.consumption || '0',
+    'consumption': billData.lastMonthConsumption || billData.consumption || billData.originalPaymentData?.consumption || '0',
+    'CONSUMPTION': billData.lastMonthConsumption || billData.consumption || billData.originalPaymentData?.consumption || '0',
+    'LastMonthConsumption': billData.lastMonthConsumption || billData.consumption || billData.originalPaymentData?.consumption || '0',
+    'last_month_consumption': billData.lastMonthConsumption || billData.consumption || billData.originalPaymentData?.consumption || '0',
     
     'Total Amount': billData.lastMonthTotalAmount,
     'TotalAmount': billData.lastMonthTotalAmount,
@@ -728,12 +1132,39 @@ const createFieldMappings = (billData) => {
     'MeritTotalAmount': billData.meritTotalAmount,
     'merit_total_amount': billData.meritTotalAmount,
     
-    // ========== METER SERVICES TABLE ==========
-    // Service Type, Previous Readings, Final Readings, Consumption, Unit Rate, Amount
-    // These are handled dynamically for multiple services
+    // ========== METER SERVICES TABLE (GMR Format) ==========
+    // Service fields are handled dynamically, but add static mappings for service_type_1, etc.
+    'service_type_1': billData.meterServices?.[0]?.serviceType || '',
+    'service_prev_1': billData.meterServices?.[0]?.previousReadings || '',
+    'service_final_1': billData.meterServices?.[0]?.finalReadings || '',
+    'service_consumption_1': billData.meterServices?.[0]?.consumption || '',
+    'service_unit_rate_1': billData.meterServices?.[0]?.unitRate || '',
+    'service_amount_1': billData.meterServices?.[0]?.amount || '',
+    
+    'service_type_2': billData.meterServices?.[1]?.serviceType || '',
+    'service_prev_2': billData.meterServices?.[1]?.previousReadings || '',
+    'service_final_2': billData.meterServices?.[1]?.finalReadings || '',
+    'service_consumption_2': billData.meterServices?.[1]?.consumption || '',
+    'service_unit_rate_2': billData.meterServices?.[1]?.unitRate || '',
+    'service_amount_2': billData.meterServices?.[1]?.amount || '',
+    
+    'service_type_3': billData.meterServices?.[2]?.serviceType || '',
+    'service_prev_3': billData.meterServices?.[2]?.previousReadings || '',
+    'service_final_3': billData.meterServices?.[2]?.finalReadings || '',
+    'service_consumption_3': billData.meterServices?.[2]?.consumption || '',
+    'service_unit_rate_3': billData.meterServices?.[2]?.unitRate || '',
+    'service_amount_3': billData.meterServices?.[2]?.amount || '',
+    
+    'service_type_4': billData.meterServices?.[3]?.serviceType || '',
+    'service_prev_4': billData.meterServices?.[3]?.previousReadings || '',
+    'service_final_4': billData.meterServices?.[3]?.finalReadings || '',
+    'service_consumption_4': billData.meterServices?.[3]?.consumption || '',
+    'service_unit_rate_4': billData.meterServices?.[3]?.unitRate || '',
+    'service_amount_4': billData.meterServices?.[3]?.amount || '',
     
     // IMC Charges
     'IMC Charges': billData.imcCharges,
+    'IMC Charges:': billData.imcCharges,
     'IMCCharges': billData.imcCharges,
     'imc_charges': billData.imcCharges,
     'IMC_CHARGES': billData.imcCharges,
@@ -742,13 +1173,17 @@ const createFieldMappings = (billData) => {
     
     // Demand Charges
     'Demand Charges': billData.demandCharges,
+    'Demand Charges:': billData.demandCharges,
     'DemandCharges': billData.demandCharges,
     'demand_charges': billData.demandCharges,
     'DEMAND_CHARGES': billData.demandCharges,
     
     // TOTAL AMOUNT (from Meter Services table)
     'TOTAL AMOUNT': billData.totalAmount,
+    'TOTAL AMOUNT:': billData.totalAmount,
     'TOTAL_AMOUNT': billData.totalAmount,
+    'total_amount': billData.totalAmount,
+    'TotalAmount': billData.totalAmount,
     
     // ========== GENERAL METER READINGS ==========
     'Previous Reading': billData.previousReading,
@@ -1136,6 +1571,16 @@ const createFieldMappings = (billData) => {
     'InvoiceStatus': billData.paymentStatus,
     'invoice_status': billData.paymentStatus,
     
+    // Additional fields from TypeScript implementation
+    'gst': billData.gst || 'N/A',
+    'GST': billData.gst || 'N/A',
+    'qr_code_link': billData.qrCodeLink || billData.qrCodeData || '',
+    'customer_address_line2': billData.originalPaymentData?.customer_address_line2 || '',
+    'customer_pincode_state': billData.originalPaymentData?.customer_address_line2 || '',
+    'BillingType': billData.billType,
+    'BillType': billData.billType,
+    'StatementType': billData.statementFor,
+    
     // Additional transaction variations
     'TransactionNo': billData.transactionId,
     'transaction_no': billData.transactionId,
@@ -1301,29 +1746,157 @@ export const fillPDFForm = async (billData) => {
       // Step 4: Create field mappings
       const fieldMappings = createFieldMappings(billData);
       
+      // Debug: Log LAST MONTH section field mappings
+      console.log('📋 LAST MONTH Section Field Mappings:');
+      console.log('  Final Reading:', fieldMappings['Final Reading'] || fieldMappings['Final Reading:'] || 'NOT FOUND');
+      console.log('  Consumption:', fieldMappings['Consumption'] || fieldMappings['Consumption:'] || 'NOT FOUND');
+      console.log('  final_reading:', fieldMappings['final_reading'] || 'NOT FOUND');
+      console.log('  consumption:', fieldMappings['consumption'] || 'NOT FOUND');
+      
       // Step 5: Fill all form fields
       let filledCount = 0;
       let failedCount = 0;
       
-      // Fill standard fields
+      // CRITICAL: Try to fill Final Reading and Consumption with ALL possible field name variations
+      // This ensures we find the correct PDF field names even if they don't match exactly
+      const tryFillReadingField = (fieldNames, value) => {
+        if (!value || value === '0') return false;
+        const sanitized = sanitizeTextForPDF(String(value), true); // preserve format
+        const valueToSet = sanitized || String(value) || '0';
+        
+        for (const fieldName of fieldNames) {
+          try {
+            const field = form.getField(fieldName);
+            if (field instanceof PDFTextField) {
+              field.setText(valueToSet);
+              console.log(`✅ Filled Final Reading/Consumption: ${fieldName} = "${valueToSet}"`);
+              return true;
+            } else if (field && typeof field.setText === 'function') {
+              field.setText(valueToSet);
+              console.log(`✅ Filled Final Reading/Consumption (non-textfield): ${fieldName} = "${valueToSet}"`);
+              return true;
+            }
+          } catch (error) {
+            // Field doesn't exist, try next variation
+            continue;
+          }
+        }
+        return false;
+      };
+      
+      // Try to fill Final Reading with all possible field name variations
+      const finalReadingValue = billData.lastMonthFinalReading || billData.finalReading || billData.final_reading || billData.originalPaymentData?.final_reading || '0';
+      if (finalReadingValue && finalReadingValue !== '0') {
+        const finalReadingFields = [
+          'Final Reading', 'Final Reading:', 'FinalReading', 'final_reading', 'FINAL_READING',
+          'LastMonthFinalReading', 'last_month_final_reading', 'Final_Reading', 'finalReading',
+          'FinalReading:', 'Final Reading ', 'Final_Reading:', 'FINAL READING'
+        ];
+        if (tryFillReadingField(finalReadingFields, finalReadingValue)) {
+          filledCount++;
+        }
+      }
+      
+      // Try to fill Consumption with all possible field name variations
+      const consumptionValue = billData.lastMonthConsumption || billData.consumption || billData.originalPaymentData?.consumption || '0';
+      if (consumptionValue && consumptionValue !== '0') {
+        const consumptionFields = [
+          'Consumption', 'Consumption:', 'consumption', 'CONSUMPTION',
+          'LastMonthConsumption', 'last_month_consumption', 'Consumption ', 'Consumption_',
+          'Consumption:', 'CONSUMPTION:', 'consumption:', 'Last Month Consumption'
+        ];
+        if (tryFillReadingField(consumptionFields, consumptionValue)) {
+          filledCount++;
+        }
+      }
+      
+      // Fill standard fields - TRY TO FILL ALL FIELDS, even if value seems empty
       for (const [fieldName, value] of Object.entries(fieldMappings)) {
-        if (!value || value === 'N/A' || value === '0' || value === '') {
-          continue; // Skip empty values
+        // Only skip if value is truly null or undefined
+        // Allow empty strings, '0', 'N/A' as they might be valid for some fields
+        if (value === null || value === undefined) {
+          continue; // Skip only null/undefined
+        }
+        
+        // Convert value to string for filling
+        const stringValue = String(value);
+        
+        // Skip if value is 'N/A' for email, contact, or address fields
+        if (stringValue === 'N/A' && (
+          fieldName.includes('email') || 
+          fieldName.includes('contact') || 
+          fieldName.includes('address') ||
+          fieldName.includes('customer_email') ||
+          fieldName.includes('customer_contact') ||
+          fieldName.includes('customer_address')
+        )) {
+          continue; // Skip 'N/A' for these fields - they should be empty if not available
+        }
+        
+        // For Final Reading and Consumption fields, preserve format (including units)
+        const isReadingField = fieldName.toLowerCase().includes('reading') || 
+                               fieldName.toLowerCase().includes('final') ||
+                               fieldName.toLowerCase().includes('consumption') ||
+                               fieldName.toLowerCase().includes('prev_reading') ||
+                               fieldName.toLowerCase().includes('final_reading');
+        
+        // Sanitize value for PDF - preserve format for readings
+        const sanitizedValue = sanitizeTextForPDF(stringValue, isReadingField);
+        
+        // For reading fields, NEVER skip even if value seems empty - always try to fill
+        // This ensures "0" or empty strings are still displayed
+        if (!isReadingField) {
+          // Skip if sanitized value is empty (but allow "0") for non-reading fields
+          if (!sanitizedValue && sanitizedValue !== "0") {
+            continue;
+          }
+        } else {
+          // For reading fields, use original value if sanitized is empty
+          const valueToUse = sanitizedValue || stringValue || '0';
+          if (!valueToUse && valueToUse !== "0") {
+            continue;
+          }
         }
         
         try {
           const field = form.getField(fieldName);
           
           if (field instanceof PDFTextField) {
-            field.setText(String(value));
-            filledCount++;
-            if (__DEV__) {
-              console.log(`✅ Filled: ${fieldName} = ${value}`);
+            // Use sanitized value for non-reading fields, original for reading fields
+            const valueToSet = isReadingField ? (sanitizedValue || stringValue || '0') : sanitizedValue;
+            
+            // CRITICAL: For Final Reading and Consumption, ensure we have a value
+            if (isReadingField && (!valueToSet || valueToSet === '')) {
+              console.warn(`⚠️ Empty value for reading field: ${fieldName}, trying original value: "${stringValue}"`);
+              // Try to use original value if sanitized is empty
+              const fallbackValue = stringValue || '0';
+              field.setText(fallbackValue);
+              filledCount++;
+              console.log(`✅ Filled Reading/Consumption (fallback): ${fieldName} = "${fallbackValue}"`);
+            } else {
+              field.setText(valueToSet);
+              filledCount++;
+              // Log Final Reading and Consumption specifically for debugging
+              if (isReadingField) {
+                console.log(`✅ Filled Reading/Consumption: ${fieldName} = "${valueToSet}" (original: "${stringValue}", sanitized: "${sanitizedValue}")`);
+              } else if (__DEV__) {
+                console.log(`✅ Filled: ${fieldName} = ${sanitizedValue}`);
+              }
             }
           } else if (field) {
-            // Handle other field types if needed
-            if (__DEV__) {
-              console.log(`⚠️ Unsupported field type: ${fieldName}`);
+            // Try to set text even for non-PDFTextField (some fields might accept text)
+            try {
+              if (typeof field.setText === 'function') {
+                field.setText(sanitizedValue);
+                filledCount++;
+                if (__DEV__) {
+                  console.log(`✅ Filled (non-textfield): ${fieldName} = ${sanitizedValue}`);
+                }
+              }
+            } catch (setError) {
+              if (__DEV__) {
+                console.log(`⚠️ Unsupported field type: ${fieldName} (${field.constructor.name})`);
+              }
             }
           }
         } catch (error) {
@@ -1368,17 +1941,40 @@ export const fillPDFForm = async (billData) => {
           }
           
           for (const [fieldName, value] of Object.entries(serviceFields)) {
-            if (!value || value === 'N/A' || value === '0' || value === '') {
+            // Only skip if value is truly null, undefined, or "N/A"
+            if (value === null || value === undefined || value === "N/A") {
+              continue;
+            }
+            
+            // Sanitize value for PDF
+            const stringValue = String(value);
+            const sanitizedValue = sanitizeTextForPDF(stringValue);
+            
+            // Skip if sanitized value is empty
+            if (!sanitizedValue && sanitizedValue !== "0") {
               continue;
             }
             
             try {
               const field = form.getField(fieldName);
               if (field instanceof PDFTextField) {
-                field.setText(String(value));
+                field.setText(sanitizedValue);
                 filledCount++;
                 if (__DEV__) {
-                  console.log(`✅ Filled service field: ${fieldName} = ${value}`);
+                  console.log(`✅ Filled service field: ${fieldName} = ${sanitizedValue}`);
+                }
+              } else if (field) {
+                // Try to set text even for non-PDFTextField
+                try {
+                  if (typeof field.setText === 'function') {
+                    field.setText(sanitizedValue);
+                    filledCount++;
+                    if (__DEV__) {
+                      console.log(`✅ Filled service field (non-textfield): ${fieldName} = ${sanitizedValue}`);
+                    }
+                  }
+                } catch (setError) {
+                  // Field type doesn't support setText
                 }
               }
             } catch (error) {
@@ -1411,11 +2007,13 @@ export const fillPDFForm = async (billData) => {
 };
 
 /**
- * 2️⃣ openFilledPDF() - OPEN/SHARE PDF
+ * 2️⃣ openFilledPDF() - PREVIEW PDF
  * 
- * Saves filled PDF to device and opens it for viewing
+ * Saves filled PDF to device and opens it for preview (without sharing)
  */
-export const openFilledPDF = async (billData) => {
+export const openFilledPDF = async (billData, options = {}) => {
+  const { previewOnly = true } = options;
+  
   try {
     console.log('📄 Generating filled PDF...');
     
@@ -1438,28 +2036,102 @@ export const openFilledPDF = async (billData) => {
     
     console.log('✅ PDF file created:', fileUri);
     
-    // Step 5: Check if sharing is available
-    const isSharingAvailable = await Sharing.isAvailableAsync();
-    
-    if (isSharingAvailable) {
-      // Step 6: Open PDF viewer/share sheet
-      await Sharing.shareAsync(fileUri, {
-        mimeType: 'application/pdf',
-        dialogTitle: `Invoice - ${billData.billNumber}`,
-        UTI: 'com.adobe.pdf'
-      });
-      
-      console.log('✅ PDF opened successfully');
+    if (previewOnly) {
+      // Step 5: Preview PDF directly (without share sheet)
+      try {
+        // On iOS, Sharing.shareAsync with UIActivityViewController can show preview
+        // On Android, we'll use Intent to open PDF viewer directly
+        if (Platform.OS === 'ios') {
+          // iOS: Use Sharing but it will show preview option first
+          const isSharingAvailable = await Sharing.isAvailableAsync();
+          if (isSharingAvailable) {
+            // On iOS, this will show preview/share options, user can choose preview
+            await Sharing.shareAsync(fileUri, {
+              mimeType: 'application/pdf',
+              dialogTitle: `Invoice - ${billData.billNumber}`,
+              UTI: 'com.adobe.pdf'
+            });
+            console.log('✅ PDF opened for preview (iOS)');
+          } else {
+            throw new Error('Sharing not available');
+          }
+        } else {
+          // Android: Try to open directly with Intent
+          try {
+            // Convert file:// URI to content:// URI for Android
+            const contentUri = fileUri.replace('file://', 'content://');
+            const canOpen = await Linking.canOpenURL(fileUri);
+            
+            if (canOpen) {
+              await Linking.openURL(fileUri);
+              console.log('✅ PDF opened in preview mode (Android)');
+            } else {
+              // Fallback: Use sharing (Android will show preview option)
+              const isSharingAvailable = await Sharing.isAvailableAsync();
+              if (isSharingAvailable) {
+                await Sharing.shareAsync(fileUri, {
+                  mimeType: 'application/pdf',
+                  dialogTitle: `Invoice - ${billData.billNumber}`,
+                  UTI: 'com.adobe.pdf'
+                });
+                console.log('✅ PDF opened via sharing (Android fallback)');
+              } else {
+                throw new Error('Unable to preview PDF');
+              }
+            }
+          } catch (androidError) {
+            // Final fallback for Android
+            const isSharingAvailable = await Sharing.isAvailableAsync();
+            if (isSharingAvailable) {
+              await Sharing.shareAsync(fileUri, {
+                mimeType: 'application/pdf',
+                dialogTitle: `Invoice - ${billData.billNumber}`,
+                UTI: 'com.adobe.pdf'
+              });
+            } else {
+              throw new Error('Unable to preview PDF on this device');
+            }
+          }
+        }
+      } catch (previewError) {
+        console.warn('Preview failed, trying sharing:', previewError);
+        // Final fallback: Use sharing
+        const isSharingAvailable = await Sharing.isAvailableAsync();
+        if (isSharingAvailable) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Invoice - ${billData.billNumber}`,
+            UTI: 'com.adobe.pdf'
+          });
+          console.log('✅ PDF opened via sharing (final fallback)');
+        } else {
+          Alert.alert(
+            'PDF Generated',
+            `Invoice saved at: ${fileUri}\n\nYou can find it in your device's file manager.`,
+            [{ text: 'OK' }]
+          );
+        }
+      }
     } else {
-      // Fallback: Show alert with file location
-      Alert.alert(
-        'PDF Generated',
-        `Invoice saved at: ${fileUri}\n\nYou can find it in your device's file manager.`,
-        [{ text: 'OK' }]
-      );
+      // Original sharing behavior
+      const isSharingAvailable = await Sharing.isAvailableAsync();
+      if (isSharingAvailable) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Invoice - ${billData.billNumber}`,
+          UTI: 'com.adobe.pdf'
+        });
+        console.log('✅ PDF opened via sharing');
+      } else {
+        Alert.alert(
+          'PDF Generated',
+          `Invoice saved at: ${fileUri}\n\nYou can find it in your device's file manager.`,
+          [{ text: 'OK' }]
+        );
+      }
     }
     
-    // Step 7: Clean up after 10 seconds
+    // Step 6: Clean up after 30 seconds (longer for preview)
     setTimeout(async () => {
       try {
         await FileSystem.deleteAsync(fileUri, { idempotent: true });
@@ -1467,7 +2139,7 @@ export const openFilledPDF = async (billData) => {
       } catch (cleanupError) {
         console.warn('Failed to cleanup PDF:', cleanupError);
       }
-    }, 10000);
+    }, 30000);
     
     return { success: true, uri: fileUri };
   } catch (error) {
@@ -1481,15 +2153,15 @@ export const openFilledPDF = async (billData) => {
  * 
  * Triggered when user clicks invoice row
  */
-export const handleViewBill = async (payment, consumerData) => {
+export const handleViewBill = async (payment, consumerData, options = {}) => {
   try {
     console.log('📄 Generating invoice PDF for transaction:', payment?.transactionId);
     
     // Step 1: Create structured bill data
     const billData = createBillData(payment, consumerData);
     
-    // Step 2: Generate and open PDF
-    await openFilledPDF(billData);
+    // Step 2: Generate and preview PDF (previewOnly: true by default)
+    await openFilledPDF(billData, { previewOnly: true, ...options });
     
     return { success: true };
   } catch (error) {

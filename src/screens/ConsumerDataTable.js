@@ -177,15 +177,13 @@ const ConsumerDataTable = ({ navigation, route }) => {
     return `${value} ${unit}`.trim();
   };
 
-  // Transform LS data to table format - only SNO, Timestamp, V-R, V-Y, V-B
+  // Transform LS data to table format - only SNO, Timestamp, kvaImport
   const getTableData = () => {
     // Return all data, let Table component handle pagination
     return lsData.map((item, index) => ({
       id: index + 1,
       timestamp: formatTimestamp(item.timestamp),
-      voltageR: formatValue(item.voltage?.r, item.voltage?.unit),
-      voltageY: formatValue(item.voltage?.y, item.voltage?.unit),
-      voltageB: formatValue(item.voltage?.b, item.voltage?.unit),
+      kvaImport: formatValue(item.energies?.kvaImport, ''),
       raw: item
     }));
   };
@@ -264,7 +262,7 @@ const ConsumerDataTable = ({ navigation, route }) => {
       {/* Table Section */}
       <View style={styles.tableSection}>
         {isLoading ? (
-          <SkeletonLoader variant="table" style={{ marginVertical: 20 }} lines={10} columns={5} />
+          <SkeletonLoader variant="table" style={{ marginVertical: 20 }} lines={10} columns={3} />
         ) : error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>❌ {error}</Text>
@@ -292,21 +290,9 @@ const ConsumerDataTable = ({ navigation, route }) => {
                   align: 'left'
                 },
                 { 
-                  key: 'voltageR', 
-                  title: 'V-R', 
-                  flex: 1,
-                  align: 'right'
-                },
-                { 
-                  key: 'voltageY', 
-                  title: 'V-Y', 
-                  flex: 1,
-                  align: 'right'
-                },
-                { 
-                  key: 'voltageB', 
-                  title: 'V-B', 
-                  flex: 1,
+                  key: 'kvaImport', 
+                  title: 'kvaImport', 
+                  flex: 1.5,
                   align: 'right'
                 }
               ]}
