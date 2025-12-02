@@ -88,6 +88,10 @@ export const API_ENDPOINTS = {
   // Billing endpoints
   billing: {
     history: (uid) => `${API.BASE_URL}/billing?uid=${uid}`,
+    invoice: (billNumber) => {
+      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      return `${baseUrl}/billing/invoice?billNumber=${billNumber}`;
+    },
   },
   
   // Notifications endpoints

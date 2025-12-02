@@ -10,7 +10,7 @@ import {
   Platform 
 } from "react-native";
 import { COLORS } from "../constants/colors";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
 import DashboardHeader from "../components/global/DashboardHeader";
@@ -45,6 +45,76 @@ const PostPaidRechargePayments = ({ navigation }) => {
       setSelectedOption("option2");
     }
   };
+
+  // Check if the outstanding amount is overdue (due date has passed)
+  const isOverdue = useMemo(() => {
+    if (!consumerData) {
+      return false;
+    }
+    
+    // Check for due date in various possible field names
+    const dueDate = consumerData.dueDate || 
+                    consumerData.paymentDueDate || 
+                    consumerData.due_date || 
+                    consumerData.payment_due_date ||
+                    consumerData.outstandingDueDate ||
+                    consumerData.lastBillDueDate ||
+                    consumerData.billDueDate;
+    
+    if (!dueDate) {
+      console.log('📅 No due date found in consumerData. Available fields:', Object.keys(consumerData || {}));
+      return false;
+    }
+    
+    try {
+      // Parse the due date - handle various formats
+      let due = new Date(dueDate);
+      
+      // If date is invalid, try parsing as DD/MM/YYYY or DD-MM-YYYY
+      if (isNaN(due.getTime())) {
+        // Try parsing formats like "DD/MM/YYYY" or "DD-MM-YYYY"
+        const dateStr = String(dueDate).trim();
+        const parts = dateStr.split(/[\/\-]/);
+        if (parts.length === 3) {
+          // Assume DD/MM/YYYY format
+          const day = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+          const year = parseInt(parts[2], 10);
+          due = new Date(year, month, day);
+        } else {
+          // Try ISO format or other standard formats
+          due = new Date(dateStr);
+        }
+      }
+      
+      // Check if date is still invalid
+      if (isNaN(due.getTime())) {
+        console.warn('⚠️ Invalid due date format:', dueDate);
+        return false;
+      }
+      
+      // Get today's date and reset time to compare only dates
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      due.setHours(0, 0, 0, 0);
+      
+      const isPastDue = due < today;
+      
+      // Debug logging
+      if (isPastDue) {
+        console.log('🔴 Amount is OVERDUE. Due date:', due.toLocaleDateString(), 'Today:', today.toLocaleDateString());
+      } else {
+        console.log('✅ Amount is NOT overdue. Due date:', due.toLocaleDateString(), 'Today:', today.toLocaleDateString());
+      }
+      
+      // Return true if due date has passed (is in the past)
+      // If due date is today or in the future, return false (normal color)
+      return isPastDue;
+    } catch (error) {
+      console.error('❌ Error parsing due date:', error, 'Date value:', dueDate);
+      return false;
+    }
+  }, [consumerData]);
 
   // Get the payment amount based on selected option
   const getPaymentAmount = () => {
@@ -233,12 +303,16 @@ const PostPaidRechargePayments = ({ navigation }) => {
                   value={selectedOption === "option1" ? (isLoading ? "Loading..." : outstandingAmount) : ""}
                   editable={false}
                   style={styles.amountInput}
+                  inputStyle={[
+                    styles.amountInputText,
+                    isOverdue && styles.amountInputOverdue
+                  ]}
                 />
               </View>
             </View>
 
             {/* Overdue Amount */}
-            <View style={[
+            {/* <View style={[
               styles.amountCard2,
               selectedOption === "option2" && styles.amountCardSelected2
             ]}>
@@ -259,7 +333,7 @@ const PostPaidRechargePayments = ({ navigation }) => {
                   returnKeyType="done"
                 />
               </View>
-            </View>
+            </View> */}
           </View>
         </View>
       </ScrollView>
@@ -485,20 +559,20 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 10,
     left: 0,
     right: 0,
     paddingHorizontal: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 30,
-    paddingTop: 20,
-    backgroundColor: COLORS.secondaryFontColor,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    paddingTop: 10,
+    // backgroundColor: COLORS.secondaryFontColor,
+    // borderTopWidth: 1,
+    // borderTopColor: '#F0F0F0',
+    // elevation: 8,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: -2 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 4,
   },
   buttonContainerInner: {    flexDirection: 'row',
     justifyContent: 'space-between',
@@ -600,9 +674,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     borderRadius: 6,
     borderWidth: 0,
+  },
+  amountInputText: {
     fontSize: 14,
     fontFamily: 'Manrope-Medium',
-    color: COLORS.primaryFontColor,
+    color: '#000',
+  },
+  amountInputOverdue: {
+    color: '#FF0000',
+    fontWeight: '600',
   },
   loadingContainer: {
     flexDirection: 'row',
