@@ -5,7 +5,8 @@ import { useNavigation } from "@react-navigation/native";
 import { getUser, isUserLoggedIn } from "../utils/storage";
 import { authService } from "../services/authService";
 import Logo from "../components/global/Logo";
-import AnimatedRings from "../components/global/AnimatedRings";
+import RippleEffect from "../components/RippleEffect";
+import { COLORS } from "../constants/colors";
 
 const { width, height } = Dimensions.get("window");
 
@@ -52,7 +53,7 @@ const SplashScreen = () => {
             routes: [{ name: "OnBoarding" }],
           });
         }
-      }, 2000); // Minimum 2 seconds splash time
+      }, 8000); // Minimum 8 seconds splash time
     };
 
     initializeApp();
@@ -62,17 +63,22 @@ const SplashScreen = () => {
     <View style={styles.container}>
       <StatusBar style="light" />
       
+      {/* Blue gradient background */}
+      <View style={styles.blueBackground} />
+      
       <Image 
         source={require("../../assets/images/onboardingbg.png")} 
         style={styles.backgroundImage}
         resizeMode="cover"
       />
       
+      {/* Overlay for better content visibility */}
       <View style={styles.overlay} />
       
       <View style={styles.centerWrapper}>
-        <AnimatedRings count={3} loop={true} />
-        <Logo variant="white" size="large" />
+        <RippleEffect>
+          <Logo variant="white" size="large" />
+        </RippleEffect>
       </View>
     </View>
   );
@@ -83,7 +89,15 @@ export default SplashScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1f255e",
+    backgroundColor: COLORS.primaryDarkColor || "#1f255e",
+  },
+  blueBackground: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.primaryDarkColor || "#1f255e",
   },
   backgroundImage: {
     position: "absolute",
@@ -91,6 +105,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: width,
     height: "100%",
+    opacity: 0.25,
   },
   overlay: {
     position: "absolute",
@@ -98,7 +113,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.3)", // Semi-transparent overlay for better text visibility
+    backgroundColor: "rgba(0, 0, 0, 0.1)", // Subtle overlay for better content visibility
   },
   centerWrapper: {
     flex: 1,

@@ -17,7 +17,7 @@ import DashboardHeader from "../components/global/DashboardHeader";
 import DirectRazorpayPayment from "../components/DirectRazorpayPayment";
 import { getUser } from "../utils/storage";
 import { API, API_ENDPOINTS } from "../constants/constants";
-import { fetchConsumerData, syncConsumerData } from "../services/apiService";
+import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../services/apiService";
 import { getCachedConsumerData } from "../utils/cacheManager";
 import { 
   processRazorpayPayment, 
@@ -26,6 +26,14 @@ import {
   formatAmount 
 } from "../services/paymentService";
 
+// ============================================================================
+// TESTING MODE CONFIGURATION
+// ============================================================================
+// Set to true for testing Razorpay integration with ₹1 only
+// Set to false for production (will charge full outstanding amount)
+const IS_TESTING_MODE = true; // Change to false when ready for production
+const TEST_PAYMENT_AMOUNT = 100; // ₹1 in paise (100 paise = 1 rupee)
+// ============================================================================
 
 const PostPaidRechargePayments = ({ navigation }) => {
 
@@ -119,12 +127,23 @@ const PostPaidRechargePayments = ({ navigation }) => {
   // Get the payment amount based on selected option
   const getPaymentAmount = () => {
     if (selectedOption === "option1") {
-      // Outstanding amount
-      return consumerData?.totalOutstanding || 0;
+      // TESTING MODE: For Razorpay integration testing, charge only ₹1
+      // Change IS_TESTING_MODE to false at the top of file for production
+      if (IS_TESTING_MODE) {
+        console.log('🧪 TESTING MODE: Charging only ₹1 for Razorpay integration testing');
+        return TEST_PAYMENT_AMOUNT; // ₹1 in paise (100 paise)
+      }
+      
+      // PRODUCTION MODE: Charge full outstanding amount
+      const outstanding = consumerData?.totalOutstanding || 0;
+      // If outstanding is already in paise (large number), use as is
+      // If outstanding is in rupees (small number), convert to paise
+      const amountInPaise = outstanding > 1000 ? outstanding : Math.floor(outstanding * 100);
+      return Math.floor(amountInPaise); // Ensure integer
     } else {
-      // Custom amount
+      // Custom amount - convert to paise and ensure integer
       const amount = parseFloat(customAmount) || 0;
-      return amount * 100; // Convert to paise
+      return Math.floor(amount * 100); // Convert to paise and ensure integer
     }
   };
 
@@ -152,17 +171,112 @@ const PostPaidRechargePayments = ({ navigation }) => {
       setIsPaymentProcessing(true);
 
       const paymentAmount = getPaymentAmount();
+      
+      // CRITICAL: Ensure amount is an integer (Razorpay requires integer in paise)
+      const amountInPaise = Math.floor(Number(paymentAmount));
+      if (isNaN(amountInPaise) || amountInPaise <= 0) {
+        throw new Error('Invalid payment amount. Amount must be a positive number.');
+      }
+      
+      // Extract bill_id from consumerData for outstanding payments
+      // Check multiple possible fields where bill_id might be stored
+      let billId = null;
+      if (selectedOption === "option1") {
+        // For outstanding payments, try to get bill_id from consumerData first
+        billId = consumerData?.billId || 
+                 consumerData?.bill_id || 
+                 consumerData?.latestBillId ||
+                 consumerData?.currentBillId ||
+                 consumerData?.lastBillId ||
+                 consumerData?.bill?.id ||
+                 consumerData?.bill?.billId ||
+                 consumerData?.latestBill?.id ||
+                 consumerData?.latestBill?.billId ||
+                 null;
+        
+        // CRITICAL: If bill_id is not found in consumerData, MUST fetch from billing history
+        // bill_id is REQUIRED for order creation - without it, order_id cannot be generated
+        if (!billId && consumerData?.uniqueIdentificationNo) {
+          console.log('🔍 bill_id not found in consumerData, fetching from billing history (REQUIRED for order creation)...');
+          try {
+            const billingHistoryResult = await fetchBillingHistory(consumerData.uniqueIdentificationNo || consumerData.identifier);
+            if (billingHistoryResult.success && billingHistoryResult.data) {
+              const billingData = Array.isArray(billingHistoryResult.data) 
+                ? billingHistoryResult.data 
+                : [billingHistoryResult.data];
+              
+              // Get the latest bill (first item in array, or most recent)
+              const latestBill = billingData.length > 0 ? billingData[0] : null;
+              if (latestBill) {
+                billId = latestBill.bill_id || 
+                        latestBill.billId || 
+                        latestBill.id ||
+                        latestBill.bill_no ||
+                        latestBill.billNumber ||
+                        null;
+                
+                if (billId) {
+                  console.log('✅ Found bill_id from billing history:', billId);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('❌ Could not fetch bill_id from billing history:', error.message);
+          }
+        }
+        
+        // CRITICAL: bill_id is REQUIRED for order creation
+        // Without bill_id, order_id cannot be generated properly
+        if (!billId) {
+          const errorMsg = 'bill_id is required for payment order creation. Unable to find bill_id in consumer data or billing history.';
+          console.error('❌ CRITICAL:', errorMsg);
+          throw new Error(errorMsg);
+        }
+        
+        console.log('✅ bill_id found and ready for order creation:', {
+          'bill_id': billId,
+          'bill_id_type': typeof billId,
+          'billId_source': consumerData?.billId ? 'consumerData' : 'billingHistory',
+          'note': 'bill_id is REQUIRED - order_id cannot be generated without it'
+        });
+      }
+      // For custom payments, bill_id will be created by backend during verification
+      
+      // TESTING MODE: Update description for test payments
+      const isTestPayment = IS_TESTING_MODE && selectedOption === "option1";
+      const paymentDescription = isTestPayment 
+        ? `Energy Bill Payment - Test Payment (₹1)` 
+        : `Energy Bill Payment - ${selectedOption === "option1" ? "Outstanding Amount" : "Custom Amount"}`;
+      
       const paymentData = {
-        amount: paymentAmount,
+        amount: amountInPaise, // CRITICAL: Must be integer in paise
         currency: 'INR',
-        description: `Energy Bill Payment - ${selectedOption === "option1" ? "Outstanding Amount" : "Custom Amount"}`,
+        description: paymentDescription,
         consumer_id: consumerData?.uniqueIdentificationNo || consumerData?.identifier,
         consumer_name: consumerData?.name || consumerData?.consumerName,
         email: consumerData?.email || 'customer@bestinfra.com',
         contact: consumerData?.contact || '9876543210',
         bill_type: selectedOption === "option1" ? "outstanding" : "custom",
-        custom_amount: selectedOption === "option2" ? customAmount : null,
+        // CRITICAL: Include bill_id for outstanding payments (main input)
+        bill_id: billId,
+        billId: billId, // Include both formats for compatibility
+        custom_amount: selectedOption === "option2" ? (customAmount ? String(customAmount) : null) : null,
+        // Include outstanding amount for bill generation (actual outstanding, not test amount)
+        outstanding_amount: selectedOption === "option1" ? (consumerData?.totalOutstanding || 0) : null,
+        // Flag to indicate this is a test payment
+        is_test_payment: isTestPayment,
       };
+      
+      console.log('✅ Payment data prepared:', {
+        amount: paymentData.amount,
+        amount_type: typeof paymentData.amount,
+        amount_in_rupees: (paymentData.amount / 100).toFixed(2),
+        is_test_payment: isTestPayment,
+        bill_id: paymentData.bill_id || '(will be created by backend)',
+        bill_type: paymentData.bill_type,
+        consumer_id: paymentData.consumer_id,
+        actual_outstanding: consumerData?.totalOutstanding || 0
+      });
 
       await processRazorpayPayment(paymentData, navigation, setShowPaymentModal, setOrderData);
 
@@ -182,9 +296,27 @@ const PostPaidRechargePayments = ({ navigation }) => {
   // Handle payment success
   const onPaymentSuccess = async (paymentResponse) => {
     try {
-      await handlePaymentSuccess(paymentResponse, navigation, setShowPaymentModal);
+      console.log('✅ Payment successful, verifying and storing in database...');
+      const result = await handlePaymentSuccess(paymentResponse, navigation, setShowPaymentModal);
+      
+      // Check if payment was stored in database
+      if (result && result.verificationSuccess === false) {
+        console.warn('⚠️ Payment verification failed - payment may not be stored in database');
+        Alert.alert(
+          "Payment Completed", 
+          "Your payment was successful, but verification is pending. The transaction will be stored shortly.",
+          [{ text: "OK" }]
+        );
+      } else if (result && result.verificationSuccess === true) {
+        console.log('✅ Payment verified and stored in database successfully');
+      }
     } catch (error) {
-      Alert.alert("Payment Verification Failed", error.message);
+      console.error('❌ Payment success handling error:', error);
+      Alert.alert(
+        "Payment Verification Failed", 
+        error.message || "Payment was successful but verification failed. Please contact support if the transaction is not reflected.",
+        [{ text: "OK" }]
+      );
     }
   };
 
@@ -303,6 +435,7 @@ const PostPaidRechargePayments = ({ navigation }) => {
                   value={selectedOption === "option1" ? (isLoading ? "Loading..." : outstandingAmount) : ""}
                   editable={false}
                   style={styles.amountInput}
+                  onChangeText={handleCustomAmountChange}
                   inputStyle={[
                     styles.amountInputText,
                     isOverdue && styles.amountInputOverdue
@@ -312,7 +445,7 @@ const PostPaidRechargePayments = ({ navigation }) => {
             </View>
 
             {/* Overdue Amount */}
-            {/* <View style={[
+             {/* <View style={[
               styles.amountCard2,
               selectedOption === "option2" && styles.amountCardSelected2
             ]}>

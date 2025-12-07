@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/colors";
 import Menu from "../../assets/icons/bars.svg";
 import Notification from "../../assets/icons/notification.svg";
@@ -8,7 +9,7 @@ import DatePicker from "../components/global/DatePicker";
 import Table from "../components/global/Table";
 import Button from "../components/global/Button";
 import DownloadButton from "../components/global/DownloadButton";
-import { getUser } from "../utils/storage";
+import { getUser, getToken } from "../utils/storage";
 import { API, API_ENDPOINTS } from "../constants/constants";
 
 
@@ -18,48 +19,161 @@ const Transactions = ({ navigation }) => {
   const [tableData, setTableData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch payment history from API
+  // Fetch payment history from API - try multiple endpoints
   const fetchPaymentHistory = useCallback(async () => {
     try {
       setIsLoading(true);
       const user = await getUser();
+      const token = await getToken();
       
-      if (user && user.identifier) {
-        // Using the authenticated user's identifier
-        const response = await fetch(API_ENDPOINTS.consumers.get(user.identifier));
+      if (!user || !user.identifier) {
+        setTableData([]);
+        setIsLoading(false);
+        return;
+      }
+
+      let paymentHistory = [];
+      
+      // Try payment history endpoint first
+      try {
+        const paymentHistoryUrl = API_ENDPOINTS.payment.history(user.identifier);
+        console.log('🔄 Fetching payment history from:', paymentHistoryUrl);
         
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data && data.data.paymentHistory) {
-            // Transform payment history data for the table
-            const transformedData = data.data.paymentHistory.map((payment, index) => ({
-              id: index + 1,
-              transactionId: payment.transactionId || 'N/A',
-              date: payment.paymentDate || 'N/A',
-              amount: payment.creditAmount ? `₹${payment.creditAmount}` : 'N/A',
-              paymentMode: payment.paymentMode || 'N/A',
-              status: payment.creditAmount > 0 ? 'Success' : 'Failed'
-            }));
-            setTableData(transformedData);
-          } else {
-            setTableData([]);
+        const paymentResponse = await fetch(paymentHistoryUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+        });
+        
+        if (paymentResponse.ok) {
+          const paymentData = await paymentResponse.json();
+          console.log('📦 Payment history response:', paymentData);
+          
+          // Handle different response structures
+          if (paymentData.success && paymentData.data) {
+            if (Array.isArray(paymentData.data)) {
+              paymentHistory = paymentData.data;
+            } else if (Array.isArray(paymentData.data.payments)) {
+              paymentHistory = paymentData.data.payments;
+            } else if (Array.isArray(paymentData.data.paymentHistory)) {
+              paymentHistory = paymentData.data.paymentHistory;
+            } else if (Array.isArray(paymentData.data.transactions)) {
+              paymentHistory = paymentData.data.transactions;
+            }
+          } else if (Array.isArray(paymentData)) {
+            paymentHistory = paymentData;
           }
-        } else {
-          console.error('Failed to fetch payment history:', response.status);
-          setTableData([]);
+        }
+      } catch (paymentError) {
+        console.warn('⚠️ Payment history endpoint failed, trying consumer endpoint:', paymentError);
+      }
+      
+      // Fallback: Try consumer endpoint for payment history
+      if (paymentHistory.length === 0) {
+        try {
+          const consumerResponse = await fetch(API_ENDPOINTS.consumers.get(user.identifier), {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
+          });
+          
+          if (consumerResponse.ok) {
+            const consumerData = await consumerResponse.json();
+            console.log('📦 Consumer data response:', consumerData);
+            
+            if (consumerData.success && consumerData.data) {
+              // Try different possible locations for payment history
+              if (Array.isArray(consumerData.data.paymentHistory)) {
+                paymentHistory = consumerData.data.paymentHistory;
+              } else if (Array.isArray(consumerData.data.payments)) {
+                paymentHistory = consumerData.data.payments;
+              } else if (Array.isArray(consumerData.data.transactions)) {
+                paymentHistory = consumerData.data.transactions;
+              } else if (consumerData.data.billing && Array.isArray(consumerData.data.billing.paymentHistory)) {
+                paymentHistory = consumerData.data.billing.paymentHistory;
+              }
+            }
+          }
+        } catch (consumerError) {
+          console.error('❌ Error fetching from consumer endpoint:', consumerError);
         }
       }
+      
+      // Transform payment history data for the table
+      if (paymentHistory.length > 0) {
+        const transformedData = paymentHistory.map((payment, index) => {
+          // Handle different payment data structures
+          const amount = payment.amount || payment.creditAmount || payment.paymentAmount || payment.totalAmount || 0;
+          const date = payment.paymentDate || payment.date || payment.createdAt || payment.transactionDate || 'N/A';
+          const transactionId = payment.transactionId || payment.paymentId || payment.razorpay_payment_id || payment.id || `TXN${index + 1}`;
+          const paymentMode = payment.paymentMode || payment.payment_method || payment.method || 'UPI';
+          const status = payment.status || (amount > 0 ? 'Success' : 'Failed');
+          
+          // Format date if it's a valid date string
+          let formattedDate = date;
+          if (date !== 'N/A' && date) {
+            try {
+              const dateObj = new Date(date);
+              if (!isNaN(dateObj.getTime())) {
+                formattedDate = dateObj.toLocaleDateString('en-IN', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric'
+                });
+              }
+            } catch (e) {
+              // Keep original date if parsing fails
+            }
+          }
+          
+          return {
+            id: index + 1,
+            transactionId: transactionId,
+            date: formattedDate,
+            amount: amount ? `₹${parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00',
+            paymentMode: paymentMode,
+            status: status
+          };
+        });
+        
+        // Sort by date (newest first)
+        transformedData.sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateB - dateA;
+        });
+        
+        setTableData(transformedData);
+        console.log('✅ Loaded', transformedData.length, 'transactions');
+      } else {
+        setTableData([]);
+        console.log('ℹ️ No payment history found');
+      }
     } catch (error) {
-      console.error('Error fetching payment history:', error);
+      console.error('❌ Error fetching payment history:', error);
       setTableData([]);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
+  // Fetch on mount
   useEffect(() => {
     fetchPaymentHistory();
   }, [fetchPaymentHistory]);
+
+  // Refresh when screen is focused (e.g., after returning from payment)
+  useFocusEffect(
+    useCallback(() => {
+      fetchPaymentHistory();
+    }, [fetchPaymentHistory])
+  );
   return (
     <>
     <ScrollView

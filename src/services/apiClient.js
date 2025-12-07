@@ -196,7 +196,42 @@ class ApiClient {
       
       try {
         // Attempt to refresh the token
-        await authService.refreshAccessToken();
+        const refreshResult = await authService.refreshAccessToken();
+        
+        // Check if refresh was successful or silent failure
+        if (refreshResult && refreshResult.success === false && refreshResult.silent === true) {
+          // Silent failure (404) - use existing token
+          const existingToken = await authService.getAccessToken();
+          if (existingToken) {
+            // Retry with existing token
+            const retryResponse = await fetch(endpoint, {
+              method: originalOptions.method || 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${existingToken}`,
+                ...originalOptions.headers,
+              },
+              body: originalOptions.body ? JSON.stringify(originalOptions.body) : null,
+            });
+            
+            if (retryResponse.ok) {
+              const retryResult = await retryResponse.json();
+              return {
+                success: true,
+                data: retryResult.data || retryResult,
+                status: retryResponse.status,
+              };
+            }
+          }
+          // If existing token doesn't work, return auth error
+          return {
+            success: false,
+            error: 'Authentication failed - please login again',
+            status: 401,
+            requiresReauth: true
+          };
+        }
         
         // Get the new token
         const newToken = await authService.getAccessToken();
@@ -267,8 +302,40 @@ class ApiClient {
           };
         }
       } catch (refreshError) {
-        // Token refresh failed - user needs to login again
-        console.error('❌ Token refresh failed:', refreshError);
+        // Check if it's a silent failure
+        if (refreshError && typeof refreshError === 'object' && refreshError.silent === true) {
+          // Silent failure - try with existing token
+          const existingToken = await authService.getAccessToken();
+          if (existingToken) {
+            try {
+              const retryResponse = await fetch(endpoint, {
+                method: originalOptions.method || 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                  'Authorization': `Bearer ${existingToken}`,
+                  ...originalOptions.headers,
+                },
+                body: originalOptions.body ? JSON.stringify(originalOptions.body) : null,
+              });
+              
+              if (retryResponse.ok) {
+                const retryResult = await retryResponse.json();
+                return {
+                  success: true,
+                  data: retryResult.data || retryResult,
+                  status: retryResponse.status,
+                };
+              }
+            } catch (e) {
+              // Silent failure
+            }
+          }
+        } else {
+          // Only log non-silent errors
+          console.error('❌ Token refresh failed:', refreshError);
+        }
+        
         return {
           success: false,
           error: 'Session expired - please login again',

@@ -51,14 +51,20 @@ const makeRequest = async (url, options = {}) => {
       
       try {
         // Try to refresh the token
-        await authService.refreshAccessToken();
+        const refreshResult = await authService.refreshAccessToken();
         
-        // Get new token
-        const newToken = await authService.getAccessToken();
+        // Check if refresh was successful or silent failure
+        let newToken = null;
+        if (refreshResult && refreshResult.success === false && refreshResult.silent === true) {
+          // Silent failure (404) - use existing token
+          newToken = await authService.getAccessToken();
+        } else {
+          // Get new token
+          newToken = await authService.getAccessToken();
+        }
         
         if (newToken) {
-          // Retry the request with new token
-          console.log('✅ Token refreshed, retrying request...');
+          // Retry the request with token
           const retryResponse = await fetch(url, {
             method: options.method || 'GET',
             headers: {
@@ -85,7 +91,36 @@ const makeRequest = async (url, options = {}) => {
           }
         }
       } catch (refreshError) {
-        console.error('❌ Token refresh failed in makeRequest:', refreshError);
+        // Check if it's a silent failure
+        if (refreshError && typeof refreshError === 'object' && refreshError.silent === true) {
+          // Silent failure - try with existing token
+          const existingToken = await authService.getAccessToken();
+          if (existingToken) {
+            try {
+              const retryResponse = await fetch(url, {
+                method: options.method || 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                  'Authorization': `Bearer ${existingToken}`,
+                  ...options.headers,
+                },
+                ...options,
+              });
+              
+              if (retryResponse.ok) {
+                const retryData = await retryResponse.json();
+                return { success: true, data: retryData.data || retryData };
+              }
+            } catch (e) {
+              // Silent failure
+            }
+          }
+        } else {
+          // Only log non-silent errors
+          console.error('❌ Token refresh failed in makeRequest:', refreshError);
+        }
+        
         return { 
           success: false, 
           message: 'Session expired. Please login again.',
@@ -377,13 +412,22 @@ export const hasValidCache = async (identifier) => {
 export const fetchNotifications = async (uid, page = 1, limit = 10) => {
   try {
     // Get valid access token (will auto-refresh if expired)
-    const token = await authService.getValidAccessToken();
+    // If refresh fails, try to continue with existing token (might still work)
+    let token;
+    try {
+      token = await authService.getValidAccessToken();
+    } catch (tokenError) {
+      console.warn('⚠️ Error getting access token for notifications:', tokenError.message);
+      // Try to get existing token as fallback
+      token = await authService.getAccessToken();
+    }
+    
     if (!token) {
-      console.error('❌ No access token available for notifications');
+      console.warn('⚠️ No access token available for notifications - returning empty list');
       return { 
-        success: false, 
-        data: { notifications: [] },
-        message: 'No access token available. Please login again.'
+        success: true, // Return success with empty data instead of error
+        data: { notifications: [], pagination: {} },
+        message: 'Authentication required. Please login to see notifications.'
       };
     }
 
@@ -409,6 +453,18 @@ export const fetchNotifications = async (uid, page = 1, limit = 10) => {
     console.log('📬 Notifications API response status:', response.status);
 
     // Handle specific HTTP status codes gracefully
+    if (response.status === 401) {
+      console.warn('⚠️ 401 Unauthorized - token may be invalid or expired');
+      // Don't throw error - return empty notifications gracefully
+      // The auth service will handle token refresh/clearing if needed
+      return { 
+        success: true, 
+        data: { notifications: [] },
+        status: 401,
+        message: 'Authentication required. Notifications unavailable.'
+      };
+    }
+    
     if (response.status === 403) {
       console.warn('⚠️ 403 Forbidden - notifications not available');
       return { 
@@ -547,5 +603,254 @@ export const markAllNotificationsAsRead = async (uid) => {
   } catch (error) {
     console.error("❌ Error marking all notifications as read:", error);
     return { success: false, message: error.message };
+  }
+};
+
+// ==================== PAYMENT TRANSACTIONS API ====================
+
+/**
+ * Fetch payment transactions for a specific consumer
+ * Shows all transactions made via nexusone mobile app
+ * Uses bearer token from logged-in user
+ * 
+ * @param {string} consumerId - Consumer identifier (optional, will use logged-in user if not provided)
+ * @returns {Promise<{success: boolean, data: Array, message?: string}>}
+ */
+export const fetchPaymentTransactions = async (consumerId = null) => {
+  try {
+    // Get valid access token (will auto-refresh if expired)
+    let token;
+    try {
+      token = await authService.getValidAccessToken();
+    } catch (tokenError) {
+      console.warn('⚠️ Error getting access token for transactions:', tokenError.message);
+      token = await authService.getAccessToken();
+    }
+    
+    if (!token) {
+      console.warn('⚠️ No access token available for transactions - returning empty list');
+      return { 
+        success: true,
+        data: [],
+        message: 'Authentication required. Please login to see transactions.'
+      };
+    }
+
+    // Get consumer ID from user if not provided
+    let uid = consumerId;
+    if (!uid) {
+      const { getUser } = await import('../utils/storage');
+      const user = await getUser();
+      if (user && user.identifier) {
+        uid = user.identifier;
+      } else {
+        return {
+          success: false,
+          data: [],
+          message: 'Consumer identifier is required'
+        };
+      }
+    }
+
+    // Fetch consumer data which contains payment history
+    const url = API_ENDPOINTS.consumers.get(uid);
+    
+    console.log('🔄 Fetching payment transactions:', {
+      url,
+      consumerId: uid,
+      tokenPresent: !!token
+    });
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    console.log('💳 Payment transactions API response status:', response.status);
+
+    // Handle specific HTTP status codes gracefully
+    if (response.status === 401) {
+      console.warn('⚠️ 401 Unauthorized - token may be invalid or expired');
+      return { 
+        success: true, 
+        data: [],
+        status: 401,
+        message: 'Authentication required. Transactions unavailable.'
+      };
+    }
+    
+    if (response.status === 403) {
+      console.warn('⚠️ 403 Forbidden - transactions not available');
+      return { 
+        success: true, 
+        data: [],
+        status: 403,
+        message: 'Transactions not available for this consumer'
+      };
+    }
+
+    if (response.status === 404) {
+      console.warn('⚠️ 404 Not Found - consumer endpoint not found');
+      return { 
+        success: true, 
+        data: [],
+        status: 404,
+        message: 'Consumer endpoint not found'
+      };
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error('❌ Payment transactions API error:', response.status, errorText);
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Payment transactions API response:', {
+      success: result.success,
+      hasData: !!(result.data && result.data.paymentHistory),
+      paymentHistoryCount: result.data?.paymentHistory?.length || 0
+    });
+
+    // Extract payment history from consumer data
+    if (result.success && result.data && result.data.paymentHistory) {
+      const paymentHistory = result.data.paymentHistory || [];
+      
+      // Filter for mobile app payments (nexusone app)
+      // Check if payment has source: 'react_native_app' or paymentMode indicates mobile
+      const mobileAppPayments = paymentHistory.filter((payment) => {
+        // Filter for mobile app payments
+        // Check various indicators that this is from mobile app:
+        // 1. payment.source === 'react_native_app'
+        // 2. payment.paymentMode contains 'mobile' or 'app'
+        // 3. payment.notes?.source === 'react_native_app'
+        // 4. If no source field, include all payments (assume they're from mobile if in mobile app)
+        const source = payment.source || payment.notes?.source || '';
+        const paymentMode = (payment.paymentMode || '').toLowerCase();
+        const isMobileApp = 
+          source === 'react_native_app' ||
+          source === 'nexusone_app' ||
+          paymentMode.includes('mobile') ||
+          paymentMode.includes('app') ||
+          paymentMode.includes('upi') || // UPI payments are typically from mobile
+          !source; // If no source specified, assume mobile app (since we're in mobile app)
+        
+        return isMobileApp;
+      });
+
+      // Transform payment history data for the table (matching Transactions.js format)
+      const transformedData = mobileAppPayments.map((payment, index) => {
+        // Extract transaction ID from various possible fields
+        const transactionId = 
+          payment.transactionId || 
+          payment.transaction_id ||
+          payment.paymentId ||
+          payment.payment_id ||
+          payment.razorpay_payment_id ||
+          payment.orderId ||
+          payment.order_id ||
+          `TXN-${Date.now()}-${index}`;
+
+        // Extract payment date
+        const paymentDate = 
+          payment.paymentDate || 
+          payment.payment_date ||
+          payment.createdAt ||
+          payment.created_at ||
+          payment.date ||
+          new Date().toISOString();
+
+        // Extract amount (handle both paise and rupees)
+        let amount = payment.creditAmount || payment.amount || payment.totalAmount || 0;
+        // If amount is in paise (very large number), convert to rupees
+        if (amount > 10000) {
+          amount = amount / 100;
+        }
+
+        // Extract payment mode
+        const paymentMode = 
+          payment.paymentMode || 
+          payment.payment_mode ||
+          payment.method ||
+          'UPI';
+
+        // Determine status
+        const status = (amount > 0) ? 'Success' : 'Failed';
+
+        // Format date for display
+        const formatDate = (dateString) => {
+          try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-IN', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          } catch {
+            return dateString;
+          }
+        };
+
+        return {
+          id: index + 1,
+          transactionId: transactionId,
+          orderId: payment.orderId || payment.order_id || payment.razorpay_order_id || 'N/A',
+          date: formatDate(paymentDate),
+          amount: `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          paymentMode: paymentMode,
+          status: status,
+          // Include raw data for reference
+          raw: {
+            ...payment,
+            transactionId,
+            orderId: payment.orderId || payment.order_id || payment.razorpay_order_id,
+            amount,
+            paymentDate,
+            paymentMode,
+            status
+          }
+        };
+      });
+
+      // Sort by date (newest first)
+      transformedData.sort((a, b) => {
+        const dateA = new Date(a.raw.paymentDate).getTime();
+        const dateB = new Date(b.raw.paymentDate).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      });
+
+      console.log('✅ Payment transactions transformed:', {
+        totalPayments: paymentHistory.length,
+        mobileAppPayments: mobileAppPayments.length,
+        transformedCount: transformedData.length
+      });
+
+      return { 
+        success: true, 
+        data: transformedData,
+        total: transformedData.length,
+        message: `Found ${transformedData.length} mobile app transaction(s)`
+      };
+    }
+
+    // If no payment history found
+    return { 
+      success: true, 
+      data: [],
+      message: 'No payment history found for this consumer'
+    };
+  } catch (error) {
+    console.error('❌ Error fetching payment transactions:', error);
+    return { 
+      success: false,
+      data: [],
+      message: error.message 
+    };
   }
 };

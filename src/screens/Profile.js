@@ -135,12 +135,16 @@ const Profile = ({ navigation, route }) => {
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={refreshNotifications}
-            colors={[COLORS.secondaryFontColor]}
-            tintColor={COLORS.secondaryFontColor}
-          />
+          // Only show RefreshControl when there are notifications (refreshing existing data)
+          // Hide it during initial load to avoid duplicate loaders
+          displayNotifications.length > 0 ? (
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={refreshNotifications}
+              colors={[COLORS.secondaryFontColor]}
+              tintColor={COLORS.secondaryFontColor}
+            />
+          ) : undefined
         }
       >
         {isLoading && displayNotifications.length === 0 ? (

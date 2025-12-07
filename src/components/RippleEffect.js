@@ -39,7 +39,7 @@ const Ring = ({ index, progress }) => {
   return <Animated.View style={[styles.ring, ringStyle]} />;
 };
 
-const RippleEffect = () => {
+const RippleEffect = ({ children }) => {
   const progress = useSharedValue(0);
 
   const loopAnimation = () => {
@@ -62,7 +62,7 @@ const RippleEffect = () => {
         {Array.from({ length: RING_COUNT }).map((_, index) => (
           <Ring key={index} index={index} progress={progress} />
         ))}
-        <BiLogo width={60} height={60} />
+        {children || <BiLogo width={60} height={60} />}
     </View>
   );
 };
@@ -73,10 +73,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#1f255e",
   },
   logoContainer: {
-    left: width / 2 - 55,
-    width: 110,
     alignItems: "center",
     justifyContent: "center",
+    width: "100%",
     height: "40%",
   },
   ring: {
