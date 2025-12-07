@@ -70,6 +70,9 @@ const handleButtonPress = () => {
     <View style={styles.container}>
       <StatusBar style="light" />
       
+      {/* Blue gradient background */}
+      <View style={styles.blueBackground} />
+      
       {/* Background Image */}
       <Image 
         source={require("../../assets/images/Backgroundimage.png")} 
@@ -121,7 +124,15 @@ export default OnBoarding;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1f255e",
+    backgroundColor: COLORS.primaryDarkColor || "#1f255e",
+  },
+  blueBackground: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.primaryDarkColor || "#1f255e",
   },
   backgroundImage: {
     position: "absolute",
@@ -129,6 +140,7 @@ const styles = StyleSheet.create({
     left: 0,
     width: width,
     height: "100%",
+    opacity: 0.25,
   },
   overlay: {
     position: "absolute",
@@ -136,7 +148,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.2)", // Semi-transparent overlay for better content visibility
+    backgroundColor: "rgba(0, 0, 0, 0.1)", // Subtle overlay for better content visibility
   },
   /////// button \\\\\\
   ButtonBox: {

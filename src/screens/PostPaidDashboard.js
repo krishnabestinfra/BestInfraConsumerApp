@@ -796,60 +796,42 @@ const PostPaidDashboard = ({ navigation, route }) => {
           <View style={styles.graphSection}>
             <View style={styles.energySummaryHeader}>
               <Text style={styles.energyText}>Energy Summary</Text>
-              <View style={styles.toggleGroupColumn}>
-                {/* Daily/Monthly Toggle - Original Text Style */}
-                <View style={styles.textToggleContainer}>
-                  <TouchableOpacity onPress={() => setSelectedView("daily")}>
-                    <Text
-                      style={
-                        selectedView === "daily"
-                          ? styles.monthlyText
-                          : styles.dailyText
-                      }
-                    >
-                      Daily
-                    </Text>
-                  </TouchableOpacity>
-                  <Text style={styles.separator}>{' / '}</Text>
-                  <TouchableOpacity onPress={() => setSelectedView("monthly")}>
-                    <Text
-                      style={
-                        selectedView === "monthly"
-                          ? styles.monthlyText
-                          : styles.dailyText
-                      }
-                    >
-                      Monthly
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Chart/Table Toggle - Text Style */}
-                <View style={[styles.textToggleContainer, { marginTop: 8 }]}>
-                  <TouchableOpacity onPress={() => setDisplayMode("chart")}>
-                    <Text
-                      style={
-                        displayMode === "chart"
-                          ? styles.monthlyText
-                          : styles.dailyText
-                      }
-                    >
-                      Chart
-                    </Text>
-                  </TouchableOpacity>
-                  <Text style={styles.separator}>{' / '}</Text>
-                  <TouchableOpacity onPress={() => setDisplayMode("table")}>
-                    <Text
-                      style={
-                        displayMode === "table"
-                          ? styles.monthlyText
-                          : styles.dailyText
-                      }
-                    >
-                      Table
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+              {/* Daily/Monthly Toggle - Button Style */}
+              <View style={styles.toggleContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    selectedView === "daily" && styles.toggleButtonActive,
+                  ]}
+                  onPress={() => setSelectedView("daily")}
+                >
+                  <Text
+                    style={
+                      selectedView === "daily"
+                        ? styles.toggleTextActive
+                        : styles.toggleTextInactive
+                    }
+                  >
+                    Daily
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    selectedView === "monthly" && styles.toggleButtonActive,
+                  ]}
+                  onPress={() => setSelectedView("monthly")}
+                >
+                  <Text
+                    style={
+                      selectedView === "monthly"
+                        ? styles.toggleTextActive
+                        : styles.toggleTextInactive
+                    }
+                  >
+                    Monthly
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -928,9 +910,49 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 </>
               )}
 
+              {/* Chart/Table Toggle - Button Style */}
+              <View style={[styles.toggleContainer, { marginTop: 15, width: '100%' }]}>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    styles.toggleButtonFullWidth,
+                    displayMode === "chart" && styles.toggleButtonActive,
+                  ]}
+                  onPress={() => setDisplayMode("chart")}
+                >
+                  <Text
+                    style={
+                      displayMode === "chart"
+                        ? styles.toggleTextActive
+                        : styles.toggleTextInactive
+                    }
+                  >
+                    Chart
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.toggleButton,
+                    styles.toggleButtonFullWidth,
+                    displayMode === "table" && styles.toggleButtonActive,
+                  ]}
+                  onPress={() => setDisplayMode("table")}
+                >
+                  <Text
+                    style={
+                      displayMode === "table"
+                        ? styles.toggleTextActive
+                        : styles.toggleTextInactive
+                    }
+                  >
+                    Table
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               {/* Chart or Table View */}
               {displayMode === "chart" ? (
-                <View style={{ alignItems: "center", marginTop: 10 }}>
+                <View style={{ alignItems: "center", marginTop: 15 }}>
                   {isLoading ? (
                     <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={selectedView === "daily" ? 10 : 12} />
                   ) : (
@@ -943,7 +965,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   )}
                 </View>
               ) : (
-                <View style={{ marginTop: 15 }}>
+                <View style={{ marginTop: 10 }}>
                   {isLoading ? (
                     <SkeletonLoader variant="table" style={{ marginVertical: 20 }} lines={5} columns={3} />
                   ) : (
@@ -1008,12 +1030,12 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   showSerial={true}
                   showPriority={false}
                   containerStyle={styles.alertsTable}
-                  minTableWidth={940}
+                  minTableWidth={900}
                   columns={[
                     { 
                       key: 'meterSerialNumber', 
                       title: 'Meter SI No', 
-                      flex: 1,
+                      width: 110,
                       align: 'left',
                       render: (item) => (
                         <View style={styles.meterSiCell}>
@@ -1022,13 +1044,29 @@ const PostPaidDashboard = ({ navigation, route }) => {
                         </View>
                       )
                     },
-                    { key: 'consumerName', title: 'Consumer Name', flex: 1.6 },
-                    { key: 'eventDateTime', title: 'Event Date Time', flex: 1.6 },
-                    { key: 'eventDescription', title: 'Event Description', flex: 1.6 },
+                    { 
+                      key: 'consumerName', 
+                      title: 'Consumer Name', 
+                      width: 160,
+                      align: 'left'
+                    },
+                    { 
+                      key: 'eventDateTime', 
+                      title: 'Event Date Time', 
+                      width: 160,
+                      align: 'left'
+                    },
+                    { 
+                      key: 'eventDescription', 
+                      title: 'Event Description', 
+                      width: 140,
+                      align: 'left'
+                    },
                     {
                       key: 'status',
                       title: 'Status',
-                      flex: 1,
+                      width: 120,
+                      align: 'left',
                       render: (item) => (
                         <View style={[
                           styles.statusBadge,
@@ -1043,21 +1081,11 @@ const PostPaidDashboard = ({ navigation, route }) => {
                         </View>
                       )
                     },
-                    { key: 'duration', title: 'Duration', flex: 1 },
-                    {
-                      key: 'actions',
-                      title: 'Actions',
-                      flex: 0.8,
-                      render: (item) => (
-                        <TouchableOpacity
-                          style={styles.actionButton}
-                          onPress={() => handleViewTamperEvent(item)}
-                          accessibilityRole="button"
-                          accessibilityLabel="View tamper event details"
-                        >
-                          <EyeIcon width={18} height={18} />
-                        </TouchableOpacity>
-                      )
+                    { 
+                      key: 'duration', 
+                      title: 'Duration', 
+                      width: 70,
+                      align: 'left'
                     }
                   ]}
                 />
@@ -1324,18 +1352,18 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   tableContent: {
-    minWidth: 920,
+    minWidth: 800,
   },
   alertsTable: {
     paddingHorizontal: 0,
   },
   statusBadge: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 90,
+    alignSelf: "flex-start",
   },
   statusBadgeText: {
     fontFamily: "Manrope-SemiBold",
@@ -1425,6 +1453,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     height: 28,
+  },
+  toggleButtonFullWidth: {
+    flex: 1,
   },
   toggleButtonActive: {
     backgroundColor: COLORS.secondaryColor,

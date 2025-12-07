@@ -219,11 +219,7 @@ const Table = ({
                return (
                  <View 
                    key={column.key} 
-                   style={[
-                     ...getColumnWrapperStyle(column, isLastColumn),
-                     { paddingRight: isLastColumn ? 0 : 6 },
-                     hasPriority && styles.priorityCell,
-                   ]}
+                   style={getColumnWrapperStyle(column, isLastColumn)}
                  >
                    {column.render ? (
                      // Custom render function for action columns (like View button)
@@ -231,31 +227,40 @@ const Table = ({
                    ) : isPriorityField && hasPriority ? (
                      inlinePriority ? (
                        <View style={styles.inlinePriorityWrapper}>
-                         <Text style={[styles.dataText, styles.multiLineText, textStyle]}>
+                         <Text 
+                           style={[styles.dataText, styles.multiLineText, textStyle]}
+                           numberOfLines={3}
+                         >
                            {value}
                          </Text>
                          <PriorityTag priority={priorityLevel} />
                        </View>
                      ) : (
                        <>
-                        <Text style={[
-                          styles.dataText, 
-                          styles.multiLineText, 
-                          textStyle,
-                          getTextAlignmentStyle(column.align)
-                        ]}>
+                        <Text 
+                          style={[
+                            styles.dataText, 
+                            styles.multiLineText, 
+                            textStyle,
+                            getTextAlignmentStyle(column.align)
+                          ]}
+                          numberOfLines={3}
+                        >
                            {value}
                          </Text>
                          <PriorityTag priority={priorityLevel} />
                        </>
                      )
                    ) : (
-                    <Text style={[
-                      styles.dataText, 
-                      styles.multiLineText, 
-                      textStyle,
-                      getTextAlignmentStyle(column.align)
-                    ]}>
+                    <Text 
+                      style={[
+                        styles.dataText, 
+                        styles.multiLineText, 
+                        textStyle,
+                        getTextAlignmentStyle(column.align)
+                      ]}
+                      numberOfLines={3}
+                    >
                        {value}
                      </Text>
                    )}
@@ -315,12 +320,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 12,
     alignItems: "center",
-    minHeight: 42,
-    justifyContent: "center",
-    paddingVertical: 10,
+    minHeight: 40,
+    paddingVertical: 8,
   },
   columnContainer: {
-    paddingRight: 8,
+    paddingLeft: 0,
+    paddingRight: 12,
   },
   lastColumn: {
     paddingRight: 0,
@@ -341,12 +346,12 @@ const styles = StyleSheet.create({
   dataRow: {
     backgroundColor: "#F8F9FA",
     flexDirection: "row",
-    paddingVertical: 10,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 2,
-    minHeight: 48,
+    minHeight: 40,
   },
   pressableRow: {
     // Optional styling for pressable rows
@@ -381,7 +386,7 @@ const styles = StyleSheet.create({
     flex: 0,
     alignItems: "center",
     justifyContent: "center",
-    paddingRight: 6,
+    paddingRight: 12,
   },
   serialText: {
     textAlign: "center",
@@ -456,8 +461,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 4,
   },
   paginationButton: {
     minWidth: 120,

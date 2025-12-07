@@ -5,6 +5,8 @@ import { useState, useEffect, useRef } from "react";
 import * as Font from "expo-font";
 import { checkForAppUpdates } from "./src/utils/updateChecker";
 import Toast from 'react-native-toast-message';
+import Logo from "./src/components/global/Logo";
+import { COLORS } from "./src/constants/colors";
 
 import SplashScreen from "./src/splashScreen/SplashScreen";
 import OnBoarding from "./src/screens/OnBoarding";
@@ -153,7 +155,8 @@ export default function App() {
   if (!fontsLoaded) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" />
+        <Logo variant="white" size="large" />
+        <ActivityIndicator size="large" color={COLORS.secondaryFontColor} style={styles.loader} />
       </View>
     );
   }

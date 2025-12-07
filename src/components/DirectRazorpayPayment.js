@@ -41,19 +41,70 @@ const DirectRazorpayPayment = ({
         const signature = urlParams.get('razorpay_signature');
         
         if (paymentId) {
+          // DEBUG: Log extracted values
+          console.log('🔍 Extracted from URL:', {
+            paymentId,
+            orderId,
+            signature: signature ? 'Present' : 'Missing',
+            orderData_order_id: orderData?.order_id,
+            orderData_id: orderData?.id
+          });
+          
+          // Use actual order_id from orderData if not in URL
+          const finalOrderId = orderId || orderData?.order_id || orderData?.id;
+          const finalSignature = signature || null;
+          
+          // Validate required fields - payment_id is mandatory, others can be handled by backend
+          if (!paymentId) {
+            console.error('❌ Payment ID missing - cannot proceed');
+            onError('Payment ID is missing. Payment cannot be processed.');
+            onClose();
+            return;
+          }
+          
+          // Warn if order_id or signature is missing, but still proceed
+          if (!finalOrderId) {
+            console.warn('⚠️ Order ID missing - payment verification may be limited');
+          }
+          
+          if (!finalSignature) {
+            console.warn('⚠️ Signature missing - payment verification may be limited');
+          }
+          
           const paymentResponse = {
             razorpay_payment_id: paymentId,
-            razorpay_order_id: orderId || 'direct_order',
-            razorpay_signature: signature || 'direct_payment_signature',
+            razorpay_order_id: finalOrderId || null,
+            razorpay_signature: finalSignature || null,
+            // Include bill_id from orderData if available (CRITICAL for verification)
+            bill_id: orderData?.bill_id || orderData?.notes?.bill_id || null,
+            billId: orderData?.bill_id || orderData?.notes?.bill_id || null,
             // Include additional payment details from orderData
             amount: orderData?.amount || 0,
             currency: orderData?.currency || 'INR',
             description: orderData?.description || 'Payment',
             key_id: orderData?.key || orderData?.key_id,
+            // Include notes for verification (preserve bill_id if in notes)
+            notes: {
+              ...(orderData?.notes || {}),
+              // Ensure bill_id is in notes for verification
+              bill_id: orderData?.bill_id || orderData?.notes?.bill_id || null,
+            },
           };
           
-          console.log('🔍 DirectRazorpayPayment - Payment success response:', paymentResponse);
+          console.log('✅ DirectRazorpayPayment - Payment success response:', {
+            payment_id: paymentResponse.razorpay_payment_id,
+            order_id: paymentResponse.razorpay_order_id,
+            signature: paymentResponse.razorpay_signature ? 'Present' : 'Missing',
+            hasAllRequiredFields: !!(paymentResponse.razorpay_payment_id && 
+                                    paymentResponse.razorpay_order_id && 
+                                    paymentResponse.razorpay_signature)
+          });
+          
           onSuccess(paymentResponse);
+          onClose();
+        } else {
+          console.error('❌ Payment ID not found in URL');
+          onError('Payment ID not found in response');
           onClose();
         }
       } catch (error) {
@@ -76,20 +127,70 @@ const DirectRazorpayPayment = ({
       console.log('📨 Message from WebView:', data);
       
       if (data.status === 'success' && data.razorpay_payment_id) {
+        // DEBUG: Log received data
+        console.log('🔍 Received payment data from WebView:', {
+          payment_id: data.razorpay_payment_id,
+          order_id: data.razorpay_order_id,
+          signature: data.razorpay_signature ? 'Present' : 'Missing',
+          orderData_order_id: orderData?.order_id,
+          orderData_id: orderData?.id
+        });
+        
+        // Use actual order_id from orderData if not in message
+        const finalOrderId = data.razorpay_order_id || orderData?.order_id || orderData?.id;
+        const finalSignature = data.razorpay_signature || null;
+        
+        // Validate required fields - payment_id is mandatory
+        if (!data.razorpay_payment_id) {
+          console.error('❌ Payment ID missing in payment response');
+          onError('Payment ID is missing. Payment cannot be processed.');
+          onClose();
+          return;
+        }
+        
+        // Warn if order_id or signature is missing, but still proceed
+        if (!finalOrderId) {
+          console.warn('⚠️ Order ID missing - payment verification may be limited');
+        }
+        
+        if (!finalSignature) {
+          console.warn('⚠️ Signature missing - payment verification may be limited');
+        }
+        
         const paymentResponse = {
           razorpay_payment_id: data.razorpay_payment_id,
-          razorpay_order_id: data.razorpay_order_id || 'direct_order',
-          razorpay_signature: data.razorpay_signature || 'direct_payment_signature',
+          razorpay_order_id: finalOrderId || null,
+          razorpay_signature: finalSignature || null,
+          // Include bill_id from data or orderData (CRITICAL for verification)
+          bill_id: data.bill_id || data.billId || orderData?.bill_id || orderData?.notes?.bill_id || null,
+          billId: data.bill_id || data.billId || orderData?.bill_id || orderData?.notes?.bill_id || null,
           // Include additional payment details from orderData
-          amount: orderData?.amount || 0,
-          currency: orderData?.currency || 'INR',
+          amount: data.amount || orderData?.amount || 0,
+          currency: data.currency || orderData?.currency || 'INR',
           description: orderData?.description || 'Payment',
           key_id: orderData?.key || orderData?.key_id,
+          // Include notes from data or orderData (preserve bill_id)
+          notes: {
+            ...(data.notes || {}),
+            ...(orderData?.notes || {}),
+            // Ensure bill_id is in notes for verification
+            bill_id: data.bill_id || data.billId || orderData?.bill_id || orderData?.notes?.bill_id || null,
+          },
         };
         
-        console.log('🔍 DirectRazorpayPayment - Message success response:', paymentResponse);
+        console.log('✅ DirectRazorpayPayment - Message success response:', {
+          payment_id: paymentResponse.razorpay_payment_id,
+          order_id: paymentResponse.razorpay_order_id,
+          signature: paymentResponse.razorpay_signature ? 'Present' : 'Missing',
+          hasAllRequiredFields: !!(paymentResponse.razorpay_payment_id && 
+                                  paymentResponse.razorpay_order_id && 
+                                  paymentResponse.razorpay_signature)
+        });
+        
         onSuccess(paymentResponse);
         onClose();
+      } else {
+        console.warn('⚠️ Payment message received but status is not success:', data);
       }
     } catch (error) {
       console.error('Error parsing WebView message:', error);
@@ -151,12 +252,22 @@ const DirectRazorpayPayment = ({
     const {
       amount,
       currency,
+      key,
       key_id,
+      order_id,
       description,
       consumer_name,
       email,
-      contact
+      contact,
+      notes
     } = orderData;
+
+    // Use key or key_id
+    const razorpayKey = key || key_id;
+    
+    if (!razorpayKey) {
+      console.error('❌ Razorpay key is missing from orderData');
+    }
 
     return `
       <!DOCTYPE html>
@@ -214,11 +325,16 @@ const DirectRazorpayPayment = ({
             });
           };
           
+          // Extract order_id and notes from orderData
+          const orderId = ${order_id ? `'${order_id}'` : 'null'};
+          const paymentNotes = ${JSON.stringify(notes || {})};
+          
           // Payment options - Optimized for UPI
           const options = {
-            key: '${key_id}',
+            key: '${razorpayKey}',
             amount: ${amount},
             currency: '${currency}',
+            ${order_id ? `order_id: '${order_id}',` : '// No order_id - manual capture mode'}
             name: 'BestInfra Energy',
             description: '${description}',
             prefill: {
@@ -229,6 +345,7 @@ const DirectRazorpayPayment = ({
             theme: {
               color: '#4CAF50'
             },
+            ${order_id ? 'capture: true, // Automatic capture (requires order_id)' : '// Manual capture (no order_id)'}
             // UPI Configuration
             method: {
               netbanking: false,
@@ -243,14 +360,84 @@ const DirectRazorpayPayment = ({
               vpa: '${consumer_name}@paytm' // Optional: pre-fill UPI ID
             },
             handler: function (response) {
-              console.log('UPI Payment successful:', response);
+              console.log('✅ UPI Payment successful - Full response:', response);
+              
+              // DEBUG: Log all response fields
+              console.log('🔍 Payment response details:', {
+                payment_id: response.razorpay_payment_id,
+                order_id: response.razorpay_order_id,
+                signature: response.razorpay_signature ? 'Present' : 'Missing',
+                expected_order_id: orderId,
+                hasAllFields: !!(response.razorpay_payment_id && response.razorpay_order_id && response.razorpay_signature)
+              });
+              
+              // Validate required fields
+              if (!response.razorpay_payment_id) {
+                console.error('❌ Payment ID missing in Razorpay response');
+                const errorData = {
+                  status: 'error',
+                  message: 'Payment ID missing from Razorpay response'
+                };
+                if (window.ReactNativeWebView) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify(errorData));
+                }
+                return;
+              }
+              
+              // CRITICAL: Backend requires order_id and signature for verification
+              // If order_id is missing, try to use the one from orderData
+              const finalOrderId = response.razorpay_order_id || orderId;
+              
+              if (!finalOrderId) {
+                console.error('❌ Order ID missing in Razorpay response and orderData');
+                const errorData = {
+                  status: 'error',
+                  message: 'Order ID missing - payment cannot be verified. Please ensure order_id is present.'
+                };
+                if (window.ReactNativeWebView) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify(errorData));
+                }
+                return;
+              }
+              
+              if (!response.razorpay_signature) {
+                console.error('❌ Signature missing in Razorpay response');
+                const errorData = {
+                  status: 'error',
+                  message: 'Payment signature missing - payment cannot be verified'
+                };
+                if (window.ReactNativeWebView) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify(errorData));
+                }
+                return;
+              }
+              
               const paymentData = {
                 razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
+                razorpay_order_id: finalOrderId,
                 razorpay_signature: response.razorpay_signature,
+                // Include bill_id from order notes (CRITICAL for verification)
+                bill_id: paymentNotes.bill_id || null,
+                billId: paymentNotes.bill_id || null,
                 status: 'success',
-                payment_method: 'upi'
+                payment_method: 'upi',
+                amount: ${amount},
+                currency: '${currency}',
+                // Include all notes from order (preserve bill_id)
+                notes: {
+                  ...paymentNotes,
+                  bill_id: paymentNotes.bill_id || null
+                }
               };
+              
+              console.log('✅ Sending payment data to React Native:', {
+                payment_id: paymentData.razorpay_payment_id,
+                order_id: paymentData.razorpay_order_id,
+                signature: paymentData.razorpay_signature ? 'Present' : 'Missing',
+                hasAllRequiredFields: !!(paymentData.razorpay_payment_id && 
+                                        paymentData.razorpay_order_id && 
+                                        paymentData.razorpay_signature)
+              });
               
               // Send message to React Native
               if (window.ReactNativeWebView) {
@@ -258,9 +445,10 @@ const DirectRazorpayPayment = ({
               } else {
                 // Fallback to URL redirection
                 const successUrl = 'razorpay://success?razorpay_payment_id=' + 
-                  response.razorpay_payment_id + 
-                  '&razorpay_order_id=' + response.razorpay_order_id + 
-                  '&razorpay_signature=' + response.razorpay_signature;
+                  encodeURIComponent(response.razorpay_payment_id) + 
+                  '&razorpay_order_id=' + encodeURIComponent(finalOrderId) + 
+                  '&razorpay_signature=' + encodeURIComponent(response.razorpay_signature);
+                console.log('🔄 Redirecting to:', successUrl);
                 window.location.href = successUrl;
               }
             },
@@ -279,10 +467,8 @@ const DirectRazorpayPayment = ({
                 }
               }
             },
-            notes: {
-              source: 'react_native_app',
-              payment_type: 'upi'
-            }
+            // Include all notes from orderData
+            notes: paymentNotes
           };
           
           // This function runs when button is clicked
@@ -307,11 +493,33 @@ const DirectRazorpayPayment = ({
                 throw new Error('Razorpay not available after loading');
               }
               
-              console.log('Creating Razorpay instance with options:', options);
+              // DEBUG: Log options (hide sensitive key)
+              console.log('🔧 Creating Razorpay instance with options:', {
+                key: options.key ? 'Present' : 'Missing',
+                amount: options.amount,
+                currency: options.currency,
+                order_id: options.order_id || 'MISSING - Payment will require manual capture',
+                hasOrderId: !!options.order_id,
+                capture: options.capture,
+                notes: options.notes
+              });
               
               const rzp = new Razorpay(options);
+              
+              // DEBUG: Log Razorpay instance creation
+              console.log('✅ Razorpay instance created, opening payment modal...');
+              
               rzp.open().catch(function(error) {
-                console.error('Razorpay error:', error);
+                console.error('❌ Razorpay error:', error);
+                console.error('❌ Error details:', {
+                  description: error.description,
+                  message: error.message,
+                  code: error.code,
+                  source: error.source,
+                  step: error.step,
+                  reason: error.reason,
+                  metadata: error.metadata
+                });
                 showError('Payment failed: ' + (error.description || error.message || 'Unknown error'));
               });
               

@@ -178,7 +178,10 @@ class AuthService {
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
       
       try {
-        const response = await fetch(API_ENDPOINTS.auth.refresh(), {
+        const refreshUrl = API_ENDPOINTS.auth.refresh();
+        console.log('🔄 Attempting token refresh at:', refreshUrl);
+        
+        const response = await fetch(refreshUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -193,16 +196,32 @@ class AuthService {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-        // If refresh fails, clear tokens and require re-login
-        if (response.status === 401 || response.status === 403) {
-          console.error('❌ Refresh token invalid or expired');
-          await this.clearTokens();
-          throw new Error('Session expired. Please login again.');
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = errorData.message || `HTTP ${response.status}`;
+          
+          // Handle different error scenarios
+          if (response.status === 404) {
+            // Endpoint doesn't exist - silently handle, don't show errors
+            // User can continue with existing token until it expires
+            // Don't log errors, just return failure silently
+            return {
+              success: false,
+              error: 'refresh_endpoint_not_found',
+              silent: true
+            };
+          }
+          
+          // If refresh fails with auth errors, clear tokens and require re-login
+          if (response.status === 401 || response.status === 403) {
+            console.error('❌ Refresh token invalid or expired');
+            await this.clearTokens();
+            throw new Error('Session expired. Please login again.');
+          }
+          
+          // For other errors (500, 503, etc.), don't clear tokens as they might be temporary
+          console.error(`❌ Token refresh failed with status ${response.status}:`, errorMessage);
+          throw new Error(`Token refresh failed: ${errorMessage}`);
         }
-        
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Token refresh failed: ${response.status}`);
-      }
 
       const result = await response.json();
       
@@ -221,7 +240,11 @@ class AuthService {
                              this.extractRefreshTokenFromResponse(response) || refreshToken;
 
       if (!newAccessToken) {
-        throw new Error('No access token in refresh response');
+        return {
+          success: false,
+          error: 'no_token_in_response',
+          message: 'No access token in refresh response'
+        };
       }
 
       // Store new tokens
@@ -232,39 +255,90 @@ class AuthService {
 
       console.log('✅ Access token refreshed successfully');
       
-        return {
-          success: true,
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken
-        };
+      return {
+        success: true,
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken
+      };
       } catch (fetchError) {
         clearTimeout(timeoutId);
         
-        // Handle network errors
+        // Handle network errors - don't clear tokens for network issues
         if (fetchError.name === 'AbortError') {
+          console.warn('⚠️ Token refresh timeout - keeping existing tokens');
           throw new Error('Token refresh timeout - please check your connection');
         }
         
-        if (fetchError.message && fetchError.message.includes('Network request failed')) {
+        if (fetchError.message && (
+          fetchError.message.includes('Network request failed') ||
+          fetchError.message.includes('NetworkError') ||
+          fetchError.message.includes('Failed to fetch')
+        )) {
+          console.warn('⚠️ Network error during token refresh - keeping existing tokens');
           throw new Error('Network error - cannot refresh token. Please check your internet connection.');
+        }
+        
+        // Check if it's a 404 or route not found error
+        if (fetchError.message && (
+          fetchError.message.includes('Route not found') ||
+          fetchError.message.includes('404') ||
+          fetchError.message.includes('not found')
+        )) {
+          // Silently handle 404 - return failure without throwing error
+          return {
+            success: false,
+            error: 'refresh_endpoint_not_found',
+            silent: true
+          };
         }
         
         // Re-throw other errors
         throw fetchError;
       }
     } catch (error) {
-      console.error('❌ Token refresh failed:', error);
+      // Check if this is a silent failure (404 endpoint not found)
+      if (error && typeof error === 'object' && error.silent === true) {
+        // Silent failure - don't log errors, just return failure
+        return error;
+      }
       
-      // Only clear tokens if it's an authentication error, not network error
-      // Network errors might be temporary
-      if (error.message && (
+      // Only log errors for non-silent failures
+      const isNotFoundError = error.message && (
+        error.message.includes('Route not found') ||
+        error.message.includes('404') ||
+        error.message.includes('not available') ||
+        error.message.includes('endpoint not found')
+      );
+      
+      if (!isNotFoundError) {
+        // Only log non-404 errors
+        console.error('❌ Token refresh failed:', error);
+      }
+      
+      // Only clear tokens if it's an authentication error (401/403), not network/configuration errors
+      const isAuthError = error.message && (
         error.message.includes('Session expired') ||
         error.message.includes('invalid') ||
         error.message.includes('expired') ||
         error.message.includes('401') ||
         error.message.includes('403')
-      )) {
+      );
+      
+      if (isAuthError && !isNotFoundError) {
+        console.log('🔄 Clearing tokens due to authentication error');
         await this.clearTokens();
+      } else if (isNotFoundError) {
+        // Silent handling for 404 - don't log warnings
+        // Don't clear tokens - let the user continue with existing token until it expires
+      }
+      
+      // For 404 errors, return silent failure instead of throwing
+      if (isNotFoundError) {
+        return {
+          success: false,
+          error: 'refresh_endpoint_not_found',
+          silent: true
+        };
       }
       
       throw error;
@@ -279,21 +353,69 @@ class AuthService {
       const isExpired = await this.isAccessTokenExpired();
       
       if (isExpired) {
-        console.log('🔄 Access token expired, refreshing...');
         try {
-          await this.refreshAccessToken();
+          const refreshResult = await this.refreshAccessToken();
+          
+          // Check if refresh was successful
+          if (refreshResult && refreshResult.success === false && refreshResult.silent === true) {
+            // Silent failure (404 endpoint not found) - use existing token
+            const existingToken = await this.getAccessToken();
+            return existingToken; // Return existing token silently
+          }
         } catch (refreshError) {
-          console.error('❌ Token refresh failed in getValidAccessToken:', refreshError);
-          // If refresh fails, clear tokens and return null
-          // This will force user to login again
-          await this.clearTokens();
-          return null;
+          // Check if it's a silent failure
+          if (refreshError && typeof refreshError === 'object' && refreshError.silent === true) {
+            // Silent failure - use existing token without logging
+            const existingToken = await this.getAccessToken();
+            return existingToken;
+          }
+          
+          // Check if it's a network/configuration error vs auth error
+          const isNotFoundError = refreshError.message && (
+            refreshError.message.includes('Route not found') ||
+            refreshError.message.includes('404') ||
+            refreshError.message.includes('not available') ||
+            refreshError.message.includes('endpoint not found')
+          );
+          
+          const isNetworkError = refreshError.message && (
+            refreshError.message.includes('Network') ||
+            refreshError.message.includes('timeout') ||
+            refreshError.message.includes('connection')
+          );
+          
+          // Only log errors for non-silent failures
+          if (!isNotFoundError) {
+            console.error('❌ Token refresh failed in getValidAccessToken:', refreshError);
+          }
+          
+          // Only clear tokens for auth errors, not network/configuration errors
+          if (!isNotFoundError && !isNetworkError) {
+            // Auth error - clear tokens
+            await this.clearTokens();
+            return null;
+          } else {
+            // Network/config error - try to use existing token even if expired
+            // Some servers might still accept slightly expired tokens
+            const existingToken = await this.getAccessToken();
+            return existingToken; // Return without logging warnings
+          }
         }
       }
       
       return await this.getAccessToken();
     } catch (error) {
       console.error('❌ Error getting valid access token:', error);
+      // Try to return existing token as fallback
+      try {
+        const existingToken = await this.getAccessToken();
+        if (existingToken) {
+          console.warn('⚠️ Returning existing token despite error');
+          return existingToken;
+        }
+      } catch (fallbackError) {
+        console.error('❌ Error getting fallback token:', fallbackError);
+      }
       return null;
     }
   }

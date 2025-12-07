@@ -80,8 +80,8 @@ export const API_ENDPOINTS = {
   
   // Payment endpoints
   payment: {
-    createLink: () => `${API.PAYMENT_URL}/create-link`,
-    verify: () => `${API.PAYMENT_URL}/verify`,
+    createLink: () => `${API.BASE_URL}/billing/payment/create-link`,
+    verify: () => `${API.BASE_URL}/billing/payment/verify`,
     history: (uid) => `${API.PAYMENT_URL}/history?uid=${uid}`,
   },
   
