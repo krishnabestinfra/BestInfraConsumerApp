@@ -98,7 +98,14 @@ export const createPaymentOrder = async (paymentData) => {
 
     // Check if Razorpay secret key is configured (REQUIRED for creating real orders with automatic capture)
     const razorpaySecret = process.env.EXPO_PUBLIC_RAZORPAY_SECRET_KEY;
-    const razorpayKeyId = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_RtoHmSaBDCz4GS';
+    const razorpayKeyId = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID;
+    
+    if (!razorpayKeyId) {
+      console.error('❌ CRITICAL: Razorpay Key ID (EXPO_PUBLIC_RAZORPAY_KEY_ID) is missing!');
+      console.error('❌ Please add EXPO_PUBLIC_RAZORPAY_KEY_ID to your .env file');
+      console.error('❌ Get it from: https://dashboard.razorpay.com/app/keys');
+      throw new Error('Razorpay Key ID is required. Please configure EXPO_PUBLIC_RAZORPAY_KEY_ID in your .env file.');
+    }
     
     if (!razorpaySecret) {
       console.error('❌ CRITICAL: Razorpay secret key (EXPO_PUBLIC_RAZORPAY_SECRET_KEY) is missing!');
@@ -393,8 +400,8 @@ export const createPaymentOrder = async (paymentData) => {
               billId: billId, // Also include camelCase for compatibility
               amount: paymentData.amount,
               currency: currency,
-              key_id: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_RtoHmSaBDCz4GS',
-              key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_RtoHmSaBDCz4GS',
+              key_id: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
+              key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
               description: paymentData.description || 'Energy Bill Payment',
               consumer_name: paymentData.consumer_name || user.name || user.consumerName || 'Customer',
               email: paymentData.email || user.email || 'customer@bestinfra.com',
@@ -459,8 +466,8 @@ export const createPaymentOrder = async (paymentData) => {
               order_id: realOrderId,
               id: realOrderId,
               currency: currency,
-              key_id: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_RtoHmSaBDCz4GS',
-              key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_RtoHmSaBDCz4GS',
+              key_id: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
+              key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
               description: paymentData.description || 'Energy Bill Payment',
               consumer_name: paymentData.consumer_name || user.name || user.consumerName || 'Customer',
               email: paymentData.email || user.email || 'customer@bestinfra.com',
@@ -575,8 +582,15 @@ export const createPaymentOrder = async (paymentData) => {
 const createDirectPaymentOrder = async (paymentData, orderPayload) => {
   try {
     // Use Razorpay credentials from environment
-    const razorpayKeyId = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_RtoHmSaBDCz4GS';
+    const razorpayKeyId = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID;
     const razorpaySecret = process.env.EXPO_PUBLIC_RAZORPAY_SECRET_KEY;
+    
+    if (!razorpayKeyId) {
+      console.error('❌ CRITICAL: Razorpay Key ID (EXPO_PUBLIC_RAZORPAY_KEY_ID) is missing!');
+      console.error('❌ Please add EXPO_PUBLIC_RAZORPAY_KEY_ID to your .env file');
+      console.error('❌ Get it from: https://dashboard.razorpay.com/app/keys');
+      throw new Error('Razorpay Key ID is required. Please configure EXPO_PUBLIC_RAZORPAY_KEY_ID in your .env file.');
+    }
     
     if (!razorpaySecret) {
       // Secret key is REQUIRED for creating Razorpay orders

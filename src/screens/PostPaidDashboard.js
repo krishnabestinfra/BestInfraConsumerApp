@@ -797,41 +797,28 @@ const PostPaidDashboard = ({ navigation, route }) => {
             <View style={styles.energySummaryHeader}>
               <Text style={styles.energyText}>Energy Summary</Text>
               {/* Daily/Monthly Toggle - Button Style */}
-              <View style={styles.toggleContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    selectedView === "daily" && styles.toggleButtonActive,
-                  ]}
-                  onPress={() => setSelectedView("daily")}
-                >
+              <View style={styles.textToggleContainer}>
+                <Text style={styles.toggleText}>
                   <Text
-                    style={
-                      selectedView === "daily"
-                        ? styles.toggleTextActive
-                        : styles.toggleTextInactive
-                    }
+                    style={[
+                      styles.toggleTextItem,
+                      selectedView === "daily" && styles.toggleTextSelected
+                    ]}
+                    onPress={() => setSelectedView("daily")}
                   >
                     Daily
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    selectedView === "monthly" && styles.toggleButtonActive,
-                  ]}
-                  onPress={() => setSelectedView("monthly")}
-                >
+                  <Text style={styles.toggleSeparator}> / </Text>
                   <Text
-                    style={
-                      selectedView === "monthly"
-                        ? styles.toggleTextActive
-                        : styles.toggleTextInactive
-                    }
+                    style={[
+                      styles.toggleTextItem,
+                      selectedView === "monthly" && styles.toggleTextSelected
+                    ]}
+                    onPress={() => setSelectedView("monthly")}
                   >
                     Monthly
                   </Text>
-                </TouchableOpacity>
+                </Text>
               </View>
             </View>
 
@@ -1084,7 +1071,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     { 
                       key: 'duration', 
                       title: 'Duration', 
-                      width: 70,
+                      width: 90,
                       align: 'left'
                     }
                   ]}
@@ -1166,6 +1153,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minWidth: 120,
     justifyContent: "flex-end",
+  },
+  toggleText: {
+    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+  },
+  toggleTextItem: {
+    color: COLORS.primaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+  },
+  toggleTextSelected: {
+    color: COLORS.secondaryColor,
+  },
+  toggleSeparator: {
+    color: COLORS.primaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    marginHorizontal: 4,
   },
   toggleButton: {
     minHeight: 30,
