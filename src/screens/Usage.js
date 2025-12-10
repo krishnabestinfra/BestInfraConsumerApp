@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, RefreshControl, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, ScrollView, RefreshControl } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
 import DashboardHeader from "../components/global/DashboardHeader";
@@ -168,25 +168,28 @@ const Usage = ({ navigation }) => {
       {/* Header with Toggle */}
       <View style={styles.summaryHeader}>
         <Text style={styles.summaryTitle}>Usage Summary</Text>
-        <View style={styles.modernToggleContainer}>
-          <TouchableOpacity 
-            style={[styles.modernToggleButton, selectedView === "daily" && styles.modernToggleButtonActive]}
-            onPress={() => setSelectedView("daily")}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.modernToggleText, selectedView === "daily" && styles.modernToggleTextActive]}>
+        <View style={styles.textToggleContainer}>
+          <Text style={styles.toggleText}>
+            <Text
+              style={[
+                styles.toggleTextItem,
+                selectedView === "daily" && styles.toggleTextSelected
+              ]}
+              onPress={() => setSelectedView("daily")}
+            >
               Daily
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.modernToggleButton, selectedView === "monthly" && styles.modernToggleButtonActive]}
-            onPress={() => setSelectedView("monthly")}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.modernToggleText, selectedView === "monthly" && styles.modernToggleTextActive]}>
+            <Text style={styles.toggleSeparator}> / </Text>
+            <Text
+              style={[
+                styles.toggleTextItem,
+                selectedView === "monthly" && styles.toggleTextSelected
+              ]}
+              onPress={() => setSelectedView("monthly")}
+            >
               Monthly
             </Text>
-          </TouchableOpacity>
+          </Text>
         </View>
       </View>
 
@@ -268,42 +271,33 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   summaryTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontFamily: "Manrope-Bold",
     color: COLORS.primaryFontColor,
   },
-  modernToggleContainer: {
+  textToggleContainer: {
     flexDirection: "row",
-    backgroundColor: "#F8F9FA",
-    borderRadius: 5,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: "#E9ECEF",
-  },
-  modernToggleButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 5,
     alignItems: "center",
-    justifyContent: "center",
-    minWidth: 60,
+    minWidth: 120,
+    justifyContent: "flex-end",
   },
-  modernToggleButtonActive: {
-    backgroundColor: COLORS.secondaryColor,
-    shadowColor: COLORS.secondaryColor,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  modernToggleText: {
-    fontSize: 13,
+  toggleText: {
+    fontSize: 12,
     fontFamily: "Manrope-Medium",
-    color: "#6C757D",
   },
-  modernToggleTextActive: {
-    color: COLORS.secondaryFontColor,
-    fontFamily: "Manrope-Bold",
+  toggleTextItem: {
+    color: COLORS.primaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+  },
+  toggleTextSelected: {
+    color: COLORS.secondaryColor,
+  },
+  toggleSeparator: {
+    color: COLORS.primaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    marginHorizontal: 4,
   },
   professionalCardsContainer: {
     flexDirection: "row",
