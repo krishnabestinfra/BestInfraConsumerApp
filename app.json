@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "NexusOne",
+    "slug": "NexusOne",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#163b7c"
+    },
+    "assetBundlePatterns": [
+      "assets/fonts/*",
+      "assets/icons/*",
+      "assets/images/*"
+    ],
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#163b7c"
+      },
+      "package": "com.bestinfra.app",
+      "versionCode": 5
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "4023ecc1-2e83-440b-85d7-dd31682d6465"
+      }
+    }
+  }
+}
