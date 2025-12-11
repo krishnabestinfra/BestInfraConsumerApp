@@ -89,7 +89,7 @@ export default SplashScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.primaryDarkColor || "#1f255e",
+    // backgroundColor: COLORS.primaryDarkColor || "#1f255e",
   },
   blueBackground: {
     position: "absolute",
@@ -105,7 +105,6 @@ const styles = StyleSheet.create({
     left: 0,
     width: width,
     height: "100%",
-    opacity: 0.25,
   },
   overlay: {
     position: "absolute",
