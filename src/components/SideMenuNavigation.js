@@ -39,8 +39,8 @@ const SideMenuNavigation = ({ navigation }) => {
         setActiveItem("PostPaidRechargePayments");
       } else if (currentRoute === "Transactions") {
         setActiveItem("Transactions");
-      } else if (currentRoute === "DG") {
-        setActiveItem("DG");
+      // } else if (currentRoute === "DG") {
+      //   setActiveItem("DG");
       } else if (currentRoute === "Usage") {
         setActiveItem("Usage");
       } else if (currentRoute === "Settings") {
@@ -224,7 +224,7 @@ const SideMenuNavigation = ({ navigation }) => {
             Transactions
           </Text>
         </Pressable>
-        <Pressable
+        {/* <Pressable
           style={styles.flex}
           onPress={() => handleMenuPress("DG")}
         >
@@ -259,7 +259,7 @@ const SideMenuNavigation = ({ navigation }) => {
           >
             Diesel Generator
           </Text>
-        </Pressable>
+        </Pressable> */}
       </View>
       <View style={styles.Bottommenubar}>
         {/* <Pressable

@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   dotsContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    top: 5,
+    top: 12,
   },
   dot: {
     width: 10,

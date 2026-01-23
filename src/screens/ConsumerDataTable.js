@@ -12,6 +12,7 @@ import Table from "../components/global/Table";
 import Menu from "../../assets/icons/bars.svg";
 import Notification from "../../assets/icons/notification.svg";
 import BiLogo from "../../assets/icons/Logo.svg";
+import DropdownIcon from "../../assets/icons/dropDown.svg";
 import { API_ENDPOINTS } from "../constants/constants";
 import { getUser } from "../utils/storage";
 import { authService } from "../services/authService";
@@ -20,11 +21,16 @@ import { SkeletonLoader } from '../utils/loadingManager';
 // Pagination is handled by Table component (5 rows per page)
 
 const ConsumerDataTable = ({ navigation, route }) => {
-  const { date, meterId, viewType: initialViewType, barData } = route?.params || {};
+  const { date, meterId, viewType: initialViewType, barData, consumerData } = route?.params || {};
   const [lsData, setLsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [metadata, setMetadata] = useState(null);
+  const [meterSerialNumber, setMeterSerialNumber] = useState(null);
+  
+  // Dropdown states for table columns
+  const [energyType, setEnergyType] = useState("kva"); // "kva" or "kw"
+  const [measurementType, setMeasurementType] = useState("voltage"); // "voltage" or "current"
 
   // Fetch LS data from API
   const fetchLSData = useCallback(async () => {
@@ -37,6 +43,13 @@ const ConsumerDataTable = ({ navigation, route }) => {
       if (!user) {
         throw new Error('User not found. Please login again.');
       }
+
+      // Get meter serial number (priority: consumerData > route params > user data)
+      const serialNumber = consumerData?.meterSerialNumber || 
+                          user?.meterSerialNumber || 
+                          meterId || 
+                          null;
+      setMeterSerialNumber(serialNumber);
 
       // Priority: route params > user data from login
       let finalMeterId = meterId || user?.meterId || user?.meterSerialNumber || null;
@@ -146,16 +159,74 @@ const ConsumerDataTable = ({ navigation, route }) => {
 
   // Pagination is now handled by Table component
 
-  // Format timestamp for display - compact format
+  // Compact Header Dropdown Component
+  const HeaderDropdown = ({ value, options, onSelect, placeholder }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleSelect = (option) => {
+      onSelect(option);
+      setIsOpen(false);
+    };
+
+    const getDisplayValue = (val) => {
+      if (!val) return placeholder;
+      // Capitalize first letter
+      return val.charAt(0).toUpperCase() + val.slice(1);
+    };
+
+    return (
+      <View style={styles.headerDropdownWrapper}>
+        <TouchableOpacity
+          style={styles.headerDropdownButton}
+          onPress={() => setIsOpen(!isOpen)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.headerDropdownText} numberOfLines={1}>
+            {getDisplayValue(value) || placeholder}
+          </Text>
+          <DropdownIcon width={12} height={12} fill={COLORS.secondaryFontColor} />
+        </TouchableOpacity>
+
+        {isOpen && (
+          <View style={styles.headerDropdownList}>
+            {options.map((option, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.headerDropdownItem,
+                  value === option && styles.headerDropdownItemSelected
+                ]}
+                onPress={() => handleSelect(option)}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.headerDropdownItemText,
+                  value === option && styles.headerDropdownItemTextSelected
+                ]}>
+                  {getDisplayValue(option)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  // Format timestamp for display - compact format (without seconds)
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'N/A';
     try {
       // Parse timestamp like "21st Nov 2025 12:15:00 AM"
       const date = new Date(timestamp);
       if (isNaN(date.getTime())) {
+        // If parsing fails, try to remove seconds from string format
+        if (typeof timestamp === 'string') {
+          return timestamp.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1');
+        }
         return timestamp; // Return as-is if can't parse
       }
-      // Compact format: "DD MMM HH:MM AM/PM"
+      // Compact format: "DD MMM HH:MM AM/PM" (no seconds)
       return date.toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
@@ -164,6 +235,10 @@ const ConsumerDataTable = ({ navigation, route }) => {
         hour12: true
       });
     } catch {
+      // Fallback: try to remove seconds from string
+      if (typeof timestamp === 'string') {
+        return timestamp.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1');
+      }
       return timestamp;
     }
   };
@@ -172,20 +247,75 @@ const ConsumerDataTable = ({ navigation, route }) => {
   const formatValue = (value, unit = '') => {
     if (value === null || value === undefined) return 'N/A';
     if (typeof value === 'number') {
-      return `${value.toFixed(2)} ${unit}`.trim();
+      return `${value.toFixed(2)}${unit ? ` ${unit}` : ''}`;
     }
-    return `${value} ${unit}`.trim();
+    return `${value}${unit ? ` ${unit}` : ''}`;
   };
 
-  // Transform LS data to table format - only SNO, Timestamp, kvaImport
+  // Format voltage (API may return in centivolts, divide by 100 if > 1000)
+  const formatVoltage = (voltageValue) => {
+    if (voltageValue === null || voltageValue === undefined) return 'N/A';
+    let volts = typeof voltageValue === 'number' ? voltageValue : parseFloat(voltageValue);
+    // If value is > 1000, assume it's in centivolts, divide by 100
+    if (volts > 1000) {
+      volts = volts / 100;
+    }
+    return formatValue(volts, 'V');
+  };
+
+  // Format current (already in Amperes)
+  const formatCurrent = (currentValue) => {
+    if (currentValue === null || currentValue === undefined) return 'N/A';
+    return formatValue(currentValue, 'A');
+  };
+
+  // Get average voltage/current for display
+  const getAverageVoltage = (voltage) => {
+    if (!voltage || typeof voltage !== 'object') return 0;
+    const r = voltage.r || 0;
+    const y = voltage.y || 0;
+    const b = voltage.b || 0;
+    return (r + y + b) / 3;
+  };
+
+  const getAverageCurrent = (current) => {
+    if (!current || typeof current !== 'object') return 0;
+    const r = current.r || 0;
+    const y = current.y || 0;
+    const b = current.b || 0;
+    return (r + y + b) / 3;
+  };
+
+  // Transform LS data to table format based on dropdown selections
   const getTableData = () => {
-    // Return all data, let Table component handle pagination
-    return lsData.map((item, index) => ({
-      id: index + 1,
-      timestamp: formatTimestamp(item.timestamp),
-      kvaImport: formatValue(item.energies?.kvaImport, ''),
-      raw: item
-    }));
+    return lsData.map((item, index) => {
+      let energyValue = 'N/A';
+      let measurementValue = 'N/A';
+
+      // Get energy value (kva or kw)
+      if (energyType === 'kva') {
+        energyValue = formatValue(item.energies?.kvaImport || 0, '');
+      } else if (energyType === 'kw') {
+        energyValue = formatValue(item.energies?.kwImport || 0, '');
+      }
+
+      // Get measurement value (voltage or current)
+      if (measurementType === 'voltage') {
+        const avgVoltage = getAverageVoltage(item.voltage);
+        measurementValue = formatVoltage(avgVoltage);
+      } else if (measurementType === 'current') {
+        const avgCurrent = getAverageCurrent(item.current);
+        measurementValue = formatCurrent(avgCurrent);
+      }
+
+      return {
+        id: index + 1,
+        timestamp: formatTimestamp(item.timestamp),
+        energy: energyValue,
+        measurement: measurementValue,
+        raw: item
+      };
+    });
   };
 
   // Pagination is handled by Table component
@@ -215,42 +345,68 @@ const ConsumerDataTable = ({ navigation, route }) => {
 
       {/* Header Info */}
       <View style={styles.headerInfo}>
-        <Text style={styles.headerTitle}>LS Data - 15 Minute Intervals</Text>
+        <Text style={styles.headerTitle}>LS Data</Text>
         <View style={styles.metadataContainer}>
-          {date && (
-            <Text style={styles.metadataText}>
-              Date: {(() => {
-                try {
-                  // Parse YYYY-MM-DD format
-                  const dateParts = date.split('-');
-                  if (dateParts.length === 3) {
-                    const year = parseInt(dateParts[0]);
-                    const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
-                    const day = parseInt(dateParts[2]);
-                    const dateObj = new Date(year, month, day);
-                    return dateObj.toLocaleDateString('en-IN', { 
-                      day: '2-digit', 
-                      month: 'short', 
-                      year: 'numeric' 
-                    });
-                  }
-                  // Fallback to direct parsing
-                  return new Date(date).toLocaleDateString('en-IN', { 
-                    day: '2-digit', 
-                    month: 'short', 
-                    year: 'numeric' 
-                  });
-                } catch (e) {
-                  return date; // Return as-is if parsing fails
-                }
-              })()}
-            </Text>
-          )}
+          {/* Row 1: Date (left) | Meter SL NO (right, green) */}
+          <View style={styles.metadataRow}>
+            <View style={styles.metadataLeft}>
+              {date && (
+                <Text style={styles.metadataText}>
+                  Date: {(() => {
+                    try {
+                      // Parse YYYY-MM-DD format
+                      const dateParts = date.split('-');
+                      if (dateParts.length === 3) {
+                        const year = parseInt(dateParts[0]);
+                        const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+                        const day = parseInt(dateParts[2]);
+                        const dateObj = new Date(year, month, day);
+                        return dateObj.toLocaleDateString('en-IN', { 
+                          day: '2-digit', 
+                          month: 'short', 
+                          year: 'numeric' 
+                        });
+                      }
+                      // Fallback to direct parsing
+                      return new Date(date).toLocaleDateString('en-IN', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        year: 'numeric' 
+                      });
+                    } catch (e) {
+                      return date; // Return as-is if parsing fails
+                    }
+                  })()}
+                </Text>
+              )}
+            </View>
+              <View style={styles.metadataRight}>
+                <Text style={styles.meterSerialText}>
+                  Meter SL No: {meterSerialNumber || consumerData?.meterSerialNumber || metadata?.meterSerialNumber || meterId || 'N/A'}
+                </Text>
+              </View>
+          </View>
+
+          {/* Row 2: Total Records (left) | Intervals (right) */}
           {metadata && (
-            <Text style={styles.metadataText}>
-              Meter ID: {metadata.meterId} | Total Records: {metadata.totalRecords} | Interval: {metadata.dataInterval}
-            </Text>
+            <View style={styles.metadataRow}>
+              <View style={styles.metadataLeft}>
+                <Text style={styles.metadataText}>
+                  Total Records: {metadata.totalRecords || 0}
+                </Text>
+              </View>
+              <View style={styles.metadataRight}>
+                <Text style={styles.metadataText}>
+                  Intervals: {metadata.dataInterval ? (() => {
+                    // Extract number from "15min" or similar formats
+                    const intervalValue = String(metadata.dataInterval).replace(/[^0-9]/g, '');
+                    return intervalValue ? `${intervalValue} Minutes` : 'N/A';
+                  })() : 'N/A'}
+                </Text>
+              </View>
+            </View>
           )}
+          
           {!metadata && date && (
             <Text style={styles.metadataText}>
               Loading data for selected date...
@@ -282,6 +438,7 @@ const ConsumerDataTable = ({ navigation, route }) => {
               showSerial={true}
               showPriority={false}
               containerStyle={styles.table}
+              rowsPerPage={10}
               columns={[
                 { 
                   key: 'timestamp', 
@@ -290,10 +447,32 @@ const ConsumerDataTable = ({ navigation, route }) => {
                   align: 'left'
                 },
                 { 
-                  key: 'kvaImport', 
-                  title: 'kvaImport', 
+                  key: 'energy', 
+                  title: energyType === 'kva' ? 'kva' : 'kw',
                   flex: 1.5,
-                  align: 'right'
+                  align: 'right',
+                  headerRender: () => (
+                    <HeaderDropdown
+                      value={energyType}
+                      options={['kva', 'kw']}
+                      onSelect={setEnergyType}
+                      placeholder="kva/kw"
+                    />
+                  )
+                },
+                { 
+                  key: 'measurement', 
+                  title: measurementType === 'voltage' ? 'Voltage' : 'Current',
+                  flex: 1.5,
+                  align: 'right',
+                  headerRender: () => (
+                    <HeaderDropdown
+                      value={measurementType}
+                      options={['voltage', 'current']}
+                      onSelect={setMeasurementType}
+                      placeholder="voltage/current"
+                    />
+                  )
                 }
               ]}
             />
@@ -353,12 +532,30 @@ const styles = StyleSheet.create({
   metadataContainer: {
     marginTop: 5,
   },
+  metadataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  metadataLeft: {
+    flex: 1,
+  },
+  metadataRight: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
   metadataText: {
     fontSize: 12,
     fontFamily: 'Manrope-Regular',
     color: COLORS.primaryFontColor,
     opacity: 0.7,
-    marginTop: 2,
+  },
+  meterSerialText: {
+    fontSize: 12,
+    fontFamily: 'Manrope-SemiBold',
+    color: COLORS.secondaryColor,
+    opacity: 1,
   },
   tableSection: {
     flex: 1,
@@ -403,6 +600,64 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
     opacity: 0.7,
     textAlign: 'center',
+  },
+  headerDropdownWrapper: {
+    position: 'relative',
+    width: '100%',
+    zIndex: 10,
+  },
+  headerDropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 4,
+    minHeight: 26,
+    gap: 4,
+  },
+  headerDropdownText: {
+    fontSize: 11,
+    fontFamily: 'Manrope-SemiBold',
+    color: COLORS.secondaryFontColor,
+    flex: 1,
+  },
+  headerDropdownList: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.secondaryFontColor,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 6,
+    marginTop: 4,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    maxHeight: 120,
+  },
+  headerDropdownItem: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  headerDropdownItemSelected: {
+    backgroundColor: '#F0F8FF',
+  },
+  headerDropdownItemText: {
+    fontSize: 12,
+    fontFamily: 'Manrope-Regular',
+    color: COLORS.primaryFontColor,
+  },
+  headerDropdownItemTextSelected: {
+    color: COLORS.primaryColor,
+    fontFamily: 'Manrope-SemiBold',
   },
 });
 

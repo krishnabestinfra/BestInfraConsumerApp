@@ -134,9 +134,43 @@ const ConsumerDetailsBottomSheet = ({
       return dateString || 'N/A';
     }
   };
+
+  // Format reading date without seconds
+  const formatReadingDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      // Remove seconds from timestamp (format: "23rd Jan 2026 04:45:01 AM" -> "23rd Jan 2026 04:45 AM")
+      // Pattern: match "HH:MM:SS" and replace with "HH:MM"
+      return dateString.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1');
+    } catch (error) {
+      return dateString;
+    }
+  };
+
   const formatValue = (value) => {
     if (value === null || value === undefined) return 'N/A';
     return typeof value === 'number' ? value.toFixed(2) : value;
+  };
+
+  // Convert voltage from centivolts to volts
+  const formatVoltage = (value) => {
+    if (value === null || value === undefined) return 'N/A';
+    if (typeof value === 'number') {
+      return (value / 100).toFixed(2); // Convert centivolts to volts
+    }
+    return value;
+  };
+
+  // Calculate per-phase power: Power (W) = Voltage (V) × Current (A)
+  // This calculates apparent power per phase (VA), which is correct for instantaneous meter readings
+  // Note: For real power, we would need power factor: Real Power = V × I × PF
+  // The total kW in API is system-level and may be cumulative or measured differently
+  const calculatePower = (voltage, current) => {
+    if (!voltage || !current || voltage === null || current === null) return 0;
+    const voltageInVolts = typeof voltage === 'number' ? voltage / 100 : 0; // Convert centivolts to volts
+    const currentInAmps = typeof current === 'number' ? current : 0;
+    return voltageInVolts * currentInAmps; // Apparent power per phase in VA (displayed as W)
   };
 
   const translateY = slideAnim.interpolate({
@@ -167,16 +201,6 @@ const ConsumerDetailsBottomSheet = ({
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Text style={styles.headerTitle}>Consumer Details</Text>
-
-              {isLoading && !consumerData ? (
-                <View style={{ marginTop: 6, width: 140 }}>
-                  <SkeletonLoader variant="lines" lines={1} style={{ height: 12, width: 140 }} />
-                </View>
-              ) : consumerData?.readingDate ? (
-                <Text style={styles.lastReadingText}>
-                  Last Reading: {formatDateTime(consumerData.readingDate)}
-                </Text>
-              ) : null}
             </View>
             <TouchableOpacity onPress={handleClose}>
               <CloseIcon width={18} height={18} />
@@ -197,7 +221,6 @@ const ConsumerDetailsBottomSheet = ({
             ) : (
               <>
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Consumer Information</Text>
                   <View style={styles.infoContainer}>
                     <InfoRow
                       label="Consumer Name"
@@ -277,62 +300,90 @@ const ConsumerDetailsBottomSheet = ({
                         />
                       ) : (
                         <Text style={styles.timestampValue}>
-                          {formatDateTime(consumerData.readingDate)}
+                          {formatReadingDate(consumerData.readingDate)}
                         </Text>
                       )}
                     </View>
                   </View>
                   {/* Voltage Readings */}
-                  <Text style={styles.readingsSubtitle}>Voltage Readings</Text>
+                <View style={styles.readingsContainer}>
+                  <Text style={[styles.readingsSubtitle, { marginBottom: 15 }]}>Voltage Readings</Text>
                   <View style={styles.readingsGrid}>
                     <ReadingCard 
                       phase="R-Phase" 
-                      value={formatValue(consumerData?.rPhaseVoltage)} 
+                      value={formatVoltage(consumerData?.rPhaseVoltage)} 
                       unit="V" 
-                      color="#FF6B6B"
+                      color="#E70000"
                       loading={isLoading}
                     />
                     <ReadingCard 
                       phase="Y-Phase" 
-                      value={formatValue(consumerData?.yPhaseVoltage)} 
+                      value={formatVoltage(consumerData?.yPhaseVoltage)} 
                       unit="V" 
-                      color="#4ECDC4"
+                      color="#FFC107"
                       loading={isLoading}
                     />
                     <ReadingCard 
                       phase="B-Phase" 
-                      value={formatValue(consumerData?.bPhaseVoltage)} 
+                      value={formatVoltage(consumerData?.bPhaseVoltage)} 
                       unit="V" 
-                      color="#45B7D1"
+                      color="#007AFF"
                       loading={isLoading}
                     />
                   </View>
 
                   {/* Current Readings */}
-                  <Text style={[styles.readingsSubtitle, { marginTop: 20 }]}>Current Readings</Text>
+                  <Text style={[styles.readingsSubtitle, { marginTop: 15, marginBottom: 15 }]}>Current Readings</Text>
                   <View style={styles.readingsGrid}>
                     <ReadingCard 
                       phase="R-Phase" 
                       value={formatValue(consumerData?.rPhaseCurrent)} 
                       unit="A" 
-                      color="#FF6B6B"
+                      color="#E70000"
                       loading={isLoading}
                     />
                     <ReadingCard 
                       phase="Y-Phase" 
                       value={formatValue(consumerData?.yPhaseCurrent)} 
                       unit="A" 
-                      color="#4ECDC4"
+                      color="#FFC107"
                       loading={isLoading}
                     />
                     <ReadingCard 
                       phase="B-Phase" 
                       value={formatValue(consumerData?.bPhaseCurrent)} 
                       unit="A" 
-                      color="#45B7D1"
+                      color="#007AFF"
                       loading={isLoading}
                     />
                   </View>
+
+                  {/* Power Readings */}
+                  <Text style={[styles.readingsSubtitle, { marginTop: 15, marginBottom: 15 }]}>Power Readings</Text>
+                  <View style={styles.readingsGrid}>
+                    <ReadingCard 
+                      phase="R-Phase" 
+                      value={formatValue(calculatePower(consumerData?.rPhaseVoltage, consumerData?.rPhaseCurrent))} 
+                      unit="W" 
+                      color="#E70000"
+                      loading={isLoading}
+                    />
+                    <ReadingCard 
+                      phase="Y-Phase" 
+                      value={formatValue(calculatePower(consumerData?.yPhaseVoltage, consumerData?.yPhaseCurrent))} 
+                      unit="W" 
+                      color="#FFC107"
+                      loading={isLoading}
+                    />
+                    <ReadingCard 
+                      phase="B-Phase" 
+                      value={formatValue(calculatePower(consumerData?.bPhaseVoltage, consumerData?.bPhaseCurrent))} 
+                      unit="W" 
+                      color="#007AFF"
+                      loading={isLoading}
+                    />
+                  </View>
+                </View>
                 </View>
               </>
             )}
@@ -357,7 +408,15 @@ const InfoRow = ({ label, value }) => (
 );
 
 const ReadingCard = ({ phase, value, unit, color, loading }) => (
-  <View style={[styles.readingCard, { borderLeftColor: color }]}>
+  <View style={[
+    styles.readingCard, 
+    { 
+      borderLeftColor: color,
+      borderTopColor: '#E2E8F0',
+      borderRightColor: '#E2E8F0',
+      borderBottomColor: '#E2E8F0'
+    }
+  ]}>
     <Text style={styles.readingPhase}>{phase}</Text>
     {loading ? (
       <SkeletonLoader variant="lines" lines={1} style={{ height: 18, width: 80, marginTop: 6 }} />
@@ -437,40 +496,43 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Manrope-Bold',
     color: COLORS.primaryFontColor,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   timestampContainer: {
     backgroundColor: '#F1F5F9',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 16,
     borderRadius: 8,
     borderLeftWidth: 3,
     borderLeftColor: COLORS.secondaryColor,
   },
   timestampLabel: {
-    fontSize: 12,
-    fontFamily: 'Manrope-SemiBold',
+    fontSize: 14,
+    fontFamily: 'Manrope',
     color: '#64748B',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   timestampValue: {
-    fontSize: 14,
-    fontFamily: 'Manrope-Bold',
+    fontSize: 15,
+    fontFamily: 'Manrope',
     color: COLORS.primaryFontColor,
   },
   readingsSubtitle: {
-    fontSize: 16,
-    fontFamily: 'Manrope-SemiBold',
+    fontSize: 14,
+    fontFamily: 'Manrope-Bold',
     color: COLORS.primaryFontColor,
-    marginBottom: 12,
+    marginBottom: 5,
+  },
+  readingsContainer: {
+    marginBottom: 20,
   },
   readingsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
+    gap:4,
   },
   readingCard: {
     flex: 1,
@@ -478,9 +540,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     borderLeftWidth: 3,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginRight: 8,
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderTopColor: '#E2E8F0',
+    borderRightColor: '#E2E8F0',
+    borderBottomColor: '#E2E8F0',
+    marginRight: 1.5,
   },
   readingPhase: {
     fontSize: 12,
@@ -544,17 +610,15 @@ const styles = StyleSheet.create({
   infoContainer: {
     backgroundColor: '#F8FAFC',
     borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
+    padding: 15,
     borderColor: '#E2E8F0',
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    paddingVertical: 8,
+
   },
   infoLabel: {
     fontSize: 13,

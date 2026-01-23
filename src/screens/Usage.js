@@ -3,10 +3,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
 import DashboardHeader from "../components/global/DashboardHeader";
 import { getCachedConsumerData } from "../utils/cacheManager";
-import { fetchConsumerData, syncConsumerData } from "../services/apiService";
+import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../services/apiService";
 import { StatusBar } from "expo-status-bar";
 import { getUser } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
+import VectorDiagram from "../components/VectorDiagram";
 import { apiClient } from '../services/apiClient';
 import { LinearGradient } from "expo-linear-gradient";
 import MeterIcon from "../../assets/icons/meterBolt.svg";
@@ -18,10 +19,55 @@ const Usage = ({ navigation }) => {
   const [consumerData, setConsumerData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedView, setSelectedView] = useState("daily");
+  const [lastMonthBillAmount, setLastMonthBillAmount] = useState(null);
   
   // Bottom sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
+
+  // Fetch last month's bill amount from billing history
+  const fetchLastMonthBill = useCallback(async (uid) => {
+    if (!uid) return;
+    
+    try {
+      console.log("🔄 Usage: Fetching billing history for last month bill");
+      const billingResult = await fetchBillingHistory(uid);
+      
+      if (billingResult.success && billingResult.data) {
+        const billingData = Array.isArray(billingResult.data) 
+          ? billingResult.data 
+          : [billingResult.data];
+        
+        if (billingData.length === 0) {
+          setLastMonthBillAmount(null);
+          return;
+        }
+        
+        // Sort billing data by date (newest first) to ensure correct order
+        const sortedBills = [...billingData].sort((a, b) => {
+          const dateA = new Date(a.bill_date || a.billDate || a.createdAt || a.date || 0);
+          const dateB = new Date(b.bill_date || b.billDate || b.createdAt || b.date || 0);
+          return dateB - dateA; // Newest first
+        });
+        
+        // Get the second item (index 1) as last month's bill (index 0 is current month)
+        // If only one bill exists, use it
+        const lastMonthBill = sortedBills.length > 1 ? sortedBills[1] : sortedBills[0];
+        
+        const billAmount = lastMonthBill?.total_amount_payable || 
+                          lastMonthBill?.totalAmount || 
+                          lastMonthBill?.amount || 
+                          lastMonthBill?.total_amount || 
+                          0;
+        
+        setLastMonthBillAmount(billAmount);
+        console.log("✅ Usage: Last month bill amount:", billAmount);
+      }
+    } catch (error) {
+      console.error("❌ Usage: Error fetching last month bill:", error);
+      setLastMonthBillAmount(null);
+    }
+  }, []);
 
   // Fetch consumer data with proper error handling
   const fetchConsumerData = useCallback(async () => {
@@ -54,6 +100,10 @@ const Usage = ({ navigation }) => {
       if (result.success && result.data) {
         setConsumerData(result.data);
         console.log("✅ Usage: Fresh data loaded:", result.data);
+        
+        // Fetch last month's bill amount
+        const uid = result.data?.uniqueIdentificationNo || user.identifier;
+        fetchLastMonthBill(uid);
         
         // Background sync for future updates
         syncConsumerData(user.identifier).catch(error => {
@@ -91,7 +141,7 @@ const Usage = ({ navigation }) => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchLastMonthBill]);
 
   // Load data on component mount
   useEffect(() => {
@@ -135,6 +185,17 @@ const Usage = ({ navigation }) => {
     if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) return 0;
     const monthlyData = consumerData.chartData.monthly.seriesData[0].data;
     return monthlyData[monthlyData.length - 1] || 0;
+  };
+
+  // Format currency for display
+  const formatCurrency = (amount) => {
+    if (amount === null || amount === undefined || amount === 0) return 'N/A';
+    const numAmount = typeof amount === 'number' ? amount : parseFloat(amount);
+    if (isNaN(numAmount)) return 'N/A';
+    return `₹${numAmount.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
 
@@ -222,7 +283,7 @@ const Usage = ({ navigation }) => {
           <View style={styles.cardContent}>
             <View style={styles.cardHeader}>
               <Text style={styles.professionalCardTitle}>
-                {selectedView === "daily" ? "Daily Charges" : "Monthly Charges"}
+                {selectedView === "daily" ? "Daily\nCharges" : "Monthly\nCharges"}
               </Text>
               <LinearGradient
                 colors={["#E8F5E9", "#C8E6C9"]}
@@ -234,12 +295,35 @@ const Usage = ({ navigation }) => {
               </LinearGradient>
             </View>
             <Text style={styles.professionalCardValue}>
-              N/A
+              {selectedView === "monthly" 
+                ? (isLoading ? "Loading..." : formatCurrency(lastMonthBillAmount))
+                : "N/A"}
             </Text>
           </View>
         </View>
       </View>
     </View>
+
+    {/* Vector Diagram Section */}
+    <VectorDiagram
+      voltage={{
+        r: consumerData?.rPhaseVoltage || 0,
+        y: consumerData?.yPhaseVoltage || 0,
+        b: consumerData?.bPhaseVoltage || 0,
+      }}
+      current={{
+        r: consumerData?.rPhaseCurrent || 0,
+        y: consumerData?.yPhaseCurrent || 0,
+        b: consumerData?.bPhaseCurrent || 0,
+      }}
+      powerFactor={{
+        r: consumerData?.rPhasePowerFactor || 0,
+        y: consumerData?.yPhasePowerFactor || 0,
+        b: consumerData?.bPhasePowerFactor || 0,
+      }}
+      totalKW={consumerData?.kW || null}
+      loading={isLoading}
+    />
       
       {/* Consumer Details Bottom Sheet */}
       <ConsumerDetailsBottomSheet

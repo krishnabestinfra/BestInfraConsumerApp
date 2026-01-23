@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Dimensions, Image } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import GlobeShield from '../../../assets/icons/globe-shield.svg';
 import RechargeIcon from '../../../assets/icons/recharge.svg';
@@ -230,6 +230,11 @@ const DashboardHeader = React.memo(({
       
       <View style={styles.ProfileBox}>
         <View>
+          <Image 
+            source={require('../../../assets/images/gmr.png')} 
+            style={styles.gmrLogo}
+            resizeMode="contain"
+          />
           <View style={styles.greetingContainer}>
             <Text style={styles.hiText}>
               Hi, {getGreeting()}
@@ -358,6 +363,12 @@ badgeText: {
     justifyContent: 'space-between',
     flexDirection: 'row',
     marginHorizontal: 4,
+  },
+  gmrLogo: {
+    width: 60,
+    height: 60,
+    marginBottom: 8,
+    marginLeft: 10,
   },
   greetingContainer: {
     flexDirection: 'row',

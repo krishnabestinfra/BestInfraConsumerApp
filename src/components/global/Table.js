@@ -30,10 +30,10 @@ const Table = ({
   inlinePriority = false, 
   skeletonLines = 4,
   minTableWidth,
+  rowsPerPage = 5,
 }) => {
 
   const [currentPage, setCurrentPage] = useState(1); 
-  const rowsPerPage = 5; 
   const totalPages = Math.ceil(data.length / rowsPerPage); 
 
   const paginatedData = data.slice(
@@ -163,17 +163,21 @@ const Table = ({
               key={column.key} 
               style={getColumnWrapperStyle(column, isLastColumn)}
             >
-              <Text 
-                style={[
-                  styles.headerText, 
-                  styles.headerTextResponsive,
-                  getTextAlignmentStyle(column.align)
-                ]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {column.title}
-              </Text>
+              {column.headerRender ? (
+                column.headerRender()
+              ) : (
+                <Text 
+                  style={[
+                    styles.headerText, 
+                    styles.headerTextResponsive,
+                    getTextAlignmentStyle(column.align)
+                  ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {column.title}
+                </Text>
+              )}
             </View>
           );
         })}

@@ -315,6 +315,19 @@ const PostPaidDashboard = ({ navigation, route }) => {
     return `${statusValue}`.charAt(0).toUpperCase() + `${statusValue}`.slice(1);
   }, []);
 
+  // Format reading date without seconds
+  const formatReadingDate = useCallback((dateString) => {
+    if (!dateString) return "Loading...";
+    
+    try {
+      // Remove seconds from timestamp (format: "23rd Jan 2026 04:45:01 AM" -> "23rd Jan 2026 04:45 AM")
+      // Pattern: match "HH:MM:SS" and replace with "HH:MM"
+      return dateString.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1');
+    } catch (error) {
+      return dateString;
+    }
+  }, []);
+
   const mapTamperEvents = useCallback((rawData = []) => {
     if (!Array.isArray(rawData)) {
       return [];
@@ -777,13 +790,16 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 <View style={styles.tapIndicator}>
                   <Text style={styles.tapIndicatorText}>Tap for details</Text>
                 </View>
+                <View>
                 <View style={styles.lastCommunicationLeft}>
                   <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
                   <Text style={styles.lastCommunicationText}>Last Communication</Text>
                 </View>
                 <Text style={styles.lastCommunicationTimeText}>
-                {consumerData?.readingDate ? (consumerData.readingDate) : "Loading..."}
+                {formatReadingDate(consumerData?.readingDate)}
               </Text>
+                </View>
+                
               </View>
             </TouchableOpacity>
             <View style={styles.lastCommunicationContainer}>
@@ -841,7 +857,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 <>
                   <Text style={styles.thismonthText}>
                     Today's Usage: <Text style={styles.kwhText}>
-                      {isLoading ? "Loading..." : getDailyUsage()}kWh
+                      {isLoading ? "Loading..." : getDailyUsage()} kWh
                     </Text>
                   </Text>
                   <View
@@ -863,14 +879,14 @@ const PostPaidDashboard = ({ navigation, route }) => {
                         style={getDailyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
                       />
                     </View>
-                    <Text style={styles.lastText}>Yesterday.</Text>
+                    <Text style={styles.lastText}>vs Yesterday.</Text>
                   </View>
                 </>
               ) : (
                 <>
                   <Text style={styles.thismonthText}>
                     This Month's Usage: <Text style={styles.kwhText}>
-                      {isLoading ? "Loading..." : getMonthlyUsage()}kWh
+                      {isLoading ? "Loading..." : getMonthlyUsage()} kWh
                     </Text>
                   </Text>
                   <View
@@ -892,7 +908,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                         style={getMonthlyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
                       />
                     </View>
-                    <Text style={styles.lastText}>Last Month.</Text>
+                    <Text style={styles.lastText}>vs Last Month.</Text>
                   </View>
                 </>
               )}
@@ -1239,6 +1255,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    height: 90,
   },
 
 
@@ -1277,9 +1294,12 @@ const styles = StyleSheet.create({
   rightContainer: {
     flexDirection: "column",
     alignItems: "flex-end",
-    // justifyContent: "flex-start",
+    justifyContent: "space-between",
     flex: 1,
-    paddingVertical: 22
+    // paddingVertical: 22
+    // backgroundColor: "red",
+    height: 60,
+    justifyContent: "space-between",
   },
 
   tapIndicator: {
@@ -1290,7 +1310,7 @@ const styles = StyleSheet.create({
   },
 
   tapIndicatorText: {
-    fontSize: 7,
+    fontSize: 10,
     fontFamily: "Manrope-SemiBold",
     color: COLORS.secondaryFontColor,
   },
@@ -1325,11 +1345,14 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryFontColor,
     fontSize: 10,
     fontFamily: "Manrope-Regular",
+    textAlign: "right",
+
   },
   lastCommunicationTimeText: {
     color: COLORS.secondaryFontColor,
     fontSize: 10,
     fontFamily: "Manrope-Regular",
+    textAlign: "right",
   },
   datePickerSection: {
     marginBottom: 20,
