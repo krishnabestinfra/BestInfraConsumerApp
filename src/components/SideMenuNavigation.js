@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, Modal, TouchableOpacity } from "react-native";
 import React, { useState, useCallback, useEffect, useContext } from "react";
 import { COLORS } from "../constants/colors";
 import Button from "./global/Button";
@@ -23,6 +23,7 @@ import { useNavigationState } from "@react-navigation/native";
 const SideMenuNavigation = ({ navigation }) => {
 
   const { activeItem, setActiveItem } = useContext(TabContext);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Get current route to sync sidebar highlighting
   const currentRoute = useNavigationState(state => 
@@ -75,6 +76,19 @@ const SideMenuNavigation = ({ navigation }) => {
     });
   }
 };
+
+  const handleLogoutPress = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const handleConfirmLogout = async () => {
+    setShowLogoutConfirm(false);
+    await handleLogout();
+  };
+
+  const handleCancelLogout = () => {
+    setShowLogoutConfirm(false);
+  };
 
   return (
     <>
@@ -302,7 +316,7 @@ const SideMenuNavigation = ({ navigation }) => {
           title="Logout"
           variant="ghost"
           size="small"
-          onPress={handleLogout}
+          onPress={handleLogoutPress}
           style={styles.logoutButton}
           textStyle={styles.logoutText}
         >
@@ -316,6 +330,41 @@ const SideMenuNavigation = ({ navigation }) => {
           <Text style={styles.versionText}>Version 1.0.26</Text>
         </View>
       </View>
+
+      {/* Logout confirmation modal */}
+      <Modal
+        visible={showLogoutConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelLogout}
+      >
+        <View style={styles.logoutModalOverlay}>
+          <View style={styles.logoutModalCard}>
+            <Text style={styles.logoutModalTitle}>Logout</Text>
+            <Text style={styles.logoutModalMessage}>
+              Are you sure you want to logout?
+            </Text>
+
+            <View style={styles.logoutModalButtonsRow}>
+              <TouchableOpacity
+                style={styles.logoutModalCancelButton}
+                activeOpacity={0.8}
+                onPress={handleCancelLogout}
+              >
+                <Text style={styles.logoutModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.logoutModalConfirmButton}
+                activeOpacity={0.8}
+                onPress={handleConfirmLogout}
+              >
+                <Text style={styles.logoutModalConfirmText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -396,5 +445,71 @@ const styles = StyleSheet.create({
   },
   blurContainer: {
     borderTopLeftRadius: 30,
+  },
+  logoutModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoutModalCard: {
+    width: "82%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  logoutModalTitle: {
+    fontSize: 20,
+    fontFamily: "Manrope-Bold",
+    color: "#000000",
+    marginBottom: 8,
+  },
+  logoutModalMessage: {
+    fontSize: 14,
+    fontFamily: "Manrope-Regular",
+    color: "#111827",
+    marginBottom: 24,
+  },
+  logoutModalButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  logoutModalCancelButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginRight: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  logoutModalCancelText: {
+    fontSize: 16,
+    fontFamily: "Manrope-Medium",
+    color: "#111827",
+  },
+  logoutModalConfirmButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 8,
+    marginLeft: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#EF4444",
+  },
+  logoutModalConfirmText: {
+    fontSize: 16,
+    fontFamily: "Manrope-Medium",
+    color: "#FFFFFF",
   },
 });

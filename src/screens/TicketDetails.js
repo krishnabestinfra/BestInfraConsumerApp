@@ -114,9 +114,9 @@ const TicketDetails = ({ navigation, route }) => {
         <View style={styles.TopMenu}>
           <Pressable
             style={styles.barsIcon}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.openDrawer ? navigation.openDrawer() : navigation.goBack()}
           >
-            <Arrow width={18} height={18} fill="#202d59" style={{ transform: [{ rotate: '180deg' }] }} />
+            <Menu width={18} height={18} fill="#202d59" />
           </Pressable>
           <View style={styles.logoWrapper}>
             {Array.from({ length: RING_COUNT }).map((_, index) => (

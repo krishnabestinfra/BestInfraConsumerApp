@@ -575,7 +575,6 @@ const styles = StyleSheet.create({
   },
   TicketContainerThree: {
     marginTop: 15,
-    minHeight: 400,
     flex: 1,
   },
   bottomSheetBackground:{
