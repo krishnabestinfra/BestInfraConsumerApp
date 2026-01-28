@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Dimensions, Text, ActivityIndicator, ScrollView } from "react-native";
+import { View, Dimensions, Text, ActivityIndicator } from "react-native";
 import { BarChart as GiftedBarChart } from "react-native-gifted-charts";
-import { COLORS } from "../constants/colors";
 import { SkeletonLoader } from "../utils/loadingManager";
 
 
@@ -32,9 +31,10 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
         const allLabels = chartType.xAxisData || [];
         
         let latestData, latestLabels, startIndex;
+        const dailyDaysToShow = 7;
         
         if (viewType === "daily") {
-          // For daily view, exclude current date and show only last 10 days
+          // For daily view, include present day and show only last 7 days
           const today = new Date();
           today.setHours(0, 0, 0, 0); // Reset time to start of day
           
@@ -86,20 +86,20 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
             }
           }
           
-          // If today's date is found, exclude it and get 10 days before it
-          // Otherwise, just get the last 10 days
+          // If today's date is found, include it and get 7 days ending today.
+          // Otherwise, fall back to the last 7 available points.
           if (todayIndex >= 0) {
-            // Exclude today, get 10 days before today
-            const endIndex = todayIndex; // Exclude today
-            const startIdx = Math.max(0, endIndex - 10);
-            latestData = allData.slice(startIdx, endIndex);
-            latestLabels = allLabels.slice(startIdx, endIndex);
+            // Include today
+            const endIndexExclusive = todayIndex + 1;
+            const startIdx = Math.max(0, endIndexExclusive - dailyDaysToShow);
+            latestData = allData.slice(startIdx, endIndexExclusive);
+            latestLabels = allLabels.slice(startIdx, endIndexExclusive);
             startIndex = startIdx;
           } else {
-            // Today not found, just get last 10 days (excluding the last one which might be today)
-            startIndex = Math.max(0, allLabels.length - 11);
-            latestData = allData.slice(startIndex, allLabels.length - 1);
-            latestLabels = allLabels.slice(startIndex, allLabels.length - 1);
+            // Today not found, just get last 7 days
+            startIndex = Math.max(0, allLabels.length - dailyDaysToShow);
+            latestData = allData.slice(startIndex);
+            latestLabels = allLabels.slice(startIndex);
           }
         } else {
           // For monthly view, just get last 10 months
@@ -164,7 +164,6 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
     value: chartData.blue[index] || 0,
     label: label,
     frontColor: '#163b7c', // Same color as original chart
-    spacing: 2, // Increased spacing between bars
     labelTextStyle: {
       color: '#333',
       fontSize: 7,
@@ -183,11 +182,38 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
     ),
   }));
 
-  // Calculate width for 10 bars with proper spacing
-  const barWidth = 30;
-  const spacing = 11.5;
-  const chartWidth = (barWidth + spacing) * 8; // Width for exactly 10 bars
-  const needsScrolling = chartWidth > screenWidth - 80; // Check if scrolling is neede 
+  const displayedBars = giftedData.length || 0;
+  const chartContainerWidth = screenWidth - 80; // available inner width for the chart
+
+  const desiredSpacing = 8; // target gap between bars
+  const minSpacing = 8;
+  const edgeSpacing = 11.5; // left/right padding
+  const minBarWidth = 18;
+  const maxBarWidth = 40;
+
+  let spacing = desiredSpacing;
+  let barWidth = 35;
+
+  if (displayedBars > 0) {
+    const gaps = Math.max(0, displayedBars - 1);
+    let availableForBars = chartContainerWidth - (edgeSpacing * 2) - (spacing * gaps);
+    barWidth = Math.floor(availableForBars / displayedBars);
+
+    if (barWidth < minBarWidth && gaps > 0) {
+      spacing = Math.max(
+        minSpacing,
+        Math.floor((chartContainerWidth - (edgeSpacing * 2) - (minBarWidth * displayedBars)) / gaps)
+      );
+      availableForBars = chartContainerWidth - (edgeSpacing * 2) - (spacing * gaps);
+      barWidth = Math.floor(availableForBars / displayedBars);
+    }
+
+    barWidth = Math.min(maxBarWidth, Math.max(minBarWidth, barWidth));
+  }
+
+  const xAxisLabelWidth = Math.max(40, barWidth + spacing);
+  const chartWidth = chartContainerWidth;
+  const needsScrolling = false;
 
   if (loading) {
   return (
@@ -195,7 +221,6 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
   );
 }
 
-  // Render chart - no scrolling needed for 10 bars
   const renderChart = () => (
     <GiftedBarChart
       data={giftedData}
@@ -212,6 +237,8 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
       rulesType="none"       // removes grid/rule lines
       barBorderRadius={4}    // rounded corners like original
       spacing={spacing}      // spacing between bars
+      initialSpacing={edgeSpacing}    // spacing before first bar
+      endSpacing={edgeSpacing}        // spacing after last bar
       showGradient={false}   // solid color like original
       showReferenceLine1={false}
       showReferenceLine2={false}
@@ -238,10 +265,10 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
       // Ensure bars are well spaced
       barMarginBottom={8}
       // Ensure X-axis labels are visible
-      xAxisLabelWidth={50}
+      xAxisLabelWidth={xAxisLabelWidth}
       xAxisLabelHeight={20}
       // Better spacing for readability
-      barCategoryGap={0.1}
+      barCategoryGap={0.5} // Gap between bar categories (0-1 range)
       // Enable bar press functionality
       onPress={(item, index) => {
         if (onBarPress) {
@@ -257,7 +284,7 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
             value: item.value,
             date: originalLabel, // Use original label for date parsing
             consumption: item.value,
-            viewType: viewType // Pass view type for date parsing
+            viewType: viewType 
           });
         }
       }}
@@ -272,19 +299,9 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
       borderRadius: 5, 
       backgroundColor: '#eef8f0'
     }}>
-      {needsScrolling ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 0, alignItems: 'center' }}
-        >
-          {renderChart()}
-        </ScrollView>
-      ) : (
-        <View style={{ paddingHorizontal: 0, alignItems: 'center' }}>
-          {renderChart()}
-        </View>
-      )}
+      <View style={{ paddingHorizontal: 0, alignItems: 'center' }}>
+        {renderChart()}
+      </View>
     </View>
   );
 };

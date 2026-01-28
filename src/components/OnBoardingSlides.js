@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
         paddingTop: 50, // Add top padding specifically for iOS
       },
       android: {
-        paddingTop: 30, // Add top padding for Android
+        paddingTop: 5, // Add top padding for Android
       },
     }),
   },
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     ...Platform.select({
       ios: {
-        fontSize: 18, // Larger text for iOS
+        fontSize: 18, 
       },
       android: {
         fontSize: 15, // Standard text size for Android
