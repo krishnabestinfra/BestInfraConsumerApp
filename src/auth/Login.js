@@ -31,18 +31,17 @@ const Login = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [checked, setChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
   const handleLogin = async () => {
+    // Clear any previous error message when starting a new login attempt
+    setLoginError("");
     setIsLoading(true);
     
     try {
       // Validate input
       if (!identifier.trim() || !password.trim()) {
-        Alert.alert(
-          "Validation Error",
-          "Please enter both identifier and password.",
-          [{ text: "OK" }]
-        );
+        setLoginError("Invalid credentials. Please check your email/phone and password.");
         return;
       }
 
@@ -256,7 +255,8 @@ const Login = ({ navigation }) => {
       } else if (error.message.includes('Network')) {
         errorMessage = "Network error. Please check your internet connection.";
       } else if (error.message.includes('HTTP 401')) {
-        errorMessage = "Invalid credentials. Please check your identifier and password, or contact support if this consumer should have access.";
+        // Match exact UI copy for invalid credentials
+        errorMessage = "Invalid credentials. Please check your email/phone and password.";
       } else if (error.message.includes('HTTP 403')) {
         errorMessage = "Access denied. This consumer may not have permission to access the system.";
       } else if (error.message.includes('HTTP 404')) {
@@ -264,14 +264,17 @@ const Login = ({ navigation }) => {
       } else if (error.message.includes('HTTP')) {
         errorMessage = `Server error (${error.message}). Please try again later.`;
       } else if (error.message) {
-        errorMessage = error.message;
+        // Map internal validation error about missing credentials in auth system
+        // to the same friendly invalid-credentials text shown in the UI
+        if (error.message.includes('does not have valid credentials')) {
+          errorMessage = "Invalid credentials. Please check your email/phone and password.";
+        } else {
+          errorMessage = error.message;
+        }
       }
-      
-      Alert.alert(
-        "Login Failed",
-        errorMessage,
-        [{ text: "OK" }]
-      );
+
+      // Show inline error message under the inputs instead of an alert
+      setLoginError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -331,6 +334,8 @@ const Login = ({ navigation }) => {
               handleLogin={handleLogin}
               navigation={navigation}
               isLoading={isLoading}
+              loginError={loginError}
+              setLoginError={setLoginError}
             />
             
             {/* Demo Credentials Display */}

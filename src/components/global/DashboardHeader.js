@@ -312,8 +312,8 @@ const styles = StyleSheet.create({
   },
   barsIcon: {
     backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
+    width: 60,
+    height: 60,
     borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',

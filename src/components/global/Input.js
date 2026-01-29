@@ -16,6 +16,7 @@ const Input = React.memo(({
   numberOfLines = 1,
   editable = true,
   error,
+  hasErrorBorder = false,
   variant = 'default', // 'default', 'outlined', 'filled'
   size = 'medium', // 'small', 'medium', 'large'
   leftIcon,
@@ -31,12 +32,12 @@ const Input = React.memo(({
   const getInputContainerStyle = useMemo(() => {
     const baseStyle = [styles.inputContainer, styles[`${variant}Container`], styles[size]];
     
-    if (error) {
+    if (error || hasErrorBorder) {
       baseStyle.push(styles.errorContainer);
     }
 
     return baseStyle;
-  }, [variant, size, error]);
+  }, [variant, size, error, hasErrorBorder]);
 
   const getInputStyle = useMemo(() => {
     const baseStyle = [styles.input, styles[`${variant}Input`], styles[`${size}Input`]];
@@ -203,10 +204,10 @@ const styles = StyleSheet.create({
   },
   // Error styles
   errorContainer: {
-    borderColor: '#ff4444',
+    borderColor: '#FF7474',
   },
   errorText: {
-    color: '#ff4444',
+    color: '#FF7474',
     fontSize: 12,
     marginTop: 4,
     fontFamily: 'Manrope-Regular',

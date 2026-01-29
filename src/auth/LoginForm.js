@@ -10,11 +10,11 @@ import Tick from "../../assets/icons/tick.svg";
 import Button from "../components/global/Button";
 import Input from "../components/global/Input";
 import { useState, useEffect } from "react";
-import Icon from 'react-native-vector-icons/AntDesign';
 import { z } from 'zod';
 import User from '../../assets/icons/user.svg';
 import EyeFill from '../../assets/icons/eyeFill.svg';
 import EyeBlank from '../../assets/icons/eyeBlank.svg';
+import ErrorIcon from '../../assets/icons/Erroricon.svg';
 // Zod schema for login validation
 const loginSchema = z.object({
   identifier: z
@@ -37,7 +37,9 @@ const LoginForm = ({
   setChecked,
   handleLogin,
   navigation,
-  isLoading = false
+  isLoading = false,
+  loginError,
+  setLoginError,
 }) => {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
@@ -59,6 +61,11 @@ const LoginForm = ({
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }));
+    }
+
+    // Clear any global login error when the user changes input
+    if (loginError) {
+      setLoginError("");
     }
     
     switch (field) {
@@ -150,6 +157,7 @@ const LoginForm = ({
           size="medium"
           style={styles.inputContainer}
           error={touched.identifier ? errors.identifier : null}
+          hasErrorBorder={!!loginError || !!(touched.identifier && errors.identifier)}
           rightIcon={
             <User 
               width={20} 
@@ -171,6 +179,7 @@ const LoginForm = ({
           size="medium"
           style={styles.inputContainer}
           error={touched.password ? errors.password : null}
+          hasErrorBorder={!!loginError || !!(touched.password && errors.password)}
           rightIcon={
             <Pressable onPress={togglePasswordVisibility} disabled={isLoading}>
               <View style={styles.eyeIconContainer}>
@@ -185,6 +194,13 @@ const LoginForm = ({
           disabled={isLoading}
         />
       </View>
+
+      {loginError ? (
+        <View style={styles.errorContainer}>
+          <ErrorIcon width={16} height={16} style={styles.errorIcon} />
+          <Text style={styles.errorText}>{loginError}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.forgetboxContainer}>
         <Pressable
@@ -238,6 +254,27 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 15,
+  },
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FF7474",
+    backgroundColor: "#FFFFFF",
+  },
+  errorIcon: {
+    marginRight: 10,
+  },
+  errorText: {
+    flex: 1,
+    color: "#FF7474",
+    fontSize: 14,
+    fontFamily: "Manrope-Regular",
   },
   forgetboxContainer: {
     flexDirection: "row",
