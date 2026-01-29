@@ -16,13 +16,23 @@
       "assets/icons/*",
       "assets/images/*"
     ],
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon_old.png",
+          "color": "#1f255e"
+        }
+      ]
+    ],
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon_old.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.bestinfra.app",
-      "versionCode": 6
+      "versionCode": 6,
+      "useNextNotificationsApi": true
     },
     "updates": {
       "enabled": true,

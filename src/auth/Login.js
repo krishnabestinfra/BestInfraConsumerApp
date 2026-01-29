@@ -96,6 +96,8 @@ const Login = ({ navigation }) => {
         await storeUser(dummyUserData);
         // Store demo access token using auth service
         await authService.storeAccessToken("demo-token-" + Date.now());
+        // Store remember me preference
+        await authService.setRememberMe(checked);
 
         console.log("✅ DEMO LOGIN SUCCESSFUL:", dummyUserData);
         
@@ -221,6 +223,9 @@ const Login = ({ navigation }) => {
         };
         
         await storeUser(userData);
+        // Store remember me preference
+        await authService.setRememberMe(checked);
+        
         console.log("✅ User data stored successfully:", {
           name: consumerInfo.name,
           identifier: consumerInfo.identifier,

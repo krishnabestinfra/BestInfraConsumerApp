@@ -33,7 +33,6 @@ const OTPInput = ({
   useEffect(() => {
     inputRefs.current = inputRefs.current.slice(0, length);
   }, [length]);
-
   // Handle external value changes
   useEffect(() => {
     if (value !== otp.join('')) {
@@ -76,11 +75,9 @@ const OTPInput = ({
 
   const handleKeyPress = (key, index) => {
     if (key === 'Backspace') {
-      // If current input is empty, move to previous input
       if (!otp[index] && index > 0) {
         inputRefs.current[index - 1]?.focus();
       } else {
-        // Clear current input
         const newOtp = [...otp];
         newOtp[index] = '';
         setOtp(newOtp);
@@ -162,7 +159,6 @@ const OTPInput = ({
     if (disabled) {
       baseStyle.push(styles.disabledInput);
     }
-
     return baseStyle;
   };
 
@@ -213,16 +209,17 @@ const OTPInput = ({
 
 const styles = StyleSheet.create({
   container: {
-    // marginBottom: 5,
   },
   otpContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
     gap: 7,
+    width: '100%',
   },
   inputContainer: {
-    width: 48,
+    flex: 1,
+    minWidth: 0,
     height: 48,
     borderRadius: 5,
     borderWidth: 1,
@@ -249,10 +246,10 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 16,
-    fontFamily: 'Manrope-ExtraBold',
+    fontFamily: 'Manrope-Bold',
     color: COLORS.secondaryColor,
     textAlign: 'center',
-    width: 45,
+    width: '100%',
     padding: 0,
   },
   disabledInput: {

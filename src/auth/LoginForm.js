@@ -238,6 +238,19 @@ const LoginForm = ({
         disabled={isLoading || !hasAnyInput}
       />
 
+      <View style={styles.orSection}>
+        <View style={styles.straightLine} />
+        <View style={styles.orContainer}>
+          <Text style={styles.orText}>OR</Text>
+        </View>
+        <Pressable
+          style={styles.otpButton}
+          onPress={() => !isLoading && navigation.navigate("OTPLogin")}
+          disabled={isLoading}
+        >
+          <Text style={styles.otpText}>Get OTP</Text>
+        </Pressable>
+      </View>
     </View>
   );
 };
@@ -297,6 +310,42 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginTop: 20,
+  },
+  orSection: {
+    marginTop: 24,
+    paddingVertical: 50,
+  },
+  straightLine: {
+    width: "40%",
+    backgroundColor: "#e9eaee",
+    marginTop: 24,
+    height: 2,
+    alignSelf: "center",
+  },
+  orContainer: {
+    backgroundColor: "#e9eaee",
+    width: 32,
+    height: 32,
+    borderRadius: 35,
+    alignSelf: "center",
+    justifyContent: "center",
+    zIndex: 9,
+    marginTop: -18,
+  },
+  orText: {
+    color: COLORS.primaryFontColor,
+    fontSize: Platform.OS === "ios" ? 14 : 12,
+    fontFamily: "Manrope-SemiBold",
+    textAlign: "center",
+  },
+  otpButton: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  otpText: {
+    color: COLORS.primaryFontColor,
+    fontSize: 14,
+    fontFamily: "Manrope-Medium",
   },
   dummyButton: {
     marginTop: 10,

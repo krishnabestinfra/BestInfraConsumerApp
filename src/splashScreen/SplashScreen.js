@@ -30,6 +30,15 @@ const SplashScreen = () => {
     };
 
     const proceedToMainApp = async () => {
+      // Check remember me preference first
+      const rememberMe = await authService.getRememberMe();
+      
+      // If remember me is false, clear all auth data (tokens and user)
+      if (!rememberMe) {
+        console.log(' Remember me is disabled, clearing authentication data');
+        await authService.clearAllAuthData();
+      }
+      
       // Check if user is authenticated (has valid tokens)
       const isAuthenticated = await authService.isAuthenticated();
       const user = await getUser();
@@ -37,17 +46,17 @@ const SplashScreen = () => {
       // Add minimum splash time for better UX
       setTimeout(() => {
         setSplashComplete(true);
-        if (isAuthenticated && user) {
-          // User is already logged in with valid tokens - go directly to dashboard
+        if (rememberMe && isAuthenticated && user) {
+          // User has remember me enabled and is authenticated - go directly to dashboard
           // Reset navigation stack to prevent going back to splash/onboarding
-          console.log('✅ User authenticated, navigating to dashboard');
+          console.log('✅ User authenticated with remember me enabled, navigating to dashboard');
           navigation.reset({
             index: 0,
             routes: [{ name: "PostPaidDashboard" }],
           });
         } else {
-          // No valid authentication - show onboarding/login
-          console.log('ℹ️ No valid authentication, navigating to onboarding');
+          // No valid authentication or remember me disabled - show onboarding/login
+          console.log(' No valid authentication or remember me disabled, navigating to onboarding');
           navigation.reset({
             index: 0,
             routes: [{ name: "OnBoarding" }],

@@ -12,6 +12,7 @@
  * - Token management
  */
 
+import { Platform } from 'react-native';
 import { API, API_ENDPOINTS, ENV_INFO } from '../constants/constants';
 import { getToken } from '../utils/storage';
 import { cacheManager } from '../utils/cacheManager';

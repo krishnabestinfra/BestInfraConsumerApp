@@ -106,7 +106,7 @@ const ForgotPassword = ({ navigation }) => {
           <View style={styles.formContainer}>
             <Input
               label={null}
-              placeholder="Email / Phone Number"
+              placeholder="Email Address"
               value={identifier}
               onChangeText={setIdentifier}
               autoCapitalize="none"
@@ -131,14 +131,19 @@ const ForgotPassword = ({ navigation }) => {
               </Pressable>
             </View>
 
+            <View style={styles.orSection}>
             <View style={styles.straightLine} />
             <View style={styles.orContainer}>
               <Text style={styles.orText}>OR</Text>
             </View>
 
-            <Pressable style={styles.otpButton}>
+            <Pressable
+              style={styles.otpButton}
+              onPress={() => navigation.navigate("OTPLogin")}
+            >
               <Text style={styles.otpText}>Get OTP</Text>
             </Pressable>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -228,6 +233,10 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryColor,
     fontSize: 13,
     fontFamily: "Manrope-Medium",
+  },
+  orSection: {
+    marginTop: 90,
+    paddingVertical: 60,
   },
   straightLine: {
     width: "40%",
