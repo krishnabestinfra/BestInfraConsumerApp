@@ -25,6 +25,7 @@ import { NotificationsProvider } from "./src/context/NotificationsContext";
 import { NavigationProvider } from "./src/context/NavigationContext";
 import { DataProvider } from "./src/context/DataContext";
 import ForgotPassword from "./src/auth/ForgotPassword";
+import OTPLogin from "./src/auth/OTPLogin";
 import ResetPassword from "./src/auth/ResetPassword";
 import GuestLogin from "./src/auth/GuestLogin";
 import TicketDetails from "./src/screens/TicketDetails";
@@ -99,7 +100,7 @@ export default function App() {
       console.log('Back button pressed on:', routeName);
 
       // Define auth screens - allow default back behavior
-      const authScreens = ['Splash', 'OnBoarding', 'Login', 'ForgotPassword', 'ResetPassword', 'GuestLogin'];
+      const authScreens = ['Splash', 'OnBoarding', 'Login', 'ForgotPassword', 'OTPLogin', 'ResetPassword', 'GuestLogin'];
       
       if (authScreens.includes(routeName)) {
         // Allow default back behavior on auth screens
@@ -230,6 +231,11 @@ export default function App() {
           <Stack.Screen
             name="ForgotPassword"
             component={ForgotPassword}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OTPLogin"
+            component={OTPLogin}
             options={{ headerShown: false }}
           />
           <Stack.Screen

@@ -16,6 +16,7 @@ const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const TOKEN_EXPIRY_KEY = 'token_expiry';
 const USER_KEY = 'user';
+const REMEMBER_ME_KEY = 'remember_me';
 
 // Token expiry times (in milliseconds)
 const ACCESS_TOKEN_EXPIRY = 15 * 60 * 1000; // 15 minutes
@@ -624,6 +625,20 @@ class AuthService {
   }
 
   /**
+   * Clear all authentication data (tokens, user, remember me)
+   */
+  async clearAllAuthData() {
+    try {
+      await this.clearTokens();
+      await this.clearUser();
+      await this.clearRememberMe();
+      console.log('✅ All authentication data cleared');
+    } catch (error) {
+      console.error('❌ Error clearing all auth data:', error);
+    }
+  }
+
+  /**
    * Clear user data
    */
   async clearUser() {
@@ -632,6 +647,43 @@ class AuthService {
       console.log('✅ User data cleared');
     } catch (error) {
       console.error('❌ Error clearing user data:', error);
+    }
+  }
+
+  /**
+   * Store remember me preference
+   */
+  async setRememberMe(rememberMe) {
+    try {
+      await AsyncStorage.setItem(REMEMBER_ME_KEY, rememberMe ? 'true' : 'false');
+      console.log('✅ Remember me preference stored:', rememberMe);
+    } catch (error) {
+      console.error('❌ Error storing remember me preference:', error);
+    }
+  }
+
+  /**
+   * Get remember me preference
+   */
+  async getRememberMe() {
+    try {
+      const value = await AsyncStorage.getItem(REMEMBER_ME_KEY);
+      return value === 'true';
+    } catch (error) {
+      console.error('❌ Error getting remember me preference:', error);
+      return false; // Default to false if error
+    }
+  }
+
+  /**
+   * Clear remember me preference
+   */
+  async clearRememberMe() {
+    try {
+      await AsyncStorage.removeItem(REMEMBER_ME_KEY);
+      console.log('✅ Remember me preference cleared');
+    } catch (error) {
+      console.error('❌ Error clearing remember me preference:', error);
     }
   }
 

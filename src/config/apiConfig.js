@@ -108,6 +108,10 @@ export const API_ENDPOINTS = {
       const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
       return `${baseUrl}/notifications/${uid}/read-all`;
     },
+    registerPushToken: () => {
+      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      return `${baseUrl}/notifications/push-token`;
+    },
   },
   
   // LS Data endpoints (15-minute interval consumption data)
