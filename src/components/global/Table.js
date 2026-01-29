@@ -3,6 +3,7 @@ import React, {useState} from "react";
 import { COLORS } from "../../constants/colors";
 import { SkeletonLoader } from "../../utils/loadingManager";
 import Button from "../global/Button";
+import NoDataIcon from "../../../assets/icons/empty.svg";
 
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -192,7 +193,21 @@ const Table = ({
         />
       ) : data.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>{emptyMessage}</Text>
+          <View style={styles.emptyIconWrapper}>
+            <NoDataIcon width={28} height={28} />
+          </View>
+          <Text style={styles.emptyTitle}>
+            {emptyMessage || "No Data Available"}
+          </Text>
+          <Text style={styles.emptySubtitle}>
+            There are no records available for the
+          </Text>
+          <Text style={styles.emptySubtitle}>
+           selected date and meter. Data may not
+          </Text>
+          <Text style={styles.emptySubtitle}>
+           have been synced yet.
+          </Text>
         </View>
       ) : (
 
@@ -448,18 +463,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   emptyContainer: {
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#ffffff",
     height: 300,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 5,
     marginTop: 2,
   },
-  emptyText: {
+  emptyIconWrapper: {
+    width: 60,
+    height: 60,
+    borderRadius: '50%',
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    elevation: 2,
+    zIndex: 2,
+
+  },
+  emptyTitle: {
+    color: COLORS.primaryFontColor,
+    fontFamily: "Manrope-Bold",
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  emptySubtitle: {
     color: COLORS.color_text_secondary,
     fontFamily: "Manrope-Regular",
     fontSize: 14,
     textAlign: "center",
+    paddingHorizontal: 24,
+    color: "#6E6E6E",
   },
   paginationContainer: {
     flexDirection: 'row',
