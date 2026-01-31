@@ -89,7 +89,7 @@ export const API_ENDPOINTS = {
   billing: {
     history: (uid) => `${API.BASE_URL}/billing?uid=${uid}`,
     invoice: (billNumber) => {
-      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
       return `${baseUrl}/billing/invoice?billNumber=${billNumber}`;
     },
   },
@@ -97,19 +97,19 @@ export const API_ENDPOINTS = {
   // Notifications endpoints
   notifications: {
     list: (page = 1, limit = 10) => {
-      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
       return `${baseUrl}/notifications?page=${page}&limit=${limit}`;
     },
     markRead: (id) => {
-      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
       return `${baseUrl}/notifications/${id}/read`;
     },
     markAllRead: (uid) => {
-      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
       return `${baseUrl}/notifications/${uid}/read-all`;
     },
     registerPushToken: () => {
-      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
       return `${baseUrl}/notifications/push-token`;
     },
   },
@@ -117,7 +117,7 @@ export const API_ENDPOINTS = {
   // LS Data endpoints (15-minute interval consumption data)
   lsdata: {
     consumption: (startDate, endDate, meterId) => {
-      const baseUrl = 'https://api.bestinfra.app/v2gmr/api';
+      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
       return `${baseUrl}/lsdata/consumption?startDate=${startDate}&endDate=${endDate}&meterId=${meterId}`;
     },
   },
