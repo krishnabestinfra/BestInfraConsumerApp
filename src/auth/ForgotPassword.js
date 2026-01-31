@@ -21,40 +21,55 @@ import UserIcon from "../../assets/icons/user.svg";
 
 const screenHeight = Dimensions.get("window").height;
 
+// Demo email for development when API is unavailable (replace with real API later)
+const DEMO_EMAIL = "hhh@gmail.com";
+
+const proceedToResetPassword = (email, navigation) => {
+  navigation.navigate("ResetPassword", { email });
+};
+
 const ForgotPassword = ({ navigation }) => {
   const [identifier, setIdentifier] = useState("");
 
   const handleForgotPassword = async () => {
-    try {
-      if (!identifier.trim()) {
-        Alert.alert(
-          "Error",
-          "Please enter your registered email address or phone number."
-        );
-        return;
-      }
+    const trimmedEmail = identifier.trim();
+    if (!trimmedEmail) {
+      Alert.alert(
+        "Error",
+        "Please enter your registered email address or phone number."
+      );
+      return;
+    }
 
+    try {
       const response = await fetch(
         "http://192.168.1.33:3000/api/v1/auth/forgot-password",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: identifier.trim() }),
+          body: JSON.stringify({ email: trimmedEmail }),
         }
       );
 
       const data = await response.json();
 
       if (data.status === "success") {
-        Alert.alert(
-          "Success",
-          "If this account exists, you will receive a verification code shortly."
-        );
+        proceedToResetPassword(trimmedEmail, navigation);
       } else {
-        Alert.alert("Error", data.message || "Unable to send verification code.");
+        // API returned error - fallback to demo email in development
+        if (trimmedEmail.toLowerCase() === DEMO_EMAIL.toLowerCase()) {
+          proceedToResetPassword(DEMO_EMAIL, navigation);
+        } else {
+          Alert.alert("Error", data.message || "Unable to send verification code.");
+        }
       }
     } catch (err) {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      // API failed (network/parse) - fallback to demo email in development
+      if (trimmedEmail.toLowerCase() === DEMO_EMAIL.toLowerCase()) {
+        proceedToResetPassword(DEMO_EMAIL, navigation);
+      } else {
+        Alert.alert("Error", "Something went wrong. Please try again.");
+      }
     }
   };
 
@@ -196,7 +211,7 @@ const styles = StyleSheet.create({
   },
   textBlock: {
     alignItems: "center",
-    marginTop: 32,
+    marginTop: 18,
   },
   title: {
     color: COLORS.primaryFontColor,

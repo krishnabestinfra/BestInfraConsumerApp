@@ -27,6 +27,7 @@ import { DataProvider } from "./src/context/DataContext";
 import ForgotPassword from "./src/auth/ForgotPassword";
 import OTPLogin from "./src/auth/OTPLogin";
 import ResetPassword from "./src/auth/ResetPassword";
+import SetNewPassword from "./src/auth/SetNewPassword";
 import GuestLogin from "./src/auth/GuestLogin";
 import TicketDetails from "./src/screens/TicketDetails";
 import PostPaidDashboard from "./src/screens/PostPaidDashboard";
@@ -100,7 +101,7 @@ export default function App() {
       console.log('Back button pressed on:', routeName);
 
       // Define auth screens - allow default back behavior
-      const authScreens = ['Splash', 'OnBoarding', 'Login', 'ForgotPassword', 'OTPLogin', 'ResetPassword', 'GuestLogin'];
+      const authScreens = ['Splash', 'OnBoarding', 'Login', 'ForgotPassword', 'OTPLogin', 'ResetPassword', 'SetNewPassword', 'GuestLogin'];
       
       if (authScreens.includes(routeName)) {
         // Allow default back behavior on auth screens
@@ -241,6 +242,11 @@ export default function App() {
           <Stack.Screen
             name="ResetPassword"
             component={ResetPassword}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SetNewPassword"
+            component={SetNewPassword}
             options={{ headerShown: false }}
           />
           <Stack.Screen
