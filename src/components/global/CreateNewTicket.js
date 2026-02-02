@@ -62,12 +62,12 @@ const CreateNewTicket = ({
   };
 
   return (
-    
+
     <View style={styles.NewTicketContainer}>
       <View style={styles.header}>
         <Text style={styles.NewticketTitle}>{title}</Text>
         {onClose && (
-          <TouchableOpacity style={styles.closeButton}  onPress={onClose}>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <CloseIcon width={16} height={16} />
           </TouchableOpacity>
         )}
@@ -133,7 +133,7 @@ const CreateNewTicket = ({
         </View>
       </ScrollView>
     </View>
-    
+
   );
 };
 
@@ -148,13 +148,13 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     marginTop: 150,
-    flexDirection:"column",
+    flexDirection: "column",
     flex: 1,
     justifyContent: "center", // center vertically
     //   alignItems: "center",     // center horizontally
     // alignSelf:"center",
     //
-    marginHorizontal:20
+    marginHorizontal: 20
 
   },
   header: {

@@ -1,5 +1,5 @@
-import { Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
-import React, { useState, useCallback } from "react";
+import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
+import React, { useState, useCallback, useEffect, useContext } from "react";
 import { COLORS } from "../constants/colors";
 import Menu from "../../assets/icons/barsWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
@@ -11,15 +11,28 @@ import Transactions from "./Transactions";
 import Tickets from "./Tickets";
 import Settings from "./Settings";
 import { BlurView } from "expo-blur";
-import { useContext } from "react";
 import { TabContext } from "../context/TabContext"; 
 import SideMenuNavigation from "../components/SideMenuNavigation";
 import Logo from "../components/global/Logo";
-import { logoutUser } from "../utils/storage";
+import { logoutUser, getUser } from "../utils/storage";
 import CrossIcon from "../../assets/icons/crossWhite.svg";
 
 const SideMenu = ({ navigation }) => {
   const { activeItem, setActiveItem } = useContext(TabContext);
+  const [userData, setUserData] = useState(null);
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = await getUser();
+        setUserData(user);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   const handleMenuPress = (item) => {
     setActiveItem(item); 
@@ -83,9 +96,31 @@ const SideMenu = ({ navigation }) => {
           <Logo variant="white" size="medium" />
         </Pressable>
         <Pressable style={styles.bellIcon} onPress={() => navigation.navigate("Profile")}>
-          <Notification width={18} height={18} fill="#000" />
+          <Notification width={18} height={18} fill={COLORS.brandBlueColor} />
         </Pressable>
       </View>
+      {/* Profile Section - Clickable to navigate to ProfileScreenMain */}
+      <Pressable 
+        style={styles.profileSection}
+        onPress={() => navigation.navigate("ProfileScreenMain")}
+      >
+        <View style={styles.profileContainer}>
+          <View style={styles.profileImageWrapper}>
+            <Image 
+              source={require("../../assets/images/profile.jpg")} 
+              style={styles.gmrLogo}
+            />
+            <Image 
+              source={require("../../assets/images/gmr.png")} 
+              style={styles.profileImage}
+            />
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{userData?.name || "Rakesh Kumar"}</Text>
+            <Text style={styles.profileId}>ID: {userData?.identifier || "GMR-2024-001234"}</Text>
+          </View>
+        </View>
+      </Pressable>
 
       <View style={styles.MenuContainer}>
         <View style={styles.menubar}>
@@ -127,8 +162,57 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 75,
-    paddingBottom: 35,
+    paddingBottom: 20,
     paddingHorizontal: 30,
+  },
+  profileSection: {
+    paddingHorizontal: 30,
+    marginBottom: 10,
+  },
+  profileContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingRight: 16,
+  },
+  profileImageWrapper: {
+    position: "relative",
+    marginRight: 10,
+  },
+  gmrLogo: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 1,
+    borderColor: "#ffff",
+    backgroundColor: "#FFFFFF",
+  },
+  profileImage: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    position: "absolute",
+    bottom: 12,
+    right: -4,
+    // borderWidth: 1,
+    // borderColor: COLORS.brandBlueColor,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 14,
+    fontFamily: "Manrope-Bold",
+    color: COLORS.secondaryFontColor,
+  },
+  profileId: {
+    fontSize: 11,
+    fontFamily: "Manrope-Regular",
+    color: "#89A1F3",
+    marginTop: 1,
   },
   barsIcon: {
     backgroundColor: COLORS.secondaryColor,
@@ -155,6 +239,11 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 3,
   },
   MenuContainer: {
     flexDirection: "row",

@@ -451,15 +451,17 @@ class AuthService {
   async handleLoginResponse(response, responseData) {
     try {
       // Extract access token from response
-      // Support multiple naming conventions: accessToken, token, gmrToken
+      // Support multiple naming conventions: accessToken, token, gmrToken, gmrAccessToken
       const accessToken = responseData?.data?.accessToken || 
+                         responseData?.data?.gmrAccessToken ||
                          responseData?.data?.gmrToken ||
                          responseData?.accessToken || 
+                         responseData?.gmrAccessToken ||
                          responseData?.gmrToken ||
                          responseData?.data?.token;
       
       if (!accessToken) {
-        console.error('❌ Available response data keys:', Object.keys(responseData?.data || {}));
+        console.error('❌ Available response data keys:', Object.keys(responseData?.data || responseData || {}));
         throw new Error('No access token in login response');
       }
 

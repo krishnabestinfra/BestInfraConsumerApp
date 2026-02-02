@@ -230,11 +230,11 @@ const DashboardHeader = React.memo(({
       
       <View style={styles.ProfileBox}>
         <View>
-          <Image 
+          {/* <Image 
             source={require('../../../assets/images/gmr.png')} 
             style={styles.gmrLogo}
             resizeMode="contain"
-          />
+          /> */}
           <View style={styles.greetingContainer}>
             <Text style={styles.hiText}>
               Hi, {getGreeting()}
