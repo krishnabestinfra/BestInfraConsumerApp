@@ -34,6 +34,7 @@ import { getUser } from "../utils/storage";
 import Logo from "../components/global/Logo";
 import TicketChatBox from "../components/TicketChatBox";
 import DropdownIcon from "../../assets/icons/dropDown.svg";
+import { apiClient } from "../services/apiClient";
 
 const { width, height } = Dimensions.get("window");
 
@@ -62,13 +63,39 @@ const Ring = ({ index, progress }) => {
   return <Animated.View style={[styles.ring, ringStyle]} />;
 };
 
+// Format ISO date to "DD/MM/YYYY, hh:mm A" (works in React Native)
+const formatTicketDate = (isoString) => {
+  if (isoString == null || isoString === "") return "—";
+  const str = String(isoString).trim();
+  if (!str) return "—";
+  try {
+    const date = new Date(str);
+    if (Number.isNaN(date.getTime())) return str; // show raw if invalid
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const hour12 = hours % 12 || 12;
+    return `${day}/${month}/${year}, ${hour12}:${minutes} ${ampm}`;
+  } catch {
+    return str;
+  }
+};
+
 const TicketDetails = ({ navigation, route }) => {
   const progress = useSharedValue(0);
   const [userName, setUserName] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  // Get ticket data from navigation params
+  const [details, setDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Get ticket data from navigation params (API expects numeric id only)
   const { ticketId, ticketData, category, status } = route?.params || {};
+  const rawId = ticketData?.id ?? ticketId;
+  const ticketIdForApi =
+    rawId != null && !Number.isNaN(Number(rawId)) ? Number(rawId) : null;
 
 
   const loopAnimation = () => {
@@ -102,6 +129,35 @@ const TicketDetails = ({ navigation, route }) => {
       const user = await getUser();
     })();
   }, []);
+
+  // Fetch ticket details from API
+  useEffect(() => {
+    if (!ticketIdForApi) {
+      setDetails(ticketData ?? null);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const result = await apiClient.getTicketDetails(ticketIdForApi);
+        if (!cancelled && result?.success && result?.data) {
+          setDetails(result.data);
+        } else if (!cancelled && ticketData) {
+          setDetails(ticketData);
+        }
+      } catch (err) {
+        if (!cancelled && ticketData) setDetails(ticketData);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [ticketIdForApi]);
+
+  const display = details ?? ticketData;
+  const priority = display?.priority ?? ticketData?.priority ?? category;
 
   return (
     <KeyboardAvoidingView 
@@ -142,11 +198,11 @@ const TicketDetails = ({ navigation, route }) => {
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <View style={[
                   styles.HighTextBox,
-                  ticketData?.priority?.toLowerCase() === 'low' && styles.LowTextBox,
-                  ticketData?.priority?.toLowerCase() === 'medium' && styles.MediumTextBox,
+                  (priority?.toLowerCase?.() ?? '') === 'low' && styles.LowTextBox,
+                  (priority?.toLowerCase?.() ?? '') === 'medium' && styles.MediumTextBox,
                 ]}>
                   <Text style={styles.HighText}>
-                    {ticketData?.priority || category || "High"}
+                    {priority || "High"}
                   </Text>
                 </View>
                   <DropdownIcon
@@ -160,42 +216,41 @@ const TicketDetails = ({ navigation, route }) => {
               </View>
             </TouchableOpacity>
               {isExpanded && (
-
           <View style={styles.TicketDetailsMainContainer}>
             <View style={styles.TicketDetailsMainItem}>
               <Text style={styles.TicketDetailsMainText}>Ticket ID</Text>
               <Text style={styles.TicketDetailsMainTextValue}>
-                {ticketData?.ticketNumber || ticketId || "#298"}
+                {loading ? "…" : (display?.ticketNumber ?? ticketId ?? "—")}
               </Text>
             </View>
             <View style={styles.TicketDetailsMainItem}>
               <Text style={styles.TicketDetailsMainText}>Category</Text>
               <Text style={styles.TicketDetailsMainTextValue}>
-                {ticketData?.category || category || "Connection Issue"}
+                {loading ? "…" : (display?.category ?? category ?? "—")}
               </Text>
             </View>
             <View style={styles.TicketDetailsMainItem}>
               <Text style={styles.TicketDetailsMainText}>Status</Text>
               <Text style={styles.TicketDetailsMainTextValue}>
-                {ticketData?.status || status || "Open"}
+                {loading ? "…" : (display?.status ?? status ?? "—")}
               </Text>
             </View>
             <View style={styles.TicketDetailsMainItem}>
               <Text style={styles.TicketDetailsMainText}>Created On</Text>
               <Text style={styles.TicketDetailsMainTextValue}>
-                {ticketData?.createdOn || "17/08/2025, 04:04 PM"}
+                {loading ? "…" : formatTicketDate(details?.createdAt ?? display?.createdAt ?? display?.createdOn) || "—"}
               </Text>
             </View>
             <View style={styles.TicketDetailsMainItem}>
               <Text style={styles.TicketDetailsMainText}>Last Updated</Text>
               <Text style={styles.TicketDetailsMainTextValue}>
-                {ticketData?.lastUpdated || ticketData?.updatedOn || "17/08/2025, 04:04 PM"}
+                {loading ? "…" : formatTicketDate(details?.updatedAt ?? display?.updatedAt ?? display?.updatedOn ?? display?.lastUpdated) || "—"}
               </Text>
             </View>
             <View style={styles.TicketDetailsMainItem}>
               <Text style={styles.TicketDetailsMainText}>Assigned To</Text>
               <Text style={styles.TicketDetailsMainTextValue}>
-                {ticketData?.assignedTo || "BI - Tech Team"}
+                {loading ? "…" : (display?.assignedTo ?? "—")}
               </Text>
             </View>
           </View>
@@ -235,7 +290,8 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 60,
-    alignItems: "center",    justifyContent: "center",
+    alignItems: "center",    
+    justifyContent: "center",
     elevation: 5,
     zIndex: 2,
   },  logo: {

@@ -61,13 +61,16 @@ export const API_ENDPOINTS = {
     health: () => `${API.HEALTH_URL}/`,
   },
   
-  // Authentication endpoints
+  // Authentication endpoints (sub-app auth: AUTH_URL = .../sub-app/auth)
   auth: {
     login: () => `${API.AUTH_URL}/login`,
     logout: () => `${API.AUTH_URL}/logout`,
     refresh: () => `${API.AUTH_URL}/refresh`,
     resetPassword: () => `${API.RESET_PASSWORD_URL}/reset-password`,
-    forgotPassword: () => `${API.RESET_PASSWORD_URL}/forgot-password`,
+    /** Send OTP for forget password - same base as login-otp */
+    forgotPassword: () => `${API.AUTH_URL}/forgot-password`,
+    /** Verify OTP for forget password */
+    loginOtp: () => `${API.AUTH_URL}/login-otp`,
   },
   
   // Tickets endpoints

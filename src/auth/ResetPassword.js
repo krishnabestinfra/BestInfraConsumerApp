@@ -24,9 +24,6 @@ import UserIcon from "../../assets/icons/user.svg";
 
 const screenHeight = Dimensions.get("window").height;
 
-// Demo OTP for development when API is unavailable
-const DEMO_OTP = "123456";
-
 const ResetPassword = () => {
   const route = useRoute();
   const navigation = useNavigation();
@@ -35,6 +32,7 @@ const ResetPassword = () => {
   const [email, setEmail] = useState(initialEmail || "");
   const [code, setCode] = useState("");
   const [otpError, setOtpError] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,7 +46,7 @@ const ResetPassword = () => {
     }, [route.params])
   );
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (!code || code.length !== 6) {
       Alert.alert("Error", "Please enter the 6-digit verification code.");
       return;
@@ -58,13 +56,43 @@ const ResetPassword = () => {
       Alert.alert("Error", "Please enter your email address.");
       return;
     }
-    // Demo: only 123456 is accepted as valid OTP
-    if (code !== DEMO_OTP) {
-      setOtpError(true);
-      return;
-    }
+    setVerifying(true);
     setOtpError(false);
-    navigation.navigate("SetNewPassword", { email: trimmedEmail, code });
+    const loginOtpUrl = API_ENDPOINTS.auth.loginOtp();
+    const requestBody = { email: trimmedEmail, otp: code };
+    if (__DEV__) {
+      console.log("[ResetPassword] login-otp request:", { url: loginOtpUrl, body: requestBody });
+    }
+    try {
+      const response = await fetch(loginOtpUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (__DEV__) {
+        console.log("[ResetPassword] login-otp response:", {
+          ok: response.ok,
+          status: response.status,
+          data,
+        });
+      }
+      if (response.ok && (data.status === "success" || data.success)) {
+        if (__DEV__) console.log("[ResetPassword] login-otp success, navigating to SetNewPassword");
+        setOtpError(false);
+        navigation.navigate("SetNewPassword", { email: trimmedEmail, code });
+      } else {
+        if (__DEV__) console.log("[ResetPassword] login-otp failed:", data.message || "invalid OTP");
+        setOtpError(true);
+        Alert.alert("Error", data.message || "Invalid verification code. Please try again.");
+      }
+    } catch (err) {
+      if (__DEV__) console.warn("[ResetPassword] login-otp error:", err?.message ?? err);
+      setOtpError(true);
+      Alert.alert("Error", "Something went wrong. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const handleResendCode = async () => {
@@ -175,6 +203,8 @@ const ResetPassword = () => {
               variant="primary"
               size="large"
               style={styles.submitButton}
+              loading={verifying}
+              disabled={verifying}
             />
 
             <View style={styles.rememberRow}>

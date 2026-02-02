@@ -17,12 +17,10 @@ import Button from "../components/global/Button";
 import Input from "../components/global/Input";
 import Logo from "../components/global/Logo";
 import { COLORS } from "../constants/colors";
+import { API_ENDPOINTS } from "../config/apiConfig";
 import UserIcon from "../../assets/icons/user.svg";
 
 const screenHeight = Dimensions.get("window").height;
-
-// Demo email for development when API is unavailable (replace with real API later)
-const DEMO_EMAIL = "hhh@gmail.com";
 
 const proceedToResetPassword = (email, navigation) => {
   navigation.navigate("ResetPassword", { email });
@@ -30,6 +28,7 @@ const proceedToResetPassword = (email, navigation) => {
 
 const ForgotPassword = ({ navigation }) => {
   const [identifier, setIdentifier] = useState("");
+  const [sending, setSending] = useState(false);
 
   const handleForgotPassword = async () => {
     const trimmedEmail = identifier.trim();
@@ -41,35 +40,43 @@ const ForgotPassword = ({ navigation }) => {
       return;
     }
 
+    const url = API_ENDPOINTS.auth.forgotPassword();
+    const body = { email: trimmedEmail };
+    if (__DEV__) {
+      console.log("[ForgotPassword] forgot-password request:", { url, body });
+    }
+
+    setSending(true);
     try {
-      const response = await fetch(
-        "http://192.168.1.33:3000/api/v1/auth/forgot-password",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: trimmedEmail }),
-        }
-      );
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
+      if (__DEV__) {
+        console.log("[ForgotPassword] forgot-password response:", {
+          ok: response.ok,
+          status: response.status,
+          data,
+        });
+      }
 
-      if (data.status === "success") {
+      if (response.ok && (data.status === "success" || data.success)) {
+        if (__DEV__) console.log("[ForgotPassword] success, navigating to ResetPassword");
         proceedToResetPassword(trimmedEmail, navigation);
       } else {
-        // API returned error - fallback to demo email in development
-        if (trimmedEmail.toLowerCase() === DEMO_EMAIL.toLowerCase()) {
-          proceedToResetPassword(DEMO_EMAIL, navigation);
-        } else {
-          Alert.alert("Error", data.message || "Unable to send verification code.");
-        }
+        Alert.alert("Error", data.message || "Unable to send verification code.");
       }
     } catch (err) {
-      // API failed (network/parse) - fallback to demo email in development
-      if (trimmedEmail.toLowerCase() === DEMO_EMAIL.toLowerCase()) {
-        proceedToResetPassword(DEMO_EMAIL, navigation);
-      } else {
-        Alert.alert("Error", "Something went wrong. Please try again.");
-      }
+      if (__DEV__) console.warn("[ForgotPassword] forgot-password error:", err?.message ?? err);
+      Alert.alert(
+        "Error",
+        err?.message ? `Something went wrong: ${err.message}` : "Something went wrong. Please try again."
+      );
+    } finally {
+      setSending(false);
     }
   };
 
@@ -137,6 +144,8 @@ const ForgotPassword = ({ navigation }) => {
               variant="primary"
               size="large"
               style={styles.submitButton}
+              loading={sending}
+              disabled={sending}
             />
 
             <View style={styles.rememberRow}>

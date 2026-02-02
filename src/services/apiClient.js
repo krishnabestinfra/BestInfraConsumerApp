@@ -15,10 +15,10 @@ import { authService } from './authService';
 
 class ApiClient {
   constructor() {
-    this.baseTimeout = 10000; // Reduced to 10 seconds for faster failures
-    this.maxRetries = 1; // Reduced retries for speed
-    this.requestCache = new Map(); // In-memory request cache
-    this.pendingRequests = new Map(); // Prevent duplicate requests
+    this.baseTimeout = 10000; 
+    this.maxRetries = 1; 
+    this.requestCache = new Map();
+    this.pendingRequests = new Map(); 
   }
 
   /**
@@ -38,7 +38,7 @@ class ApiClient {
 
     // Return pending request if already in progress
     if (this.pendingRequests.has(cacheKey)) {
-      console.log(`⚡ API: Reusing pending request for ${endpoint}`);
+      console.log(` API: Reusing pending request for ${endpoint}`);
       return this.pendingRequests.get(cacheKey);
     }
 
@@ -408,6 +408,14 @@ class ApiClient {
    */
   async getTicketsTable(uid) {
     const endpoint = API_ENDPOINTS.tickets.table(uid);
+    return this.request(endpoint);
+  }
+
+  /**
+   * Get ticket details by id
+   */
+  async getTicketDetails(id) {
+    const endpoint = API_ENDPOINTS.tickets.update(id);
     return this.request(endpoint);
   }
 

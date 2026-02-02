@@ -451,10 +451,12 @@ class AuthService {
   async handleLoginResponse(response, responseData) {
     try {
       // Extract access token from response
-      // Support multiple naming conventions: accessToken, token, gmrToken
+      // Support multiple naming conventions: accessToken, token, gmrToken, gmrAccessToken
       const accessToken = responseData?.data?.accessToken || 
+                         responseData?.data?.gmrAccessToken ||
                          responseData?.data?.gmrToken ||
                          responseData?.accessToken || 
+                         responseData?.gmrAccessToken ||
                          responseData?.gmrToken ||
                          responseData?.data?.token;
       
