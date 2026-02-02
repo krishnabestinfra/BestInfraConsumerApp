@@ -91,38 +91,20 @@ export const API_ENDPOINTS = {
   // Billing endpoints
   billing: {
     history: (uid) => `${API.BASE_URL}/billing?uid=${uid}`,
-    invoice: (billNumber) => {
-      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
-      return `${baseUrl}/billing/invoice?billNumber=${billNumber}`;
-    },
+    invoice: (billNumber) => `${API.BASE_URL}/billing/invoice?billNumber=${billNumber}`,
   },
   
   // Notifications endpoints
   notifications: {
-    list: (page = 1, limit = 10) => {
-      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
-      return `${baseUrl}/notifications?page=${page}&limit=${limit}`;
-    },
-    markRead: (id) => {
-      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
-      return `${baseUrl}/notifications/${id}/read`;
-    },
-    markAllRead: (uid) => {
-      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
-      return `${baseUrl}/notifications/${uid}/read-all`;
-    },
-    registerPushToken: () => {
-      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
-      return `${baseUrl}/notifications/push-token`;
-    },
+    list: (page = 1, limit = 10) => `${API.BASE_URL}/notifications?page=${page}&limit=${limit}`,
+    markRead: (id) => `${API.BASE_URL}/notifications/${id}/read`,
+    markAllRead: (uid) => `${API.BASE_URL}/notifications/${uid}/read-all`,
+    registerPushToken: () => `${API.BASE_URL}/notifications/push-token`,
   },
   
   // LS Data endpoints (15-minute interval consumption data)
   lsdata: {
-    consumption: (startDate, endDate, meterId) => {
-      const baseUrl = 'https://api.bestinfra.app/gmr_ht/api';
-      return `${baseUrl}/lsdata/consumption?startDate=${startDate}&endDate=${endDate}&meterId=${meterId}`;
-    },
+    consumption: (startDate, endDate, meterId) => `${API.BASE_URL}/lsdata/consumption?startDate=${startDate}&endDate=${endDate}&meterId=${meterId}`,
   },
   
   // Utility endpoints

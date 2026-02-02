@@ -5,23 +5,18 @@ import {
   Pressable,
   ScrollView,
   Dimensions,
-  StatusBar,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
-import React, { useEffect, useRef, useState } from "react";
-import GlobeShield from "../../assets/icons/globe-shield.svg";
-import RechargeIcon from "../../assets/icons/recharge.svg";
-import InvoicesIcon from "../../assets/icons/invoices.svg";
-import TicketsIcon from "../../assets/icons/tickets.svg";
-import UsageIcon from "../../assets/icons/usage.svg";
-import Hand from "../../assets/icons/hand.svg";
-import Arrow from "../../assets/icons/arrow.svg";
-import Plus from "../../assets/icons/plus.svg";
+import React, { useEffect, useState } from "react";
 import Menu from "../../assets/icons/bars.svg";
 import Notification from "../../assets/icons/notification.svg";
+import CheckCircle from "../../assets/icons/checkmark.svg";
+import ChevronRight from "../../assets/icons/rightArrow.svg";
+import ChatIcon from "../../assets/icons/chatIcon.svg";
+import TimelineCheckBlue from "../../assets/icons/timeLineCheckBlue.svg";
+import TimelineCheckGreen from "../../assets/icons/timeLineCheckGreen.svg";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -36,7 +31,7 @@ import TicketChatBox from "../components/TicketChatBox";
 import DropdownIcon from "../../assets/icons/dropDown.svg";
 import { apiClient } from "../services/apiClient";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const RING_COUNT = 20;
 const RING_DELAY = 800;
@@ -51,7 +46,6 @@ const Ring = ({ index, progress }) => {
 
     return {
       opacity: interpolate(clamped, [0, 0.1, 1], [0, 0.6, 0]),
-
       transform: [
         {
           scale: interpolate(clamped, [0, 1], [0.4, 4]),
@@ -104,7 +98,7 @@ const TicketDetails = ({ navigation, route }) => {
       RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
       {
         duration: RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
-        easing: Easing.inOut(Easing.ease), // Smooth easing
+        easing: Easing.inOut(Easing.ease),
       },
       () => runOnJS(loopAnimation)()
     );
@@ -160,33 +154,32 @@ const TicketDetails = ({ navigation, route }) => {
   const priority = display?.priority ?? ticketData?.priority ?? category;
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-    >
-      <View style={[styles.bluecontainer, { flex: 1 }]}>
-        <StatusBar barStyle="dark-content" />
-        <View style={styles.TopMenu}>
-          <Pressable
-            style={styles.barsIcon}
-            onPress={() => navigation.openDrawer ? navigation.openDrawer() : navigation.goBack()}
-          >
-            <Menu width={18} height={18} fill="#202d59" />
-          </Pressable>
-          <View style={styles.logoWrapper}>
-            {Array.from({ length: RING_COUNT }).map((_, index) => (
-              <Ring key={index} index={index} progress={progress} />
-            ))}
-            <Logo variant="blue" size="medium" />
-          </View>
-          <Pressable
-            style={styles.bellIcon}
-            onPress={() => navigation.replace("Profile")}
-          >
-            <Notification width={18} height={18} fill="#202d59" />
-          </Pressable>
+    <View style={styles.container}>
+      <StatusBar style="dark" />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable
+          style={styles.headerButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Menu width={18} height={18} fill="#202d59" />
+        </Pressable>
+
+        <View style={styles.logoWrapper}>
+          {Array.from({ length: RING_COUNT }).map((_, index) => (
+            <Ring key={index} index={index} progress={progress} />
+          ))}
+          <Logo variant="blue" size="medium" />
         </View>
+
+        <Pressable
+          style={styles.headerButton}
+          onPress={() => navigation.navigate("Profile")}
+        >
+          <Notification width={18} height={18} fill="#202d59" />
+        </Pressable>
+      </View>
 
         <View style={styles.TicketDetailsContainer}>
             <TouchableOpacity 
@@ -254,36 +247,73 @@ const TicketDetails = ({ navigation, route }) => {
               </Text>
             </View>
           </View>
-           )}
         </View>
-        <View style={styles.TicketChatContainer}>
-          <TicketChatBox />
+
+        {/* Ticket Timeline Section */}
+        <Text style={styles.timelineTitle}>Ticket Timeline</Text>
+
+        <View style={styles.timelineCard}>
+          {timelineData.map((item, index) => (
+            <View key={item.id} style={styles.timelineItem}>
+              <View style={styles.timelineLeft}>
+                <View style={styles.timelineIcon}>
+                  {item.resolved ? (
+                    <TimelineCheckGreen width={16} height={16} />
+                  ) : item.completed ? (
+                    <TimelineCheckBlue width={16} height={16} />
+                  ) : (
+                    <View style={styles.timelineIconPending} />
+                  )}
+                </View>
+                {index < timelineData.length - 1 && (
+                  <View style={[
+                    styles.timelineLine,
+                    item.completed && styles.timelineLineCompleted
+                  ]} />
+                )}
+              </View>
+              <View style={styles.timelineContent}>
+                <Text style={styles.timelineItemTitle}>{item.title}</Text>
+                <Text style={styles.timelineItemDescription}>{item.description}</Text>
+                <Text style={styles.timelineItemDate}>{item.date}</Text>
+              </View>
+            </View>
+          ))}
         </View>
-      </View>
-    </KeyboardAvoidingView>
+
+        {/* Chat Support Button */}
+        <TouchableOpacity
+          style={styles.chatSupportButton}
+          onPress={handleChatSupport}
+          activeOpacity={0.8}
+        >
+          <View style={styles.chatSupportLeft}>
+            <View style={styles.chatIconWrapper}>
+              <ChatIcon width={20} height={20} fill="#FFFFFF" />
+            </View>
+            <Text style={styles.chatSupportText}>Chat Support</Text>
+          </View>
+          <ChevronRight width={24} height={24} />
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 };
 
 export default TicketDetails;
 
 const styles = StyleSheet.create({
-  Container: {
-    backgroundColor: COLORS.secondaryFontColor,
-    borderTopLeftRadius: 30,
-    borderBottomRightRadius: 30,
+  container: {
+    flex: 1,
+    backgroundColor: "#EEF8F0",
   },
-  bluecontainer: {
-    backgroundColor: "#eef8f0",
-    padding: 15,
-    flex: 1, // Apply flex: 1 to bluecontainer
-    flexDirection: "column", // Add flexDirection to stack children vertically
-  },
-  TopMenu: {    flexDirection: "row",
+  header: {
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 15,
+    paddingTop: 75,
+    paddingBottom: 20,
+    paddingHorizontal: 30,
   },
   barsIcon: {
     backgroundColor: COLORS.secondaryFontColor,
@@ -304,128 +334,13 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 60,
-    alignItems: "center",    justifyContent: "center",
-    elevation: 5,
-    zIndex: 2,
-  },
-  ProfileBox: {    justifyContent: "space-between",
-    flexDirection: "row",
-    marginHorizontal: 4,
-  },
-  textContainer: {
-    paddingHorizontal: 20,
-  },
-  usageText: {
-    color: COLORS.primaryFontColor,
-    fontFamily: "Manrope-Medium",
-    fontSize: 16,
-    textAlign: "center",
-    paddingTop: 0,
-    marginTop: 30,
-  },
-  hiText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 18,
-    fontFamily: "Manrope-Bold",
-  },
-  stayingText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Regular",
-  },
-  balanceText: {
-    color: COLORS.primaryFontColor,
-    marginLeft: 20,
-    fontSize: 14,
-    fontFamily: "Manrope-Regular",
-  },
-  amountText: {
-    color: COLORS.primaryColor,
-    fontSize: 20,
-    fontFamily: "Manrope-Bold",
-  },
-
-  plusBox: {
-    marginLeft: 7,
-  },
-  amountContainer: {
-    backgroundColor: COLORS.primaryColor,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 10,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    paddingHorizontal: 15,
-  },
-  dueText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Medium",
-  },
-  dateText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-  },
-  greenBox: {    flexDirection: "row",
-    backgroundColor: COLORS.secondaryColor,
-    borderRadius: 8,
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
-    alignItems: "center",
-    padding: 10,
-    marginTop: 3,
-  },
-  payText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 16,
-    fontFamily: "Manrope-Bold",
-  },
-  tostayText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 16,
-    fontFamily: "Manrope-Bold",
-  },
-  avoidText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-  },
-  paynowbox: {
-    backgroundColor: COLORS.secondaryFontColor,
-    height: 35,
-    width: 95,
-    borderRadius: 5,    justifyContent: "center",
-  },
-  paynowText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 12,
-    fontFamily: "Manrope-Medium",
-    textAlign: "center",  },
-  iconsContainer: {    flexDirection: "row",
-    justifyContent: "space-evenly",
-    marginTop: 15,
-  },
-  individualBox: {
-    alignItems: "center",
-    width: 85,
-  },
-  iconBox: {
-    backgroundColor: COLORS.secondaryFontColor,
-    borderRadius: 35,
-    elevation: 1,
-    width: 54,
-    height: 54,
     alignItems: "center",
     justifyContent: "center",
-  },
-  iconText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
-    marginTop: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   logoWrapper: {
     alignItems: "center",
@@ -441,73 +356,159 @@ const styles = StyleSheet.create({
     borderColor: "#BABECC66",
     opacity: 0.2,
   },
-
-  TicketDetailsContainer: {
-    backgroundColor: COLORS.secondaryFontColor,
-    borderRadius: 5,
-    // flex: 1, 
-    marginBottom: 5, // Add some margin bottom to separate from chat container
+  scrollContainer: {
+    flex: 1,
   },
-  TicketDetailsHeader: {    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F8F8F8",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+  scrollContent: {
+    paddingHorizontal: 30,
+    paddingBottom: 40,
+    gap: 12,
   },
-  TicketDetailsText: {
-    color: COLORS.primaryFontColor,
-    fontFamily: "Manrope-Bold",
-    fontSize: 14,
-  },
-  HighTextBox: {
-    backgroundColor: "#FF9C9C",
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  MediumTextBox: {
-    backgroundColor: "#FF8C00",
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  LowTextBox: {
-    backgroundColor: "#28A745",
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  HighText: {
-    fontFamily: "Manrope-SemiBold",
-    fontSize: 8,
-    color: "#fff",
-  },
-  TicketDetailsMainText: {
-    fontFamily: "Manrope-Bold",
-    fontSize: 12,
-    color: "#000",
-  },
-  TicketDetailsMainTextValue: {
-    fontFamily: "Manrope-Regular",
-    fontSize: 10,
-    color: "#000",
-  },
-  TicketDetailsMainContainer: {
-    padding: 20,
+  sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: "Manrope-Bold",
+    color: COLORS.primaryFontColor,
+  },
+  priorityBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  highPriority: {
+    backgroundColor: "#EF4444",
+  },
+  mediumPriority: {
+    backgroundColor: "#F59E0B",
+  },
+  lowPriority: {
+    backgroundColor: "#10B981",
+  },
+  priorityText: {
+    fontSize: 10,
+    fontFamily: "Manrope-SemiBold",
+    color: "#FFFFFF",
+  },
+  detailsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 5,
+    padding: 20,
+  },
+  detailsGrid: {
+    flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    gap: 16,
   },
-  TicketDetailsMainItem: {
-    width: "45%",
+  detailItem: {
+    width: "47%",
+    gap: 4,
   },
-  TicketChatContainer: {
-    marginTop: 10,
-    // height: "100%",
-    flex: 1, // Make TicketChatContainer take available height
+  detailLabel: {
+    fontSize: 14,
+    fontFamily: "Manrope-SemiBold",
+    color: "#000000",
+  },
+  detailValue: {
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    color: COLORS.primaryFontColor,
+  },
+  timelineTitle: {
+    fontSize: 16,
+    fontFamily: "Manrope-Bold",
+    color: COLORS.primaryFontColor,
+  },
+  timelineCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 5,
+    padding: 20,
+  },
+  timelineItem: {
+    flexDirection: "row",
+    minHeight: 80,
+  },
+  timelineLeft: {
+    alignItems: "center",
+    width: 40,
+    gap: 4,
+  },
+  timelineIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#E8EBF2CC",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timelineIconPending: {
+    width: 11,
+    height: 10,
+    borderRadius: 5.5,
+    backgroundColor: "#9CA3AF",
+  },
+  timelineLine: {
+    width: 3,
+    // flex: 1,
+    height: 45,
+    backgroundColor: "#E8EBF2CC",
+    // marginTop: 2,
+  },
+  timelineLineCompleted: {
+    backgroundColor: "#E8EBF2CC",
+  },
+  timelineContent: {
+    flex: 1,
+    paddingLeft: 12,
+    paddingBottom: 16,
+    gap: 2,
+  },
+  timelineItemTitle: {
+    fontSize: 14,
+    fontFamily: "Manrope-Bold",
+    color: COLORS.primaryFontColor,
+  },
+  timelineItemDescription: {
+    fontSize: 13,
+    fontFamily: "Manrope-Regular",
+    color: "#6B7280",
+  },
+  timelineItemDate: {
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    color: "#9CA3AF",
+  },
+  chatSupportButton: {
+    backgroundColor: COLORS.secondaryColor,
+    borderRadius: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  chatSupportLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  chatIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chatIconText: {
+    fontSize: 18,
+  },
+  chatSupportText: {
+    fontSize: 16,
+    fontFamily: "Manrope-SemiBold",
+    color: "#FFFFFF",
   },
 });

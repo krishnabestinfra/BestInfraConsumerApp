@@ -461,7 +461,7 @@ class AuthService {
                          responseData?.data?.token;
       
       if (!accessToken) {
-        console.error('❌ Available response data keys:', Object.keys(responseData?.data || {}));
+        console.error('❌ Available response data keys:', Object.keys(responseData?.data || responseData || {}));
         throw new Error('No access token in login response');
       }
 

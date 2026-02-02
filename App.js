@@ -13,6 +13,7 @@ import OnBoarding from "./src/screens/OnBoarding";
 import Login from "./src/auth/Login";
 import Dashboard from "./src/screens/Dashboard";
 import Profile from "./src/screens/Profile";
+import ProfileScreenMain from "./src/screens/ProfileScreenMain";
 import SideMenu from "./src/screens/SideMenu";
 import Usage from "./src/screens/Usage";
 import Payments from "./src/screens/Payments";
@@ -30,6 +31,7 @@ import ResetPassword from "./src/auth/ResetPassword";
 import SetNewPassword from "./src/auth/SetNewPassword";
 import GuestLogin from "./src/auth/GuestLogin";
 import TicketDetails from "./src/screens/TicketDetails";
+import ChatSupport from "./src/screens/ChatSupport";
 import PostPaidDashboard from "./src/screens/PostPaidDashboard";
 import PostPaidRechargePayments from "./src/screens/PostPaidRechargePayments";
 import PaymentStatus from "./src/screens/PaymentStatus";
@@ -178,7 +180,7 @@ export default function App() {
             name="Splash"
             component={SplashScreen}
             options={{ headerShown: false }}
-          />
+          /> 
           <Stack.Screen
             name="OnBoarding"
             component={OnBoarding}
@@ -197,6 +199,11 @@ export default function App() {
           <Stack.Screen
             name="Profile"
             component={Profile}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ProfileScreenMain"
+            component={ProfileScreenMain}
             options={{ headerShown: false }}
           />
           <Stack.Screen
@@ -257,6 +264,11 @@ export default function App() {
           <Stack.Screen
             name="TicketDetails"
             component={TicketDetails}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ChatSupport"
+            component={ChatSupport}
             options={{ headerShown: false }}
           />
           <Stack.Screen

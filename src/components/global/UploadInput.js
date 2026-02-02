@@ -4,6 +4,7 @@ import { COLORS } from '../../constants/colors';
 import { useEffect } from 'react';
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import UploadClipIcon from '../../../assets/icons/uploadClip.svg';
 
 const UploadInput = ({
   label,
@@ -159,6 +160,10 @@ const handleSelectedFiles = (assets) => {
         {...props}
       >
         <View style={styles.content}>
+          <View style={styles.iconContainer}>
+            <UploadClipIcon width={20} height={20} />
+          </View>
+          
           <View style={styles.textContainer}>
             <Text style={getTextStyle()}>
               {value.length > 0 
@@ -267,6 +272,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  iconContainer: {
+    marginRight: 12,
   },
   textContainer: {
     flex: 1,

@@ -45,12 +45,12 @@ export const ENVIRONMENT_CONFIG = {
   
   production: {
     name: 'production',
-    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.bestinfra.app/gmr_ht/api',
-    ticketsBaseUrl: process.env.EXPO_PUBLIC_TICKETS_BASE_URL || 'https://api.bestinfra.app/gmr_ht/api',
-    authBaseUrl: process.env.EXPO_PUBLIC_AUTH_BASE_URL || 'https://api.bestinfra.app/gmr_ht/api/sub-app/auth',
-    resetPasswordUrl: process.env.EXPO_PUBLIC_RESET_PASSWORD_URL || 'https://api.bestinfra.app/gmr_ht/api/auth',
-    healthUrl: process.env.EXPO_PUBLIC_HEALTH_URL || 'https://api.bestinfra.app/gmr_ht/api/health',
-    paymentUrl: process.env.EXPO_PUBLIC_PAYMENT_URL || 'https://api.bestinfra.app/gmr_ht/api/payment',
+    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.bestinfra.app/v2gmr/api',
+    ticketsBaseUrl: process.env.EXPO_PUBLIC_TICKETS_BASE_URL || 'https://api.bestinfra.app/v2gmr/api',
+    authBaseUrl: process.env.EXPO_PUBLIC_AUTH_BASE_URL || 'https://api.bestinfra.app/v2gmr/api/sub-app/auth',
+    resetPasswordUrl: process.env.EXPO_PUBLIC_RESET_PASSWORD_URL || 'https://api.bestinfra.app/v2gmr/api/auth',
+    healthUrl: process.env.EXPO_PUBLIC_HEALTH_URL || 'https://api.bestinfra.app/v2gmr/api/health',
+    paymentUrl: process.env.EXPO_PUBLIC_PAYMENT_URL || 'https://api.bestinfra.app/v2gmr/api/payment',
     debugApiCalls: process.env.EXPO_PUBLIC_DEBUG_API_CALLS === 'true' || false,
     logLevel: process.env.EXPO_PUBLIC_LOG_LEVEL || 'error',
     cacheEnabled: true,
