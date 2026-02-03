@@ -38,7 +38,7 @@ class ApiClient {
 
     // Return pending request if already in progress
     if (this.pendingRequests.has(cacheKey)) {
-      console.log(`⚡ API: Reusing pending request for ${endpoint}`);
+      console.log(` API: Reusing pending request for ${endpoint}`);
       return this.pendingRequests.get(cacheKey);
     }
 
@@ -413,6 +413,14 @@ class ApiClient {
    */
   async getTicketsTable(uid) {
     const endpoint = API_ENDPOINTS.tickets.table(uid);
+    return this.request(endpoint);
+  }
+
+  /**
+   * Get ticket details by id
+   */
+  async getTicketDetails(id) {
+    const endpoint = API_ENDPOINTS.tickets.update(id);
     return this.request(endpoint);
   }
 

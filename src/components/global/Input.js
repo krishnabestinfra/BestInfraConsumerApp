@@ -204,10 +204,10 @@ const styles = StyleSheet.create({
   },
   // Error styles
   errorContainer: {
-    borderColor: '#FF7474',
+    borderColor: '#FF4444',
   },
   errorText: {
-    color: '#FF7474',
+    color: '#FF4444',
     fontSize: 12,
     marginTop: 4,
     fontFamily: 'Manrope-Regular',

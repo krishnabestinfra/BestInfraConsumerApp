@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   },
   TextContainer: {
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 18,
   },
   welcomeText: {
     color: COLORS.primaryFontColor,
