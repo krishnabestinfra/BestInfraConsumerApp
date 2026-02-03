@@ -61,18 +61,18 @@ export const API_ENDPOINTS = {
     health: () => `${API.HEALTH_URL}/`,
   },
   
-  // Authentication endpoints (sub-app auth: AUTH_URL = .../sub-app/auth, base v2gmr)
+  // Authentication endpoints (sub-app auth: explicit v2gmr URLs to avoid route-not-found)
   auth: {
     login: () => `${API.AUTH_URL}/login`,
     logout: () => `${API.AUTH_URL}/logout`,
     refresh: () => `${API.AUTH_URL}/refresh`,
     resetPassword: () => `${API.RESET_PASSWORD_URL}/reset-password`,
-    /** Send OTP for forget password - uses login-otp (POST with email) */
-    forgotPassword: () => `${API.AUTH_URL}/login-otp`,
-    /** Verify OTP for forget password */
-    verifyOtp: () => `${API.AUTH_URL}/verify-otp`,
-    /** Set new password after OTP verification - https://api.bestinfra.app/v2gmr/api/sub-app/auth/update-password */
-    updatePassword: () => `${API.AUTH_URL}/update-password`,
+    /** Send OTP - POST with { email } */
+    forgotPassword: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/login-otp',
+    /** Verify OTP - POST with { email, otp } */
+    verifyOtp: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/verify-otp',
+    /** Update password - POST with { userId, otp, newPassword, confirmPassword } */
+    updatePassword: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/update-password',
   },
   
   // Tickets endpoints

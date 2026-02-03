@@ -80,7 +80,8 @@ const ResetPassword = () => {
       if (response.ok && (data.status === "success" || data.success)) {
         if (__DEV__) console.log("[ResetPassword] verify-otp success, navigating to SetNewPassword");
         setOtpError(false);
-        navigation.navigate("SetNewPassword", { email: trimmedEmail, code });
+        const userId = data.userId ?? data.user?.id ?? data.data?.userId ?? data.data?.id;
+        navigation.navigate("SetNewPassword", { email: trimmedEmail, code, userId });
       } else {
         if (__DEV__) console.log("[ResetPassword] verify-otp failed:", data.message || "invalid OTP");
         setOtpError(true);
