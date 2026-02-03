@@ -153,6 +153,19 @@ const TicketDetails = ({ navigation, route }) => {
   const display = details ?? ticketData;
   const priority = display?.priority ?? ticketData?.priority ?? category;
 
+  const timelineData = Array.isArray(display?.timeline)
+    ? display.timeline
+    : Array.isArray(display?.history)
+      ? display.history
+      : [];
+
+  const handleChatSupport = () => {
+    navigation.navigate("ChatSupport", {
+      ticketId: rawId ?? ticketId,
+      ticketData: display ?? ticketData,
+    });
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
