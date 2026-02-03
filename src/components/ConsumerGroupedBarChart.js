@@ -4,7 +4,7 @@ import { BarChart as GiftedBarChart } from "react-native-gifted-charts";
 import { SkeletonLoader } from "../utils/loadingManager";
 
 
-const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = false, onBarPress = null }) => {
+const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data = null, loading = false, onBarPress = null }) => {
   const { width } = Dimensions.get("window");
   const screenWidth = width;
 
@@ -20,7 +20,7 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
     startIndex: 0 // Index where the displayed data starts in the original array
   });
 
-  // Process API data for chart - show only latest 10 bars (excluding current date for daily view)
+  // Process API data for chart - 7D: last 7 bars (daily), 1Y: last 12 months (monthly)
   useEffect(() => {
     if (data && data.chartData) {
       const chartType = viewType === "daily" ? data.chartData.daily : data.chartData.monthly;
@@ -31,81 +31,47 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
         const allLabels = chartType.xAxisData || [];
         
         let latestData, latestLabels, startIndex;
-        const dailyDaysToShow = 7;
+        const dailyDaysToShow = 7;   // 7D: always last 7 days
+        const monthlyMonthsToShow = timePeriod === "1Y" ? 12 : 10;  // 1Y: 12 months, else 10
         
         if (viewType === "daily") {
-          // For daily view, include present day and show only last 7 days
-          const today = new Date();
-          today.setHours(0, 0, 0, 0); // Reset time to start of day
-          
-          // Helper function to parse date from label
-          const parseDateFromLabel = (label) => {
-            if (!label) return null;
-            try {
-              // Try various formats: "25 Nov", "25th Nov", "Nov 25", etc.
-              const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
-                                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-              
-              // Format: "25 Nov" or "25th Nov"
-              const match1 = label.match(/(\d{1,2})(?:st|nd|rd|th)?\s+(\w+)/i);
-              if (match1) {
-                const day = parseInt(match1[1]);
-                const monthName = match1[2].substring(0, 3);
-                const monthIndex = monthNames.findIndex(m => 
-                  m.toLowerCase() === monthName.toLowerCase()
-                );
-                if (monthIndex !== -1) {
-                  const year = today.getFullYear();
-                  return new Date(year, monthIndex, day);
-                }
-              }
-              
-              // Try direct date parsing
-              const parsed = new Date(label);
-              if (!isNaN(parsed.getTime())) {
-                return parsed;
-              }
-              
-              return null;
-            } catch {
-              return null;
-            }
-          };
-          
-          // Find the index of today's date in the labels array
-          let todayIndex = -1;
-          for (let i = allLabels.length - 1; i >= 0; i--) {
-            const label = allLabels[i];
-            const labelDate = parseDateFromLabel(label);
-            if (labelDate) {
-              labelDate.setHours(0, 0, 0, 0);
-              if (labelDate.getTime() === today.getTime()) {
-                todayIndex = i;
-                break;
-              }
-            }
-          }
-          
-          // If today's date is found, include it and get 7 days ending today.
-          // Otherwise, fall back to the last 7 available points.
-          if (todayIndex >= 0) {
-            // Include today
-            const endIndexExclusive = todayIndex + 1;
-            const startIdx = Math.max(0, endIndexExclusive - dailyDaysToShow);
-            latestData = allData.slice(startIdx, endIndexExclusive);
-            latestLabels = allLabels.slice(startIdx, endIndexExclusive);
-            startIndex = startIdx;
-          } else {
-            // Today not found, just get last 7 days
-            startIndex = Math.max(0, allLabels.length - dailyDaysToShow);
-            latestData = allData.slice(startIndex);
-            latestLabels = allLabels.slice(startIndex);
-          }
+          // For 7D: take last 7 data points so we always show 7 bars when available
+          const count = Math.min(dailyDaysToShow, allData.length);
+          startIndex = Math.max(0, allData.length - count);
+          latestData = allData.slice(-dailyDaysToShow);
+          latestLabels = allLabels.slice(-dailyDaysToShow);
+          startIndex = Math.max(0, allLabels.length - latestLabels.length);
         } else {
-          // For monthly view, just get last 10 months
-          startIndex = Math.max(0, allLabels.length - 10);
-          latestData = allData.slice(startIndex);
-          latestLabels = allLabels.slice(startIndex);
+          // Monthly: 1Y = always 12 bars (pad if API returns fewer), otherwise last 10 months
+          const takeCount = timePeriod === "1Y" ? 12 : monthlyMonthsToShow;
+          let slicedData = allData.slice(-takeCount);
+          let slicedLabels = allLabels.slice(-takeCount);
+          // For 1Y: always 12 bars with Jan–Dec labels; first (12 - dataLength) bars are 0, then API values; no data = 12 empty (0) bars
+          if (timePeriod === "1Y") {
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const now = new Date();
+            const last12Labels = [];
+            for (let i = 11; i >= 0; i--) {
+              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+              last12Labels.push(monthNames[d.getMonth()]);
+            }
+            if (slicedData.length >= 12) {
+              latestData = slicedData.slice(-12);
+              latestLabels = slicedLabels.slice(-12);
+            } else if (slicedData.length > 0) {
+              const padCount = 12 - slicedData.length;
+              latestData = [...Array(padCount).fill(0), ...slicedData];
+              latestLabels = last12Labels;
+            } else {
+              // No data for any month: show 12 empty (0) bars with Jan–Dec labels only
+              latestData = Array(12).fill(0);
+              latestLabels = last12Labels;
+            }
+          } else {
+            latestData = slicedData;
+            latestLabels = slicedLabels;
+          }
+          startIndex = Math.max(0, allLabels.length - latestLabels.length);
         }
         
         // Store original full data
@@ -122,11 +88,9 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
             labels: latestLabels,
           });
         } else {
-          // Use fallback data if API data is empty
-          setChartData({
-            blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
-            labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
-          });
+          // Use fallback: for 1Y always Jan–Dec and 12 empty bars; else default
+          const fallback = get1YFallback(timePeriod, viewType);
+          setChartData(fallback);
           setOriginalData({
             allLabels: [],
             allData: [],
@@ -134,11 +98,9 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
           });
         }
       } else {
-        // Use fallback data if no series data
-        setChartData({
-          blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
-          labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
-        });
+        // No series data: for 1Y use Jan–Dec and 12 empty bars
+        const fallback = get1YFallback(timePeriod, viewType);
+        setChartData(fallback);
         setOriginalData({
           allLabels: [],
           allData: [],
@@ -146,18 +108,34 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", data = null, loading = fa
         });
       }
     } else if (!loading) {
-      // Fallback to default data if no API data
-      setChartData({
-        blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
-        labels: viewType === "daily" ? ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
-      });
+      // No API data: for 1Y use Jan–Dec and 12 empty bars
+      const fallback = get1YFallback(timePeriod, viewType);
+      setChartData(fallback);
       setOriginalData({
         allLabels: [],
         allData: [],
         startIndex: 0
       });
     }
-  }, [data, viewType, loading]);
+  }, [data, viewType, timePeriod, loading]);
+
+  // 1Y: always 12 bars with Jan–Dec labels; no data = 12 empty (0) bars (never "7 days" or day labels)
+  function get1YFallback(period, view) {
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    if (period === "1Y") {
+      const now = new Date();
+      const last12Labels = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        last12Labels.push(monthNames[d.getMonth()]);
+      }
+      return { blue: Array(12).fill(0), labels: last12Labels };
+    }
+    return {
+      blue: [8, 7, 7, 5, 7.5, 7, 7.5, 5, 7.5, 7],
+      labels: view === "daily" ? ["1", "2", "3", "4", "5", "6", "7"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"],
+    };
+  }
 
   // Convert data to GiftedCharts format
   const giftedData = chartData.labels.map((label, index) => ({
