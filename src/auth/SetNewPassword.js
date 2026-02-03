@@ -66,7 +66,7 @@ const SetNewPassword = () => {
     }
 
     try {
-      const response = await fetch(API_ENDPOINTS.auth.resetPassword(), {
+      const response = await fetch(API_ENDPOINTS.auth.updatePassword(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

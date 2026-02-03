@@ -181,6 +181,7 @@ const TicketDetails = ({ navigation, route }) => {
         </Pressable>
       </View>
 
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
         <View style={styles.TicketDetailsContainer}>
             <TouchableOpacity 
               style={styles.TicketDetailsHeader} 
@@ -247,7 +248,7 @@ const TicketDetails = ({ navigation, route }) => {
               </Text>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Ticket Timeline Section */}
         <Text style={styles.timelineTitle}>Ticket Timeline</Text>
@@ -295,6 +296,7 @@ const TicketDetails = ({ navigation, route }) => {
           </View>
           <ChevronRight width={24} height={24} />
         </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );

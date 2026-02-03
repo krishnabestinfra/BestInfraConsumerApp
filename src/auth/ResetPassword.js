@@ -58,36 +58,36 @@ const ResetPassword = () => {
     }
     setVerifying(true);
     setOtpError(false);
-    const loginOtpUrl = API_ENDPOINTS.auth.loginOtp();
+    const verifyOtpUrl = API_ENDPOINTS.auth.verifyOtp();
     const requestBody = { email: trimmedEmail, otp: code };
     if (__DEV__) {
-      console.log("[ResetPassword] login-otp request:", { url: loginOtpUrl, body: requestBody });
+      console.log("[ResetPassword] verify-otp request:", { url: verifyOtpUrl, body: requestBody });
     }
     try {
-      const response = await fetch(loginOtpUrl, {
+      const response = await fetch(verifyOtpUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
       });
       const data = await response.json().catch(() => ({}));
       if (__DEV__) {
-        console.log("[ResetPassword] login-otp response:", {
+        console.log("[ResetPassword] verify-otp response:", {
           ok: response.ok,
           status: response.status,
           data,
         });
       }
       if (response.ok && (data.status === "success" || data.success)) {
-        if (__DEV__) console.log("[ResetPassword] login-otp success, navigating to SetNewPassword");
+        if (__DEV__) console.log("[ResetPassword] verify-otp success, navigating to SetNewPassword");
         setOtpError(false);
         navigation.navigate("SetNewPassword", { email: trimmedEmail, code });
       } else {
-        if (__DEV__) console.log("[ResetPassword] login-otp failed:", data.message || "invalid OTP");
+        if (__DEV__) console.log("[ResetPassword] verify-otp failed:", data.message || "invalid OTP");
         setOtpError(true);
         Alert.alert("Error", data.message || "Invalid verification code. Please try again.");
       }
     } catch (err) {
-      if (__DEV__) console.warn("[ResetPassword] login-otp error:", err?.message ?? err);
+      if (__DEV__) console.warn("[ResetPassword] verify-otp error:", err?.message ?? err);
       setOtpError(true);
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
