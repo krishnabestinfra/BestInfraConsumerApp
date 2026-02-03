@@ -36,12 +36,13 @@ const PASSWORD_RULES = [
 const SetNewPassword = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  const { email, code } = route.params || {};
+  const { email, code, userId } = route.params || {};
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const passwordRulesMet = PASSWORD_RULES.map((rule) => ({
     ...rule,
@@ -64,21 +65,35 @@ const SetNewPassword = () => {
       Alert.alert("Error", "Passwords do not match.");
       return;
     }
+    if (userId == null || userId === undefined) {
+      Alert.alert("Error", "Session expired. Please verify your OTP again.");
+      return;
+    }
 
+    setSubmitting(true);
+    const updatePasswordUrl = API_ENDPOINTS.auth.updatePassword();
+    const body = {
+      userId: Number(userId),
+      otp: code || "",
+      newPassword: newPassword.trim(),
+      confirmPassword: confirmPassword.trim(),
+    };
+    if (__DEV__) {
+      console.log("[SetNewPassword] update-password request:", { url: updatePasswordUrl, body: { ...body, newPassword: "***", confirmPassword: "***" } });
+    }
     try {
-      const response = await fetch(API_ENDPOINTS.auth.updatePassword(), {
+      const response = await fetch(updatePasswordUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: code,
-          email: email || "",
-          newPassword: newPassword.trim(),
-        }),
+        body: JSON.stringify(body),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
+      if (__DEV__) {
+        console.log("[SetNewPassword] update-password response:", { ok: response.ok, status: response.status, data });
+      }
 
-      if (data.status === "success") {
+      if (response.ok && (data.status === "success" || data.success)) {
         Alert.alert("Success", "Password reset successful.", [
           { text: "OK", onPress: () => navigation.navigate("Login") },
         ]);
@@ -87,6 +102,8 @@ const SetNewPassword = () => {
       }
     } catch (err) {
       Alert.alert("Error", "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -212,6 +229,8 @@ const SetNewPassword = () => {
               variant="primary"
               size="large"
               style={styles.submitButton}
+              loading={submitting}
+              disabled={submitting}
             />
 
             <View style={styles.rememberRow}>
