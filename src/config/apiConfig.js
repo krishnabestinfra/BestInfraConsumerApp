@@ -71,15 +71,14 @@ export const API_ENDPOINTS = {
     forgotPassword: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/login-otp',
     /** Verify OTP - POST with { email, otp } */
     verifyOtp: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/verify-otp',
-    /** Update password - POST with { userId, otp, newPassword, confirmPassword } */
     updatePassword: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/update-password',
   },
   
-  // Tickets endpoints
+  // Tickets endpoints (create: POST https://api.bestinfra.app/v2gmr/api/tickets)
   tickets: {
     stats: (uid) => `${API.TICKETS_URL}/tickets/stats?uid=${uid}`,
     table: (uid) => `${API.TICKETS_URL}/tickets/table?uid=${uid}`,
-    create: () => `${API.TICKETS_URL}/tickets/create`,
+    create: () => `${API.TICKETS_URL}/tickets`,
     update: (id) => `${API.TICKETS_URL}/tickets/${id}`,
   },
   

@@ -24,6 +24,7 @@ const CreateNewTicket = ({
   const [selectedCategory, setSelectedCategory] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("HIGH");
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
   const categories = [
@@ -33,12 +34,14 @@ const CreateNewTicket = ({
     "Meter Issue",
     "General Inquiry",
   ];
+  const priorities = ["LOW", "MEDIUM", "HIGH"];
 
   const handleSubmit = () => {
     const ticketData = {
-      category: selectedCategory,
       subject,
+      category: selectedCategory,
       description,
+      priority,
       files: uploadedFiles,
     };
 
@@ -47,13 +50,15 @@ const CreateNewTicket = ({
     setSelectedCategory("");
     setSubject("");
     setDescription("");
+    setPriority("HIGH");
     setUploadedFiles([]);
   };
 
   const handleCancel = () => {
-    // Reset form
     setSelectedCategory("");
+    setSubject("");
     setDescription("");
+    setPriority("HIGH");
     setUploadedFiles([]);
 
     if (onClose) {
@@ -90,6 +95,15 @@ const CreateNewTicket = ({
           placeholder="Subject"
           value={subject}
           onChangeText={setSubject}
+        />
+
+        <SelectDropdown
+          placeholder="Priority"
+          value={priority}
+          onSelect={setPriority}
+          options={priorities}
+          variant="default"
+          size="medium"
         />
 
         <TextArea

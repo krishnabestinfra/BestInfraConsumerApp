@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, RefreshControl } from "react-native";
+import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, RefreshControl, Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/colors";
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -13,7 +13,7 @@ import EyeIcon from "../../assets/icons/eyeFill.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
 import BottomNavigation from "../components/global/BottomNavigation";
 import { LinearGradient } from "expo-linear-gradient";
-import { fetchConsumerData, syncConsumerData, fetchTicketStats, fetchTicketsTable } from "../services/apiService";
+import { fetchConsumerData, syncConsumerData, fetchTicketStats, fetchTicketsTable, createTicket } from "../services/apiService";
 import { getUser } from "../utils/storage";
 import { getCachedConsumerData } from "../utils/cacheManager";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
@@ -118,9 +118,26 @@ const Tickets = ({ navigation }) => {
   //   setShowModal(false);
   // };
 
-  const handleCreateTicket = (ticketData) => {
-    console.log("New Ticket Created:", ticketData);
-  };
+  const handleCreateTicket = useCallback(async (ticketData) => {
+    try {
+      const user = await getUser();
+      if (!user?.identifier) {
+        Alert.alert("Error", "Please sign in to create a ticket.");
+        return;
+      }
+      const result = await createTicket(user.identifier, ticketData);
+      if (result.success) {
+        handleCloseBottomSheet();
+        fetchData();
+        Alert.alert("Success", "Ticket created successfully.");
+      } else {
+        Alert.alert("Error", result.message || "Failed to create ticket.");
+      }
+    } catch (error) {
+      console.error("Create ticket error:", error);
+      Alert.alert("Error", error.message || "Failed to create ticket.");
+    }
+  }, []);
 
   // Handle view ticket details (pass numeric id for API; ticketNumber for display)
   const handleViewTicket = useCallback((ticket) => {
