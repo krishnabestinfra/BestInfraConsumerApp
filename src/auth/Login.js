@@ -241,6 +241,19 @@ const Login = ({ navigation }) => {
           console.warn("⚠️ MeterId not found in login response. LS data API may not work.");
         }
         
+        // Register push notification token after successful login
+        try {
+          const { getPushToken, registerPushToken } = await import('../services/pushNotificationService');
+          const pushToken = await getPushToken();
+          if (pushToken) {
+            await registerPushToken(pushToken);
+            console.log("✅ Push notification token registered");
+          }
+        } catch (pushError) {
+          console.warn("⚠️ Failed to register push token:", pushError);
+          // Don't block login if push registration fails
+        }
+        
         // Reset navigation stack - removes Login from history
         // This ensures pressing back on Dashboard will exit the app, not go to Login
         navigation.reset({
