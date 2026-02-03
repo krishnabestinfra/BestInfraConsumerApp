@@ -121,11 +121,11 @@ const Tickets = ({ navigation }) => {
     console.log("New Ticket Created:", ticketData);
   };
 
-  // Handle view ticket details
+  // Handle view ticket details (pass numeric id for API; ticketNumber for display)
   const handleViewTicket = useCallback((ticket) => {
     console.log("📄 Viewing ticket:", ticket);
     navigation.navigate('TicketDetails', {
-      ticketId: ticket.ticketNumber || ticket.id,
+      ticketId: ticket.id ?? ticket.ticketNumber,
       ticketData: ticket,
       category: ticket.category,
       status: ticket.status,

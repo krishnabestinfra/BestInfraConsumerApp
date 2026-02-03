@@ -236,8 +236,9 @@ const styles = StyleSheet.create({
     // backgroundColor: '#f0f9ff',
   },
   errorContainer: {
-    borderColor: COLORS.color_danger,
-    backgroundColor: '#fef2f2',
+    borderColor: '#FF4444',
+    borderWidth: 1,
+    backgroundColor: '#ffffff',
   },
   disabledContainer: {
     backgroundColor: '#f1f5f9',
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   errorText: {
-    color: COLORS.color_danger,
+    color: '#FF4444',
     fontSize: 12,
     marginTop: 8,
     fontFamily: 'Manrope-Regular',
