@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert } from "react-native";
-import React, { useState, useEffect, useCallback } from "react";
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated } from "react-native";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../constants/colors";
-import Table from "../components/global/Table";
 import { getUser, getToken } from "../utils/storage";
 import { API_ENDPOINTS } from "../constants/constants";
 import { 
@@ -10,10 +10,93 @@ import {
   fetchBillingHistory
 } from "../services/apiService";
 import DashboardHeader from "../components/global/DashboardHeader";
-import DownloadButton from "../components/global/DownloadButton";
+import BottomNavigation from "../components/global/BottomNavigation";
 import { handleViewBill } from "../services/InvoicePDFService";
 import { authService } from "../services/authService";
 import { apiClient } from "../services/apiClient";
+import Menu from "../../assets/icons/bars.svg";
+import Notification from "../../assets/icons/notification.svg";
+import EyeIcon from "../../assets/icons/eyeFill.svg";
+import Logo from "../components/global/Logo";
+import AnimatedRings from "../components/global/AnimatedRings";
+import { StatusBar } from "expo-status-bar";
+import FilterIcon from "../../assets/icons/filter.svg";
+
+// Shimmer effect component for skeleton loading
+const Shimmer = ({ style }) => {
+  const shimmerAnim = useRef(new Animated.Value(-1)).current;
+
+  useEffect(() => {
+    shimmerAnim.setValue(-1);
+    Animated.loop(
+      Animated.timing(shimmerAnim, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [shimmerAnim]);
+
+  const translateX = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-200, 300],
+  });
+
+  return (
+    <View style={[style, { overflow: "hidden", backgroundColor: "#e0e0e0" }]}>
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { transform: [{ translateX }] },
+        ]}
+      >
+        <LinearGradient
+          colors={["#e0e0e0", "#f5f5f5", "#e0e0e0"]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={{ flex: 1 }}
+        />
+      </Animated.View>
+    </View>
+  );
+};
+
+// Skeleton Invoice Card Component
+const SkeletonInvoiceCard = () => {
+  return (
+    <View style={styles.invoiceCard}>
+      {/* Header skeleton */}
+      <View style={styles.cardHeader}>
+        <Shimmer style={[styles.skeletonBox, { width: 120, height: 16 }]} />
+        <Shimmer style={[styles.skeletonBox, { width: 60, height: 24, borderRadius: 12 }]} />
+      </View>
+
+      {/* Dates skeleton */}
+      <View style={styles.datesContainer}>
+        <Shimmer style={[styles.skeletonBox, { width: 100, height: 14 }]} />
+        <Shimmer style={[styles.skeletonBox, { width: 100, height: 14 }]} />
+      </View>
+
+      {/* Details section skeleton */}
+      <View style={styles.detailsSection}>
+        <View style={styles.detailItem}>
+          <Shimmer style={[styles.skeletonBox, { width: 80, height: 12, marginBottom: 4 }]} />
+          <Shimmer style={[styles.skeletonBox, { width: 60, height: 16 }]} />
+        </View>
+        <View style={styles.detailItem}>
+          <Shimmer style={[styles.skeletonBox, { width: 80, height: 12, marginBottom: 4 }]} />
+          <Shimmer style={[styles.skeletonBox, { width: 80, height: 16 }]} />
+        </View>
+      </View>
+
+      {/* Action buttons skeleton */}
+      <View style={styles.actionButtons}>
+        <Shimmer style={[styles.skeletonBox, { flex: 1, height: 44, borderRadius: 5 }]} />
+        <Shimmer style={[styles.skeletonBox, { flex: 1, height: 44, borderRadius: 5 }]} />
+      </View>
+    </View>
+  );
+};
 
 const formatDateDisplay = (dateString) => {
   if (!dateString) return 'N/A';
@@ -21,7 +104,10 @@ const formatDateDisplay = (dateString) => {
   if (Number.isNaN(parsedDate.getTime())) {
     return 'N/A';
   }
-  return parsedDate.toLocaleDateString('en-IN');
+  const day = parsedDate.getDate();
+  const month = parsedDate.toLocaleDateString('en-US', { month: 'short' });
+  const year = parsedDate.getFullYear();
+  return `${day} ${month} ${year}`;
 };
 
 const formatBillingMonth = (month, year) => {
@@ -254,25 +340,25 @@ const mapInvoiceForPDF = (invoice) => {
   };
 };
 
-const transformInvoicesToRows = (invoices) => {
+const transformInvoicesToCards = (invoices) => {
   return invoices
     .filter(Boolean)
     .sort((a, b) => getInvoiceDateValue(b) - getInvoiceDateValue(a))
     .map((invoice, index) => ({
       id: invoice.id ?? invoice.billNumber ?? index + 1,
-      billingMonth: formatBillingMonth(invoice.billMonth, invoice.billYear),
-      invoiceNo: invoice.billNumber || 'N/A',
-      billFromDate: formatDateDisplay(invoice.fromDate),
-      billToDate: formatDateDisplay(invoice.toDate),
+      invoiceId: invoice.billNumber || invoice.invoiceNumber || `INV-${index + 1}`,
+      isPaid: invoice.isPaid || invoice.paymentStatus === 'Paid' || invoice.status === 'Paid' || (invoice.creditAmount > 0),
+      issuedDate: formatDateDisplay(invoice.fromDate || invoice.createdAt || invoice.billDate),
       dueDate: formatDateDisplay(invoice.dueDate),
-      units: formatUnits(invoice.unitsConsumed),
-      totalBill: formatCurrencyINR(invoice.totalAmount),
+      unitsConsumed: formatUnits(invoice.unitsConsumed),
+      amountDue: formatCurrencyINR(invoice.totalAmount),
       _originalData: mapInvoiceForPDF(invoice),
     }));
 };
 
 const Invoices = ({ navigation }) => {
-  const [tableData, setTableData] = useState([]);
+  const [invoiceCards, setInvoiceCards] = useState([]);
+  const [filteredInvoiceCards, setFilteredInvoiceCards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [consumerData, setConsumerData] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -284,7 +370,7 @@ const Invoices = ({ navigation }) => {
       const user = await getUser();
 
       if (!user || !user.identifier) {
-        setTableData([]);
+        setInvoiceCards([]);
         return;
       }
 
@@ -319,23 +405,25 @@ const Invoices = ({ navigation }) => {
         console.error('Error fetching consumer data:', consumerError);
       }
 
-      // Fetch billing history for invoices table
+      // Fetch billing history for invoices cards
       const billingResult = await fetchBillingHistory(identifier);
       if (billingResult.success) {
         if (billingResult.data && (Array.isArray(billingResult.data) ? billingResult.data.length > 0 : true)) {
           const normalizedInvoices = normalizeBillingData(billingResult.data);
-          setTableData(transformInvoicesToRows(normalizedInvoices));
+          const cards = transformInvoicesToCards(normalizedInvoices);
+          setInvoiceCards(cards);
+          setFilteredInvoiceCards(cards);
           console.log(`✅ Loaded ${normalizedInvoices.length} invoices`);
         } else {
           // No billing data available
-          setTableData([]);
+          setInvoiceCards([]);
           if (billingResult.warning) {
             console.warn('ℹ️', billingResult.message || 'No billing history available');
           }
         }
       } else {
         console.error('Failed to fetch billing history:', billingResult.message);
-        setTableData([]);
+        setInvoiceCards([]);
       }
 
       // Background sync for consumer data
@@ -344,7 +432,7 @@ const Invoices = ({ navigation }) => {
       });
     } catch (error) {
       console.error('Error fetching invoices:', error);
-      setTableData([]);
+      setInvoiceCards([]);
     } finally {
       setIsLoading(false);
     }
@@ -355,13 +443,13 @@ const Invoices = ({ navigation }) => {
     fetchInvoices();
   }, [fetchInvoices]);
 
-  // Handle row press to open invoice PDF
-  const handleRowPress = useCallback(async (row) => {
+  // Handle invoice view/pay/share
+  const handleViewInvoice = useCallback(async (invoiceCard) => {
     try {
       setIsGeneratingPDF(true);
-      console.log('📄 Fetching invoice data for bill number:', row.invoiceNo);
+      console.log('📄 Fetching invoice data for bill number:', invoiceCard.invoiceId);
       
-      const billNumber = row.invoiceNo;
+      const billNumber = invoiceCard.invoiceId;
       if (!billNumber) {
         throw new Error('Bill number is required');
       }
@@ -436,11 +524,103 @@ const Invoices = ({ navigation }) => {
     }
   }, [consumerData]);
 
+  const handlePayNow = (invoiceCard) => {
+    navigation.navigate('PostPaidRechargePayments', {
+      invoiceData: invoiceCard._originalData
+    });
+  };
+
+  const handleShare = (invoiceCard) => {
+    // TODO: Implement share functionality
+    Alert.alert('Share', 'Share functionality will be implemented');
+  };
+
+  const handleFilterPress = () => {
+    navigation.navigate("Reports");
+  };
+
+  const renderInvoiceCard = (invoiceCard) => {
+    const isPaid = invoiceCard.isPaid;
+    
+    return (
+      <View key={invoiceCard.id} style={styles.invoiceCard}>
+        {/* Header with Invoice ID and Status */}
+        <View style={styles.cardHeader}>
+          <Text style={styles.invoiceIdText}>{invoiceCard.invoiceId}</Text>
+          <View style={[styles.statusBadge, isPaid ? styles.paidBadge : styles.unpaidBadge]}>
+            <Text style={styles.statusText}>{isPaid ? 'Paid' : 'Unpaid'}</Text>
+          </View>
+        </View>
+
+        {/* Dates */}
+        <View style={styles.datesContainer}>
+          <Text style={styles.dateLabel}>Issued: {invoiceCard.issuedDate}</Text>
+          <Text style={styles.dateLabel}>Due: {invoiceCard.dueDate}</Text>
+        </View>
+
+        {/* Details Section */}
+        <View style={styles.detailsSection}>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Units Consumed</Text>
+            <Text style={styles.detailValue}>{invoiceCard.unitsConsumed} kWh</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Text style={styles.detailLabel}>Amount Due</Text>
+            <Text style={styles.detailValue}>{invoiceCard.amountDue}</Text>
+          </View>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={() => isPaid ? handleShare(invoiceCard) : handlePayNow(invoiceCard)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.primaryButtonText}>{isPaid ? 'Share' : 'Pay Now'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => handleViewInvoice(invoiceCard)}
+            activeOpacity={0.7}
+          >
+            <EyeIcon width={16} height={16} fill={COLORS.secondaryColor} />
+            <Text style={styles.secondaryButtonText}>View</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
-    <>
+    <View style={styles.container}>
+      <StatusBar style="dark" />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable
+          style={styles.headerButton}
+          onPress={() => navigation.navigate("SideMenu")}
+        >
+          <Menu width={18} height={18} fill="#202d59" />
+        </Pressable>
+
+        <View style={styles.logoWrapper}>
+          <AnimatedRings />
+          <Logo variant="blue" size="medium" />
+        </View>
+
+        <Pressable
+          style={styles.headerButton}
+          onPress={() => navigation.navigate("Profile")}
+        >
+          <Notification width={18} height={18} fill="#202d59" />
+        </Pressable>
+      </View>
+
       <ScrollView
-        style={styles.Container}
-        contentContainerStyle={{ paddingBottom: 30 }}
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -451,146 +631,277 @@ const Invoices = ({ navigation }) => {
           />
         }
       >
-        <DashboardHeader
-          navigation={navigation}
-          variant="invoices"
-          showBalance={false}
-          consumerData={consumerData}
-          isLoading={isLoading}
-        />
-        
-        {/* Invoice Table */}
-        <View style={styles.tableWrapper}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.tableScrollContent}
-          >
-            <Table
-              data={tableData}
-              loading={isLoading}
-              emptyMessage="No invoices available"
-              showSerial={true}
-              showPriority={false}
-              onRowPress={handleRowPress}
-              minTableWidth={900}
-              containerStyle={styles.tableContainer}
-              rowStyle={styles.tableRow}
-              columns={[
-                { key: 'billingMonth', title: 'Billing Month', flex: 1 },
-                { key: 'invoiceNo', title: 'Invoice No', flex: 1.4 },
-                { key: 'billFromDate', title: 'Bill From Date', flex: 1.2 },
-                { key: 'billToDate', title: 'Bill To Date', flex: 1.2 },
-                { key: 'dueDate', title: 'Due Date', flex: 1 },
-                { key: 'units', title: 'No. of Units', flex: 1, align: 'right' },
-                { key: 'totalBill', title: 'Total Bill (₹)', flex: 1.4, align: 'right' }
-              ]}
-            />
-          </ScrollView>
-        </View>
-        
-        {/* PDF Generation Overlay */}
-        {isGeneratingPDF && (
-          <View style={styles.pdfOverlay}>
-            <View style={styles.pdfOverlayContent}>
-              <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-              <Text style={styles.pdfOverlayText}>Generating Invoice PDF...</Text>
+        {/* Page Title with Filter */}
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>My Invoices</Text>
+          {/* <Pressable style={styles.filterButton}>
+            <View style={styles.filterIcon}>
+              <View style={styles.filterRow}>
+                <View style={styles.filterLine} />
+                <View style={styles.filterDot} />
+              </View>
+              <View style={styles.filterRow}>
+                <View style={styles.filterLine} />
+                <View style={styles.filterDot} />
+              </View>
             </View>
+          </Pressable> */}
+          <Pressable style={styles.filterButton} onPress={handleFilterPress}>  
+            <FilterIcon width={24} height={24} />
+          </Pressable>
+        </View>
+
+        {/* Invoice Cards */}
+        {isLoading ? (
+          <View style={styles.cardsContainer}>
+            {[1, 2, 3].map((index) => (
+              <SkeletonInvoiceCard key={index} />
+            ))}
+          </View>
+        ) : filteredInvoiceCards.length > 0 ? (
+          <View style={styles.cardsContainer}>
+            {filteredInvoiceCards.map(renderInvoiceCard)}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No invoices available</Text>
           </View>
         )}
-        
       </ScrollView>
-        {/* {tableData.length > 0 && ( 
-        <View style={styles.buttonContainer}>
-          <View style={styles.buttonContainerInner}>
-            <DownloadButton
-              data={tableData.map(item => ({
-                billingMonth: item.billingMonth,
-                invoiceNo: item.invoiceNo,
-                billFromDate: item.billFromDate,
-                billToDate: item.billToDate,
-                dueDate: item.dueDate,
-                units: item.units,
-                totalBill: item.totalBill
-              }))}
-              columns={[
-                { key: 'billingMonth', title: 'Billing Month' },
-                { key: 'invoiceNo', title: 'Invoice No' },
-                { key: 'billFromDate', title: 'Bill From Date' },
-                { key: 'billToDate', title: 'Bill To Date' },
-                { key: 'dueDate', title: 'Due Date' },
-                { key: 'units', title: 'No. of Units' },
-                { key: 'totalBill', title: 'Total Bill (₹)' }
-              ]}
-              fileName="invoices"
-              title="Download All"
-              variant="primary"
-              size="medium"
-              style={styles.downloadButton}
-              textStyle={styles.forgotText}
-            />
+
+      {/* PDF Generation Overlay */}
+      {isGeneratingPDF && (
+        <View style={styles.pdfOverlay}>
+          <View style={styles.pdfOverlayContent}>
+            <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+            <Text style={styles.pdfOverlayText}>Generating Invoice PDF...</Text>
           </View>
         </View>
-      )} */}
-    </>
+      )}
+
+      {/* Bottom Navigation */}
+      <BottomNavigation navigation={navigation} />
+    </View>
   );
 };
 
 export default Invoices;
 
 const styles = StyleSheet.create({
-  Container: {
+  container: {
+    flex: 1,
+    backgroundColor: "#EEF8F0",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 75,
+    paddingBottom: 20,
+    paddingHorizontal: 30,
+  },
+  headerButton: {
     backgroundColor: COLORS.secondaryFontColor,
-    height: '100%',
+    width: 54,
+    height: 54,
+    borderRadius: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  tableWrapper: {
-    marginTop: 20,
+  logoWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
   },
-  tableScrollContent: {
-    paddingHorizontal: 4,
+  scrollContainer: {
+    flex: 1,
   },
-  tableContainer: {
-    paddingBottom: 12,
+  scrollContent: {
+    paddingHorizontal: 30,
+    paddingBottom: 130,
   },
-  tableRow: {
-    marginTop: 8,
+  pageHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
   },
-  buttonContainer:{
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    paddingTop: 20,
-    backgroundColor: COLORS.secondaryFontColor
+  pageTitle: {
+    fontSize: 16,
+    fontFamily: "Manrope-Bold",
+    color: COLORS.primaryFontColor,
   },
-  buttonContainerInner:{
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  filterButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterIcon: {
+    width: 24,
+    height: 24,
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  filterLine: {
+    width: 16,
+    height: 2,
+    backgroundColor: COLORS.primaryFontColor,
+    borderRadius: 1,
+  },
+  filterDot: {
+    width: 6,
+    height: 6,
+    backgroundColor: COLORS.primaryFontColor,
+    borderRadius: 3,
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: "Manrope-Regular",
+    color: "#9CA3AF",
+  },
+  cardsContainer: {
+    gap: 16,
+  },
+  invoiceCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 5,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  invoiceIdText: {
+    fontSize: 14,
+    fontFamily: "Manrope-SemiBold",
+    color: COLORS.primaryFontColor,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  unpaidBadge: {
+    backgroundColor: "#FEF3C7",
+  },
+  paidBadge: {
+    backgroundColor: "#D1FAE5",
+  },
+  statusText: {
+    fontSize: 10,
+    fontFamily: "Manrope-SemiBold",
+    color: COLORS.primaryFontColor,
+  },
+  datesContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  dateLabel: {
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    color: "#6B7280",
+  },
+  detailsSection: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 5,
+    padding: 16,
+    marginBottom: 16,
+    gap: 12,
+    flexDirection: "row",
+    justifyContent: "space-around",  
+    alignItems: "center",
+  },
+  detailItem: {
+    gap: 4,
+  },
+  detailLabel: {
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    color: "#6B7280",
+  },
+  detailValue: {
+    fontSize: 14,
+    fontFamily: "Manrope-Bold",
+    color: COLORS.primaryFontColor,
+  },
+  actionButtons: {
+    flexDirection: "row",
     gap: 12,
   },
-  downloadButton:{
-    width: '100%',
+  primaryButton: {
+    flex: 1,
+    backgroundColor: COLORS.secondaryColor,
+    borderRadius: 5,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryButtonText: {
+    fontSize: 14,
+    fontFamily: "Manrope-SemiBold",
+    color: "#FFFFFF",
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: COLORS.secondaryColor,
+    borderRadius: 5,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontFamily: "Manrope-SemiBold",
+    color: COLORS.secondaryColor,
   },
   pdfOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 9999,
   },
   pdfOverlayContent: {
     backgroundColor: COLORS.secondaryFontColor,
     padding: 30,
     borderRadius: 15,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -599,7 +910,10 @@ const styles = StyleSheet.create({
   pdfOverlayText: {
     marginTop: 15,
     fontSize: 16,
-    fontFamily: 'Manrope-Medium',
+    fontFamily: "Manrope-Medium",
     color: COLORS.primaryFontColor,
-  }
+  },
+  skeletonBox: {
+    borderRadius: 4,
+  },
 });

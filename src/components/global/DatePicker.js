@@ -24,6 +24,7 @@ const DatePicker = ({
   disabled = false,
   minimumDate,
   maximumDate,
+  dateFormat = 'dd/mm/yyyy', // 'dd/mm/yyyy' or 'dd-mm-yyyy'
 }) => {
   const [showPicker, setShowPicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(value || new Date());
@@ -33,7 +34,8 @@ const DatePicker = ({
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    const separator = dateFormat.includes('-') ? '-' : '/';
+    return `${day}${separator}${month}${separator}${year}`;
   };
 
   const handlePress = () => {
@@ -245,7 +247,7 @@ const styles = StyleSheet.create({
     color: COLORS.color_text_secondary,
   },
   iconContainer: {
-    marginLeft: 12,
+    // marginLeft: 12,
     padding: 4,
   },
   // Modal Styles
@@ -285,15 +287,15 @@ const styles = StyleSheet.create({
   pickerContainer: {
     maxHeight: 400,
     padding: 20,
+    gap: 20,
   },
   pickerSection: {
-    marginBottom: 20,
+    gap: 10,
   },
   pickerLabel: {
     fontSize: 16,
     fontFamily: 'Manrope-SemiBold',
     color: COLORS.primaryFontColor,
-    marginBottom: 10,
   },
   yearContainer: {
     flexDirection: 'row',
@@ -319,7 +321,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     minWidth: 60,
     alignItems: 'center',
-    marginBottom: 8,
   },
   dayGrid: {
     flexDirection: 'row',
@@ -333,7 +334,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
   },
   selectedButton: {
     backgroundColor: COLORS.secondaryColor,
@@ -363,6 +363,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
+    gap: 10,
   },
   cancelButton: {
     flex: 1,
@@ -370,7 +371,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     backgroundColor: '#F8F8F8',
-    marginRight: 10,
     alignItems: 'center',
   },
   confirmButton: {
@@ -379,7 +379,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     backgroundColor: COLORS.secondaryColor,
-    marginLeft: 10,
     alignItems: 'center',
   },
   cancelButtonText: {

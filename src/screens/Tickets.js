@@ -11,6 +11,7 @@ import ResolvedIcon from "../../assets/icons/resolved.svg";
 import ClosedIcon from "../../assets/icons/closed.svg";
 import EyeIcon from "../../assets/icons/eyeFill.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
+import BottomNavigation from "../components/global/BottomNavigation";
 import { LinearGradient } from "expo-linear-gradient";
 import { fetchConsumerData, syncConsumerData, fetchTicketStats, fetchTicketsTable, createTicket } from "../services/apiService";
 import { getUser } from "../utils/storage";
@@ -154,7 +155,7 @@ const Tickets = ({ navigation }) => {
 
       <ScrollView
         style={styles.Container}
-        contentContainerStyle={{flexGrow: 1}}
+        contentContainerStyle={{flexGrow: 1, paddingBottom: 130}}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -332,6 +333,9 @@ const Tickets = ({ navigation }) => {
           />
         </BottomSheetView>
       </BottomSheet>
+      
+      {/* Bottom Navigation */}
+      <BottomNavigation navigation={navigation} />
     </GestureHandlerRootView>
   );
 };

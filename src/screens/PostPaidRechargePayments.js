@@ -14,6 +14,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
 import DashboardHeader from "../components/global/DashboardHeader";
+import BottomNavigation from "../components/global/BottomNavigation";
 import DirectRazorpayPayment from "../components/DirectRazorpayPayment";
 import { getUser } from "../utils/storage";
 import { API, API_ENDPOINTS } from "../constants/constants";
@@ -497,6 +498,9 @@ const PostPaidRechargePayments = ({ navigation }) => {
         onError={onPaymentError}
         orderData={orderData}
       />
+      
+      {/* Bottom Navigation */}
+      <BottomNavigation navigation={navigation} />
     </KeyboardAvoidingView>
   );
 };
@@ -516,7 +520,7 @@ const styles = StyleSheet.create({
   },
   scrollContentContainer: {
     flexGrow: 1,
-    paddingBottom: 120, // Space for the button container
+    paddingBottom: 180, // Space for the button container and bottom navigation
   },
   bluecontainer: {
     backgroundColor: "#eef8f0",

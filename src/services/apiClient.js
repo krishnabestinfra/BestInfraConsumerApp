@@ -15,10 +15,10 @@ import { authService } from './authService';
 
 class ApiClient {
   constructor() {
-    this.baseTimeout = 10000; 
-    this.maxRetries = 1; 
-    this.requestCache = new Map();
-    this.pendingRequests = new Map(); 
+    this.baseTimeout = 15000; // 15 seconds default timeout (increased from 10s)
+    this.maxRetries = 1; // Reduced retries for speed
+    this.requestCache = new Map(); // In-memory request cache
+    this.pendingRequests = new Map(); // Prevent duplicate requests
   }
 
   /**
@@ -139,9 +139,10 @@ class ApiClient {
       
       // Handle different error types
       if (error.name === 'AbortError') {
+        console.error(`⏱️ Request timeout after ${timeout}ms: ${endpoint}`);
         return {
           success: false,
-          error: 'Request timeout - please try again',
+          error: `Request timeout after ${Math.round(timeout / 1000)}s - the server may be slow. Please try again.`,
           status: 408,
           isTimeout: true
         };
@@ -381,10 +382,14 @@ class ApiClient {
 
   /**
    * Get consumer data
+   * Uses longer timeout since this endpoint can take longer to process
    */
   async getConsumerData(consumerId) {
     const endpoint = API_ENDPOINTS.consumers.get(consumerId);
-    return this.request(endpoint);
+    return this.request(endpoint, {
+      timeout: 30000, // 30 seconds timeout for consumer data
+      retries: 2, // Allow 2 retries for this important endpoint
+    });
   }
 
   /**

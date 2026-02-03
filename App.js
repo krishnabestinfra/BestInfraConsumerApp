@@ -38,6 +38,7 @@ import PaymentStatus from "./src/screens/PaymentStatus";
 import DgScreen from "./src/screens/DgScreen";
 import ConsumerDataTable from "./src/screens/ConsumerDataTable";
 import Invoices from "./src/screens/Invoices";
+import Reports from "./src/screens/Reports";
 import Toastify from 'react-native-toast-message';
 
 
@@ -299,6 +300,11 @@ export default function App() {
           <Stack.Screen
             name="Invoices"
             component={Invoices}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Reports"
+            component={Reports}
             options={{ headerShown: false }}
           />
             </Stack.Navigator>

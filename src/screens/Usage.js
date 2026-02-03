@@ -2,6 +2,7 @@ import { StyleSheet, Text, View, ScrollView, RefreshControl } from "react-native
 import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
 import DashboardHeader from "../components/global/DashboardHeader";
+import BottomNavigation from "../components/global/BottomNavigation";
 import { getCachedConsumerData } from "../utils/cacheManager";
 import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../services/apiService";
 import { StatusBar } from "expo-status-bar";
@@ -202,143 +203,153 @@ const Usage = ({ navigation }) => {
 
 
   return (
-    <ScrollView
-      style={styles.Container}
-      contentContainerStyle={{ paddingBottom: 30 }}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={handleRefresh}
-          colors={[COLORS.secondaryColor]}
-          tintColor={COLORS.secondaryColor}
+    <View style={styles.mainContainer}>
+      <ScrollView
+        style={styles.Container}
+        contentContainerStyle={{ paddingBottom: 130 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={handleRefresh}
+            colors={[COLORS.secondaryColor]}
+            tintColor={COLORS.secondaryColor}
+          />
+        }
+      >
+        <StatusBar style="dark" />
+        <DashboardHeader
+          navigation={navigation}
+          variant="usage"
+          showBalance={false}
+          consumerData={consumerData}
+          isLoading={isLoading}
         />
-      }
-    >
-      <StatusBar style="dark" />
-      <DashboardHeader
-        navigation={navigation}
-        variant="usage"
-        showBalance={false}
-        consumerData={consumerData}
-        isLoading={isLoading}
-      />
 
-    {/* Usage Summary Section */}
-    <View style={styles.usageSummaryContainer}>
-      {/* Header with Toggle */}
-      <View style={styles.summaryHeader}>
-        <Text style={styles.summaryTitle}>Usage Summary</Text>
-        <View style={styles.textToggleContainer}>
-          <Text style={styles.toggleText}>
-            <Text
-              style={[
-                styles.toggleTextItem,
-                selectedView === "daily" && styles.toggleTextSelected
-              ]}
-              onPress={() => setSelectedView("daily")}
-            >
-              Daily
-            </Text>
-            <Text style={styles.toggleSeparator}> / </Text>
-            <Text
-              style={[
-                styles.toggleTextItem,
-                selectedView === "monthly" && styles.toggleTextSelected
-              ]}
-              onPress={() => setSelectedView("monthly")}
-            >
-              Monthly
-            </Text>
-          </Text>
-        </View>
-      </View>
-
-      {/* Professional Cards */}
-      <View style={styles.professionalCardsContainer}>
-        {/* Consumption Card */}
-        <View style={styles.professionalCard}>
-          <View style={styles.cardContent}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.professionalCardTitle}>
-                {selectedView === "daily" ? "Daily Consumption" : "Monthly Consumption"}
+        {/* Usage Summary Section */}
+        <View style={styles.usageSummaryContainer}>
+          {/* Header with Toggle */}
+          <View style={styles.summaryHeader}>
+            <Text style={styles.summaryTitle}>Usage Summary</Text>
+            <View style={styles.textToggleContainer}>
+              <Text style={styles.toggleText}>
+                <Text
+                  style={[
+                    styles.toggleTextItem,
+                    selectedView === "daily" && styles.toggleTextSelected
+                  ]}
+                  onPress={() => setSelectedView("daily")}
+                >
+                  Daily
+                </Text>
+                <Text style={styles.toggleSeparator}> / </Text>
+                <Text
+                  style={[
+                    styles.toggleTextItem,
+                    selectedView === "monthly" && styles.toggleTextSelected
+                  ]}
+                  onPress={() => setSelectedView("monthly")}
+                >
+                  Monthly
+                </Text>
               </Text>
-              <LinearGradient
-                colors={["#E8F5E9", "#C8E6C9"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.professionalCardIcon}
-              >
-                <MeterIcon width={18} height={18} />
-              </LinearGradient>
             </View>
-            <Text style={styles.professionalCardValue}>
-              {selectedView === "daily" ? `${getDailyConsumption()} kWh` : `${getMonthlyConsumption()} kWh`}
-            </Text>
+          </View>
+
+          {/* Professional Cards */}
+          <View style={styles.professionalCardsContainer}>
+            {/* Consumption Card */}
+            <View style={styles.professionalCard}>
+              <View style={styles.cardContent}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.professionalCardTitle}>
+                    {selectedView === "daily" ? "Daily Consumption" : "Monthly Consumption"}
+                  </Text>
+                  <LinearGradient
+                    colors={["#E8F5E9", "#C8E6C9"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.professionalCardIcon}
+                  >
+                    <MeterIcon width={18} height={18} />
+                  </LinearGradient>
+                </View>
+                <Text style={styles.professionalCardValue}>
+                  {selectedView === "daily" ? `${getDailyConsumption()} kWh` : `${getMonthlyConsumption()} kWh`}
+                </Text>
+              </View>
+            </View>
+
+            {/* Charges Card */}
+            <View style={styles.professionalCard}>
+              <View style={styles.cardContent}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.professionalCardTitle}>
+                    {selectedView === "daily" ? "Daily\nCharges" : "Monthly\nCharges"}
+                  </Text>
+                  <LinearGradient
+                    colors={["#E8F5E9", "#C8E6C9"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.professionalCardIcon}
+                  >
+                    <WalletIcon width={18} height={18} />
+                  </LinearGradient>
+                </View>
+                <Text style={styles.professionalCardValue}>
+                  {selectedView === "monthly" 
+                    ? (isLoading ? "Loading..." : formatCurrency(lastMonthBillAmount))
+                    : "N/A"}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* Charges Card */}
-        <View style={styles.professionalCard}>
-          <View style={styles.cardContent}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.professionalCardTitle}>
-                {selectedView === "daily" ? "Daily\nCharges" : "Monthly\nCharges"}
-              </Text>
-              <LinearGradient
-                colors={["#E8F5E9", "#C8E6C9"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.professionalCardIcon}
-              >
-                <WalletIcon width={18} height={18} />
-              </LinearGradient>
-            </View>
-            <Text style={styles.professionalCardValue}>
-              {selectedView === "monthly" 
-                ? (isLoading ? "Loading..." : formatCurrency(lastMonthBillAmount))
-                : "N/A"}
-            </Text>
-          </View>
-        </View>
-      </View>
-    </View>
+        {/* Vector Diagram Section */}
+        <VectorDiagram
+          voltage={{
+            r: consumerData?.rPhaseVoltage || 0,
+            y: consumerData?.yPhaseVoltage || 0,
+            b: consumerData?.bPhaseVoltage || 0,
+          }}
+          current={{
+            r: consumerData?.rPhaseCurrent || 0,
+            y: consumerData?.yPhaseCurrent || 0,
+            b: consumerData?.bPhaseCurrent || 0,
+          }}
+          powerFactor={{
+            r: consumerData?.rPhasePowerFactor || 0,
+            y: consumerData?.yPhasePowerFactor || 0,
+            b: consumerData?.bPhasePowerFactor || 0,
+          }}
+          totalKW={consumerData?.kW || null}
+          loading={isLoading}
+        />
+      </ScrollView>
 
-    {/* Vector Diagram Section */}
-    <VectorDiagram
-      voltage={{
-        r: consumerData?.rPhaseVoltage || 0,
-        y: consumerData?.yPhaseVoltage || 0,
-        b: consumerData?.bPhaseVoltage || 0,
-      }}
-      current={{
-        r: consumerData?.rPhaseCurrent || 0,
-        y: consumerData?.yPhaseCurrent || 0,
-        b: consumerData?.bPhaseCurrent || 0,
-      }}
-      powerFactor={{
-        r: consumerData?.rPhasePowerFactor || 0,
-        y: consumerData?.yPhasePowerFactor || 0,
-        b: consumerData?.bPhasePowerFactor || 0,
-      }}
-      totalKW={consumerData?.kW || null}
-      loading={isLoading}
-    />
-      
       {/* Consumer Details Bottom Sheet */}
       <ConsumerDetailsBottomSheet
         visible={bottomSheetVisible}
         onClose={handleBottomSheetClose}
         consumerUid={selectedConsumerUid}
       />
-    </ScrollView>
+      
+      {/* Bottom Navigation - Sticky at bottom */}
+      <BottomNavigation navigation={navigation} />
+    </View>
   );
 };
 
 export default Usage;
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: COLORS.secondaryFontColor,
+  },
   Container: {
+    flex: 1,
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
     borderBottomRightRadius: 30,

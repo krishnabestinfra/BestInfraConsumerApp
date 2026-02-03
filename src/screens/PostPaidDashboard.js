@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
-import { COLORS } from "../constants/colors";
+import { COLORS, colors } from "../constants/colors";
 import Arrow from "../../assets/icons/arrow.svg";
 import GroupedBarChart from "../components/GroupedBarChart";
 import ConsumerGroupedBarChart from "../components/ConsumerGroupedBarChart";
@@ -19,6 +19,7 @@ import Input from "../components/global/Input";
 import DatePicker from "../components/global/DatePicker";
 import Meter from "../../assets/icons/meterWhite.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
+import BottomNavigation from "../components/global/BottomNavigation";
 import LastCommunicationIcon from "../../assets/icons/signal.svg";
 import EyeIcon from "../../assets/icons/eyeFill.svg";
 import { API, API_ENDPOINTS } from "../constants/constants";
@@ -26,6 +27,7 @@ import { getUser, getToken } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 import { apiClient } from '../services/apiClient';
+import SwitchIcon from "../../assets/icons/switch.svg";
 
 const FALLBACK_ALERT_ROWS = [
   {
@@ -157,8 +159,8 @@ const PostPaidDashboard = ({ navigation, route }) => {
           errorMessage = "Access denied - contact support";
         } else if (error.message.includes('HTTP 404') || error.message.includes('not found')) {
           errorMessage = "Consumer data not found";
-        } else if (error.message.includes('timeout')) {
-          errorMessage = "Request timeout - please try again";
+        } else if (error.message.includes('timeout') || error.message.includes('Request timeout')) {
+          errorMessage = "Request is taking longer than expected. The server may be slow. Please try again.";
         } else if (error.message.includes('Network error')) {
           errorMessage = "Network error - please check your connection";
         }
@@ -745,7 +747,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     <>
       <ScrollView
         style={styles.Container}
-        contentContainerStyle={{ paddingBottom: 30 }}
+        contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -1015,6 +1017,57 @@ const PostPaidDashboard = ({ navigation, route }) => {
               )}
             </View>
           </View>
+          {/* Usage Statistics Section */}
+          <View style={styles.usageStatsContainer}>
+            {/* Top Row - Two Cards */}
+            <View style={styles.usageStatsTopRow}>
+              {/* Average Daily Card */}
+              <View style={styles.usageStatsCard}>
+                <Text style={styles.usageStatsCardTitle}>Average Daily</Text>
+                <Text style={styles.usageStatsCardValueBlue}>284 kWh</Text>
+              </View>
+              
+              {/* Peak Usage Card */}
+              <View style={styles.usageStatsCard}>
+                <Text style={styles.usageStatsCardTitle}>Peak Usage</Text>
+                <Text style={styles.usageStatsCardValueRed}>329 kWh</Text>
+              </View>
+            </View>
+            
+            {/* Bottom Row - Comparison Card */}
+            <View style={styles.comparisonCard}>
+              {/* Comparison Header */}
+              <View style={styles.comparisonHeader}>
+                <View style={styles.doubleArrowIcon}>
+                  <SwitchIcon width={20} height={20} />
+                </View>
+                <Text style={styles.comparisonTitle}>Comparison</Text>
+              </View>
+              
+              {/* Monthly Values */}
+              <View style={styles.monthlyValuesContainer}>
+                <View style={styles.monthlyValueItem}>
+                  <Text style={styles.monthlyValueLabel}>This Month</Text>
+                  <Text style={styles.monthlyValueBlue}>2,060 kWh</Text>
+                </View>
+                <View style={styles.monthlyValueItem}>
+                  <Text style={styles.monthlyValueLabel}>Last Month</Text>
+                  <Text style={styles.monthlyValueGrey}>2,340 kWh</Text>
+                </View>
+              </View>
+              
+              {/* Progress Bar */}
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBar}>
+                  <View style={styles.progressBarFill} />
+                  <View style={styles.progressBarRemainder} />
+                </View>
+              </View>
+              
+              {/* Savings Message */}
+              <Text style={styles.savingsMessage}>You saved 280 kWh compared to last month</Text>
+            </View>
+          </View>
           <View style={styles.tableContainer}>
             <Text style={styles.tableTitle}>Alerts</Text>
           </View>
@@ -1104,6 +1157,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
         consumerUid={selectedConsumerUid}
         onClose={handleBottomSheetClose}
       />
+      
+      {/* Bottom Navigation */}
+      <BottomNavigation navigation={navigation} />
     </>
   );
 };
@@ -1117,7 +1173,7 @@ const styles = StyleSheet.create({
   },
   graphSection: {
     padding: 16,
-    paddingBottom: 20,
+    paddingBottom:5 ,
   },
   energySummaryHeader: {
     flexDirection: "row",
@@ -1510,6 +1566,120 @@ const styles = StyleSheet.create({
   cumulativeValue: {
     color: COLORS.primaryFontColor,
     fontFamily: "Manrope-Medium",
+  },
+  // Usage Statistics Styles
+  usageStatsContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 16,
+  },
+  usageStatsTopRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  usageStatsCard: {
+    flex: 1,
+    backgroundColor: "#eef8f0",
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F1F3F4",
+  },
+  usageStatsCardTitle: {
+    fontSize: 14,
+    fontFamily: "Manrope-Medium",
+    color: COLORS.primaryFontColor,
+    marginBottom: 8,
+  },
+  usageStatsCardValueBlue: {
+    fontSize: 24,
+    fontFamily: "Manrope-Bold",
+    color: colors.color_brand_blue,
+    lineHeight: 28,
+  },
+  usageStatsCardValueRed: {
+    fontSize: 24,
+    fontFamily: "Manrope-Bold",
+    color: colors.color_danger,
+    lineHeight: 28,
+  },
+  comparisonCard: {
+    backgroundColor: "#eef8f0",
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#F1F3F4",
+  },
+  comparisonHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 8,
+  },
+  doubleArrowIcon: {
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  doubleArrowText: {
+    fontSize: 16,
+    color: COLORS.primaryFontColor,
+  },
+  comparisonTitle: {
+    fontSize: 14,
+    fontFamily: "Manrope-Medium",
+    color: COLORS.primaryFontColor,
+  },
+  monthlyValuesContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  monthlyValueItem: {
+    flex: 1,
+  },
+  monthlyValueLabel: {
     fontSize: 12,
-  }
+    fontFamily: "Manrope-Regular",
+    color: COLORS.primaryFontColor,
+    marginBottom: 4,
+  },
+  monthlyValueBlue: {
+    fontSize: 24,
+    fontFamily: "Manrope-Bold",
+    color: colors.color_brand_blue,
+    lineHeight: 28,
+  },
+  monthlyValueGrey: {
+    fontSize: 24,
+    fontFamily: "Manrope-Bold",
+    color: colors.color_text_secondary,
+    lineHeight: 28,
+  },
+  progressBarContainer: {
+    marginBottom: 8,
+  },
+  progressBar: {
+    flexDirection: "row",
+    height: 8,
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    flex: 0.88,
+    backgroundColor: colors.color_secondary,
+    borderRadius: 4,
+  },
+  progressBarRemainder: {
+    flex: 0.12,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 4,
+  },
+  savingsMessage: {
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    color: "#6B9E78",
+    marginTop: 4,
+  },
 });
