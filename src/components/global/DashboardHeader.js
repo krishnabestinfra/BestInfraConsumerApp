@@ -2,20 +2,10 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions, Image } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import GlobeShield from '../../../assets/icons/globe-shield.svg';
-import RechargeIcon from '../../../assets/icons/recharge.svg';
-import InvoicesIcon from '../../../assets/icons/invoices.svg';
-import TicketsIcon from '../../../assets/icons/tickets.svg';
-import UsageIcon from '../../../assets/icons/usage.svg';
-// White icons for active states
-import ActiveRechargeIcon from '../../../assets/icons/activePayments.svg';
-import ActiveTicketsIcon from '../../../assets/icons/ticketsWhite.svg';
-import ActiveInvoiceIcon from '../../../assets/icons/activeInvoice.svg';
-import ActiveUsageIcon from '../../../assets/icons/activeUsageIcon.svg';
 import Hand from '../../../assets/icons/hand.svg';
 import Arrow from '../../../assets/icons/arrow.svg';
 import Plus from '../../../assets/icons/plus.svg';
 import Menu from '../../../assets/icons/bars.svg';
-import WalletActive from '../../../assets/icons/wallet.svg';
 import Notification from '../../../assets/icons/notification.svg';
 import { getUser, getConsumerDisplayName, cleanupStoredUserData } from '../../utils/storage';
 import { getCachedConsumerData, backgroundSyncConsumerData } from '../../utils/cacheManager';
@@ -121,83 +111,6 @@ const DashboardHeader = React.memo(({
     return getConsumerDisplayName(dataSource, userName, isLoading || isUserLoading);
   }, [cachedConsumerData, consumerData, userName, isLoading, isUserLoading]);
 
-  // Navigation configuration - memoized for performance
-  const navigationItems = useMemo(() => [
-    {
-      key: 'payments',
-      label: 'Recharge',
-      route: 'PostPaidRechargePayments',
-      icon: RechargeIcon,
-      activeIcon: WalletActive,
-      iconSize: { width: 20, height: 20 }
-    },
-    {
-      key: 'invoices',
-      label: 'Invoices',
-      route: 'Invoices',
-      icon: InvoicesIcon,
-      activeIcon: ActiveUsageIcon, // Use same icon for now
-      iconSize: { width: 20, height: 20 }
-    },
-    {
-      key: 'tickets',
-      label: 'Tickets',
-      route: 'Tickets',
-      icon: TicketsIcon,
-      activeIcon: ActiveTicketsIcon,
-      iconSize: { width: 20, height: 20 }
-    },
-    {
-      key: 'usage',
-      label: 'Usage',
-      route: 'Usage',
-      icon: UsageIcon,
-      activeIcon:  ActiveInvoiceIcon,
-      iconSize: { width: 20, height: 20 }
-    }
-  ], []);
-
-  // Handle navigation press - memoized for performance
-  const handleNavigationPress = useCallback((item) => {
-    if (item.route) {
-      // Use smooth navigation if available
-      if (navigation.navigateSmoothly) {
-        navigation.navigateSmoothly(item.route);
-      } else {
-        navigation.navigate(item.route);
-      }
-    }
-  }, [navigation]);
-
-  // Render individual navigation item - memoized for performance
-  const renderNavigationItem = useCallback((item) => {
-    const isActive = variant === item.key;
-    const IconComponent = isActive ? item.activeIcon : item.icon;
-    const iconColor = isActive ? COLORS.secondaryFontColor : '#55B56C';
-    
-    return (
-      <Pressable 
-        key={item.key}
-        style={styles.individualBox}
-        onPress={() => handleNavigationPress(item)}
-      >
-        <View style={[
-          styles.iconBox,
-          isActive && styles.iconBoxActive
-        ]}>
-          <IconComponent 
-            width={item.iconSize.width} 
-            height={item.iconSize.height} 
-            fill={iconColor} 
-          />
-        </View>
-        <Text style={styles.iconText}>
-          {item.label}
-        </Text>
-      </Pressable>
-    );
-  }, [variant, handleNavigationPress]);
-
   return (
     <View style={styles.bluecontainer}>
       <View style={styles.TopMenu}>
@@ -287,11 +200,6 @@ const DashboardHeader = React.memo(({
             <Text style={styles.paynowText}>Pay Now</Text>
           </Pressable>
         </View>
-      </View>
-      
-      {/* Dynamic Navigation Container */}
-      <View style={styles.iconsContainer}>
-        {navigationItems.map(renderNavigationItem)}
       </View>
     </View>
   );
@@ -475,44 +383,6 @@ badgeText: {
     fontSize: 12,
     fontFamily: 'Manrope-Medium',
     textAlign: 'center',
-  },
-  iconsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    marginTop: 15,
-  },
-  individualBox: {
-    alignItems: 'center',
-    width: 85,
-  },
-  // Navigation Item Styles
-  iconBox: {
-    backgroundColor: COLORS.secondaryFontColor, // White background (inactive)
-    borderRadius: 35,
-    elevation: 1,
-    width: 54,
-    height: 54,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconBoxActive: {
-    backgroundColor: COLORS.secondaryColor, // Green background (active)
-    borderRadius: 35,
-    elevation: 1,
-    width: 54,
-    height: 54,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconText: {
-    color: COLORS.primaryFontColor, // Dark text (inactive)
-    fontSize: 10,
-    fontFamily: 'Manrope-Regular',
-    marginTop: 5,
-  },
-  iconTextActive: {
-    color: COLORS.secondaryFontColor, // White text (active)
-    fontFamily: 'Manrope-Bold',
   },
 });
 
