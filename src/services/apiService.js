@@ -369,6 +369,42 @@ export const fetchTicketsTable = async (uid) => {
   }
 };
 
+/** Map form category label to API category value */
+const TICKET_CATEGORY_MAP = {
+  'Technical Issue': 'TECHNICAL',
+  'Billing Issue': 'BILLING',
+  'Connection Issue': 'CONNECTION',
+  'Meter Issue': 'METER',
+  'General Inquiry': 'GENERAL',
+};
+
+/**
+ * Create new ticket via API (POST to /tickets)
+ * @param {string} consumerNumber - Consumer identifier
+ * @param {object} formData - { subject, description, category, priority? }
+ * @returns {Promise<{ success: boolean, data?: any, message?: string }>}
+ */
+export const createTicket = async (consumerNumber, formData) => {
+  try {
+    const category = TICKET_CATEGORY_MAP[formData.category] || formData.category || 'GENERAL';
+    const payload = {
+      subject: formData.subject || 'No subject',
+      description: formData.description || '',
+      category,
+      priority: formData.priority || 'HIGH',
+      consumerNumber,
+    };
+    const result = await apiClient.createTicket(payload);
+    return result;
+  } catch (error) {
+    console.error('Error creating ticket:', error);
+    return {
+      success: false,
+      message: error.message || 'Failed to create ticket',
+    };
+  }
+};
+
 /**
  * Get cached consumer data instantly
  */

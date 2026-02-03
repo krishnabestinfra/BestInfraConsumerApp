@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Animated,
+  Modal,
+  Pressable,
 } from "react-native";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
@@ -28,6 +30,7 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 import { apiClient } from '../services/apiClient';
 import SwitchIcon from "../../assets/icons/switch.svg";
+import DropdownIcon from "../../assets/icons/dropDown.svg";
 
 const FALLBACK_ALERT_ROWS = [
   {
@@ -105,9 +108,14 @@ const StatusBlinkingDot = ({ status }) => {
 
 // Dynamic API URL will be set based on authenticated user
 
+const VIEW_OPTIONS = ["Chart", "Table"];
+const TIME_PERIODS = ["7D", "30D", "90D", "1Y"];
+
 const PostPaidDashboard = ({ navigation, route }) => {
   const [selectedView, setSelectedView] = useState("daily");
   const [displayMode, setDisplayMode] = useState("chart"); // "chart" or "table"
+  const [showViewDropdown, setShowViewDropdown] = useState(false);
+  const [timePeriod, setTimePeriod] = useState("30D");
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [tableData, setTableData] = useState([]);
@@ -854,105 +862,135 @@ const PostPaidDashboard = ({ navigation, route }) => {
             </View> */}
 
             <View style={styles.graphsContainer}>
-              {/* Summary Header */}
-              {selectedView === "daily" ? (
-                <>
-                  <Text style={styles.thismonthText}>
-                    Today's Usage: <Text style={styles.kwhText}>
-                      {isLoading ? "Loading..." : getDailyUsage()} kWh
-                    </Text>
-                  </Text>
-                  <View
-                    style={{                      flexDirection: "row",
-                      marginTop: 10,
-                    }}
-                  >
-                    <View style={[
-                      styles.tenPercentageTextContainer,
-                      getDailyTrendPercentage() < 0 && styles.negativeTrendContainer
-                    ]}>
-                      <Text style={styles.percentText}>
-                        {isLoading ? "..." : `${Math.abs(getDailyTrendPercentage())}%`}
+              {/* Summary Header row: usage + % on left, Chart/Table dropdown on right */}
+              <View style={styles.usageSummaryRow}>
+                <View style={styles.usageSummaryLeft}>
+                  {selectedView === "daily" ? (
+                    <>
+                      <Text style={styles.thismonthText}>
+                        Today's Usage: <Text style={styles.kwhText}>
+                          {isLoading ? "Loading..." : getDailyUsage()} kWh
+                        </Text>
                       </Text>
-                      <Arrow 
-                        width={12} 
-                        height={12} 
-                        fill={getDailyTrendPercentage() >= 0 ? "#55B56C" : "#FF6B6B"} 
-                        style={getDailyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
-                      />
-                    </View>
-                    <Text style={styles.lastText}>vs Yesterday.</Text>
-                  </View>
-                </>
-              ) : (
-                <>
-                  <Text style={styles.thismonthText}>
-                    This Month's Usage: <Text style={styles.kwhText}>
-                      {isLoading ? "Loading..." : getMonthlyUsage()} kWh
-                    </Text>
-                  </Text>
-                  <View
-                    style={{                      flexDirection: "row",
-                      marginTop: 10,
-                    }}
-                  >
-                    <View style={[
-                      styles.tenPercentageTextContainer,
-                      getMonthlyTrendPercentage() < 0 && styles.negativeTrendContainer
-                    ]}>
-                      <Text style={styles.percentText}>
-                        {isLoading ? "..." : `${Math.abs(getMonthlyTrendPercentage())}%`}
+                      <View style={styles.percentRow}>
+                        <View style={[
+                          styles.tenPercentageTextContainer,
+                          getDailyTrendPercentage() < 0 && styles.negativeTrendContainer
+                        ]}>
+                          <Text style={styles.percentText}>
+                            {isLoading ? "..." : `${Math.abs(getDailyTrendPercentage())}%`}
+                          </Text>
+                          <Arrow 
+                            width={12} 
+                            height={12} 
+                            fill={getDailyTrendPercentage() >= 0 ? "#55B56C" : "#FF6B6B"} 
+                            style={getDailyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
+                          />
+                        </View>
+                        <Text style={styles.lastText}>vs Yesterday.</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.thismonthText}>
+                        This Month's Usage: <Text style={styles.kwhText}>
+                          {isLoading ? "Loading..." : getMonthlyUsage()} kWh
+                        </Text>
                       </Text>
-                      <Arrow 
-                        width={12} 
-                        height={12} 
-                        fill={getMonthlyTrendPercentage() >= 0 ? "#55B56C" : "#FF6B6B"} 
-                        style={getMonthlyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
-                      />
-                    </View>
-                    <Text style={styles.lastText}>vs Last Month.</Text>
-                  </View>
-                </>
-              )}
+                      <View style={styles.percentRow}>
+                        <View style={[
+                          styles.tenPercentageTextContainer,
+                          getMonthlyTrendPercentage() < 0 && styles.negativeTrendContainer
+                        ]}>
+                          <Text style={styles.percentText}>
+                            {isLoading ? "..." : `${Math.abs(getMonthlyTrendPercentage())}%`}
+                          </Text>
+                          <Arrow 
+                            width={12} 
+                            height={12} 
+                            fill={getMonthlyTrendPercentage() >= 0 ? "#55B56C" : "#FF6B6B"} 
+                            style={getMonthlyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
+                          />
+                        </View>
+                        <Text style={styles.lastText}>vs Last Month.</Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+                {/* Chart/Table Dropdown - green button with chevron */}
+                <View style={styles.viewDropdownWrapper}>
+                  <TouchableOpacity
+                    style={styles.viewDropdownButton}
+                    onPress={() => setShowViewDropdown(!showViewDropdown)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.viewDropdownButtonText}>
+                      {displayMode === "chart" ? "Chart" : "Table"}
+                    </Text>
+                    <DropdownIcon width={14} height={14} fill={COLORS.secondaryFontColor} />
+                  </TouchableOpacity>
+                  {showViewDropdown && (
+                    <Modal
+                      visible={showViewDropdown}
+                      transparent
+                      animationType="fade"
+                      onRequestClose={() => setShowViewDropdown(false)}
+                    >
+                      <Pressable
+                        style={styles.viewDropdownOverlay}
+                        onPress={() => setShowViewDropdown(false)}
+                      >
+                        <Pressable
+                          style={styles.viewDropdownContent}
+                          onPress={() => {}}
+                        >
+                          {VIEW_OPTIONS.map((option) => (
+                            <Pressable
+                              key={option}
+                              style={[
+                                styles.viewDropdownItem,
+                                (displayMode === option.toLowerCase() && styles.viewDropdownItemSelected)
+                              ]}
+                              onPress={() => {
+                                setDisplayMode(option.toLowerCase());
+                                setShowViewDropdown(false);
+                              }}
+                            >
+                              <Text style={[
+                                styles.viewDropdownItemText,
+                                displayMode === option.toLowerCase() && styles.viewDropdownItemTextSelected
+                              ]}>
+                                {option}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </Pressable>
+                      </Pressable>
+                    </Modal>
+                  )}
+                </View>
+              </View>
 
-              {/* Chart/Table Toggle - Button Style */}
-              <View style={[styles.toggleContainer, { marginTop: 15, width: '100%' }]}>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    styles.toggleButtonFullWidth,
-                    displayMode === "chart" && styles.toggleButtonActive,
-                  ]}
-                  onPress={() => setDisplayMode("chart")}
-                >
-                  <Text
-                    style={
-                      displayMode === "chart"
-                        ? styles.toggleTextActive
-                        : styles.toggleTextInactive
-                    }
+              {/* Time period selector: 7D, 30D, 90D, 1Y */}
+              <View style={styles.timePeriodRow}>
+                {TIME_PERIODS.map((period) => (
+                  <TouchableOpacity
+                    key={period}
+                    style={[
+                      styles.timePeriodButton,
+                      timePeriod === period && styles.timePeriodButtonActive
+                    ]}
+                    onPress={() => setTimePeriod(period)}
+                    activeOpacity={0.8}
                   >
-                    Chart
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    styles.toggleButtonFullWidth,
-                    displayMode === "table" && styles.toggleButtonActive,
-                  ]}
-                  onPress={() => setDisplayMode("table")}
-                >
-                  <Text
-                    style={
-                      displayMode === "table"
-                        ? styles.toggleTextActive
-                        : styles.toggleTextInactive
-                    }
-                  >
-                    Table
-                  </Text>
-                </TouchableOpacity>
+                    <Text style={[
+                      styles.timePeriodButtonText,
+                      timePeriod === period && styles.timePeriodButtonTextActive
+                    ]}>
+                      {period}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
               {/* Chart or Table View */}
@@ -963,6 +1001,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   ) : (
                     <ConsumerGroupedBarChart
                       viewType={selectedView}
+                      timePeriod={timePeriod}
                       data={consumerData}
                       loading={isLoading}
                       onBarPress={handleBarPress}
@@ -1255,6 +1294,100 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderRadius: 5,
     paddingBottom: 5,
+  },
+  usageSummaryRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  usageSummaryLeft: {
+    flex: 1,
+  },
+  percentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  viewDropdownWrapper: {
+    marginLeft: 12,
+  },
+  viewDropdownButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.secondaryColor,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 6,
+    minHeight: 36,
+  },
+  viewDropdownButtonText: {
+    color: COLORS.secondaryFontColor,
+    fontSize: 13,
+    fontFamily: "Manrope-SemiBold",
+  },
+  viewDropdownOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+    paddingTop: 120,
+    paddingRight: 24,
+  },
+  viewDropdownContent: {
+    backgroundColor: COLORS.secondaryFontColor,
+    borderRadius: 8,
+    minWidth: 140,
+    borderWidth: 1,
+    borderColor: "#F1F3F4",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  viewDropdownItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  viewDropdownItemSelected: {
+    backgroundColor: "#E8F5E9",
+  },
+  viewDropdownItemText: {
+    fontSize: 14,
+    fontFamily: "Manrope-Medium",
+    color: COLORS.primaryFontColor,
+  },
+  viewDropdownItemTextSelected: {
+    color: COLORS.secondaryColor,
+    fontFamily: "Manrope-SemiBold",
+  },
+  timePeriodRow: {
+    flexDirection: "row",
+    marginTop: 16,
+    gap: 8,
+  },
+  timePeriodButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  timePeriodButtonActive: {
+    backgroundColor: colors.color_brand_blue,
+  },
+  timePeriodButtonText: {
+    fontSize: 13,
+    fontFamily: "Manrope-SemiBold",
+    color: COLORS.primaryFontColor,
+  },
+  timePeriodButtonTextActive: {
+    color: COLORS.secondaryFontColor,
   },
   thismonthText: {
     color: COLORS.primaryFontColor,

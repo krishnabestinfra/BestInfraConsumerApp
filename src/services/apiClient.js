@@ -425,6 +425,17 @@ class ApiClient {
   }
 
   /**
+   * Create new ticket (POST body: subject, description, category, priority, consumerNumber)
+   */
+  async createTicket(payload) {
+    const endpoint = API_ENDPOINTS.tickets.create();
+    return this.request(endpoint, {
+      method: 'POST',
+      body: payload,
+    });
+  }
+
+  /**
    * Get notifications
    */
   async getNotifications(uid) {
