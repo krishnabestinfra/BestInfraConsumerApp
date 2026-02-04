@@ -25,6 +25,7 @@ import Notification from "../../assets/icons/notification.svg";
 import CrossIcon from "../../assets/icons/crossWhite.svg";
 import SendIcon from "../../assets/icons/messageSend.svg";
 import Logo from "../components/global/Logo";
+import BottomNavigation from "../components/global/BottomNavigation";
 import { COLORS } from "../constants/colors";
 import { getUser } from "../utils/storage";
 import ChatIcon from "../../assets/icons/chatIcon.svg";
@@ -253,6 +254,9 @@ const ChatSupport = ({ navigation, route }) => {
         </View>
       </View>
  
+      {/* Bottom Navigation */}
+      <BottomNavigation navigation={navigation} />
+
     </KeyboardAvoidingView>
   );
 };

@@ -62,11 +62,30 @@ export const getPushToken = async () => {
       return null;
     }
 
-    // Get token
+    // Get token - handle different response formats
     const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-    const token = tokenData.data;
     
-    console.log('✅ Push token obtained:', token.substring(0, 20) + '...');
+    // Extract token - can be tokenData.data or tokenData directly
+    const token = tokenData?.data || tokenData;
+    
+    if (!token || typeof token !== 'string') {
+      console.error('❌ Invalid token format received:', tokenData);
+      return null;
+    }
+    
+    // Validate token format (should start with ExponentPushToken[)
+    if (!token.startsWith('ExponentPushToken[')) {
+      console.error('❌ Token does not match expected format:', token.substring(0, 50));
+      return null;
+    }
+    
+    // Log full token in development, truncated in production
+    if (__DEV__) {
+      console.log('✅ Push token obtained (full):', token);
+    } else {
+      console.log('✅ Push token obtained:', token.substring(0, 30) + '...');
+    }
+    
     return token;
   } catch (error) {
     console.error('❌ Error getting push token:', error);
@@ -97,8 +116,14 @@ export const registerPushToken = async (token) => {
       return { success: false, message: 'Authentication required' };
     }
 
-    // Use the correct endpoint - /sub-app/notifications for production, /notifications for dev
+    // Use the correct endpoint - /notifications (POST)
     const endpoint = API_ENDPOINTS.notifications.registerPushToken();
+
+    // Validate token format before sending
+    if (!token || typeof token !== 'string' || !token.startsWith('ExponentPushToken[')) {
+      console.error('❌ Invalid push token format:', token);
+      return { success: false, message: 'Invalid push token format' };
+    }
 
     const requestBody = {
       pushToken: token,
@@ -108,7 +133,13 @@ export const registerPushToken = async (token) => {
     };
 
     console.log(`🔄 Registering push token at: ${endpoint}`);
-    console.log(`   Request body:`, { ...requestBody, pushToken: token.substring(0, 20) + '...' });
+    if (__DEV__) {
+      console.log(`   Full push token:`, token);
+      console.log(`   Request body:`, requestBody);
+    } else {
+      console.log(`   Push token:`, token.substring(0, 30) + '...');
+      console.log(`   Request body:`, { ...requestBody, pushToken: token.substring(0, 30) + '...' });
+    }
     
     const response = await fetch(endpoint, {
       method: 'POST',

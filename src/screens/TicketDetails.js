@@ -30,6 +30,7 @@ import Logo from "../components/global/Logo";
 import TicketChatBox from "../components/TicketChatBox";
 import DropdownIcon from "../../assets/icons/dropDown.svg";
 import { apiClient } from "../services/apiClient";
+import BottomNavigation from "../components/global/BottomNavigation";
 
 const { width } = Dimensions.get("window");
 
@@ -186,15 +187,31 @@ const TicketDetails = ({ navigation, route }) => {
           <Logo variant="blue" size="medium" />
         </View>
 
-        <Pressable
-          style={styles.headerButton}
-          onPress={() => navigation.navigate("Profile")}
-        >
-          <Notification width={18} height={18} fill="#202d59" />
-        </Pressable>
+        <View style={styles.headerRightContainer}>
+          <Pressable
+            style={styles.headerButton}
+            onPress={() => navigation.navigate("Profile")}
+          >
+            <Notification width={18} height={18} fill="#202d59" />
+          </Pressable>
+          {/* Priority Badge */}
+          <View style={[
+            styles.priorityBadge,
+            (priority?.toLowerCase?.() ?? 'high') === 'low' && styles.priorityBadgeLow,
+            (priority?.toLowerCase?.() ?? 'high') === 'medium' && styles.priorityBadgeMedium,
+          ]}>
+            <Text style={styles.priorityBadgeText}>
+              {priority || "High"}
+            </Text>
+          </View>
+        </View>
       </View>
 
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        style={styles.scrollContainer} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.TicketDetailsContainer}>
             <TouchableOpacity 
               style={styles.TicketDetailsHeader} 
@@ -202,25 +219,14 @@ const TicketDetails = ({ navigation, route }) => {
               activeOpacity={0.7}
             >
               <Text style={styles.TicketDetailsText}>Ticket Details</Text>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={[
-                  styles.HighTextBox,
-                  (priority?.toLowerCase?.() ?? '') === 'low' && styles.LowTextBox,
-                  (priority?.toLowerCase?.() ?? '') === 'medium' && styles.MediumTextBox,
-                ]}>
-                  <Text style={styles.HighText}>
-                    {priority || "High"}
-                  </Text>
-                </View>
-                  <DropdownIcon
-                    width={14}
-                    height={14}
-                    style={{
-                      marginLeft: 8,
-                      transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
-                    }}
-                  />
-              </View>
+              <DropdownIcon
+                width={14}
+                height={14}
+                style={{
+                  marginLeft: 8,
+                  transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
+                }}
+              />
             </TouchableOpacity>
               {isExpanded && (
           <View style={styles.TicketDetailsMainContainer}>
@@ -311,6 +317,9 @@ const TicketDetails = ({ navigation, route }) => {
         </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation navigation={navigation} />
     </View>
   );
 };
@@ -329,6 +338,35 @@ const styles = StyleSheet.create({
     paddingTop: 75,
     paddingBottom: 20,
     paddingHorizontal: 30,
+    position: "relative",
+  },
+  headerRightContainer: {
+    position: "relative",
+    alignItems: "flex-end",
+  },
+  priorityBadge: {
+    position: "absolute",
+    top: 40,
+    right: 0,
+    backgroundColor: "#EF4444",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  priorityBadgeLow: {
+    backgroundColor: "#10B981",
+  },
+  priorityBadgeMedium: {
+    backgroundColor: "#F59E0B",
+  },
+  priorityBadgeText: {
+    fontSize: 10,
+    fontFamily: "Manrope-SemiBold",
+    color: "#FFFFFF",
+    textTransform: "capitalize",
   },
   barsIcon: {
     backgroundColor: COLORS.secondaryFontColor,
@@ -376,7 +414,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 30,
-    paddingBottom: 40,
+    paddingBottom: 180, // Space for bottom navigation
     gap: 12,
   },
   sectionHeader: {
@@ -525,5 +563,66 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Manrope-SemiBold",
     color: "#FFFFFF",
+  },
+  TicketDetailsContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 5,
+    marginBottom: 0,
+  },
+  TicketDetailsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
+  },
+  TicketDetailsText: {
+    fontSize: 16,
+    fontFamily: "Manrope-Bold",
+    color: COLORS.primaryFontColor,
+  },
+  TicketDetailsMainContainer: {
+    backgroundColor: "#FFFFFF",
+    borderBottomLeftRadius: 5,
+    borderBottomRightRadius: 5,
+    padding: 20,
+    gap: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F6",
+  },
+  TicketDetailsMainItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  TicketDetailsMainText: {
+    fontSize: 14,
+    fontFamily: "Manrope-SemiBold",
+    color: COLORS.primaryFontColor,
+    flex: 1,
+  },
+  TicketDetailsMainTextValue: {
+    fontSize: 14,
+    fontFamily: "Manrope-Regular",
+    color: COLORS.primaryFontColor,
+    flex: 1,
+    textAlign: "right",
+  },
+  headerButton: {
+    backgroundColor: COLORS.secondaryFontColor,
+    width: 54,
+    height: 54,
+    borderRadius: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
