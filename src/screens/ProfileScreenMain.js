@@ -392,7 +392,7 @@ const ProfileScreenMain = ({ navigation }) => {
                   {isSaving ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.saveButtonText}>Save Changes</Text>
+                    <Text style={styles.saveButtonText}>Save</Text>
                   )}
                 </TouchableOpacity>
               </View>
