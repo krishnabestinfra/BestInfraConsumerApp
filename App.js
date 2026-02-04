@@ -7,6 +7,8 @@ import { checkForAppUpdates } from "./src/utils/updateChecker";
 import Toast from 'react-native-toast-message';
 import Logo from "./src/components/global/Logo";
 import { COLORS } from "./src/constants/colors";
+import PushNotificationHandler from "./src/components/global/PushNotificationHandler";
+import { initializePushNotifications } from "./src/services/pushNotificationService";
 
 import SplashScreen from "./src/splashScreen/SplashScreen";
 import OnBoarding from "./src/screens/OnBoarding";
@@ -88,6 +90,19 @@ export default function App() {
     loadFonts();
     // Check for app updates after fonts are loaded
     checkForAppUpdates();
+    
+    // Initialize push notifications
+    const initPushNotifications = async () => {
+      try {
+        // Initialize push notifications (token registration happens after login)
+        await initializePushNotifications();
+        console.log('✅ Push notifications initialized');
+      } catch (error) {
+        console.error('❌ Error initializing push notifications:', error);
+      }
+    };
+    
+    initPushNotifications();
   }, []);
 
   // Global Back Button Handler
@@ -308,7 +323,8 @@ export default function App() {
             options={{ headerShown: false }}
           />
             </Stack.Navigator>
-             <Toastify />  
+             <Toastify />
+             <PushNotificationHandler />
               </NavigationContainer>
             </TabProvider>
           </NotificationsProvider>

@@ -100,7 +100,15 @@ export const API_ENDPOINTS = {
     list: (page = 1, limit = 10) => `${API.BASE_URL}/notifications?page=${page}&limit=${limit}`,
     markRead: (id) => `${API.BASE_URL}/notifications/${id}/read`,
     markAllRead: (uid) => `${API.BASE_URL}/notifications/${uid}/read-all`,
-    registerPushToken: () => `${API.BASE_URL}/notifications/push-token`,
+    // Register push token - uses /sub-app/notifications endpoint
+    registerPushToken: () => {
+      // Use sub-app route for production (matching auth endpoint pattern)
+      if (API.BASE_URL.includes('api.bestinfra.app')) {
+        return `${API.BASE_URL}/sub-app/notifications`;
+      }
+      // Use base route for development
+      return `${API.BASE_URL}/notifications`;
+    },
   },
   
   // LS Data endpoints (15-minute interval consumption data)
