@@ -1,24 +1,29 @@
-import React from 'react';
+import React from "react";
 import {
-  Modal,
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  Dimensions,
-} from 'react-native';
-import { COLORS } from '../../constants/colors';
-import CheckmarkIcon from '../../../assets/icons/checkmark.svg';
+  Modal,
+  TouchableOpacity,
+  Pressable,
+} from "react-native";
+import { COLORS } from "../../constants/colors";
+import CheckmarkIcon from "../../../assets/icons/checkmark.svg";
+import Button from "./Button";
 
-const { width } = Dimensions.get('window');
+const MODAL_GREEN = "#4CAF50";
+const MODAL_BG = "#E8F5E9";
 
 const TicketSuccessModal = ({
   visible,
   ticketNumber,
+  ticketData,
   onViewDetails,
   onReturnHome,
 }) => {
-  const displayNumber = ticketNumber || '—';
+  const displayNumber = ticketNumber
+    ? (String(ticketNumber).startsWith("#") ? ticketNumber : `#${ticketNumber}`)
+    : "#—";
 
   return (
     <Modal
@@ -26,33 +31,36 @@ const TicketSuccessModal = ({
       transparent
       animationType="fade"
       onRequestClose={onReturnHome}
+      statusBarTranslucent
     >
-      <View style={styles.overlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.iconWrapper}>
-            <CheckmarkIcon width={72} height={72} />
+      <Pressable style={styles.overlay} onPress={onReturnHome}>
+        <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+          <View style={styles.iconWrap}>
+            <CheckmarkIcon width={64} height={64} />
           </View>
           <Text style={styles.title}>Ticket Submitted Successfully!</Text>
-          <Text style={styles.detail}>
-            Your ticket number is #{displayNumber}
+          <Text style={styles.ticketNumber}>
+            Your ticket number is {displayNumber}
           </Text>
-          <Text style={styles.detail}>You will receive Email/SMS shortly</Text>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={onViewDetails}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.primaryButtonText}>View Ticket Details</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={onReturnHome}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.linkText}>Return to Home</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+          <Text style={styles.subtext}>You will receive Email/SMS shortly</Text>
+          <View style={styles.actions}>
+            <Button
+              title="View Ticket Details"
+              variant="primary"
+              onPress={onViewDetails}
+              style={styles.primaryButton}
+              textStyle={styles.primaryButtonText}
+            />
+            <TouchableOpacity
+              style={styles.returnLink}
+              onPress={onReturnHome}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.returnLinkText}>Return to Home</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 };
@@ -60,62 +68,72 @@ const TicketSuccessModal = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+    elevation: 999,
+    zIndex: 9999,
   },
-  modalContainer: {
-    width: Math.min(width - 48, 400),
-    backgroundColor: '#f0f8f4',
-    borderRadius: 12,
+  modalCard: {
+    backgroundColor: MODAL_BG,
+    borderRadius: 16,
     paddingVertical: 28,
     paddingHorizontal: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
+    width: "100%",
+    maxWidth: 340,
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 8,
   },
-  iconWrapper: {
+  iconWrap: {
     marginBottom: 16,
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: COLORS.primaryFontColor,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 12,
   },
-  detail: {
+  ticketNumber: {
+    fontSize: 15,
+    color: COLORS.primaryFontColor,
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  subtext: {
     fontSize: 14,
     color: COLORS.primaryFontColor,
-    textAlign: 'center',
-    marginBottom: 4,
+    textAlign: "center",
+    marginBottom: 24,
+    opacity: 0.9,
+  },
+  actions: {
+    width: "100%",
+    alignItems: "center",
   },
   primaryButton: {
-    backgroundColor: '#66BB6A',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginTop: 20,
-    alignSelf: 'stretch',
-    alignItems: 'center',
+    backgroundColor: MODAL_GREEN,
+    width: "100%",
+    marginBottom: 16,
   },
   primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "600",
   },
-  linkButton: {
-    marginTop: 16,
+  returnLink: {
     paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-  linkText: {
-    color: '#1E88E5',
+  returnLinkText: {
     fontSize: 15,
-    textDecorationLine: 'underline',
+    color: COLORS.primaryColor,
+    textDecorationLine: "underline",
+    fontWeight: "500",
   },
 });
 

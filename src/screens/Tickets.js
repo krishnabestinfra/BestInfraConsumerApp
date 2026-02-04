@@ -47,7 +47,7 @@ const Tickets = ({ navigation }) => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
   const [tableLoading, setTableLoading] = useState(true);
-  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdTicket, setCreatedTicket] = useState(null);
 
   // Fetch data function
@@ -129,14 +129,20 @@ const Tickets = ({ navigation }) => {
         return;
       }
       const result = await createTicket(user.identifier, ticketData);
-      if (result.success) {
+      const isSuccess = result?.success === true || result?.status === "success" || (result?.data && !result?.error);
+      if (isSuccess) {
         handleCloseBottomSheet();
         fetchData();
-        const ticket = result.data || result;
-        setCreatedTicket(ticket);
-        setSuccessModalVisible(true);
+        const raw = result.data || result;
+        const ticket = raw.ticket || raw.data || raw;
+        const ticketNumber = ticket.ticketNumber ?? ticket.ticket_number ?? ticket.id ?? ticket.number ?? ticket.ticketId ?? raw.ticketNumber ?? raw.ticketId ?? raw.id;
+        setCreatedTicket({ ...ticket, ticketNumber: ticketNumber ?? ticket.ticketNumber });
+        // Show modal after bottom sheet has closed so it is not covered
+        setTimeout(() => {
+          setShowSuccessModal(true);
+        }, 400);
       } else {
-        Alert.alert("Error", result.message || "Failed to create ticket.");
+        Alert.alert("Error", result?.message || result?.error || "Failed to create ticket.");
       }
     } catch (error) {
       console.error("Create ticket error:", error);
@@ -144,8 +150,13 @@ const Tickets = ({ navigation }) => {
     }
   }, []);
 
-  const handleSuccessViewDetails = useCallback(() => {
-    setSuccessModalVisible(false);
+  const handleCloseSuccessModal = useCallback(() => {
+    setShowSuccessModal(false);
+    setCreatedTicket(null);
+  }, []);
+
+  const handleViewTicketFromSuccess = useCallback(() => {
+    setShowSuccessModal(false);
     if (createdTicket) {
       navigation.navigate("TicketDetails", {
         ticketId: createdTicket.id ?? createdTicket.ticketNumber,
@@ -156,11 +167,6 @@ const Tickets = ({ navigation }) => {
     }
     setCreatedTicket(null);
   }, [createdTicket, navigation]);
-
-  const handleSuccessReturnHome = useCallback(() => {
-    setSuccessModalVisible(false);
-    setCreatedTicket(null);
-  }, []);
 
   // Handle view ticket details (pass numeric id for API; ticketNumber for display)
   const handleViewTicket = useCallback((ticket) => {
@@ -358,14 +364,11 @@ const Tickets = ({ navigation }) => {
       </BottomSheet>
 
       <TicketSuccessModal
-        visible={successModalVisible}
-        ticketNumber={
-          createdTicket?.ticketNumber ??
-          createdTicket?.ticket_number ??
-          createdTicket?.id
-        }
-        onViewDetails={handleSuccessViewDetails}
-        onReturnHome={handleSuccessReturnHome}
+        visible={showSuccessModal}
+        ticketNumber={createdTicket?.ticketNumber ?? createdTicket?.ticket_number ?? createdTicket?.id}
+        ticketData={createdTicket}
+        onViewDetails={handleViewTicketFromSuccess}
+        onReturnHome={handleCloseSuccessModal}
       />
       
       {/* Bottom Navigation */}
