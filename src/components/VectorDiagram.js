@@ -35,9 +35,9 @@ const VectorDiagram = ({
   };
 
   const colors = { 
-    VR: '#dc2626',  // Red
-    VY: '#2563eb',  // Blue
-    VB: '#059669'   // Green
+    VR: '#dc2626',  // Red line
+    VY: '#eab308',  // Yellow lines
+    VB: '#2563eb'   // Blue lines
   };
 
   // Convert voltage from centivolts to volts for calculations
@@ -455,11 +455,11 @@ const VectorDiagram = ({
     return value;
   };
 
-  // Get colors for each phase (for table)
+  // Get colors for each phase (for table) - VR red, VY yellow, VB blue
   const phaseColors = {
-    r: { voltage: '#dc2626', current: '#4CAF50', dot: '#FF6B6B' },
-    y: { voltage: '#2563eb', current: '#4CAF50', dot: '#FFD54F' },
-    b: { voltage: '#059669', current: '#4CAF50', dot: '#64B5F6' },
+    r: { voltage: '#dc2626', current: '#4CAF50', dot: '#dc2626' },
+    y: { voltage: '#eab308', current: '#4CAF50', dot: '#eab308' },
+    b: { voltage: '#2563eb', current: '#4CAF50', dot: '#2563eb' },
   };
 
   // Data table row component - Proper table structure

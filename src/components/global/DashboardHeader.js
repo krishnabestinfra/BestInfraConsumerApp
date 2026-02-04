@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions, Image } from 'react-native';
 import { COLORS } from '../../constants/colors';
-import GlobeShield from '../../../assets/icons/globe-shield.svg';
 import Hand from '../../../assets/icons/hand.svg';
 import Arrow from '../../../assets/icons/arrow.svg';
 import Plus from '../../../assets/icons/plus.svg';
@@ -174,33 +173,6 @@ const DashboardHeader = React.memo(({
         )}
 
       </View>
-      
-      <View style={styles.amountSection}>
-        <View style={styles.amountContainer}>
-          <Text style={styles.dueText}>
-            Due Amount: {isLoading ? "Loading..." : formatAmount((cachedConsumerData || consumerData)?.totalOutstanding)}
-          </Text>
-          {/* <Text style={styles.dateText}>This Month</Text> */}
-        </View>
-        <View style={styles.greenBox}>
-          <View style={styles.payInfoContainer}>
-            <GlobeShield
-              width={25}
-              height={25}
-              fill="#55b56c"
-              style={styles.shieldIcon}
-            />
-            <View>
-              <Text style={styles.payText}>Pay securely</Text>
-              <Text style={styles.tostayText}>to stay on track.</Text>
-              <Text style={styles.avoidText}>Avoid service disruption.</Text>
-            </View>
-          </View>
-          <Pressable style={styles.paynowbox} onPress={() => navigation.navigate('PostPaidRechargePayments')}>
-            <Text style={styles.paynowText}>Pay Now</Text>
-          </Pressable>
-        </View>
-      </View>
     </View>
   );
 });
@@ -311,78 +283,6 @@ badgeText: {
   },
   plusBox: {
     marginLeft: 7,
-  },
-  amountSection: {
-    marginTop: 20,
-  },
-  amountContainer: {
-    backgroundColor: COLORS.primaryColor,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 10,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  dueText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 14,
-    fontFamily: 'Manrope-Medium',
-  },
-  dateText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 11,
-    fontFamily: 'Manrope-Regular',
-  },
-  greenBox: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.secondaryColor,
-    borderRadius: 8,
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    padding: 10,
-    marginTop: 3,
-  },
-  payInfoContainer: {
-    flexDirection: 'row',
-  },
-  shieldIcon: {
-    marginHorizontal: 12,
-    marginTop: 10,
-  },
-  payText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 16,
-    fontFamily: 'Manrope-Bold',
-  },
-  tostayText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 16,
-    fontFamily: 'Manrope-Bold',
-  },
-  avoidText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 10,
-    fontFamily: 'Manrope-Regular',
-    marginBottom:10,
-  },
-  paynowbox: {
-    backgroundColor: COLORS.secondaryFontColor,
-    height: 35,
-    width: 95,
-    borderRadius: 5,
-    justifyContent: 'center',
-    marginHorizontal:12,
-    
-  },
-  paynowText: {
-    color: COLORS.primaryFontColor,
-    fontSize: 12,
-    fontFamily: 'Manrope-Medium',
-    textAlign: 'center',
   },
 });
 
