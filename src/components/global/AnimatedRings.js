@@ -1,20 +1,17 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import React, { useEffect, useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   interpolate,
   runOnJS,
-  withRepeat,
 } from 'react-native-reanimated';
 import { Easing } from 'react-native-reanimated';
 
-const { width, height } = Dimensions.get('window');
-
-const RING_COUNT = 3; // Optimized from 20 to 3
-const RING_DELAY = 200;
-const ANIMATION_DURATION = 2000;
+const RING_COUNT = 20;
+const RING_DELAY = 800;
+const ANIMATION_DURATION = 5000;
 
 const Ring = ({ index, progress }) => {
   const ringStyle = useAnimatedStyle(() => {
@@ -36,40 +33,28 @@ const Ring = ({ index, progress }) => {
   return <Animated.View style={[styles.ring, ringStyle]} />;
 };
 
-const AnimatedRings = ({ 
-  count = RING_COUNT, 
-  delay = RING_DELAY, 
-  duration = ANIMATION_DURATION,
-  loop = true,
-  style 
-}) => {
+const AnimatedRings = ({ style }) => {
   const progress = useSharedValue(0);
 
+  const loopAnimation = useCallback(() => {
+    progress.value = 0;
+    progress.value = withTiming(
+      RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
+      {
+        duration: RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
+        easing: Easing.inOut(Easing.ease),
+      },
+      () => runOnJS(loopAnimation)()
+    );
+  }, [progress]);
+
   useEffect(() => {
-    if (loop) {
-      progress.value = withRepeat(
-        withTiming(delay * (count - 1) + duration, {
-          duration: delay * (count - 1) + duration,
-          easing: Easing.linear,
-        }),
-        -1,
-        false
-      );
-    } else {
-      progress.value = withTiming(
-        delay * (count - 1) + duration,
-        {
-          duration: delay * (count - 1) + duration,
-          easing: Easing.inOut(Easing.ease),
-        },
-        () => runOnJS(() => {})()
-      );
-    }
-  }, [count, delay, duration, loop]);
+    loopAnimation();
+  }, [loopAnimation]);
 
   return (
     <View style={[styles.container, style]}>
-      {Array.from({ length: count }).map((_, index) => (
+      {Array.from({ length: RING_COUNT }).map((_, index) => (
         <Ring key={index} index={index} progress={progress} />
       ))}
     </View>
