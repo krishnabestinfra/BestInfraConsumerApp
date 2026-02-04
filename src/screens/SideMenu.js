@@ -46,8 +46,7 @@ const SideMenu = ({ navigation }) => {
       await logoutUser(); // This calls authService.logout() which revokes tokens on server
       setActiveItem("Logout");
       
-      // Navigate to Login screen after logout
-      // Use reset to clear navigation stack
+
       navigation.reset({
         index: 0,
         routes: [{ name: "Login" }],
@@ -180,7 +179,7 @@ const styles = StyleSheet.create({
   },
   profileImageWrapper: {
     position: "relative",
-    marginRight: 10,
+    marginRight: 15,
   },
   gmrLogo: {
     width: 46,
@@ -211,7 +210,7 @@ const styles = StyleSheet.create({
   profileId: {
     fontSize: 11,
     fontFamily: "Manrope-Regular",
-    color: "#89A1F3",
+    color: "#B0BDD2",
     marginTop: 1,
   },
   barsIcon: {

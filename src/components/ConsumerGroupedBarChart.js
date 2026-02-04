@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Dimensions, Text, ActivityIndicator } from "react-native";
+import { View, Dimensions, Text, ActivityIndicator, ScrollView } from "react-native";
 import { BarChart as GiftedBarChart } from "react-native-gifted-charts";
 import { SkeletonLoader } from "../utils/loadingManager";
 
@@ -211,9 +211,9 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     };
   }
 
-  // Convert data to GiftedCharts format; show every nth label when many bars to avoid overlap
+  // Convert data to GiftedCharts format; for 30D show all labels (scrollable); else every nth when many bars
   const barCount = chartData.labels.length;
-  const showEveryNthLabel = barCount >= 20 ? (barCount <= 30 ? 5 : barCount <= 60 ? 10 : 15) : 1;
+  const showEveryNthLabel = barCount === 30 ? 1 : (barCount >= 20 ? (barCount <= 60 ? 10 : 15) : 1);
   const giftedData = chartData.labels.map((label, index) => ({
     value: chartData.blue[index] || 0,
     label: showEveryNthLabel > 1 && index % showEveryNthLabel !== 0 ? '' : label,
@@ -239,18 +239,27 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
   const displayedBars = giftedData.length || 0;
   const chartContainerWidth = containerWidth;
 
-  const edgeSpacing = 2;
   const manyBars = displayedBars >= 12;
   const threeBarsOnly = displayedBars === 3; // 90D: last 3 months
   const twelveBarsOnly = displayedBars === 12; // 1Y: last 12 months
+  const thirtyBarsOnly = displayedBars === 30; // 30D: scrollable with bigger bars
+
+  // 90D: use equal left/right edge spacing so both sides have the same gap
+  const edgeSpacing = threeBarsOnly ? 20 : 2;
 
   let spacing, minSpacing, minBarWidth, maxBarWidth;
   if (threeBarsOnly) {
-    // 90D: nice gaps between 3 bars, fill width so no empty space on right
+    // 90D: equal gaps left and right, nice gaps between 3 bars
     spacing = 24;
     minSpacing = 16;
     minBarWidth = 24;
     maxBarWidth = 999; // no cap so 3 bars fill container
+  } else if (thirtyBarsOnly) {
+    // 30D: bigger bar width, scrollable so dates are visible below
+    spacing = 8;
+    minSpacing = 6;
+    minBarWidth = 24;
+    maxBarWidth = 32; // fixed bigger bars
   } else {
     spacing = manyBars ? 4 : 8;
     minSpacing = manyBars ? 2 : 8;
@@ -265,7 +274,10 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     let availableForBars = chartContainerWidth - (edgeSpacing * 2) - (spacing * gaps);
     barWidth = Math.floor(availableForBars / displayedBars);
 
-    if (!threeBarsOnly && barWidth < minBarWidth && gaps > 0) {
+    if (thirtyBarsOnly) {
+      // 30D: use fixed bigger bar width so chart is wider than container (scrollable)
+      barWidth = 26;
+    } else if (!threeBarsOnly && barWidth < minBarWidth && gaps > 0) {
       spacing = Math.max(
         minSpacing,
         Math.floor((chartContainerWidth - (edgeSpacing * 2) - (minBarWidth * displayedBars)) / gaps)
@@ -277,13 +289,19 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     barWidth = Math.min(maxBarWidth, Math.max(minBarWidth, barWidth));
   }
 
-  // Label width: 3 bars and 12 bars need room for "Jan 2026"; many bars use tight width
+  // Chart width: for 30D use full content width (scrollable); otherwise fit container
+  const scrollableChartWidth = thirtyBarsOnly
+    ? displayedBars * barWidth + Math.max(0, displayedBars - 1) * spacing + (edgeSpacing * 2)
+    : chartContainerWidth;
+  const chartWidth = thirtyBarsOnly ? scrollableChartWidth : chartContainerWidth;
+
+  // Label width: 3/12 bars need "Jan 2026"; 30D needs room for date labels
   const xAxisLabelWidth = threeBarsOnly || twelveBarsOnly
-    ? Math.max(62, barWidth + spacing)  // "Jan 2026" fits without truncation
-    : (manyBars ? Math.max(12, barWidth + spacing) : Math.max(40, barWidth + spacing));
-  const chartWidth = chartContainerWidth;
+    ? Math.max(62, barWidth + spacing)
+    : (thirtyBarsOnly ? Math.max(38, barWidth + spacing) : (manyBars ? Math.max(12, barWidth + spacing) : Math.max(40, barWidth + spacing)));
   const xAxisFontSize = manyBars ? 8 : 12;
-  const needsScrolling = false;
+  // Only 30D (30 days) is horizontally scrollable; 7D, 90D, 1Y are not
+  const isScrollable = timePeriod === "30D" && thirtyBarsOnly;
 
   if (loading) {
   return (
@@ -368,15 +386,27 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
         height: 250, 
         width: '100%', 
         borderRadius: 5, 
-        backgroundColor: '#eef8f0'
+        backgroundColor: '#eef8f0',
+        overflow: 'hidden',
       }}
       onLayout={(e) => {
         const w = e.nativeEvent.layout.width;
         if (w > 0) setContainerWidth(w);
       }}
     >
-      <View style={{ flex: 1, paddingHorizontal: 0, alignItems: 'stretch' }}>
-        {renderChart()}
+      <View style={{ flex: 1, paddingHorizontal: 0, alignItems: 'stretch', overflow: 'hidden' }}>
+        {isScrollable ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={true}
+            style={{ width: '100%', overflow: 'hidden' }}
+            contentContainerStyle={{ minWidth: chartWidth }}
+          >
+            {renderChart()}
+          </ScrollView>
+        ) : (
+          renderChart()
+        )}
       </View>
     </View>
   );

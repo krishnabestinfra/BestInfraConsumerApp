@@ -893,7 +893,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     ? `${pickedDate.getDate().toString().padStart(2, "0")}/${(pickedDate.getMonth() + 1).toString().padStart(2, "0")}/${pickedDate.getFullYear()}`
                     : "Pick a Date"}
                 </Text>
-                <CalendarIcon width={18} height={18} fill={COLORS.primaryColor} style={styles.pickDateIcon} />
+                <CalendarIcon width={18} height={18} fill={COLORS.secondaryFontColor} style={styles.pickDateIcon} />
               </Pressable>
             <CalendarDatePicker
               visible={showDatePicker}
@@ -909,12 +909,11 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 <View style={styles.usageSummaryLeft}>
                   {selectedView === "daily" ? (
                     <>
-                      <Text style={styles.thismonthText}>
-                        Today's Usage: <Text style={styles.kwhText}>
+                      <Text style={styles.thismonthText}>Today's Usage:</Text>
+                      <View style={styles.usageValueRow}>
+                        <Text style={styles.kwhText}>
                           {isLoading ? "Loading..." : getDailyUsage()} kWh
                         </Text>
-                      </Text>
-                      <View style={styles.percentRow}>
                         <View style={[
                           styles.tenPercentageTextContainer,
                           getDailyTrendPercentage() < 0 && styles.negativeTrendContainer
@@ -929,17 +928,16 @@ const PostPaidDashboard = ({ navigation, route }) => {
                             style={getDailyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
                           />
                         </View>
-                        <Text style={styles.lastText}>vs Yesterday.</Text>
+                        <Text style={styles.lastText}>vs. Yesterday.</Text>
                       </View>
                     </>
                   ) : (
                     <>
-                      <Text style={styles.thismonthText}>
-                        This Month's Usage: <Text style={styles.kwhText}>
+                      <Text style={styles.thismonthText}>This Month's Usage:</Text>
+                      <View style={styles.usageValueRow}>
+                        <Text style={styles.kwhText}>
                           {isLoading ? "Loading..." : getMonthlyUsage()} kWh
                         </Text>
-                      </Text>
-                      <View style={styles.percentRow}>
                         <View style={[
                           styles.tenPercentageTextContainer,
                           getMonthlyTrendPercentage() < 0 && styles.negativeTrendContainer
@@ -954,7 +952,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                             style={getMonthlyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
                           />
                         </View>
-                        <Text style={styles.lastText}>vs Last Month.</Text>
+                        <Text style={styles.lastText}>vs. Last Month.</Text>
                       </View>
                     </>
                   )}
@@ -1131,7 +1129,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   <Text style={styles.monthlyValueLabel}>This Month</Text>
                   <Text style={styles.monthlyValueBlue}>2,060 kWh</Text>
                 </View>
-                <View style={styles.monthlyValueItem}>
+                <View style={styles.monthlyValueItem2}>
                   <Text style={styles.monthlyValueLabel}>Last Month</Text>
                   <Text style={styles.monthlyValueGrey}>2,340 kWh</Text>
                 </View>
@@ -1309,7 +1307,11 @@ const styles = StyleSheet.create({
   pickDateRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 12,
+    backgroundColor: "#FAFAFA",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   pickDateText: {
     fontSize: 12,
@@ -1354,6 +1356,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderRadius: 5,
     paddingBottom: 5,
+    overflow: "hidden",
   },
   usageSummaryRow: {
     flexDirection: "row",
@@ -1362,6 +1365,12 @@ const styles = StyleSheet.create({
   },
   usageSummaryLeft: {
     flex: 1,
+  },
+  usageValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    gap: 8,
   },
   percentRow: {
     flexDirection: "row",
@@ -1464,22 +1473,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    width: 60,
+    paddingHorizontal: 8,
     borderRadius: 20,
     height: 19,
-    // padding: 1.5,
+    gap: 4,
   },
   percentText: {
     color: COLORS.secondaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-SemiBold",
-    marginRight: 5,
+    lineHeight: 16,
+    includeFontPadding: false,
   },
   lastText: {
     color: COLORS.primaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-Regular",
-    marginLeft: 10,
   },
   logo: {
     width: 70,
@@ -1855,30 +1864,30 @@ const styles = StyleSheet.create({
   },
   usageStatsTopRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 11,
   },
   usageStatsCard: {
     flex: 1,
     backgroundColor: "#eef8f0",
     borderRadius: 8,
-    padding: 16,
+    padding: 15,
     borderWidth: 1,
     borderColor: "#F1F3F4",
   },
   usageStatsCardTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Manrope-Medium",
     color: COLORS.primaryFontColor,
     marginBottom: 8,
   },
   usageStatsCardValueBlue: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "Manrope-Bold",
     color: colors.color_brand_blue,
     lineHeight: 28,
   },
   usageStatsCardValueRed: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "Manrope-Bold",
     color: colors.color_danger,
     lineHeight: 28,
@@ -1907,17 +1916,20 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
   },
   comparisonTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: "Manrope-Medium",
     color: COLORS.primaryFontColor,
   },
   monthlyValuesContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     marginBottom: 12,
   },
   monthlyValueItem: {
-    flex: 1,
+    alignItems: "flex-start",
+    flex:1,
+  },
+  monthlyValueItem2: {
+    alignItems: "flex-end",
   },
   monthlyValueLabel: {
     fontSize: 12,
@@ -1926,13 +1938,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   monthlyValueBlue: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "Manrope-Bold",
     color: colors.color_brand_blue,
     lineHeight: 28,
   },
   monthlyValueGrey: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: "Manrope-Bold",
     color: colors.color_text_secondary,
     lineHeight: 28,
@@ -1945,21 +1957,23 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     overflow: "hidden",
+    backgroundColor: "#E5E7EB",
   },
   progressBarFill: {
     flex: 0.88,
     backgroundColor: colors.color_secondary,
-    borderRadius: 4,
+    borderTopRightRadius: 4,
+    borderBottomRightRadius: 4,
   },
   progressBarRemainder: {
     flex: 0.12,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 4,
+    backgroundColor: "transparent",
   },
   savingsMessage: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Manrope-Regular",
     color: "#6B9E78",
     marginTop: 4,
+    textAlign: "center",
   },
 });
