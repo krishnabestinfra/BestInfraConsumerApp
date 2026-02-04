@@ -13,14 +13,12 @@ import UploadInput from "./UploadInput";
 import Button from "./Button";
 import Input from "./Input";
 import CloseIcon from "../../../assets/icons/cross.svg";
-import { useNavigation } from "@react-navigation/native";
 
 const CreateNewTicket = ({
   onSubmit,
   onClose,
   title = "Create New Ticket",
 }) => {
-  const navigation = useNavigation();
   const [selectedCategory, setSelectedCategory] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -130,10 +128,7 @@ const CreateNewTicket = ({
           <Button
             variant="outline"
             title="Submit"
-            onPress={() => {
-              handleSubmit();
-              navigation.navigate("TicketDetails");
-            }}
+            onPress={handleSubmit}
             style={styles.button}
           />
         </View>

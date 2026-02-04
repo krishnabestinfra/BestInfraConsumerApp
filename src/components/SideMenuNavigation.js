@@ -1,5 +1,5 @@
-import { Pressable, StyleSheet, Text, View, Modal, TouchableOpacity, Switch } from "react-native";
-import React, { useState, useEffect, useContext } from "react";
+import { Pressable, StyleSheet, Text, View, Modal, TouchableOpacity, Switch, Animated } from "react-native";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { COLORS } from "../constants/colors";
 import Button from "./global/Button";
 import Slider from "@react-native-community/slider";
@@ -30,6 +30,8 @@ const SideMenuNavigation = ({ navigation }) => {
 
   // Alerts settings state
   const [usageThreshold, setUsageThreshold] = useState(500);
+  const sliderThumbAnim = useRef(new Animated.Value(500)).current;
+  const sliderRafRef = useRef(null);
   const [billDueReminders, setBillDueReminders] = useState(true);
   const [paymentConfirmations, setPaymentConfirmations] = useState(true);
   const [billAmountAlerts, setBillAmountAlerts] = useState(true);
@@ -89,6 +91,11 @@ const SideMenuNavigation = ({ navigation }) => {
   const handleCancelLogout = () => {
     setShowLogoutConfirm(false);
   };
+
+  // Sync thumb position when alerts modal opens
+  useEffect(() => {
+    if (showAlertsModal) sliderThumbAnim.setValue(usageThreshold);
+  }, [showAlertsModal]);
 
   const handleAlertsPress = () => {
     setShowAlertsModal(true);
@@ -274,19 +281,52 @@ const SideMenuNavigation = ({ navigation }) => {
             <View style={styles.thresholdSection}>
               <Text style={styles.thresholdLabel}>Usage Threshold Alert</Text>
               <View style={styles.sliderContainer}>
+                {/* Custom track background (unfilled - light grey) */}
+                <View style={styles.sliderTrackBg} />
+                {/* Custom filled track (dark blue) */}
+                <View
+                  style={[
+                    styles.sliderTrackFilled,
+                    { width: `${(usageThreshold / 1000) * 100}%` },
+                  ]}
+                />
+                {/* Custom 15x15 thumb - Animated to avoid flicker while dragging */}
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    styles.sliderThumb,
+                    {
+                      left: sliderThumbAnim.interpolate({
+                        inputRange: [0, 1000],
+                        outputRange: ["0%", "100%"],
+                      }),
+                    },
+                  ]}
+                />
+                {/* Slider on top: transparent track and thumb, only for touch */}
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
                   maximumValue={1000}
                   step={50}
                   value={usageThreshold}
-                  onValueChange={setUsageThreshold}
-                  minimumTrackTintColor="#163B7C"
-                  maximumTrackTintColor="#163B7C"
-                  thumbTintColor="#163B7C"
+                  onValueChange={(value) => {
+                    sliderThumbAnim.setValue(value);
+                    if (sliderRafRef.current != null) cancelAnimationFrame(sliderRafRef.current);
+                    sliderRafRef.current = requestAnimationFrame(() => {
+                      setUsageThreshold(value);
+                      sliderRafRef.current = null;
+                    });
+                  }}
+                  minimumTrackTintColor="transparent"
+                  maximumTrackTintColor="transparent"
+                  thumbTintColor="transparent"
                 />
               </View>
-              <Text style={styles.thresholdValue}>{Math.round(usageThreshold)} kWh</Text>
+              <Text style={styles.thresholdValue}>
+                <Text style={styles.thresholdValueNumber}>{Math.round(usageThreshold)}</Text>
+                <Text style={styles.thresholdValueUnit}> kWh</Text>
+              </Text>
             </View>
 
             {/* Toggle Settings */}
@@ -499,17 +539,56 @@ const styles = StyleSheet.create({
   },
   sliderContainer: {
     marginHorizontal: 0,
+    height: 24,
+    justifyContent: "center",
+    position: "relative",
+  },
+  sliderTrackBg: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#E5E7EB",
+  },
+  sliderTrackFilled: {
+    position: "absolute",
+    left: 0,
+    top: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#163B7C",
+  },
+  sliderThumb: {
+    position: "absolute",
+    width: 15,
+    height: 15,
+    borderRadius: 7.5,
+    backgroundColor: "#163B7C",
+    top: 4.5,
+    marginLeft: -7.5,
+    zIndex: 2,
   },
   slider: {
     width: "100%",
-    height: 10, // track thickness ~10px
+    height: 24,
+    paddingVertical: 0,
+    marginVertical: 0,
   },
   thresholdValue: {
+    marginTop: 8,
+    textAlign: "center",
+  },
+  thresholdValueNumber: {
     fontSize: 26,
     fontFamily: "Manrope-Bold",
-    color: COLORS.brandBlueColor,
-    textAlign: "center",
-    marginTop: 8,
+    color: "#163B7C",
+  },
+  thresholdValueUnit: {
+    fontSize: 18,
+    fontFamily: "Manrope-Bold",
+    color: "#163B7C",
   },
   toggleSection: {
     // marginTop: 8,

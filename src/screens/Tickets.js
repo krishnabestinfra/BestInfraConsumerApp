@@ -20,6 +20,7 @@ import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SkeletonLoader } from '../utils/loadingManager';
 import CreateNewTicket from "../components/global/CreateNewTicket";
+import TicketSuccessModal from "../components/global/TicketSuccessModal";
 
 const Tickets = ({ navigation }) => {
   const bottomSheetRef = useRef(null);
@@ -46,6 +47,8 @@ const Tickets = ({ navigation }) => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
   const [tableLoading, setTableLoading] = useState(true);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [createdTicket, setCreatedTicket] = useState(null);
 
   // Fetch data function
   const fetchData = async () => {
@@ -129,7 +132,9 @@ const Tickets = ({ navigation }) => {
       if (result.success) {
         handleCloseBottomSheet();
         fetchData();
-        Alert.alert("Success", "Ticket created successfully.");
+        const ticket = result.data || result;
+        setCreatedTicket(ticket);
+        setSuccessModalVisible(true);
       } else {
         Alert.alert("Error", result.message || "Failed to create ticket.");
       }
@@ -137,6 +142,24 @@ const Tickets = ({ navigation }) => {
       console.error("Create ticket error:", error);
       Alert.alert("Error", error.message || "Failed to create ticket.");
     }
+  }, []);
+
+  const handleSuccessViewDetails = useCallback(() => {
+    setSuccessModalVisible(false);
+    if (createdTicket) {
+      navigation.navigate("TicketDetails", {
+        ticketId: createdTicket.id ?? createdTicket.ticketNumber,
+        ticketData: createdTicket,
+        category: createdTicket.category,
+        status: createdTicket.status,
+      });
+    }
+    setCreatedTicket(null);
+  }, [createdTicket, navigation]);
+
+  const handleSuccessReturnHome = useCallback(() => {
+    setSuccessModalVisible(false);
+    setCreatedTicket(null);
   }, []);
 
   // Handle view ticket details (pass numeric id for API; ticketNumber for display)
@@ -333,6 +356,17 @@ const Tickets = ({ navigation }) => {
           />
         </BottomSheetView>
       </BottomSheet>
+
+      <TicketSuccessModal
+        visible={successModalVisible}
+        ticketNumber={
+          createdTicket?.ticketNumber ??
+          createdTicket?.ticket_number ??
+          createdTicket?.id
+        }
+        onViewDetails={handleSuccessViewDetails}
+        onReturnHome={handleSuccessReturnHome}
+      />
       
       {/* Bottom Navigation */}
       <BottomNavigation navigation={navigation} />
