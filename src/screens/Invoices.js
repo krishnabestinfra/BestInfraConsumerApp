@@ -22,6 +22,12 @@ import AnimatedRings from "../components/global/AnimatedRings";
 import { StatusBar } from "expo-status-bar";
 import FilterIcon from "../../assets/icons/filter.svg";
 
+const INVOICE_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "paid", label: "Paid" },
+  { key: "unpaid", label: "Unpaid" },
+];
+
 // Shimmer effect component for skeleton loading
 const Shimmer = ({ style }) => {
   const shimmerAnim = useRef(new Animated.Value(-1)).current;
@@ -362,6 +368,9 @@ const Invoices = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [consumerData, setConsumerData] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const [pendingStatusFilter, setPendingStatusFilter] = useState("all");
 
   // Fetch invoices and consumer data
   const fetchInvoices = useCallback(async () => {
@@ -409,7 +418,10 @@ const Invoices = ({ navigation }) => {
       const billingResult = await fetchBillingHistory(identifier);
       if (billingResult.success) {
         if (billingResult.data && (Array.isArray(billingResult.data) ? billingResult.data.length > 0 : true)) {
-          const normalizedInvoices = normalizeBillingData(billingResult.data);
+          // Normalize and sort invoices by date (newest first)
+          const normalizedInvoices = normalizeBillingData(billingResult.data).sort(
+            (a, b) => getInvoiceDateValue(b) - getInvoiceDateValue(a)
+          );
           const cards = transformInvoicesToCards(normalizedInvoices);
           setInvoiceCards(cards);
           setFilteredInvoiceCards(cards);
@@ -442,6 +454,27 @@ const Invoices = ({ navigation }) => {
   useEffect(() => {
     fetchInvoices();
   }, [fetchInvoices]);
+
+  // Re-compute filtered cards whenever invoices or filter change
+  useEffect(() => {
+    let next = invoiceCards;
+
+    if (statusFilter !== "all") {
+      next = invoiceCards.filter((card) => {
+        const status = card.isPaid ? "paid" : "unpaid";
+        return status === statusFilter;
+      });
+    }
+
+    // Just to be safe, keep newest invoices first even after filtering.
+    const sorted = [...next].sort((a, b) => {
+      const aTime = getInvoiceDateValue(a._originalData);
+      const bTime = getInvoiceDateValue(b._originalData);
+      return bTime - aTime;
+    });
+
+    setFilteredInvoiceCards(sorted);
+  }, [statusFilter, invoiceCards]);
 
   // Handle invoice view/pay/share
   const handleViewInvoice = useCallback(async (invoiceCard) => {
@@ -536,7 +569,8 @@ const Invoices = ({ navigation }) => {
   };
 
   const handleFilterPress = () => {
-    navigation.navigate("Reports");
+    setPendingStatusFilter(statusFilter);
+    setIsFilterModalVisible(true);
   };
 
   const renderInvoiceCard = (invoiceCard) => {
@@ -634,18 +668,6 @@ const Invoices = ({ navigation }) => {
         {/* Page Title with Filter */}
         <View style={styles.pageHeader}>
           <Text style={styles.pageTitle}>My Invoices</Text>
-          {/* <Pressable style={styles.filterButton}>
-            <View style={styles.filterIcon}>
-              <View style={styles.filterRow}>
-                <View style={styles.filterLine} />
-                <View style={styles.filterDot} />
-              </View>
-              <View style={styles.filterRow}>
-                <View style={styles.filterLine} />
-                <View style={styles.filterDot} />
-              </View>
-            </View>
-          </Pressable> */}
           <Pressable style={styles.filterButton} onPress={handleFilterPress}>  
             <FilterIcon width={24} height={24} />
           </Pressable>
@@ -675,6 +697,56 @@ const Invoices = ({ navigation }) => {
           <View style={styles.pdfOverlayContent}>
             <ActivityIndicator size="large" color={COLORS.secondaryColor} />
             <Text style={styles.pdfOverlayText}>Generating Invoice PDF...</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Filter Modal Overlay */}
+      {isFilterModalVisible && (
+        <View style={styles.filterOverlay}>
+          <Pressable
+            style={styles.filterBackdrop}
+            onPress={() => setIsFilterModalVisible(false)}
+          />
+          <View style={styles.filterCard}>
+            <Text style={styles.filterTitle}>Filter invoices</Text>
+            <Text style={styles.filterSubtitle}>Show bills by status</Text>
+            <View style={styles.filterChipsRow}>
+              {INVOICE_FILTERS.map((option) => {
+                const isActive = pendingStatusFilter === option.key;
+                return (
+                  <TouchableOpacity
+                    key={option.key}
+                    style={[
+                      styles.filterChip,
+                      isActive && styles.filterChipActive,
+                    ]}
+                    onPress={() => setPendingStatusFilter(option.key)}
+                    activeOpacity={0.85}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        isActive && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={styles.filterApplyButton}
+              onPress={() => {
+                setStatusFilter(pendingStatusFilter);
+                setIsFilterModalVisible(false);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.filterApplyText}>Apply Filter</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -764,6 +836,81 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: COLORS.primaryFontColor,
     borderRadius: 3,
+  },
+  filterOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9998,
+  },
+  filterBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+  },
+  filterCard: {
+    width: "80%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontFamily: "Manrope-Bold",
+    color: COLORS.primaryFontColor,
+    marginBottom: 4,
+  },
+  filterSubtitle: {
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    color: "#6B7280",
+    marginBottom: 14,
+  },
+  filterChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  filterChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+  },
+  filterChipActive: {
+    backgroundColor: COLORS.secondaryColor,
+    borderColor: COLORS.secondaryColor,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+    color: "#374151",
+  },
+  filterChipTextActive: {
+    color: "#FFFFFF",
+  },
+  filterApplyButton: {
+    backgroundColor: COLORS.secondaryColor,
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  filterApplyText: {
+    fontSize: 14,
+    fontFamily: "Manrope-SemiBold",
+    color: "#FFFFFF",
   },
   loadingContainer: {
     paddingVertical: 40,

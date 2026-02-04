@@ -129,14 +129,6 @@ const CreateNewTicket = ({
         <View style={styles.buttonRow}>
           <Button
             variant="outline"
-            title="Cancel"
-            onPress={() => {
-              handleCancel();
-              navigation.navigate("Tickets");
-            }}
-            style={styles.cancelButton}
-          />
-          <Button
             title="Submit"
             onPress={() => {
               handleSubmit();
@@ -161,7 +153,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 8,
-    marginTop: 150,
+    marginTop: 100,
     flexDirection: "column",
     flex: 1,
     justifyContent: "center", // center vertically

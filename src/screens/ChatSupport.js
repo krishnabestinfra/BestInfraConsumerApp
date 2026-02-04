@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 30,
     borderRadius: 5,
     overflow: "hidden",
-    height: "70%",
+    marginBottom: 70, // space above bottom navigation so content stays above bottom nav
   },
   messagesContainer: {
     flex: 1,

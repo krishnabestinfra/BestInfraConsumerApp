@@ -35,11 +35,11 @@ const BottomNavigation = ({ navigation }) => {
       iconSize: { width: 20, height: 20 }
     },
     {
-      key: 'invoices',
-      label: 'Invoices',
-      route: 'Invoices',
-      icon: InvoicesIcon,
-      activeIcon: ActiveUsageIcon,
+      key: 'usage',
+      label: 'Usage',
+      route: 'Usage',
+      icon: UsageIcon,
+      activeIcon: ActiveInvoiceIcon,
       iconSize: { width: 20, height: 20 }
     },
     {
@@ -50,12 +50,13 @@ const BottomNavigation = ({ navigation }) => {
       activeIcon: ActiveTicketsIcon,
       iconSize: { width: 20, height: 20 }
     },
+    
     {
-      key: 'usage',
-      label: 'Usage',
-      route: 'Usage',
-      icon: UsageIcon,
-      activeIcon: ActiveInvoiceIcon,
+      key: 'invoices',
+      label: 'Invoices',
+      route: 'Invoices',
+      icon: InvoicesIcon,
+      activeIcon: ActiveUsageIcon,
       iconSize: { width: 20, height: 20 }
     }
   ], []);

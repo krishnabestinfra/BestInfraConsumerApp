@@ -167,7 +167,7 @@ const SideMenuNavigation = ({ navigation }) => {
           style={styles.flex}
           onPress={() => {
             setActiveItem("Reports");
-            navigation.navigate("Invoices");
+            navigation.navigate("Reports");
           }}
         >
           {activeItem === "Reports" ? (
@@ -282,7 +282,7 @@ const SideMenuNavigation = ({ navigation }) => {
                   value={usageThreshold}
                   onValueChange={setUsageThreshold}
                   minimumTrackTintColor={COLORS.secondaryColor}
-                  maximumTrackTintColor="#E5E7EB"
+                  maximumTrackTintColor="#163B7C"
                   thumbTintColor={COLORS.brandBlueColor}
                 />
               </View>
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   },
   slider: {
     width: "100%",
-    height: 40,
+    height: 5, // track thickness ~5px
   },
   thresholdValue: {
     fontSize: 26,
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   saveButton: {
-    backgroundColor: COLORS.brandBlueColor,
+    backgroundColor: COLORS.secondaryColor,
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: "center",
