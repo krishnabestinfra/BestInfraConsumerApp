@@ -27,9 +27,6 @@ import Animated, {
 import { Easing } from "react-native-reanimated";
 import { getUser } from "../utils/storage";
 import Logo from "../components/global/Logo";
-import TicketChatBox from "../components/TicketChatBox";
-import DropdownIcon from "../../assets/icons/dropDown.svg";
-import { apiClient } from "../services/apiClient";
 
 const { width } = Dimensions.get("window");
 
@@ -57,40 +54,48 @@ const Ring = ({ index, progress }) => {
   return <Animated.View style={[styles.ring, ringStyle]} />;
 };
 
-// Format ISO date to "DD/MM/YYYY, hh:mm A" (works in React Native)
-const formatTicketDate = (isoString) => {
-  if (isoString == null || isoString === "") return "—";
-  const str = String(isoString).trim();
-  if (!str) return "—";
-  try {
-    const date = new Date(str);
-    if (Number.isNaN(date.getTime())) return str; // show raw if invalid
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    const hours = date.getHours();
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const hour12 = hours % 12 || 12;
-    return `${day}/${month}/${year}, ${hour12}:${minutes} ${ampm}`;
-  } catch {
-    return str;
-  }
-};
-
 const TicketDetails = ({ navigation, route }) => {
   const progress = useSharedValue(0);
   const [userName, setUserName] = useState("");
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [details, setDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
 
-  // Get ticket data from navigation params (API expects numeric id only)
+  // Get ticket data from navigation params
   const { ticketId, ticketData, category, status } = route?.params || {};
-  const rawId = ticketData?.id ?? ticketId;
-  const ticketIdForApi =
-    rawId != null && !Number.isNaN(Number(rawId)) ? Number(rawId) : null;
 
+  // Sample timeline data - replace with actual data from API
+  const timelineData = ticketData?.timeline || [
+    {
+      id: 1,
+      title: "Ticket Created",
+      description: "Your ticket has been registered",
+      date: "24 Jan, 09:00 am",
+      completed: true,
+      resolved: false,
+    },
+    {
+      id: 2,
+      title: "Assigned to Technician",
+      description: "Suresh M. will handle your request",
+      date: "24 Jan, 11:30 am",
+      completed: true,
+      resolved: false,
+    },
+    {
+      id: 3,
+      title: "Under Investigation",
+      description: "Technician inspecting the area",
+      date: "25 Jan, 02:00 pm",
+      completed: true,
+      resolved: false,
+    },
+    {
+      id: 4,
+      title: "Issue Resolved",
+      description: "Your ticket has been Resolved",
+      date: "24 Jan 03:00 pm",
+      completed: true,
+      resolved: true,
+    },
+  ];
 
   const loopAnimation = () => {
     progress.value = 0;
@@ -118,51 +123,17 @@ const TicketDetails = ({ navigation, route }) => {
     loadUser();
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      const user = await getUser();
-    })();
-  }, []);
-
-  // Fetch ticket details from API
-  useEffect(() => {
-    if (!ticketIdForApi) {
-      setDetails(ticketData ?? null);
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const result = await apiClient.getTicketDetails(ticketIdForApi);
-        if (!cancelled && result?.success && result?.data) {
-          setDetails(result.data);
-        } else if (!cancelled && ticketData) {
-          setDetails(ticketData);
-        }
-      } catch (err) {
-        if (!cancelled && ticketData) setDetails(ticketData);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [ticketIdForApi]);
-
-  const display = details ?? ticketData;
-  const priority = display?.priority ?? ticketData?.priority ?? category;
-
-  const timelineData = Array.isArray(display?.timeline)
-    ? display.timeline
-    : Array.isArray(display?.history)
-      ? display.history
-      : [];
+  const getPriorityStyle = (priority) => {
+    const p = priority?.toLowerCase();
+    if (p === "low") return styles.lowPriority;
+    if (p === "medium") return styles.mediumPriority;
+    return styles.highPriority;
+  };
 
   const handleChatSupport = () => {
     navigation.navigate("ChatSupport", {
-      ticketId: rawId ?? ticketId,
-      ticketData: display ?? ticketData,
+      ticketId: ticketData?.ticketNumber || ticketId,
+      ticketData: ticketData,
     });
   };
 
@@ -194,74 +165,61 @@ const TicketDetails = ({ navigation, route }) => {
         </Pressable>
       </View>
 
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.TicketDetailsContainer}>
-            <TouchableOpacity 
-              style={styles.TicketDetailsHeader} 
-              onPress={() => setIsExpanded(!isExpanded)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.TicketDetailsText}>Ticket Details</Text>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={[
-                  styles.HighTextBox,
-                  (priority?.toLowerCase?.() ?? '') === 'low' && styles.LowTextBox,
-                  (priority?.toLowerCase?.() ?? '') === 'medium' && styles.MediumTextBox,
-                ]}>
-                  <Text style={styles.HighText}>
-                    {priority || "High"}
-                  </Text>
-                </View>
-                  <DropdownIcon
-                    width={14}
-                    height={14}
-                    style={{
-                      marginLeft: 8,
-                      transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
-                    }}
-                  />
-              </View>
-            </TouchableOpacity>
-              {isExpanded && (
-          <View style={styles.TicketDetailsMainContainer}>
-            <View style={styles.TicketDetailsMainItem}>
-              <Text style={styles.TicketDetailsMainText}>Ticket ID</Text>
-              <Text style={styles.TicketDetailsMainTextValue}>
-                {loading ? "…" : (display?.ticketNumber ?? ticketId ?? "—")}
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Ticket Details Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Ticket Details</Text>
+          <View style={[styles.priorityBadge, getPriorityStyle(ticketData?.priority || "High")]}>
+            <Text style={styles.priorityText}>
+              {ticketData?.priority || "High"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.detailsCard}>
+          <View style={styles.detailsGrid}>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Ticket ID</Text>
+              <Text style={styles.detailValue}>
+                #{ticketData?.ticketNumber || ticketId || "298"}
               </Text>
             </View>
-            <View style={styles.TicketDetailsMainItem}>
-              <Text style={styles.TicketDetailsMainText}>Category</Text>
-              <Text style={styles.TicketDetailsMainTextValue}>
-                {loading ? "…" : (display?.category ?? category ?? "—")}
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Category</Text>
+              <Text style={styles.detailValue}>
+                {ticketData?.category || category || "Connection Issue"}
               </Text>
             </View>
-            <View style={styles.TicketDetailsMainItem}>
-              <Text style={styles.TicketDetailsMainText}>Status</Text>
-              <Text style={styles.TicketDetailsMainTextValue}>
-                {loading ? "…" : (display?.status ?? status ?? "—")}
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Status</Text>
+              <Text style={styles.detailValue}>
+                {ticketData?.status || status || "Open"}
               </Text>
             </View>
-            <View style={styles.TicketDetailsMainItem}>
-              <Text style={styles.TicketDetailsMainText}>Created On</Text>
-              <Text style={styles.TicketDetailsMainTextValue}>
-                {loading ? "…" : formatTicketDate(details?.createdAt ?? display?.createdAt ?? display?.createdOn) || "—"}
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Created On</Text>
+              <Text style={styles.detailValue}>
+                {ticketData?.createdOn || "08/17/2025, 04:04 PM"}
               </Text>
             </View>
-            <View style={styles.TicketDetailsMainItem}>
-              <Text style={styles.TicketDetailsMainText}>Last Updated</Text>
-              <Text style={styles.TicketDetailsMainTextValue}>
-                {loading ? "…" : formatTicketDate(details?.updatedAt ?? display?.updatedAt ?? display?.updatedOn ?? display?.lastUpdated) || "—"}
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Last Updated</Text>
+              <Text style={styles.detailValue}>
+                {ticketData?.lastUpdated || ticketData?.updatedOn || "17/08/2025, 04:04 PM"}
               </Text>
             </View>
-            <View style={styles.TicketDetailsMainItem}>
-              <Text style={styles.TicketDetailsMainText}>Assigned To</Text>
-              <Text style={styles.TicketDetailsMainTextValue}>
-                {loading ? "…" : (display?.assignedTo ?? "—")}
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Assigned to</Text>
+              <Text style={styles.detailValue}>
+                {ticketData?.assignedTo || "BI-Tech Team"}
               </Text>
             </View>
           </View>
-        )}
+        </View>
 
         {/* Ticket Timeline Section */}
         <Text style={styles.timelineTitle}>Ticket Timeline</Text>
@@ -309,7 +267,6 @@ const TicketDetails = ({ navigation, route }) => {
           </View>
           <ChevronRight width={24} height={24} />
         </TouchableOpacity>
-        </View>
       </ScrollView>
     </View>
   );
@@ -330,21 +287,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     paddingHorizontal: 30,
   },
-  barsIcon: {
-    backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
-    borderRadius: 60,
-    alignItems: "center",    
-    justifyContent: "center",
-    elevation: 5,
-    zIndex: 2,
-  },  logo: {
-    width: 80,
-    height: 80,
-    zIndex: 1,
-  },
-  bellIcon: {
+  headerButton: {
     backgroundColor: COLORS.secondaryFontColor,
     width: 54,
     height: 54,
