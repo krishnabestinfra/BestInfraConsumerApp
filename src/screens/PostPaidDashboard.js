@@ -18,8 +18,8 @@ import GroupedBarChart from "../components/GroupedBarChart";
 import ConsumerGroupedBarChart from "../components/ConsumerGroupedBarChart";
 import Table from "../components/global/Table";
 import Input from "../components/global/Input";
-import DatePicker from "../components/global/DatePicker";
 import Meter from "../../assets/icons/meterWhite.svg";
+import GlobeShield from "../../assets/icons/globe-shield.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
 import BottomNavigation from "../components/global/BottomNavigation";
 import LastCommunicationIcon from "../../assets/icons/signal.svg";
@@ -31,6 +31,8 @@ import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 import { apiClient } from '../services/apiClient';
 import SwitchIcon from "../../assets/icons/switch.svg";
 import DropdownIcon from "../../assets/icons/dropDown.svg";
+import CalendarIcon from "../../assets/icons/CalendarBlue.svg";
+import CalendarDatePicker from "../components/global/CalendarDatePicker";
 
 const FALLBACK_ALERT_ROWS = [
   {
@@ -112,7 +114,9 @@ const VIEW_OPTIONS = ["Chart", "Table"];
 const TIME_PERIODS = ["7D", "30D", "90D", "1Y"];
 
 const PostPaidDashboard = ({ navigation, route }) => {
-  const [selectedView, setSelectedView] = useState("daily");
+  const [selectedView] = useState("daily"); // Always daily; date is chosen via Pick a Date
+  const [pickedDate, setPickedDate] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [displayMode, setDisplayMode] = useState("chart"); // "chart" or "table"
   const [showViewDropdown, setShowViewDropdown] = useState(false);
   const [timePeriod, setTimePeriod] = useState("30D");
@@ -326,13 +330,43 @@ const PostPaidDashboard = ({ navigation, route }) => {
   }, []);
 
   // Format reading date without seconds
+  const formatAmount = useCallback((amount) => {
+    if (amount === null || amount === undefined) return "₹0.00";
+    return `₹${Math.abs(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }, []);
+
   const formatReadingDate = useCallback((dateString) => {
     if (!dateString) return "Loading...";
-    
     try {
-      // Remove seconds from timestamp (format: "23rd Jan 2026 04:45:01 AM" -> "23rd Jan 2026 04:45 AM")
-      // Pattern: match "HH:MM:SS" and replace with "HH:MM"
-      return dateString.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1');
+      const str = String(dateString).trim();
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const match = str.match(/^(\d+)(?:st|nd|rd|th)?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)/i);
+      if (match) {
+        const [, dayNum, monthStr, year, hour, min] = match;
+        const day = String(parseInt(dayNum, 10)).padStart(2, "0");
+        const monthIndex = monthNames.findIndex((m) => m.toLowerCase() === monthStr.toLowerCase());
+        if (monthIndex === -1) return dateString;
+        const month = monthNames[monthIndex];
+        const hourNum = parseInt(hour, 10);
+        const minNum = parseInt(min, 10);
+        const ampm = (match[7] || "AM").toUpperCase();
+        const time = `${hourNum}:${String(minNum).padStart(2, "0")} ${ampm}`;
+        return `${day} ${month} ${year}, ${time}`;
+      }
+      const normalized = str.replace(/(\d+)(st|nd|rd|th)\b/gi, "$1");
+      const d = new Date(normalized);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = monthNames[d.getMonth()];
+        const year = d.getFullYear();
+        const hours = d.getHours();
+        const mins = d.getMinutes();
+        const ampm = hours >= 12 ? "PM" : "AM";
+        const hour12 = hours % 12 || 12;
+        const time = `${hour12}:${String(mins).padStart(2, "0")} ${ampm}`;
+        return `${day} ${month} ${year}, ${time}`;
+      }
+      return dateString;
     } catch (error) {
       return dateString;
     }
@@ -399,7 +433,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
     return dailyData[dailyData.length - 1] || 0; // Get last value
   };
 
-  // Helper function to get monthly usage from chart data
   const getMonthlyUsage = () => {
     if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) return 0;
     const monthlyData = consumerData.chartData.monthly.seriesData[0].data;
@@ -775,6 +808,36 @@ const PostPaidDashboard = ({ navigation, route }) => {
             isLoading={isLoading}
           />
 
+          <View style={styles.amountSection}>
+            <View style={styles.amountContainer}>
+              <Text style={styles.dueText}>
+                Due Amount: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
+              </Text>
+              <Text style={styles.dateText}>Due on 15 Feb 2026</Text>
+            </View>
+            <View style={styles.greenBox}>
+              <View style={styles.payInfoContainer}>
+                <GlobeShield
+                  width={25}
+                  height={25}
+                  fill="#55b56c"
+                  style={styles.shieldIcon}
+                />
+                <View>
+                  <Text style={styles.payText}>Pay securely</Text>
+                  <Text style={styles.tostayText}>to stay on track.</Text>
+                  <Text style={styles.avoidText}>Avoid service disruption.</Text>
+                </View>
+              </View>
+              <View style={styles.paynowboxContainer}>
+                <Pressable style={styles.paynowbox} onPress={() => navigation.navigate('PostPaidRechargePayments')}>
+                  <Text style={styles.paynowText}>Pay Now</Text>
+                </Pressable>
+                <Text style={styles.dueDaysText}>10 Days left</Text>
+              </View>
+            </View>
+          </View>
+
           <View style={styles.meterContainer}>
             <TouchableOpacity
               style={styles.meterInfoContainer}
@@ -788,9 +851,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     <Text style={styles.meterConsumerText}>
                       {consumerData?.name || consumerData?.consumerName || "Loading..."}
                     </Text>
-                  <Text style={styles.meterNumberText}>
-                    Meter SL No: {consumerData?.meterSerialNumber || "Loading..."}
-                  </Text>
+                    <Text style={styles.LastCommunicationText}>
+                      Last Communication
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -803,7 +866,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 <View>
                 <View style={styles.lastCommunicationLeft}>
                   <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
-                  <Text style={styles.lastCommunicationText}>Last Communication</Text>
+                  <Text style={styles.meterNumberText}>
+                    {consumerData?.meterSerialNumber || "Loading..."}
+                  </Text>
                 </View>
                 <Text style={styles.lastCommunicationTimeText}>
                 {formatReadingDate(consumerData?.readingDate)}
@@ -812,54 +877,31 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 
               </View>
             </TouchableOpacity>
-            <View style={styles.lastCommunicationContainer}>
+            {/* <View style={styles.lastCommunicationContainer}>
                 <Text style={styles.meterUIDText}>
                   UID: {consumerData?.uniqueIdentificationNo || "Loading..."}
                 </Text>
-            </View>
+            </View> */}
           </View>
 
           <View style={styles.graphSection}>
             <View style={styles.energySummaryHeader}>
               <Text style={styles.energyText}>Energy Summary</Text>
-              {/* Daily/Monthly Toggle - Button Style */}
-              <View style={styles.textToggleContainer}>
-                <Text style={styles.toggleText}>
-                  <Text
-                    style={[
-                      styles.toggleTextItem,
-                      selectedView === "daily" && styles.toggleTextSelected
-                    ]}
-                    onPress={() => setSelectedView("daily")}
-                  >
-                    Daily
-                  </Text>
-                  <Text style={styles.toggleSeparator}> / </Text>
-                  <Text
-                    style={[
-                      styles.toggleTextItem,
-                      selectedView === "monthly" && styles.toggleTextSelected
-                    ]}
-                    onPress={() => setSelectedView("monthly")}
-                  >
-                    Monthly
-                  </Text>
+              <Pressable style={styles.pickDateRow} onPress={() => setShowDatePicker(true)}>
+                <Text style={styles.pickDateText} numberOfLines={1}>
+                  {pickedDate
+                    ? `${pickedDate.getDate().toString().padStart(2, "0")}/${(pickedDate.getMonth() + 1).toString().padStart(2, "0")}/${pickedDate.getFullYear()}`
+                    : "Pick a Date"}
                 </Text>
-              </View>
+                <CalendarIcon width={18} height={18} fill={COLORS.primaryColor} style={styles.pickDateIcon} />
+              </Pressable>
+            <CalendarDatePicker
+              visible={showDatePicker}
+              onClose={() => setShowDatePicker(false)}
+              value={pickedDate}
+              onChange={(date) => setPickedDate(date)}
+            />
             </View>
-
-            {/* <View style={styles.datePickerSection}>
-              <DatePicker
-                placeholder="Start Date"
-                value={startDate}
-                onChange={setStartDate}
-              />
-              <DatePicker
-                placeholder="End Date"
-                value={endDate}
-                onChange={setEndDate}
-              />
-            </View> */}
 
             <View style={styles.graphsContainer}>
               {/* Summary Header row: usage + % on left, Chart/Table dropdown on right */}
@@ -993,9 +1035,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 ))}
               </View>
 
-              {/* Chart or Table View */}
+              {/* Chart or Table View - full width of graphsContainer so chart aligns with header/buttons above */}
               {displayMode === "chart" ? (
-                <View style={{ alignItems: "center", marginTop: 15 }}>
+                <View style={{ width: "100%", alignItems: "stretch", marginTop: 15 }}>
                   {isLoading ? (
                     <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={selectedView === "daily" ? 10 : 12} />
                   ) : (
@@ -1252,12 +1294,30 @@ const styles = StyleSheet.create({
     minWidth: 50,
     textAlign: "center",
   },
+  LastCommunicationText: {
+    color: COLORS.secondaryFontColor,
+    fontSize: 10,
+    fontFamily: "Manrope-SemiBold",
+  },
   separator: {
     color: COLORS.primaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-Regular",
     marginHorizontal: 4,
     paddingVertical: 4,
+  },
+  pickDateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  pickDateText: {
+    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+    color: COLORS.primaryColor,
+  },
+  pickDateIcon: {
+    flexShrink: 0,
   },
   textToggleContainer: {
     flexDirection: "row",
@@ -1431,20 +1491,106 @@ const styles = StyleSheet.create({
     borderWidth: 1.2,
     borderColor: "#ffffff50",
   },
+  amountSection: {
+    paddingHorizontal: 16,
+    backgroundColor: "#eef8f0",
+  },
+  amountContainer: {
+    backgroundColor: COLORS.primaryColor,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 10,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginTop: 10,
+  },
+  paynowboxContainer: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+  },
+  dueText: {
+    color: COLORS.secondaryFontColor,
+    fontSize: 14,
+    fontFamily: "Manrope-Medium",
+  },
+  dueDaysText: {
+    color: COLORS.secondaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+    marginTop: 8,
+    marginHorizontal: 14,
+  },
+  dateText: {
+    color: COLORS.secondaryFontColor,
+    fontSize: 11,
+    fontFamily: "Manrope-Regular",
+  },
+  greenBox: {
+    flexDirection: "row",
+    backgroundColor: COLORS.secondaryColor,
+    borderRadius: 8,
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    alignItems: "center",
+    padding: 10,
+    marginVertical: 4,
+  },
+  payInfoContainer: {
+    flexDirection: "row",
+  },
+  shieldIcon: {
+    marginHorizontal: 12,
+    marginTop: 10,
+  },
+  payText: {
+    color: COLORS.secondaryFontColor,
+    fontSize: 16,
+    fontFamily: "Manrope-Bold",
+  },
+  tostayText: {
+    color: COLORS.secondaryFontColor,
+    fontSize: 16,
+    fontFamily: "Manrope-Bold",
+  },
+  avoidText: {
+    color: COLORS.secondaryFontColor,
+    fontSize: 10,
+    fontFamily: "Manrope-Regular",
+    marginBottom: 10,
+  },
+  paynowbox: {
+    backgroundColor: COLORS.secondaryFontColor,
+    height: 35,
+    width: 95,
+    borderRadius: 5,
+    justifyContent: "center",
+    marginHorizontal: 12,
+  },
+  paynowText: {
+    color: COLORS.primaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+    textAlign: "center",
+  },
   meterContainer: {
-    padding: 16,
-    paddingBottom: 0,
-    // backgroundColor:"red"
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    backgroundColor: "#eef8f0",
   },
   meterInfoContainer: {
     backgroundColor: COLORS.primaryColor,
     borderRadius: 5,
-    paddingVertical: 2,
-    paddingHorizontal: 20,
+    paddingTop: 13,
+    paddingBottom: 13,
+    paddingLeft: 13,
+    paddingRight: 13,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    height: 90,
+    minHeight: 90,
   },
 
 
@@ -1454,13 +1600,14 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
-  meterInfoRow: {    flexDirection: "row",
+  meterInfoRow: {    
+    flexDirection: "row",
     justifyContent: "flex-start",
     gap: 10,
   },
   meterConsumerRow: {    flexDirection: "column",
     justifyContent: "flex-start",
-    gap: 5,
+    gap: 13,
   },
   LastCommunicationRow:{    flexDirection: "column",
     justifyContent: "flex-end",
@@ -1477,7 +1624,7 @@ const styles = StyleSheet.create({
   meterNumberText: {
     color: COLORS.secondaryFontColor,
     fontSize: 12,
-    fontFamily: "Manrope-Regular",
+    fontFamily: "Manrope-Bold",
   },
 
   rightContainer: {
@@ -1492,7 +1639,7 @@ const styles = StyleSheet.create({
   },
 
   tapIndicator: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: COLORS.secondaryColor,
     paddingHorizontal: 10,
     paddingVertical: 2,
     borderRadius: 10,
