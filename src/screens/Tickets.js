@@ -20,6 +20,7 @@ import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SkeletonLoader } from '../utils/loadingManager';
 import CreateNewTicket from "../components/global/CreateNewTicket";
+import TicketSuccessModal from "../components/global/TicketSuccessModal";
 
 const Tickets = ({ navigation }) => {
   const bottomSheetRef = useRef(null);
@@ -46,6 +47,8 @@ const Tickets = ({ navigation }) => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [tableData, setTableData] = useState([]);
   const [tableLoading, setTableLoading] = useState(true);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdTicket, setCreatedTicket] = useState(null);
 
   // Fetch data function
   const fetchData = async () => {
@@ -126,18 +129,44 @@ const Tickets = ({ navigation }) => {
         return;
       }
       const result = await createTicket(user.identifier, ticketData);
-      if (result.success) {
+      const isSuccess = result?.success === true || result?.status === "success" || (result?.data && !result?.error);
+      if (isSuccess) {
         handleCloseBottomSheet();
         fetchData();
-        Alert.alert("Success", "Ticket created successfully.");
+        const raw = result.data || result;
+        const ticket = raw.ticket || raw.data || raw;
+        const ticketNumber = ticket.ticketNumber ?? ticket.ticket_number ?? ticket.id ?? ticket.number ?? ticket.ticketId ?? raw.ticketNumber ?? raw.ticketId ?? raw.id;
+        setCreatedTicket({ ...ticket, ticketNumber: ticketNumber ?? ticket.ticketNumber });
+        // Show modal after bottom sheet has closed so it is not covered
+        setTimeout(() => {
+          setShowSuccessModal(true);
+        }, 400);
       } else {
-        Alert.alert("Error", result.message || "Failed to create ticket.");
+        Alert.alert("Error", result?.message || result?.error || "Failed to create ticket.");
       }
     } catch (error) {
       console.error("Create ticket error:", error);
       Alert.alert("Error", error.message || "Failed to create ticket.");
     }
   }, []);
+
+  const handleCloseSuccessModal = useCallback(() => {
+    setShowSuccessModal(false);
+    setCreatedTicket(null);
+  }, []);
+
+  const handleViewTicketFromSuccess = useCallback(() => {
+    setShowSuccessModal(false);
+    if (createdTicket) {
+      navigation.navigate("TicketDetails", {
+        ticketId: createdTicket.id ?? createdTicket.ticketNumber,
+        ticketData: createdTicket,
+        category: createdTicket.category,
+        status: createdTicket.status,
+      });
+    }
+    setCreatedTicket(null);
+  }, [createdTicket, navigation]);
 
   // Handle view ticket details (pass numeric id for API; ticketNumber for display)
   const handleViewTicket = useCallback((ticket) => {
@@ -333,6 +362,14 @@ const Tickets = ({ navigation }) => {
           />
         </BottomSheetView>
       </BottomSheet>
+
+      <TicketSuccessModal
+        visible={showSuccessModal}
+        ticketNumber={createdTicket?.ticketNumber ?? createdTicket?.ticket_number ?? createdTicket?.id}
+        ticketData={createdTicket}
+        onViewDetails={handleViewTicketFromSuccess}
+        onReturnHome={handleCloseSuccessModal}
+      />
       
       {/* Bottom Navigation */}
       <BottomNavigation navigation={navigation} />
