@@ -181,7 +181,11 @@ const Settings = ({ navigation }) => {
           />
 
           {/* Font size card with inline chips */}
-          <View style={styles.settingItem}>
+          <Pressable
+            style={styles.settingItem}
+            onPress={() => setIsFontDropdownOpen((prev) => !prev)}
+            android_ripple={{ color: "rgba(255,255,255,0.1)" }}
+          >
             <View style={styles.settingItemLeft}>
               <View style={styles.iconContainer}>
                 <View style={styles.iconPlaceholder}>
@@ -221,10 +225,8 @@ const Settings = ({ navigation }) => {
                 </View>
               </View>
             </View>
-            <Pressable
-              style={styles.chevronContainer}
-              onPress={() => setIsFontDropdownOpen(!isFontDropdownOpen)}
-            >
+
+            <View style={styles.chevronContainer}>
               <ChevronRight
                 width={24}
                 height={24}
@@ -234,8 +236,8 @@ const Settings = ({ navigation }) => {
                     : undefined
                 }
               />
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
 
           <PreferenceItem
             icon={
