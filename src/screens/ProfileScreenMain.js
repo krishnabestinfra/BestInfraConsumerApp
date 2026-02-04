@@ -17,6 +17,7 @@ import Menu from "../../assets/icons/bars.svg";
 import Notification from "../../assets/icons/notificationDark.svg";
 import CameraIcon from "../../assets/icons/cameraIcon.svg";
 import Logo from "../components/global/Logo";
+import BackArrowIcon from "../../assets/icons/Back.svg";
 import { COLORS } from "../constants/colors";
 import { useApp } from "../context/AppContext";
 import { useNotifications } from "../context/NotificationsContext";
@@ -27,7 +28,7 @@ const ProfileScreenMain = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
-  
+
   // User data state
   const [userData, setUserData] = useState({
     name: "",
@@ -74,7 +75,7 @@ const ProfileScreenMain = ({ navigation }) => {
     try {
       setIsLoading(true);
       const user = await getUser();
-      
+
       if (user) {
         const data = {
           name: user.name || consumerData?.consumerName || "",
@@ -132,10 +133,10 @@ const ProfileScreenMain = ({ navigation }) => {
   const handleSaveChanges = async () => {
     try {
       setIsSaving(true);
-      
+
       // Get current user data
       const currentUser = await getUser();
-      
+
       // Update user data
       const updatedUser = {
         ...currentUser,
@@ -144,10 +145,10 @@ const ProfileScreenMain = ({ navigation }) => {
         email: editData.email,
         address: editData.address,
       };
-      
+
       // Save to storage
       await storeUser(updatedUser);
-      
+
       // Update local state
       setUserData(prev => ({
         ...prev,
@@ -156,7 +157,7 @@ const ProfileScreenMain = ({ navigation }) => {
         email: editData.email,
         address: editData.address,
       }));
-      
+
       setIsEditing(false);
       Alert.alert("Success", "Profile updated successfully!");
     } catch (error) {
@@ -170,7 +171,7 @@ const ProfileScreenMain = ({ navigation }) => {
   const handleChangePhoto = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
+
       if (!permissionResult.granted) {
         Alert.alert("Permission Required", "Please allow access to your photo library to change profile picture.");
         return;
@@ -207,7 +208,7 @@ const ProfileScreenMain = ({ navigation }) => {
   return (
     <View style={styles.Container}>
       <StatusBar style="light" />
-      
+
       {/* Header */}
       <View style={styles.TopMenu}>
         <Pressable
@@ -220,8 +221,8 @@ const ProfileScreenMain = ({ navigation }) => {
         >
           <Menu width={18} height={18} fill="#202d59" />
         </Pressable>
-        
-        <Pressable 
+
+        <Pressable
           style={({ pressed }) => [
             styles.logoWrapper,
             pressed && styles.logoPressed
@@ -231,17 +232,17 @@ const ProfileScreenMain = ({ navigation }) => {
         >
           <Logo variant="blue" size="medium" />
         </Pressable>
-        
-        <Pressable 
+
+        <Pressable
           style={({ pressed }) => [
             styles.bellWrapper,
             pressed && styles.buttonPressed
           ]}
-          onPress={() => navigation.navigate("Profile")}
+          onPress={() => navigation.navigate("SideMenu")}
           android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: false, radius: 27 }}
         >
           <View style={styles.bellIcon}>
-            <Notification width={18} height={18} fill="#202d59" />
+            <BackArrowIcon width={18} height={18} fill="#202d59" />
           </View>
           {unreadCount > 0 && (
             <View style={styles.badge}>
@@ -251,47 +252,56 @@ const ProfileScreenMain = ({ navigation }) => {
         </Pressable>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Profile Photo Section */}
         <View style={styles.profilePhotoSection}>
-          <TouchableOpacity 
-            style={styles.profilePhotoWrapper}
-            onPress={handleChangePhoto}
-            activeOpacity={0.8}
-          >
-            <Image
+          {isEditing ? (<>
+            <TouchableOpacity
+              style={styles.profilePhotoWrapper}
+              onPress={handleChangePhoto}
+              activeOpacity={0.8}
+            >
+              <Image
+                source={profileImage ? { uri: profileImage } : require("../../assets/images/profile.jpg")}
+                style={styles.profilePhoto}
+              />
+              <View style={styles.cameraIconWrapper}>
+                <CameraIcon width={14} height={14} fill="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            {/* <Text style={styles.changePhotoText}>Tap to change photo</Text> */}
+            </>) : (<><Image
               source={profileImage ? { uri: profileImage } : require("../../assets/images/profile.jpg")}
               style={styles.profilePhoto}
-            />
-            <View style={styles.cameraIconWrapper}>
-              <CameraIcon width={14} height={14} fill="#FFFFFF" />
-            </View>
-          </TouchableOpacity>
-          <Text style={styles.changePhotoText}>Tap to change photo</Text>
+            /></>)}
+
         </View>
 
         {/* Main Content Card */}
         <View style={styles.contentCard}>
           {/* Account Information Section */}
-          <View style={styles.accountInfoSection}>
-            <Text style={styles.accountInfoTitle}>Account Information</Text>
-          </View>
-          <View style={styles.accountInfoContent}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Consumer ID</Text>
-              <Text style={styles.infoValue}>{userData.consumerId || "GMR2024567890"}</Text>
+
+          <View>
+            <View style={styles.accountInfoSection}>
+              <Text style={styles.accountInfoTitle}>Account Information</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Meter Number</Text>
-              <Text style={styles.infoValue}>{userData.meterNumber}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Connection Type</Text>
-              <Text style={styles.infoValue}>{userData.connectionType}</Text>
+            <View style={styles.accountInfoContent}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Consumer ID</Text>
+                <Text style={styles.infoValue}>{userData.consumerId || "GMR2024567890"}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Meter Number</Text>
+                <Text style={styles.infoValue}>{userData.meterNumber}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Connection Type</Text>
+                <Text style={styles.infoValue}>{userData.connectionType}</Text>
+              </View>
             </View>
           </View>
 
@@ -535,6 +545,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     borderRadius: 12,
     overflow: "hidden",
+    gap: 3,
   },
   accountInfoSection: {
     backgroundColor: COLORS.secondaryColor,
@@ -578,13 +589,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 4,
-    gap: 16,
+    gap: 10,
   },
   fieldWrapper: {
     backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 6,
+    borderRadius: 5,
     minHeight: 48,
     justifyContent: "center",
   },

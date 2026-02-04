@@ -167,7 +167,7 @@ const SideMenuNavigation = ({ navigation }) => {
           style={styles.flex}
           onPress={() => {
             setActiveItem("Reports");
-            navigation.navigate("Invoices");
+            navigation.navigate("Reports");
           }}
         >
           {activeItem === "Reports" ? (
@@ -281,9 +281,9 @@ const SideMenuNavigation = ({ navigation }) => {
                   step={50}
                   value={usageThreshold}
                   onValueChange={setUsageThreshold}
-                  minimumTrackTintColor={COLORS.secondaryColor}
-                  maximumTrackTintColor="#E5E7EB"
-                  thumbTintColor={COLORS.brandBlueColor}
+                  minimumTrackTintColor="#163B7C"
+                  maximumTrackTintColor="#163B7C"
+                  thumbTintColor="#163B7C"
                 />
               </View>
               <Text style={styles.thresholdValue}>{Math.round(usageThreshold)} kWh</Text>
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   thresholdLabel: {
-    fontSize: 13,
+    fontSize: 16,
     fontFamily: "Manrope-Medium",
     color: "#6B7280",
     marginBottom: 12,
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   },
   slider: {
     width: "100%",
-    height: 40,
+    height: 10, // track thickness ~10px
   },
   thresholdValue: {
     fontSize: 26,
@@ -512,17 +512,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   toggleSection: {
-    marginTop: 8,
+    // marginTop: 8,
   },
   toggleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 14,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     backgroundColor: "#F9FAFB",
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: 5,
+    marginBottom: 10,
   },
   toggleInfo: {
     flex: 1,
@@ -539,11 +539,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   saveButton: {
-    backgroundColor: COLORS.brandBlueColor,
+    backgroundColor: COLORS.secondaryColor,
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: "center",
-    marginTop: 12,
   },
   saveButtonText: {
     fontSize: 16,
