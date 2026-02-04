@@ -346,15 +346,16 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
   },
   reportsList: {
-    gap: 0,
+    gap: 10,
   },
   reportItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    backgroundColor: "#FAFAFA",
+    borderRadius: 5,
+    paddingHorizontal: 16,
   },
   reportItemLeft: {
     flexDirection: "row",

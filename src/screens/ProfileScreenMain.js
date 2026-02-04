@@ -17,6 +17,7 @@ import Menu from "../../assets/icons/bars.svg";
 import Notification from "../../assets/icons/notificationDark.svg";
 import CameraIcon from "../../assets/icons/cameraIcon.svg";
 import Logo from "../components/global/Logo";
+import BackArrowIcon from "../../assets/icons/Back.svg";
 import { COLORS } from "../constants/colors";
 import { useApp } from "../context/AppContext";
 import { useNotifications } from "../context/NotificationsContext";
@@ -237,11 +238,11 @@ const ProfileScreenMain = ({ navigation }) => {
             styles.bellWrapper,
             pressed && styles.buttonPressed
           ]}
-          onPress={() => navigation.navigate("Profile")}
+          onPress={() => navigation.navigate("SideMenu")}
           android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: false, radius: 27 }}
         >
           <View style={styles.bellIcon}>
-            <Notification width={18} height={18} fill="#202d59" />
+            <BackArrowIcon width={18} height={18} fill="#202d59" />
           </View>
           {unreadCount > 0 && (
             <View style={styles.badge}>

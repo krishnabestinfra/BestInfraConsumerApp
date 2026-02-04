@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated } from "react-native";
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated ,Image} from "react-native";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../constants/colors";
@@ -695,7 +695,11 @@ const Invoices = ({ navigation }) => {
       {isGeneratingPDF && (
         <View style={styles.pdfOverlay}>
           <View style={styles.pdfOverlayContent}>
-            <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+            <Image
+              source={require("../../assets/images/pdf.gif")}
+              style={styles.loadingGif}
+              resizeMode="contain"
+            />
             <Text style={styles.pdfOverlayText}>Generating Invoice PDF...</Text>
           </View>
         </View>
@@ -1045,22 +1049,33 @@ const styles = StyleSheet.create({
   },
   pdfOverlayContent: {
     backgroundColor: COLORS.secondaryFontColor,
-    padding: 30,
-    borderRadius: 15,
+    paddingVertical: 28,
+    paddingHorizontal: 32,
+    borderRadius: 18,
     alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   pdfOverlayText: {
-    marginTop: 15,
-    fontSize: 16,
+    marginTop: 16,
+    fontSize: 15,
     fontFamily: "Manrope-Medium",
     color: COLORS.primaryFontColor,
   },
   skeletonBox: {
     borderRadius: 4,
+  },
+  loadingGif: {
+    width: 140,
+    height: 140,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: "Manrope-Medium",
+    color: COLORS.primaryFontColor,
   },
 });
