@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Dimensions, Image } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import Hand from '../../../assets/icons/hand.svg';
 import Arrow from '../../../assets/icons/arrow.svg';
 import Plus from '../../../assets/icons/plus.svg';
@@ -22,6 +23,7 @@ const DashboardHeader = React.memo(({
   consumerData = null, // API consumer data
   isLoading = false // Loading state
 }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [userName, setUserName] = useState('');
   const [cachedConsumerData, setCachedConsumerData] = useState(null);
   const { isLoading: isUserLoading, setLoading: setUserLoading } = useLoading('user_loading', true);
@@ -110,27 +112,38 @@ const DashboardHeader = React.memo(({
     return getConsumerDisplayName(dataSource, userName, isLoading || isUserLoading);
   }, [cachedConsumerData, consumerData, userName, isLoading, isUserLoading]);
 
+  const headerBg = isDark ? themeColors.headerBg : undefined;
+  const iconFill = isDark ? '#FFFFFF' : '#202d59';
+  const handFill = isDark ? themeColors.accent : '#55B56C';
+  const hiStyle = [styles.hiText, isDark && { color: themeColors.textPrimary }];
+  const stayingStyle = [styles.stayingText, isDark && { color: themeColors.textSecondary }];
+  const balanceStyle = [styles.balanceText, isDark && { color: themeColors.textSecondary }];
+  const amountStyle = [styles.amountText, isDark && { color: themeColors.textPrimary }];
+  const plusFill = isDark ? themeColors.accent : '#55B56C';
+
   return (
-    <View style={styles.bluecontainer}>
+    <View style={[styles.bluecontainer, headerBg && { backgroundColor: headerBg }]}>
       <View style={styles.TopMenu}>
         <Pressable
-          style={styles.barsIcon}
+          style={[styles.barsIcon, isDark && { backgroundColor: themeColors.card }]}
           onPress={() => navigation.navigate('SideMenu')}
         >
-          <Menu width={18} height={18} fill="#202d59" />
+          <Menu width={18} height={18} fill={iconFill} />
         </Pressable>
         
         <Pressable style={styles.logoWrapper} onPress={() => navigation.navigate('PostPaidDashboard')}>
           {showRings && <AnimatedRings />}
-          <Logo variant="blue" size="medium" />
+          <View style={styles.logoOnTop}>
+            <Logo variant={isDark ? 'white' : 'blue'} size="medium" />
+          </View>
         </Pressable>
         
         <Pressable
           style={styles.bellWrapper}
           onPress={() => navigation.navigate('Profile')}
         >
-          <View style={styles.bellIcon}>
-          <Notification width={18} height={18} fill="#202d59" />
+          <View style={[styles.bellIcon, isDark && { backgroundColor: themeColors.card }]}>
+          <Notification width={18} height={18} fill={iconFill} />
           </View>
           {unreadCount > 0 && (
             <View style={styles.badge}>
@@ -142,31 +155,24 @@ const DashboardHeader = React.memo(({
       
       <View style={styles.ProfileBox}>
         <View>
-          {/* <Image 
-            source={require('../../../assets/images/gmr.png')} 
-            style={styles.gmrLogo}
-            resizeMode="contain"
-          /> */}
           <View style={styles.greetingContainer}>
-            <Text style={styles.hiText}>
-              Hi, {getGreeting()}
-              {/* {getDisplayName()} */}{" "}
+            <Text style={hiStyle}>
+              Hi, {getGreeting()}{" "}
             </Text>
-            <Hand width={30} height={30} fill="#55B56C" />
+            <Hand width={30} height={30} fill={handFill} />
           </View>
-          <Text style={styles.stayingText}>Staying efficient today?</Text>
+          <Text style={stayingStyle}>Staying efficient today?</Text>
         </View>
 
-        {/* Conditionally render balance section */}
         {showBalance && (
           <View>
-            <Text style={styles.balanceText}>Balance</Text>
+            <Text style={balanceStyle}>Balance</Text>
             <View style={styles.balanceContainer}>
-              <Text style={styles.amountText}>
+              <Text style={amountStyle}>
                 {isLoading ? "Loading..." : formatAmount((cachedConsumerData || consumerData)?.totalOutstanding)}
               </Text>
               <View style={styles.plusBox}>
-                <Plus width={20} height={20} fill="#55B56C" />
+                <Plus width={20} height={20} fill={plusFill} />
               </View>
             </View>
           </View>
@@ -181,6 +187,7 @@ const styles = StyleSheet.create({
   bluecontainer: {
     backgroundColor: '#eef8f0',
     padding: 16,
+    zIndex: 0,
   },
   TopMenu: {
     flexDirection: 'row',
@@ -204,6 +211,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+  },
+  logoOnTop: {
+    zIndex: 1,
   },
   bellIcon: {
     backgroundColor: COLORS.secondaryFontColor,

@@ -23,6 +23,7 @@ import Transactions from "./src/screens/Transactions";
 import Tickets from "./src/screens/Tickets";
 import Settings from "./src/screens/Settings";
 import { TabProvider } from "./src/context/TabContext";
+import { ThemeProvider } from "./src/context/ThemeContext";
 import { AppProvider } from "./src/context/AppContext";
 import { NotificationsProvider } from "./src/context/NotificationsContext";
 import { NavigationProvider } from "./src/context/NavigationContext";
@@ -182,8 +183,9 @@ export default function App() {
   }
 
   return (
-    <AppProvider>
-      <DataProvider>
+    <ThemeProvider>
+      <AppProvider>
+        <DataProvider>
         <NavigationProvider>
           <NotificationsProvider>
             <TabProvider>
@@ -329,8 +331,9 @@ export default function App() {
             </TabProvider>
           </NotificationsProvider>
         </NavigationProvider>
-      </DataProvider>
-    </AppProvider>
+        </DataProvider>
+      </AppProvider>
+    </ThemeProvider>
   );
 }
 

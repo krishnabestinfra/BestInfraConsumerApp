@@ -256,6 +256,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
             isLoading={isLoading}
           />
 
+        <View style={styles.contentOnTop}>
         <View style={styles.meterContainer}>
           <View style={styles.meterInfoContainer}>
           <View style={styles.meterInfoRow}>
@@ -427,6 +428,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
         />
         
       </View>
+        </View>
     </ScrollView>
     </InstantLoader>
   );
@@ -440,6 +442,12 @@ const styles = StyleSheet.create({
   Container: {
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
+  },
+  contentOnTop: {
+    zIndex: 1,
+    backgroundColor: COLORS.secondaryFontColor,
+    borderTopLeftRadius: 30,
+    elevation: 2,
   },
   whiteContainer: {
     // padding: 20,

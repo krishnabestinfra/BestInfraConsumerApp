@@ -99,6 +99,7 @@ const Payments = React.memo(({ navigation }) => {
           isLoading={isLoading}
         />
 
+        <View style={styles.contentOnTop}>
         <View style={styles.contentSection}>
           <View style={styles.inputContainer}>
             <Input 
@@ -128,6 +129,7 @@ const Payments = React.memo(({ navigation }) => {
             </View>
           </View>
         </View>
+        </View>
 
       </ScrollView>
       <View style={styles.buttonContainer}>
@@ -146,6 +148,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
     borderBottomRightRadius: 30,
+  },
+  contentOnTop: {
+    zIndex: 1,
+    backgroundColor: COLORS.secondaryFontColor,
+    borderTopLeftRadius: 30,
+    elevation: 2,
   },
   bluecontainer: {
     backgroundColor: "#eef8f0",

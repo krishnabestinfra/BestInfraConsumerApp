@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, Dimensions } from "react-native";
-import React, {useState} from "react";
+import React, { useState } from "react";
 import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
 import { SkeletonLoader } from "../../utils/loadingManager";
 import Button from "../global/Button";
 import NoDataIcon from "../../../assets/icons/empty.svg";
@@ -33,7 +34,7 @@ const Table = ({
   minTableWidth,
   rowsPerPage = 5,
 }) => {
-
+  const { isDark, colors: themeColors } = useTheme();
   const [currentPage, setCurrentPage] = useState(1); 
   const totalPages = Math.ceil(data.length / rowsPerPage); 
 
@@ -144,17 +145,30 @@ const Table = ({
     ];
   };
 
+  const headerRowStyle = isDark ? [styles.headerRow, { backgroundColor: themeColors.accent }] : styles.headerRow;
+  const headerTextStyle = isDark ? [styles.headerText, { color: themeColors.textOnPrimary }] : styles.headerText;
+  const dataRowStyle = isDark
+    ? [styles.dataRow, { backgroundColor: '#1A1F2E' }]
+    : styles.dataRow;
+  const dataTextStyle = isDark ? [styles.dataText, { color: themeColors.textPrimary }] : styles.dataText;
+  const emptyContainerStyle = isDark ? [styles.emptyContainer, { backgroundColor: themeColors.card }] : styles.emptyContainer;
+  const emptyIconWrapperStyle = isDark ? [styles.emptyIconWrapper, { backgroundColor: themeColors.card }] : styles.emptyIconWrapper;
+  const emptyTitleStyle = isDark ? [styles.emptyTitle, { color: themeColors.textPrimary }] : styles.emptyTitle;
+  const emptySubtitleStyle = isDark ? [styles.emptySubtitle, { color: themeColors.textSecondary }] : styles.emptySubtitle;
+  const paginationTextStyle = isDark ? [styles.paginationText, { color: themeColors.textPrimary }] : styles.paginationText;
+
   return (
     <View style={[
-      styles.container, 
-      minTableWidth ? { minWidth: minTableWidth } : null, 
+      styles.container,
+      isDark && { backgroundColor: 'transparent' },
+      minTableWidth ? { minWidth: minTableWidth } : null,
       containerStyle
     ]}>
       {/* Header Row */}
-      <View style={[styles.headerRow, headerStyle]}>
+      <View style={[headerRowStyle, headerStyle]}>
         {showSerial && (
           <View style={[styles.columnContainer, styles.serialColumn]}>
-            <Text style={styles.headerText}>S.No</Text>
+            <Text style={headerTextStyle}>S.No</Text>
           </View>
         )}
         {tableColumns.map((column, index) => {
@@ -169,7 +183,7 @@ const Table = ({
               ) : (
                 <Text 
                   style={[
-                    styles.headerText, 
+                    headerTextStyle, 
                     styles.headerTextResponsive,
                     getTextAlignmentStyle(column.align)
                   ]}
@@ -192,20 +206,20 @@ const Table = ({
           columns={tableColumns.length + (showSerial ? 1 : 0)}
         />
       ) : data.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconWrapper}>
-            <NoDataIcon width={28} height={28} />
+        <View style={emptyContainerStyle}>
+          <View style={emptyIconWrapperStyle}>
+            <NoDataIcon width={28} height={28} fill={isDark ? themeColors.textSecondary : undefined} />
           </View>
-          <Text style={styles.emptyTitle}>
+          <Text style={emptyTitleStyle}>
             {emptyMessage || "No Data Available"}
           </Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={emptySubtitleStyle}>
             There are no records available for the
           </Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={emptySubtitleStyle}>
            selected date and meter. Data may not
           </Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={emptySubtitleStyle}>
            have been synced yet.
           </Text>
         </View>
@@ -215,7 +229,7 @@ const Table = ({
           <View 
             key={item.id || index} 
             style={[
-              styles.dataRow, 
+              dataRowStyle,
               rowStyle,
               onRowPress && styles.pressableRow
             ]}
@@ -223,7 +237,7 @@ const Table = ({
           >
             {showSerial && (
               <View style={[styles.columnContainer, styles.serialColumn]}>
-                <Text style={[styles.dataText, styles.serialText, textStyle]}>
+                <Text style={[dataTextStyle, styles.serialText, textStyle]}>
                   {(currentPage - 1) * rowsPerPage + index + 1}
                 </Text>
               </View>
@@ -241,13 +255,12 @@ const Table = ({
                    style={getColumnWrapperStyle(column, isLastColumn)}
                  >
                    {column.render ? (
-                     // Custom render function for action columns (like View button)
                      column.render(item)
                    ) : isPriorityField && hasPriority ? (
                      inlinePriority ? (
                        <View style={styles.inlinePriorityWrapper}>
                          <Text 
-                           style={[styles.dataText, styles.multiLineText, textStyle]}
+                           style={[dataTextStyle, styles.multiLineText, textStyle]}
                            numberOfLines={3}
                          >
                            {value}
@@ -258,7 +271,7 @@ const Table = ({
                        <>
                         <Text 
                           style={[
-                            styles.dataText, 
+                            dataTextStyle, 
                             styles.multiLineText, 
                             textStyle,
                             getTextAlignmentStyle(column.align)
@@ -273,7 +286,7 @@ const Table = ({
                    ) : (
                     <Text 
                       style={[
-                        styles.dataText, 
+                        dataTextStyle, 
                         styles.multiLineText, 
                         textStyle,
                         getTextAlignmentStyle(column.align)
@@ -300,7 +313,7 @@ const Table = ({
               onPress={() => currentPage > 1 && setCurrentPage(prev => prev - 1)}
             />
 
-          <Text style={styles.paginationText}>
+          <Text style={paginationTextStyle}>
             Page {currentPage} of {totalPages}
           </Text>
 

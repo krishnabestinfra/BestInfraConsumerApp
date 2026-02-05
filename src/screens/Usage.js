@@ -226,6 +226,7 @@ const Usage = ({ navigation }) => {
           isLoading={isLoading}
         />
 
+        <View style={styles.contentOnTop}>
         {/* Usage Summary Section */}
         <View style={styles.usageSummaryContainer}>
           {/* Header with Toggle */}
@@ -326,6 +327,7 @@ const Usage = ({ navigation }) => {
           totalKW={consumerData?.kW || null}
           loading={isLoading}
         />
+        </View>
       </ScrollView>
 
       {/* Consumer Details Bottom Sheet */}
@@ -353,6 +355,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
     borderBottomRightRadius: 30,
+  },
+  contentOnTop: {
+    zIndex: 1,
+    backgroundColor: COLORS.secondaryFontColor,
+    borderTopLeftRadius: 30,
+    elevation: 2,
   },
   // Modern Usage Summary Styles
   usageSummaryContainer: {

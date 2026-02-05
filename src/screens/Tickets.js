@@ -216,6 +216,7 @@ const Tickets = ({ navigation }) => {
           consumerData={consumerData}
           isLoading={isLoading}
         />
+        <View style={styles.contentOnTop}>
         <View style={styles.TicketContainer}>
           <Text style={styles.usageText}>Tickets</Text>
           <Button
@@ -350,6 +351,7 @@ const Tickets = ({ navigation }) => {
         {/* <CreateNewTicket 
         onSubmit={handleCreateTicket}
         onClose={() => setShowModal(false)}    /> */}
+        </View>
       </ScrollView>
         <BottomSheet
         ref={bottomSheetRef}
@@ -396,6 +398,12 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderBottomRightRadius: 30,
     flex: 1,
+  },
+  contentOnTop: {
+    zIndex: 1,
+    backgroundColor: COLORS.secondaryFontColor,
+    borderTopLeftRadius: 30,
+    elevation: 2,
   },
   bluecontainer: {
     backgroundColor: "#eef8f0",

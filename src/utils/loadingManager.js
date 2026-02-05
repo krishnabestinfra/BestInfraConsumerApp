@@ -16,14 +16,24 @@ import React, { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View, ActivityIndicator, StyleSheet, Animated } from 'react-native';
 import { COLORS } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 
-// Shimmer effect
+const SHIMMER_LIGHT = {
+  base: '#e0e0e0',
+  gradient: ['#e0e0e0', '#f5f5f5', '#e0e0e0'],
+};
+const SHIMMER_DARK = {
+  base: '#3a3a3c',
+  gradient: ['#3a3a3c', 'rgba(255,255,255,0.06)', '#3a3a3c'],
+};
 
-const Shimmer = ({ style }) => {
+const Shimmer = ({ style, baseColor, gradientColors }) => {
   const shimmerAnim = useRef(new Animated.Value(-1)).current;
+  const base = baseColor || SHIMMER_LIGHT.base;
+  const gradient = gradientColors || SHIMMER_LIGHT.gradient;
 
   useEffect(() => {
-     shimmerAnim.setValue(-1);
+    shimmerAnim.setValue(-1);
     Animated.loop(
       Animated.timing(shimmerAnim, {
         toValue: 1,
@@ -39,15 +49,10 @@ const Shimmer = ({ style }) => {
   });
 
   return (
-    <View style={[style, { overflow: "hidden", backgroundColor: "#e0e0e0" }]}>
-      <Animated.View
-        style={[
-          StyleSheet.absoluteFill,
-          { transform: [{ translateX }] },
-        ]}
-      >
+    <View style={[style, { overflow: 'hidden', backgroundColor: base }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateX }] }]}>
         <LinearGradient
-          colors={["#e0e0e0", "#f5f5f5", "#e0e0e0"]}
+          colors={gradient}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={{ flex: 1 }}
@@ -61,13 +66,11 @@ class LoadingManager {
   constructor() {
     this.loadingStates = new Map();
     this.loadingCallbacks = new Map();
-    this.minLoadingTime = 200; // Minimum loading time to prevent flash
+    this.minLoadingTime = 200; 
     this.progressStates = new Map();
   }
 
-  /**
-   * Set loading state with minimum duration
-   */
+
   setLoading(key, isLoading, minDuration = this.minLoadingTime) {
     const currentTime = Date.now();
     
@@ -213,7 +216,7 @@ export const useLoading = (key, initialLoading = false) => {
 };
 
 /**
- * Skeleton Loading Component
+ * Skeleton Loading Component - supports dark theme via useTheme
  */
 export const SkeletonLoader = memo(({ 
   variant = "lines", // "lines" | "barchart" | "table" | "card"
@@ -222,73 +225,86 @@ export const SkeletonLoader = memo(({
   style,
   showAvatar = false 
 }) => {
+  const { isDark, colors: themeColors } = useTheme();
+
+  const shimmerBase = isDark ? SHIMMER_DARK.base : SHIMMER_LIGHT.base;
+  const shimmerGradient = isDark ? SHIMMER_DARK.gradient : SHIMMER_LIGHT.gradient;
+  const chartContainerBg = isDark ? '#163B7C' : '#eef8f0';
+  const tableRowBg = isDark ? (themeColors.card || '#2C2C2E') : '#F8F9FA';
+  const tableBorder = isDark ? (themeColors.cardBorder || 'rgba(255,255,255,0.08)') : '#f0f0f0';
+
   const renderSkeletonLines = () => {
     return Array.from({ length: lines }, (_, index) => (
-      <View 
-        key={index} 
+      <Shimmer
+        key={index}
         style={[
-          styles.skeletonLine, 
+          styles.skeletonLine,
+          { backgroundColor: shimmerBase },
           index === 0 && styles.skeletonLineLong,
-          index === lines - 1 && styles.skeletonLineShort
-        ]} 
+          index === lines - 1 && styles.skeletonLineShort,
+        ]}
+        baseColor={shimmerBase}
+        gradientColors={shimmerGradient}
       />
     ));
   };
 
-      const renderCardSkeleton = () => (
-      <View style={[styles.cardSkeleton, style]}>
-        <Shimmer style={styles.skeletonLine} />
-        <View style={[styles.skeletonLine, { width: "60%" }]} />
-      </View>
-    );
-
+  const renderCardSkeleton = () => (
+    <View style={[styles.cardSkeleton, style, isDark && { backgroundColor: chartContainerBg }]}>
+      <Shimmer style={[styles.skeletonLine, { backgroundColor: shimmerBase }]} baseColor={shimmerBase} gradientColors={shimmerGradient} />
+      <Shimmer style={[styles.skeletonLine, { width: '60%', backgroundColor: shimmerBase }]} baseColor={shimmerBase} gradientColors={shimmerGradient} />
+    </View>
+  );
 
   const renderBarChartSkeleton = () => (
-    <View style={[styles.chartContainer, style]}>
+    <View style={[styles.chartContainer, style, isDark && { backgroundColor: chartContainerBg }]}>
       {Array.from({ length: lines }).map((_, index) => (
         <Shimmer
           key={index}
           style={[
             styles.chartBar,
-            {
-              height: 60 + Math.random() * 100,
-              width: 22,
-            },
+            { height: 60 + Math.random() * 100, width: 22 },
+            isDark && { backgroundColor: shimmerBase },
           ]}
+          baseColor={shimmerBase}
+          gradientColors={shimmerGradient}
         />
       ))}
     </View>
   );
 
   const renderTableSkeleton = () => (
-    <View style={[styles.tableContainer, style]}>
-      {/* Header */}
-      <View style={styles.tableHeader}>
-        {Array.from({ length: columns }).map((_, colIndex) => (
-          <View key={colIndex} style={styles.headerCell} />
-        ))}
-      </View>
-
-      {/* Rows */}
+    <View style={[styles.tableContainer, style, isDark && { borderColor: tableBorder }]}>
       {Array.from({ length: lines }).map((_, rowIndex) => (
-        <View key={rowIndex} style={styles.tableRow}>
+        <View
+          key={rowIndex}
+          style={[
+            styles.tableRow,
+            isDark && { backgroundColor: tableRowBg, borderColor: tableBorder },
+          ]}
+        >
           {Array.from({ length: columns }).map((_, colIndex) => (
-            <Shimmer key={colIndex} style={styles.tableCell} />
+            <Shimmer
+              key={colIndex}
+              style={[styles.tableCell, isDark && { backgroundColor: shimmerBase }]}
+              baseColor={shimmerBase}
+              gradientColors={shimmerGradient}
+            />
           ))}
         </View>
       ))}
     </View>
   );
 
-    switch (variant) {
-    case "barchart":
+  switch (variant) {
+    case 'barchart':
       return renderBarChartSkeleton();
-    case "table":
+    case 'table':
       return renderTableSkeleton();
-    case "card":
+    case 'card':
       return renderCardSkeleton();
     default:
-      return renderSkeletonLines();
+      return <View style={style}>{renderSkeletonLines()}</View>;
   }
 });
 
@@ -497,11 +513,25 @@ const styles = StyleSheet.create({
 
 tableContainer: {
   marginTop: 0,
-  borderColor: "#eee",
+  borderColor: '#eee',
   borderRadius: 6,
-  overflow: "hidden",
-  gap:3,
+  overflow: 'hidden',
+  gap: 3,
   marginBottom: 40,
+},
+tableHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  paddingVertical: 10,
+  paddingHorizontal: 12,
+  backgroundColor: '#e8f5e9',
+},
+headerCell: {
+  flex: 1,
+  height: 14,
+  borderRadius: 4,
+  marginHorizontal: 4,
+  backgroundColor: 'rgba(255,255,255,0.6)',
 },
 tableRow: {
   flexDirection: "row",
