@@ -5,7 +5,12 @@ import { SkeletonLoader } from "../utils/loadingManager";
 import { useTheme } from "../context/ThemeContext";
 
 const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data = null, loading = false, onBarPress = null }) => {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const scaled6 = getScaledFontSize(6);
+  const scaled7 = getScaledFontSize(7);
+  const scaled8 = getScaledFontSize(8);
+  const scaled10 = getScaledFontSize(10);
+  const scaled12 = getScaledFontSize(12);
   const { width } = Dimensions.get("window");
   const [containerWidth, setContainerWidth] = useState(width - 62);
 
@@ -22,7 +27,6 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     dailyPadCount: 0,
   });
 
-  // Process API data: 7D/30D = daily bars; 90D = 3 bars (last 3 months); 1Y = 12 months
   useEffect(() => {
     if (data && data.chartData) {
       const useMonthlyFor90D = timePeriod === "90D";
@@ -223,14 +227,14 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     frontColor: barColor,
     labelTextStyle: {
       color: labelColor,
-      fontSize: displayedBars >= 12 ? 6 : 7,
+      fontSize: chartData.labels.length >= 12 ? scaled6 : scaled7,
       fontFamily: 'Manrope-Medium',
       transform: [{ rotate: '-60deg' }],
     },
     topLabelComponent: () => (
       <Text style={{
         color: labelColor,
-        fontSize: 7,
+        fontSize: scaled7,
         fontFamily: 'Manrope-Medium',
       }}>
         {chartData.blue[index] || 0}
@@ -339,7 +343,7 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
       showValuesAsTopLabel={false}
       topLabelTextStyle={{
         color: labelColor,
-        fontSize: 10,
+        fontSize: scaled10,
         fontFamily: 'Manrope-Regular',
       }}
       xAxisLabelTextStyle={{

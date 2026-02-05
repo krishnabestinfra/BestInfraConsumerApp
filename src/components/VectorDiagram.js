@@ -9,6 +9,7 @@ import Svg, {
   Polygon 
 } from 'react-native-svg';
 import { COLORS } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 const DIAGRAM_SIZE = screenWidth * 0.65; // Increased to 75% for bigger size
@@ -22,8 +23,15 @@ const VectorDiagram = ({
   current = { r: 0, y: 0, b: 0 },
   powerFactor = { r: 0, y: 0, b: 0 },
   totalKW = null,
-  loading = false
+  loading = false,
+  containerStyle,
+  isDark = false,
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
+  const s12 = getScaledFontSize(12);
+  const s11 = getScaledFontSize(11);
+  const s10 = getScaledFontSize(10);
   // Convert degrees to radians
   const toRadians = (degrees) => (degrees * Math.PI) / 180;
 
@@ -239,7 +247,7 @@ const VectorDiagram = ({
         <SvgText
           x={labelX}
           y={labelY}
-          fontSize={14}
+          fontSize={s14}
           fill={color}
           fontFamily="Manrope-Bold"
           fontWeight="bold"
@@ -250,7 +258,7 @@ const VectorDiagram = ({
         <SvgText
           x={valueX}
           y={valueY}
-          fontSize={10}
+          fontSize={s10}
           fill={color}
           fontFamily="Manrope-SemiBold"
           textAnchor={textAnchor}
@@ -317,7 +325,7 @@ const VectorDiagram = ({
         <SvgText
           x={labelX}
           y={labelY}
-          fontSize={12}
+          fontSize={s12}
           fill={color}
           fontFamily="Manrope-Bold"
           fontWeight="700"
@@ -379,7 +387,7 @@ const VectorDiagram = ({
         <SvgText
           x={labelX}
           y={labelY}
-          fontSize={11}
+          fontSize={s11}
           fill={color}
           fontFamily="Manrope-SemiBold"
           textAnchor="middle"
@@ -415,7 +423,7 @@ const VectorDiagram = ({
         <SvgText
           x={x1}
           y={y1}
-          fontSize={11}
+          fontSize={s11}
           fill="#374151"
           fontFamily="Manrope-Regular"
           textAnchor="middle"
@@ -425,7 +433,7 @@ const VectorDiagram = ({
         <SvgText
           x={x2}
           y={y2}
-          fontSize={11}
+          fontSize={s11}
           fill="#374151"
           fontFamily="Manrope-Regular"
           textAnchor="middle"
@@ -435,7 +443,7 @@ const VectorDiagram = ({
         <SvgText
           x={x3}
           y={y3}
-          fontSize={11}
+          fontSize={s11}
           fill="#374151"
           fontFamily="Manrope-Regular"
           textAnchor="middle"
@@ -463,15 +471,16 @@ const VectorDiagram = ({
   };
 
   // Data table row component - Proper table structure
+  const textStyle = isDark ? { color: '#FFFFFF' } : undefined;
   const DataTableRow = ({ phase, voltageValue, currentValue, powerValue, color, voltageLabel, currentLabel, powerLabel }) => (
-    <View style={styles.dataRow}>
+    <View style={[styles.dataRow, isDark && { borderBottomColor: 'rgba(255,255,255,0.12)' }]}>
       {/* Voltage Column */}
       <View style={styles.tableColumn}>
         <View style={styles.columnItem}>
           <View style={[styles.phaseDot, { backgroundColor: color }]} />
-          <Text style={styles.dataLabel}>{voltageLabel}</Text>
+          <Text style={[styles.dataLabel, textStyle, { fontSize: s14 }]}>{voltageLabel}</Text>
         </View>
-        <Text style={styles.dataValue}>
+        <Text style={[styles.dataValue, textStyle, { fontSize: s12 }]}>
           {loading ? '...' : `${formatValue(voltageValue)} V`}
         </Text>
       </View>
@@ -480,9 +489,9 @@ const VectorDiagram = ({
       <View style={styles.tableColumn}>
         <View style={styles.columnItem}>
           <View style={[styles.phaseDot, { backgroundColor: color }]} />
-          <Text style={styles.dataLabel}>{currentLabel}</Text>
+          <Text style={[styles.dataLabel, textStyle, { fontSize: s14 }]}>{currentLabel}</Text>
         </View>
-        <Text style={styles.dataValue}>
+        <Text style={[styles.dataValue, textStyle, { fontSize: s12 }]}>
           {loading ? '...' : `${formatValue(currentValue)} A`}
         </Text>
       </View>
@@ -491,9 +500,9 @@ const VectorDiagram = ({
       <View style={styles.tableColumn}>
         <View style={styles.columnItem}>
           <View style={[styles.phaseDot, { backgroundColor: color }]} />
-          <Text style={styles.dataLabel}>{powerLabel}</Text>
+          <Text style={[styles.dataLabel, textStyle, { fontSize: s14 }]}>{powerLabel}</Text>
         </View>
-        <Text style={styles.dataValue}>
+        <Text style={[styles.dataValue, textStyle, { fontSize: s12 }]}>
           {loading ? '...' : `${formatValue(powerValue, 2)} W`}
         </Text>
       </View>
@@ -501,8 +510,8 @@ const VectorDiagram = ({
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Vector Diagram</Text>
+    <View style={[styles.container, containerStyle]}>
+      <Text style={[styles.title, { fontSize: s14 }, isDark && { color: '#FFFFFF' }]}>Vector Diagram</Text>
       
       {/* Vector Diagram - Enhanced with arrow heads and angle arcs */}
       <View style={styles.diagramContainer}>
@@ -547,10 +556,10 @@ const VectorDiagram = ({
 
       {/* Data Table - Bottom Section - Proper Table Structure */}
       <View style={styles.tableWrapper}>
-        <View style={styles.tableHeader}>
-          <Text style={styles.headerText}>Voltage</Text>
-          <Text style={styles.headerText}>Current</Text>
-          <Text style={styles.headerText}>Power</Text>
+        <View style={[styles.tableHeader, isDark && { borderBottomColor: 'rgba(255,255,255,0.12)' }]}>
+          <Text style={[styles.headerText, { fontSize: s12 }, isDark && { color: '#FFFFFF' }]}>Voltage</Text>
+          <Text style={[styles.headerText, { fontSize: s12 }, isDark && { color: '#FFFFFF' }]}>Current</Text>
+          <Text style={[styles.headerText, { fontSize: s12 }, isDark && { color: '#FFFFFF' }]}>Power</Text>
         </View>
         
         <View style={styles.tableContainer}>

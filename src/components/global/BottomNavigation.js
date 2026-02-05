@@ -16,7 +16,8 @@ import ActiveUsageIcon from '../../../assets/icons/activeUsageIcon.svg';
 
 const BottomNavigation = ({ navigation }) => {
   const route = useRoute();
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s10 = getScaledFontSize(10);
 
   const navigationItems = useMemo(() => [
     {
@@ -125,6 +126,7 @@ const BottomNavigation = ({ navigation }) => {
         </View>
         <Text style={[
           styles.iconText,
+          { fontSize: s10 },
           isDark && !isActive && { color: themeColors.textSecondary },
           isActive && styles.iconTextActive,
           isActive && isDark && { color: themeColors.accent }

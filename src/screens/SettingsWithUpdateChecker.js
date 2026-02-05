@@ -10,7 +10,8 @@ import BiLogo from "../../assets/icons/Logo.svg";
 import UpdateChecker from "../components/global/UpdateChecker";
 
 const SettingsWithUpdateChecker = ({ navigation }) => {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s18 = getScaledFontSize(18);
   return (
     <ScrollView
       style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
@@ -46,7 +47,7 @@ const SettingsWithUpdateChecker = ({ navigation }) => {
       </View>
       
       <View style={styles.textContainer}>
-        <Text style={styles.usageText}>Welcome to Settings page</Text>
+        <Text style={[styles.usageText, { fontSize: s18 }]}>Welcome to Settings page</Text>
       </View>
 
       {/* Update Checker Component */}

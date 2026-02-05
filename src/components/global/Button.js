@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 const Button = React.memo(({
   title,
@@ -14,6 +15,10 @@ const Button = React.memo(({
   children,
   ...props
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s12 = getScaledFontSize(12);
+  const s14 = getScaledFontSize(14);
+  const s16 = getScaledFontSize(16);
   const getButtonStyle = useMemo(() => {
     const baseStyle = [styles.button, styles[size]];
     
@@ -42,7 +47,8 @@ const Button = React.memo(({
   }, [variant, size, disabled]);
 
   const getTextStyle = useMemo(() => {
-    const baseTextStyle = [styles.text, styles[`${size}Text`]];
+    const fontSize = size === 'small' ? s12 : size === 'large' ? s16 : s14;
+    const baseTextStyle = [styles.text, styles[`${size}Text`], { fontSize }];
     
     switch (variant) {
       case 'primary':
@@ -66,7 +72,7 @@ const Button = React.memo(({
     }
 
     return baseTextStyle;
-  }, [variant, size, disabled]);
+  }, [variant, size, disabled, s12, s14, s16]);
 
   const handlePress = useCallback(() => {
     if (!disabled && !loading && onPress) {

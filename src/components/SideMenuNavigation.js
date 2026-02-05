@@ -21,10 +21,25 @@ import LogoutIcon from "../../assets/icons/logoutMenu.svg";
 import CrossIcon from "../../assets/icons/cross.svg";
 import { logoutUser } from "../utils/storage";
 import { TabContext } from "../context/TabContext";
+import { useTheme } from "../context/ThemeContext";
 import { useNavigationState } from "@react-navigation/native";
 
 const SideMenuNavigation = ({ navigation }) => {
   const { activeItem, setActiveItem } = useContext(TabContext);
+  const { getScaledFontSize } = useTheme();
+  const scaled = {
+    menu: getScaledFontSize(16),
+    version: getScaledFontSize(12),
+    modalTitle: getScaledFontSize(18),
+    modalLabel: getScaledFontSize(16),
+    modalTitleBig: getScaledFontSize(26),
+    modalTitleMid: getScaledFontSize(18),
+    toggleTitle: getScaledFontSize(14),
+    toggleSub: getScaledFontSize(12),
+    modalMessage: getScaledFontSize(14),
+    modalButton: getScaledFontSize(16),
+    logoutModalTitle: getScaledFontSize(20),
+  };
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAlertsModal, setShowAlertsModal] = useState(false);
 
@@ -130,7 +145,7 @@ const SideMenuNavigation = ({ navigation }) => {
           ) : (
             <DashboardIcon width={18} height={18} style={styles.iconStyle} />
           )}
-          <Text style={[styles.menuText, activeItem === "Dashboard" && styles.activeText]}>
+          <Text style={[styles.menuText, activeItem === "Dashboard" && styles.activeText, { fontSize: scaled.menu }]}>
             Dashboard
           </Text>
         </Pressable>
@@ -148,7 +163,7 @@ const SideMenuNavigation = ({ navigation }) => {
           ) : (
             <UsageIcon width={18} height={18} style={styles.iconStyle} />
           )}
-          <Text style={[styles.menuText, activeItem === "Usage" && styles.activeText]}>
+          <Text style={[styles.menuText, activeItem === "Usage" && styles.activeText, { fontSize: scaled.menu }]}>
             Usage
           </Text>
         </Pressable>
@@ -166,7 +181,7 @@ const SideMenuNavigation = ({ navigation }) => {
           ) : (
             <PaymentsIcon width={18} height={18} style={styles.iconStyle} />
           )}
-          <Text style={[styles.menuText, activeItem === "Payments" && styles.activeText]}>
+          <Text style={[styles.menuText, activeItem === "Payments" && styles.activeText, { fontSize: scaled.menu }]}>
             Payments
           </Text>
         </Pressable>
@@ -184,7 +199,7 @@ const SideMenuNavigation = ({ navigation }) => {
           ) : (
             <ReportsIcon width={18} height={18} style={styles.iconStyle} />
           )}
-          <Text style={[styles.menuText, activeItem === "Reports" && styles.activeText]}>
+          <Text style={[styles.menuText, activeItem === "Reports" && styles.activeText, { fontSize: scaled.menu }]}>
             Reports
           </Text>
         </Pressable>
@@ -202,7 +217,7 @@ const SideMenuNavigation = ({ navigation }) => {
           ) : (
             <TicketsIcon width={18} height={18} style={styles.iconStyle} />
           )}
-          <Text style={[styles.menuText, activeItem === "Tickets" && styles.activeText]}>
+          <Text style={[styles.menuText, { fontSize: scaled.menu }, activeItem === "Tickets" && styles.activeText]}>
             Tickets
           </Text>
         </Pressable>
@@ -217,7 +232,7 @@ const SideMenuNavigation = ({ navigation }) => {
           ) : (
             <AlertsIcon width={18} height={18} style={styles.iconStyle} />
           )}
-          <Text style={[styles.menuText, showAlertsModal && styles.activeText]}>
+          <Text style={[styles.menuText, showAlertsModal && styles.activeText, { fontSize: scaled.menu }]}>
             Alerts
           </Text>
         </Pressable>
@@ -237,7 +252,7 @@ const SideMenuNavigation = ({ navigation }) => {
           ) : (
             <SettingsIcon width={18} height={18} style={styles.iconStyle} />
           )}
-          <Text style={[styles.menuText, activeItem === "Settings" && styles.activeText]}>
+          <Text style={[styles.menuText, activeItem === "Settings" && styles.activeText, { fontSize: scaled.menu }]}>
             Settings
           </Text>
         </Pressable>
@@ -249,13 +264,13 @@ const SideMenuNavigation = ({ navigation }) => {
           size="small"
           onPress={handleLogoutPress}
           style={styles.logoutButton}
-          textStyle={styles.logoutText}
+          textStyle={[styles.logoutText, { fontSize: scaled.menu }]}
         >
           <LogoutIcon width={18} height={18} style={styles.logoutIcon} />
         </Button>
 
         <View style={styles.flex}>
-          <Text style={styles.versionText}>Version 1.0.26</Text>
+          <Text style={[styles.versionText, { fontSize: scaled.version }]}>Version 1.0.26</Text>
         </View>
       </View>
 
@@ -270,7 +285,7 @@ const SideMenuNavigation = ({ navigation }) => {
           <View style={styles.alertsModalCard}>
             {/* Header */}
             <View style={styles.alertsModalHeader}>
-              <Text style={styles.alertsModalTitle}>Alerts</Text>
+              <Text style={[styles.alertsModalTitle, { fontSize: scaled.modalTitle }]}>Alerts</Text>
               <TouchableOpacity 
                 onPress={() => setShowAlertsModal(false)}
                 style={styles.closeButton}
@@ -281,7 +296,7 @@ const SideMenuNavigation = ({ navigation }) => {
 
             {/* Usage Threshold Alert */}
             <View style={styles.thresholdSection}>
-              <Text style={styles.thresholdLabel}>Usage Threshold Alert</Text>
+              <Text style={[styles.thresholdLabel, { fontSize: scaled.modalLabel }]}>Usage Threshold Alert</Text>
               <View style={styles.sliderContainer}>
                 {/* Custom track background (unfilled - light grey) */}
                 <View style={styles.sliderTrackBg} />
@@ -326,8 +341,8 @@ const SideMenuNavigation = ({ navigation }) => {
                 />
               </View>
               <Text style={styles.thresholdValue}>
-                <Text style={styles.thresholdValueNumber}>{Math.round(usageThreshold)}</Text>
-                <Text style={styles.thresholdValueUnit}> kWh</Text>
+                <Text style={[styles.thresholdValueNumber, { fontSize: scaled.modalTitleBig }]}>{Math.round(usageThreshold)}</Text>
+                <Text style={[styles.thresholdValueUnit, { fontSize: scaled.modalTitleMid }]}> kWh</Text>
               </Text>
             </View>
 
@@ -336,8 +351,8 @@ const SideMenuNavigation = ({ navigation }) => {
               {/* Bill Due Reminders */}
               <View style={styles.toggleRow}>
                 <View style={styles.toggleInfo}>
-                  <Text style={styles.toggleTitle}>Bill Due Reminders</Text>
-                  <Text style={styles.toggleSubtitle}>3 days before due date</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }]}>Bill Due Reminders</Text>
+                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }]}>3 days before due date</Text>
                 </View>
                 <Switch
                   value={billDueReminders}
@@ -351,8 +366,8 @@ const SideMenuNavigation = ({ navigation }) => {
               {/* Payment Confirmations */}
               <View style={styles.toggleRow}>
                 <View style={styles.toggleInfo}>
-                  <Text style={styles.toggleTitle}>Payment Confirmations</Text>
-                  <Text style={styles.toggleSubtitle}>Instant notification</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }]}>Payment Confirmations</Text>
+                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }]}>Instant notification</Text>
                 </View>
                 <Switch
                   value={paymentConfirmations}
@@ -366,8 +381,8 @@ const SideMenuNavigation = ({ navigation }) => {
               {/* Bill Amount Alerts */}
               <View style={styles.toggleRow}>
                 <View style={styles.toggleInfo}>
-                  <Text style={styles.toggleTitle}>Bill Amount Alerts</Text>
-                  <Text style={styles.toggleSubtitle}>When bill exceeds ₹5000</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }]}>Bill Amount Alerts</Text>
+                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }]}>When bill exceeds ₹5000</Text>
                 </View>
                 <Switch
                   value={billAmountAlerts}
@@ -381,8 +396,8 @@ const SideMenuNavigation = ({ navigation }) => {
               {/* Tamper Alerts */}
               <View style={styles.toggleRow}>
                 <View style={styles.toggleInfo}>
-                  <Text style={styles.toggleTitle}>Tamper Alerts</Text>
-                  <Text style={styles.toggleSubtitle}>Immediate notification</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }]}>Tamper Alerts</Text>
+                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }]}>Immediate notification</Text>
                 </View>
                 <Switch
                   value={tamperAlerts}
@@ -396,8 +411,8 @@ const SideMenuNavigation = ({ navigation }) => {
               {/* Email Notifications */}
               <View style={styles.toggleRow}>
                 <View style={styles.toggleInfo}>
-                  <Text style={styles.toggleTitle}>Email Notifications</Text>
-                  <Text style={styles.toggleSubtitle}>Receive updates via email</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }]}>Email Notifications</Text>
+                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }]}>Receive updates via email</Text>
                 </View>
                 <Switch
                   value={emailNotifications}
@@ -415,7 +430,7 @@ const SideMenuNavigation = ({ navigation }) => {
               activeOpacity={0.8}
               onPress={handleSaveAlertSettings}
             >
-              <Text style={styles.saveButtonText}>Save Settings</Text>
+              <Text style={[styles.saveButtonText, { fontSize: scaled.modalButton }]}>Save Settings</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -430,8 +445,8 @@ const SideMenuNavigation = ({ navigation }) => {
       >
         <View style={styles.logoutModalOverlay}>
           <View style={styles.logoutModalCard}>
-            <Text style={styles.logoutModalTitle}>Logout</Text>
-            <Text style={styles.logoutModalMessage}>
+            <Text style={[styles.logoutModalTitle, { fontSize: scaled.logoutModalTitle }]}>Logout</Text>
+            <Text style={[styles.logoutModalMessage, { fontSize: scaled.modalMessage }]}>
               Are you sure you want to logout?
             </Text>
 
@@ -441,7 +456,7 @@ const SideMenuNavigation = ({ navigation }) => {
                 activeOpacity={0.8}
                 onPress={handleCancelLogout}
               >
-                <Text style={styles.logoutModalCancelText}>Cancel</Text>
+                <Text style={[styles.logoutModalCancelText, { fontSize: scaled.modalButton }]}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -449,7 +464,7 @@ const SideMenuNavigation = ({ navigation }) => {
                 activeOpacity={0.8}
                 onPress={handleConfirmLogout}
               >
-                <Text style={styles.logoutModalConfirmText}>Logout</Text>
+                <Text style={[styles.logoutModalConfirmText, { fontSize: scaled.modalButton }]}>Logout</Text>
               </TouchableOpacity>
             </View>
           </View>

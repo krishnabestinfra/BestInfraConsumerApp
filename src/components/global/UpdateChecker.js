@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 import { forceCheckForUpdates, getAppVersionInfo, isRunningLatestUpdate } from '../../utils/updateChecker';
 
 /**
@@ -7,6 +8,10 @@ import { forceCheckForUpdates, getAppVersionInfo, isRunningLatestUpdate } from '
  * Can be used in Settings screen or anywhere you want manual update checking
  */
 const UpdateChecker = ({ style }) => {
+  const { getScaledFontSize } = useTheme();
+  const s18 = getScaledFontSize(18);
+  const s14 = getScaledFontSize(14);
+  const s16 = getScaledFontSize(16);
   const [isChecking, setIsChecking] = React.useState(false);
   const [versionInfo, setVersionInfo] = React.useState(null);
 
@@ -42,13 +47,13 @@ const UpdateChecker = ({ style }) => {
 
   return (
     <View style={[styles.container, style]}>
-      <Text style={styles.title}>App Updates</Text>
+      <Text style={[styles.title, { fontSize: s18 }]}>App Updates</Text>
       
       {versionInfo && (
         <View style={styles.versionInfo}>
-          <Text style={styles.versionText}>Version: {versionInfo.version}</Text>
-          <Text style={styles.buildText}>Build: {versionInfo.buildVersion}</Text>
-          <Text style={styles.platformText}>Platform: {versionInfo.platform}</Text>
+          <Text style={[styles.versionText, { fontSize: s14 }]}>Version: {versionInfo.version}</Text>
+          <Text style={[styles.buildText, { fontSize: s14 }]}>Build: {versionInfo.buildVersion}</Text>
+          <Text style={[styles.platformText, { fontSize: s14 }]}>Platform: {versionInfo.platform}</Text>
         </View>
       )}
 
@@ -57,7 +62,7 @@ const UpdateChecker = ({ style }) => {
         onPress={handleForceCheck}
         disabled={isChecking}
       >
-        <Text style={styles.buttonText}>
+        <Text style={[styles.buttonText, { fontSize: s16 }]}>
           {isChecking ? 'Checking...' : 'Check for Updates'}
         </Text>
       </TouchableOpacity>
@@ -66,7 +71,7 @@ const UpdateChecker = ({ style }) => {
         style={[styles.button, styles.secondaryButton]} 
         onPress={handleCheckLatest}
       >
-        <Text style={[styles.buttonText, styles.secondaryButtonText]}>
+        <Text style={[styles.buttonText, styles.secondaryButtonText, { fontSize: s16 }]}>
           Check Update Status
         </Text>
       </TouchableOpacity>

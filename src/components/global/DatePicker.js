@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/AntDesign';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import CalendarIcon from '../../../assets/icons/calendarBrand.svg';
 import CrossIcon from '../../../assets/icons/cross.svg';
 
@@ -26,6 +27,11 @@ const DatePicker = ({
   maximumDate,
   dateFormat = 'dd/mm/yyyy', // 'dd/mm/yyyy' or 'dd-mm-yyyy'
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
+  const s18 = getScaledFontSize(18);
+  const s16 = getScaledFontSize(16);
+  const s12 = getScaledFontSize(12);
   const [showPicker, setShowPicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(value || new Date());
 
@@ -92,6 +98,7 @@ const DatePicker = ({
       >
         <Text style={[
           styles.text,
+          { fontSize: s14 },
           textStyle,
           !value && styles.placeholderText,
           disabled && styles.disabledText
@@ -118,7 +125,7 @@ const DatePicker = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Date</Text>
+              <Text style={[styles.modalTitle, { fontSize: s18 }]}>Select Date</Text>
               <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
                 <CrossIcon width={18} height={18} fill={COLORS.primaryFontColor} />
               </TouchableOpacity>
@@ -127,7 +134,7 @@ const DatePicker = ({
             <ScrollView style={styles.pickerContainer}>
               {/* Year Picker */}
               <View style={styles.pickerSection}>
-                <Text style={styles.pickerLabel}>Year</Text>
+                <Text style={[styles.pickerLabel, { fontSize: s16 }]}>Year</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.yearContainer}>
                     {years.map((year) => (
@@ -141,6 +148,7 @@ const DatePicker = ({
                       >
                         <Text style={[
                           styles.yearText,
+                          { fontSize: s14 },
                           year === currentYear && styles.selectedText
                         ]}>
                           {year}
@@ -153,7 +161,7 @@ const DatePicker = ({
 
               {/* Month Picker */}
               <View style={styles.pickerSection}>
-                <Text style={styles.pickerLabel}>Month</Text>
+                <Text style={[styles.pickerLabel, { fontSize: s16 }]}>Month</Text>
                 <View style={styles.monthGrid}>
                   {months.map((month, index) => (
                     <TouchableOpacity
@@ -166,6 +174,7 @@ const DatePicker = ({
                     >
                       <Text style={[
                         styles.monthText,
+                        { fontSize: s12 },
                         (index + 1) === currentMonth && styles.selectedText
                       ]}>
                         {month.substring(0, 3)}
@@ -177,7 +186,7 @@ const DatePicker = ({
 
               {/* Day Picker */}
               <View style={styles.pickerSection}>
-                <Text style={styles.pickerLabel}>Day</Text>
+                <Text style={[styles.pickerLabel, { fontSize: s16 }]}>Day</Text>
                 <View style={styles.dayGrid}>
                   {generateDays(currentYear, currentMonth).map((day) => (
                     <TouchableOpacity
@@ -190,6 +199,7 @@ const DatePicker = ({
                     >
                       <Text style={[
                         styles.dayText,
+                        { fontSize: s14 },
                         day === currentDay && styles.selectedText
                       ]}>
                         {day}
@@ -202,13 +212,13 @@ const DatePicker = ({
 
             <View style={styles.modalFooter}>
               <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { fontSize: s14 }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.confirmButton} 
                 onPress={() => handleDateSelect(currentDay, currentMonth, currentYear)}
               >
-                <Text style={styles.confirmButtonText}>Confirm</Text>
+                <Text style={[styles.confirmButtonText, { fontSize: s14 }]}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -47,22 +47,28 @@ const SECTIONS = [
   },
 ];
 
-function SectionItem({ id, title, body }) {
+function SectionItem({ id, title, body, scaled }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionBadge}>
-          <Text style={styles.sectionBadgeText}>{id}</Text>
+          <Text style={[styles.sectionBadgeText, scaled && { fontSize: scaled.badge }]}>{id}</Text>
         </View>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={[styles.sectionTitle, scaled && { fontSize: scaled.title }]}>{title}</Text>
       </View>
-      <Text style={styles.sectionBody}>{body}</Text>
+      <Text style={[styles.sectionBody, scaled && { fontSize: scaled.body }]}>{body}</Text>
     </View>
   );
 }
 
 export default function TermsOfServicesScreen({ navigation }) {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s12 = getScaledFontSize(12);
+  const s13 = getScaledFontSize(13);
+  const s14 = getScaledFontSize(14);
+  const s16 = getScaledFontSize(16);
+  const s24 = getScaledFontSize(24);
+  const scaled = { badge: s12, title: s16, body: s14 };
   return (
     <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
@@ -90,14 +96,15 @@ export default function TermsOfServicesScreen({ navigation }) {
           </Pressable>
         </View>
 
-        <Text style={styles.pageTitle}>Terms Of Service</Text>
-        <Text style={styles.lastUpdated}>Last updated: {LAST_UPDATED}</Text>
+        <Text style={[styles.pageTitle, { fontSize: s24 }]}>Terms Of Service</Text>
+        <Text style={[styles.lastUpdated, { fontSize: s13 }]}>Last updated: {LAST_UPDATED}</Text>
 
         {SECTIONS.map((section) => (
           <SectionItem
             key={section.id}
             id={section.id}
             title={section.title}
+            scaled={scaled}
             body={section.body}
           />
         ))}

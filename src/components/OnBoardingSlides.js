@@ -9,10 +9,15 @@ import {
   Platform,
 } from "react-native";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
 const OnBoardingSlides = ({ scrollRef, onIndexChange}) => {
+  const { getScaledFontSize } = useTheme();
+  const s24 = getScaledFontSize(24);
+  const s14 = getScaledFontSize(14);
+  const s18 = getScaledFontSize(Platform.OS === "ios" ? 18 : 15);
   const [activeIndex, setActiveIndex] = useState(0); // State for the active slide index
 
   const currentIndex = useRef(0);
@@ -79,27 +84,27 @@ const OnBoardingSlides = ({ scrollRef, onIndexChange}) => {
       >
         {/* Slide 1 */}
         <View style={styles.slide}>
-          <Text style={styles.title}>No More</Text>
-          <Text style={styles.title}>Billing Disputes</Text>
-          <Text style={styles.description}>
+          <Text style={[styles.title, { fontSize: s24 }]}>No More</Text>
+          <Text style={[styles.title, { fontSize: s24 }]}>Billing Disputes</Text>
+          <Text style={[styles.description, { fontSize: s18 }]}>
             Transparent and highly precise digital smart meter readings ensure truly accurate, error-free bills every month.
           </Text>
         </View>
 
         {/* Slide 2 */}
         <View style={styles.slide}>
-          <Text style={styles.title}>Track Your</Text>
-          <Text style={styles.title}>Energy Smarter</Text>
-          <Text style={styles.description}>
+          <Text style={[styles.title, { fontSize: s24 }]}>Track Your</Text>
+          <Text style={[styles.title, { fontSize: s24 }]}>Energy Smarter</Text>
+          <Text style={[styles.description, { fontSize: s18 }]}>
             Clear daily and detailed monthly insights helpyou easily control energy usage and consistantly save valuable energy costs.
           </Text>
         </View>
 
         {/* Slide 3 */}
         <View style={styles.slide}>
-          <Text style={styles.title}>Your Power.</Text>
-          <Text style={styles.title}>Your Control.</Text>
-          <Text style={styles.description}>
+          <Text style={[styles.title, { fontSize: s24 }]}>Your Power.</Text>
+          <Text style={[styles.title, { fontSize: s24 }]}>Your Control.</Text>
+          <Text style={[styles.description, { fontSize: s18 }]}>
             Recharge instantly, securely check payments, and easily manage your account anytime, anywhere with ease.
           </Text>
         </View>

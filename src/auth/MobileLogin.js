@@ -7,6 +7,7 @@ import {
     Alert,
 } from "react-native";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import Tick from "../../assets/icons/tick.svg";
 import Button from "../components/global/Button";
 import Input from "../components/global/Input";
@@ -41,6 +42,9 @@ const MobileLogin = ({
     navigation,
     isLoading = false
 }) => {
+    const { getScaledFontSize } = useTheme();
+    const s14 = getScaledFontSize(14);
+    const sOr = getScaledFontSize(Platform.OS === "ios" ? 14 : 12);
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [showPassword, setShowPassword] = useState(false);
@@ -225,14 +229,14 @@ const MobileLogin = ({
                             />
                         )}
                     </View>
-                    <Text style={styles.rememberText}>Remember</Text>
+                    <Text style={[styles.rememberText, { fontSize: s14 }]}>Remember</Text>
                 </Pressable>
                 <Button
                     title="Forgot Password?"
                     variant="ghost"
                     size="small"
                     onPress={() => !isLoading && navigation.navigate("ForgotPassword")}
-                    textStyle={styles.forgotText}
+                    textStyle={[styles.forgotText, { fontSize: s14 }]}
                     disabled={isLoading}
                 />
             </View>
@@ -250,11 +254,11 @@ const MobileLogin = ({
             <View style={{ backgroundColor: "#fff" }}>
                 <View style={styles.straightLine}></View>
                 <View style={styles.orContainer}>
-                    <Text style={styles.orText}>OR</Text>
+                    <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
                 </View>
             </View>
             <View style={styles.otpHint}>
-                <Text style={styles.otpHintText}>Did not receive the code ? (00:30)</Text>
+                <Text style={[styles.otpHintText, { fontSize: s14 }]}>Did not receive the code ? (00:30)</Text>
             </View>
         </View>
     );

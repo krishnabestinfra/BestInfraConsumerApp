@@ -13,6 +13,9 @@ const screenHeight = Dimensions.get("window").height;
 
 const GuestLogin = () => {
   const navigation = useNavigation();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s16 = getScaledFontSize(16);
+  const s14 = getScaledFontSize(14);
 
   const handleContinueAsGuest = () => {
     // Reset navigation stack - removes auth screens from history
@@ -26,7 +29,7 @@ const GuestLogin = () => {
   return (
     <View style={[styles.Maincontainer, isDark && { backgroundColor: themeColors.screen }]}>
       <View style={[styles.container, isDark && { backgroundColor: themeColors.card }]}>
-        <Text style={styles.description}>
+        <Text style={[styles.description, { fontSize: s16 }]}>
           You are logging in as a guest. Some features may be limited.
         </Text>
         <Button
@@ -42,7 +45,7 @@ const GuestLogin = () => {
           variant="ghost"
           size="medium"
           style={styles.link}
-          textStyle={styles.linkText}
+          textStyle={[styles.linkText, { fontSize: s14 }]}
         />
       </View>
     </View>

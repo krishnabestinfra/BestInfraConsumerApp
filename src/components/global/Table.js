@@ -34,7 +34,13 @@ const Table = ({
   minTableWidth,
   rowsPerPage = 5,
 }) => {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s10 = getScaledFontSize(10);
+  const s11 = getScaledFontSize(11);
+  const s12 = getScaledFontSize(12);
+  const s13 = getScaledFontSize(13);
+  const s14 = getScaledFontSize(14);
+  const s16 = getScaledFontSize(16);
   const [currentPage, setCurrentPage] = useState(1); 
   const totalPages = Math.ceil(data.length / rowsPerPage); 
 
@@ -72,7 +78,7 @@ const Table = ({
 
     return (
       <View style={[styles.priorityTag, getPriorityStyle(priority)]}>
-        <Text style={[styles.priorityTagText, getPriorityTextStyle(priority)]}>
+        <Text style={[styles.priorityTagText, { fontSize: s10 }, getPriorityTextStyle(priority)]}>
           {text || priority}
         </Text>
       </View>
@@ -146,16 +152,17 @@ const Table = ({
   };
 
   const headerRowStyle = isDark ? [styles.headerRow, { backgroundColor: themeColors.accent }] : styles.headerRow;
-  const headerTextStyle = isDark ? [styles.headerText, { color: themeColors.textOnPrimary }] : styles.headerText;
+  const headerFontSize = screenWidth < 400 ? s11 : s13;
+  const headerTextStyle = isDark ? [styles.headerText, { color: themeColors.textOnPrimary, fontSize: headerFontSize }] : [styles.headerText, { fontSize: headerFontSize }];
   const dataRowStyle = isDark
     ? [styles.dataRow, { backgroundColor: '#1A1F2E' }]
     : styles.dataRow;
-  const dataTextStyle = isDark ? [styles.dataText, { color: themeColors.textPrimary }] : styles.dataText;
+  const dataTextStyle = isDark ? [styles.dataText, { color: themeColors.textPrimary, fontSize: s10 }] : [styles.dataText, { fontSize: s10 }];
   const emptyContainerStyle = isDark ? [styles.emptyContainer, { backgroundColor: themeColors.card }] : styles.emptyContainer;
   const emptyIconWrapperStyle = isDark ? [styles.emptyIconWrapper, { backgroundColor: themeColors.card }] : styles.emptyIconWrapper;
-  const emptyTitleStyle = isDark ? [styles.emptyTitle, { color: themeColors.textPrimary }] : styles.emptyTitle;
-  const emptySubtitleStyle = isDark ? [styles.emptySubtitle, { color: themeColors.textSecondary }] : styles.emptySubtitle;
-  const paginationTextStyle = isDark ? [styles.paginationText, { color: themeColors.textPrimary }] : styles.paginationText;
+  const emptyTitleStyle = isDark ? [styles.emptyTitle, { color: themeColors.textPrimary, fontSize: s16 }] : [styles.emptyTitle, { fontSize: s16 }];
+  const emptySubtitleStyle = isDark ? [styles.emptySubtitle, { color: themeColors.textSecondary, fontSize: s14 }] : [styles.emptySubtitle, { fontSize: s14 }];
+  const paginationTextStyle = isDark ? [styles.paginationText, { color: themeColors.textPrimary, fontSize: s10 }] : [styles.paginationText, { fontSize: s10 }];
 
   return (
     <View style={[

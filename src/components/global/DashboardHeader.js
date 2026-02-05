@@ -25,8 +25,12 @@ const DashboardHeader = React.memo(({
   consumerData = null, // API consumer data
   isLoading = false // Loading state
 }) => {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
   const [userName, setUserName] = useState('');
+  const scaledHi = getScaledFontSize(18);
+  const scaledStaying = getScaledFontSize(14);
+  const scaledAmount = getScaledFontSize(20);
+  const scaledBadge = getScaledFontSize(10);
   const [cachedConsumerData, setCachedConsumerData] = useState(null);
   const { isLoading: isUserLoading, setLoading: setUserLoading } = useLoading('user_loading', true);
 
@@ -118,10 +122,10 @@ const DashboardHeader = React.memo(({
   const iconFill = isDark ? '#FFFFFF' : '#202d59';
   const iconWrapperBg = isDark ? '#1A1F2E' : undefined;
   const handFill = isDark ? themeColors.accent : '#55B56C';
-  const hiStyle = [styles.hiText, isDark && { color: themeColors.textPrimary }];
-  const stayingStyle = [styles.stayingText, isDark && { color: themeColors.textSecondary }];
-  const balanceStyle = [styles.balanceText, isDark && { color: themeColors.textSecondary }];
-  const amountStyle = [styles.amountText, isDark && { color: themeColors.textPrimary }];
+  const hiStyle = [styles.hiText, { fontSize: scaledHi }, isDark && { color: themeColors.textPrimary }];
+  const stayingStyle = [styles.stayingText, { fontSize: scaledStaying }, isDark && { color: themeColors.textSecondary }];
+  const balanceStyle = [styles.balanceText, { fontSize: scaledStaying }, isDark && { color: themeColors.textSecondary }];
+  const amountStyle = [styles.amountText, { fontSize: scaledAmount }, isDark && { color: themeColors.textPrimary }];
   const plusFill = isDark ? themeColors.accent : '#55B56C';
 
   const MenuIcon = isDark ? MenuWhite : Menu;
@@ -153,7 +157,7 @@ const DashboardHeader = React.memo(({
           </View>
           {unreadCount > 0 && (
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount}</Text>
+              <Text style={[styles.badgeText, { fontSize: scaledBadge }]}>{unreadCount}</Text>
             </View>
           )}
         </Pressable>

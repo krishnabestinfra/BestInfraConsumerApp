@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import Logo from './Logo';
 
 /**
@@ -17,6 +18,11 @@ const PushNotificationCard = ({
   visible = true,
   style,
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
+  const s12 = getScaledFontSize(12);
+  const s16 = getScaledFontSize(16);
+  const s13 = getScaledFontSize(13);
   const slideAnim = React.useRef(new Animated.Value(-100)).current;
   const opacityAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -72,22 +78,22 @@ const PushNotificationCard = ({
           <Logo variant="blue" size="small" />
         </View>
         <View style={styles.headerTextContainer}>
-          <Text style={styles.brandName}>NexusOne</Text>
+          <Text style={[styles.brandName, { fontSize: s14 }]}>NexusOne</Text>
           <View style={styles.dot} />
-          <Text style={styles.timeText}>now</Text>
+          <Text style={[styles.timeText, { fontSize: s12 }]}>now</Text>
         </View>
         {onDismiss && (
           <Pressable style={styles.dismissButton} onPress={onDismiss}>
-            <Text style={styles.dismissIcon}>⌄</Text>
+            <Text style={[styles.dismissIcon, { fontSize: s16 }]}>⌄</Text>
           </Pressable>
         )}
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.greeting}>{title}</Text>
+        <Text style={[styles.greeting, { fontSize: s16 }]}>{title}</Text>
         {message && (
-          <Text style={styles.message} numberOfLines={3}>
+          <Text style={[styles.message, { fontSize: s13 }]} numberOfLines={3}>
             {message}
           </Text>
         )}

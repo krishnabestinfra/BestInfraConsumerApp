@@ -8,6 +8,7 @@ import {
   Pressable,
 } from 'react-native';
 import { COLORS, colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import CalendarArrowLeft from '../../../assets/icons/Calender arrowleft.svg';
 import CalendarArrowRight from '../../../assets/icons/CalenderarrowRight.svg';
 
@@ -24,6 +25,11 @@ const CalendarDatePicker = ({
   value,
   onChange,
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s18 = getScaledFontSize(18);
+  const s16 = getScaledFontSize(16);
+  const s12 = getScaledFontSize(12);
+  const s14 = getScaledFontSize(14);
   const initialDate = value || new Date();
   const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
@@ -115,7 +121,7 @@ const CalendarDatePicker = ({
     >
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>Select Date</Text>
+          <Text style={[styles.title, { fontSize: s18 }]}>Select Date</Text>
 
           <View style={styles.monthNav}>
             <TouchableOpacity
@@ -125,7 +131,7 @@ const CalendarDatePicker = ({
             >
               <CalendarArrowLeft width={16} height={16} fill={colors.color_text_secondary} />
             </TouchableOpacity>
-            <Text style={styles.monthYear}>
+            <Text style={[styles.monthYear, { fontSize: s16 }]}>
               {MONTH_NAMES[viewMonth]} {viewYear}
             </Text>
             <TouchableOpacity
@@ -139,7 +145,7 @@ const CalendarDatePicker = ({
 
           <View style={styles.dayHeaders}>
             {DAY_HEADERS.map((d) => (
-              <Text key={d} style={styles.dayHeaderText}>{d}</Text>
+              <Text key={d} style={[styles.dayHeaderText, { fontSize: s12 }]}>{d}</Text>
             ))}
           </View>
 
@@ -162,6 +168,7 @@ const CalendarDatePicker = ({
                   <Text
                     style={[
                       styles.dayText,
+                      { fontSize: s14 },
                       !isCurrentMonth && styles.dayTextOtherMonth,
                       selected && !disabled && styles.dayTextSelected,
                       isCurrentMonth && !selected && weekend && styles.dayTextWeekend,

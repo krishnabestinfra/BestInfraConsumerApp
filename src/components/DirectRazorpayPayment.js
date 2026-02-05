@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { COLORS } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 
 const DirectRazorpayPayment = ({ 
   visible, 
@@ -25,6 +26,11 @@ const DirectRazorpayPayment = ({
   onError, 
   orderData 
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s18 = getScaledFontSize(18);
+  const s16 = getScaledFontSize(16);
+  const s24 = getScaledFontSize(24);
+  const s48 = getScaledFontSize(48);
   const [loading, setLoading] = useState(true);
 
   // Handle WebView navigation state changes
@@ -559,23 +565,23 @@ const DirectRazorpayPayment = ({
         <View style={styles.container}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
+              <Text style={[styles.closeButtonText, { fontSize: s18 }]}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Payment Error</Text>
+            <Text style={[styles.headerTitle, { fontSize: s18 }]}>Payment Error</Text>
             <View style={styles.placeholder} />
           </View>
           
           <View style={styles.errorContainer}>
-            <Text style={styles.errorIcon}>⚠️</Text>
-            <Text style={styles.errorTitle}>Payment Error</Text>
-            <Text style={styles.errorMessage}>
+            <Text style={[styles.errorIcon, { fontSize: s48 }]}>⚠️</Text>
+            <Text style={[styles.errorTitle, { fontSize: s24 }]}>Payment Error</Text>
+            <Text style={[styles.errorMessage, { fontSize: s16 }]}>
               Unable to load payment details. Please try again.
             </Text>
             <TouchableOpacity 
               style={styles.retryButton}
               onPress={onClose}
             >
-              <Text style={styles.retryButtonText}>Close</Text>
+              <Text style={[styles.retryButtonText, { fontSize: s16 }]}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -593,16 +599,16 @@ const DirectRazorpayPayment = ({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>✕</Text>
+            <Text style={[styles.closeButtonText, { fontSize: s18 }]}>✕</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Payment</Text>
+          <Text style={[styles.headerTitle, { fontSize: s18 }]}>Payment</Text>
           <View style={styles.placeholder} />
         </View>
         
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-            <Text style={styles.loadingText}>Loading payment gateway...</Text>
+            <Text style={[styles.loadingText, { fontSize: s16 }]}>Loading payment gateway...</Text>
           </View>
         )}
         

@@ -1,6 +1,7 @@
 import React from 'react';
 import { TextInput, View, Text, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 const TextArea = ({
   label,
@@ -21,6 +22,10 @@ const TextArea = ({
   onBlur,
   ...props
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
+  const s12 = getScaledFontSize(12);
+  const s16 = getScaledFontSize(16);
   const getInputContainerStyle = () => {
     const baseStyle = [styles.inputContainer, styles[`${variant}Container`], styles[size]];
     
@@ -48,14 +53,14 @@ const TextArea = ({
   return (
     <View style={[styles.container, style]}>
       {label && (
-        <Text style={[styles.label, labelStyle]}>
+        <Text style={[styles.label, { fontSize: s14 }, labelStyle]}>
           {label}
         </Text>
       )}
       
       <View style={getInputContainerStyle()}>        
         <TextInput
-          style={[getInputStyle(), inputStyle]}
+          style={[getInputStyle(), { fontSize: size === 'small' ? s12 : size === 'large' ? s16 : s14 }, inputStyle]}
           placeholder={placeholder}
           placeholderTextColor="#6E6E6E"
           value={value}
@@ -72,13 +77,13 @@ const TextArea = ({
       </View>
       
       {maxLength && (
-        <Text style={styles.characterCount}>
+        <Text style={[styles.characterCount, { fontSize: s12 }]}>
           {value ? value.length : 0}/{maxLength}
         </Text>
       )}
       
       {error && (
-        <Text style={[styles.errorText, errorStyle]}>
+        <Text style={[styles.errorText, { fontSize: s12 }, errorStyle]}>
           {error}
         </Text>
       )}

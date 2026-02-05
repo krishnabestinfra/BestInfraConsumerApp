@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 import Menu from '../../assets/icons/bars.svg';
 import BackIcon from '../../assets/icons/Back.svg';
 import Logo from '../components/global/Logo';
@@ -53,22 +54,22 @@ const SECTIONS = [
   },
 ];
 
-function SectionItem({ id, title, body, bullets }) {
+function SectionItem({ id, title, body, bullets, scaled }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionBadge}>
-          <Text style={styles.sectionBadgeText}>{id}</Text>
+          <Text style={[styles.sectionBadgeText, scaled && { fontSize: scaled.badge }]}>{id}</Text>
         </View>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={[styles.sectionTitle, scaled && { fontSize: scaled.title }]}>{title}</Text>
       </View>
       <View style={styles.sectionContent}>
-        {body ? <Text style={styles.sectionBody}>{body}</Text> : null}
+        {body ? <Text style={[styles.sectionBody, scaled && { fontSize: scaled.body }]}>{body}</Text> : null}
         {bullets?.length
           ? bullets.map((item, index) => (
               <View key={index} style={styles.bulletRow}>
-                <Text style={styles.bullet}>•</Text>
-                <Text style={styles.bulletText}>{item}</Text>
+                <Text style={[styles.bullet, scaled && { fontSize: scaled.body }]}>•</Text>
+                <Text style={[styles.bulletText, scaled && { fontSize: scaled.body }]}>{item}</Text>
               </View>
             ))
           : null}
@@ -78,6 +79,13 @@ function SectionItem({ id, title, body, bullets }) {
 }
 
 export default function PrivacyPolicyScreen({ navigation }) {
+  const { getScaledFontSize } = useTheme();
+  const s12 = getScaledFontSize(12);
+  const s13 = getScaledFontSize(13);
+  const s14 = getScaledFontSize(14);
+  const s16 = getScaledFontSize(16);
+  const s24 = getScaledFontSize(24);
+  const scaled = { badge: s12, title: s16, body: s14 };
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
@@ -105,8 +113,8 @@ export default function PrivacyPolicyScreen({ navigation }) {
           </Pressable>
         </View>
 
-        <Text style={styles.pageTitle}>Privacy Policy</Text>
-        <Text style={styles.lastUpdated}>Last updated: {LAST_UPDATED}</Text>
+        <Text style={[styles.pageTitle, { fontSize: s24 }]}>Privacy Policy</Text>
+        <Text style={[styles.lastUpdated, { fontSize: s13 }]}>Last updated: {LAST_UPDATED}</Text>
 
         {SECTIONS.map((section) => (
           <SectionItem
@@ -115,6 +123,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
             title={section.title}
             body={section.body}
             bullets={section.bullets}
+            scaled={scaled}
           />
         ))}
       </ScrollView>

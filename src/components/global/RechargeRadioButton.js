@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 const RechargeRadioButton = ({
   label,
@@ -12,6 +13,9 @@ const RechargeRadioButton = ({
   style,
   ...props
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s10 = getScaledFontSize(10);
+  const s16 = getScaledFontSize(16);
   const isSelected = selectedValue === value;
 
   const handlePress = () => {
@@ -37,6 +41,7 @@ const RechargeRadioButton = ({
         <View style={styles.textContainer}>
           <Text style={[
             styles.label,
+            { fontSize: s10 },
             isSelected && styles.labelSelected,
             disabled && styles.labelDisabled
           ]}>
@@ -44,6 +49,7 @@ const RechargeRadioButton = ({
           </Text>
           <Text style={[
             styles.amount,
+            { fontSize: s16 },
             isSelected && styles.amountSelected,
             disabled && styles.amountDisabled
           ]}>

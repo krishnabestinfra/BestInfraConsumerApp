@@ -28,7 +28,11 @@ const proceedToResetPassword = (email, navigation) => {
 };
 
 const ForgotPassword = ({ navigation }) => {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s24 = getScaledFontSize(24);
+  const s14 = getScaledFontSize(14);
+  const s13 = getScaledFontSize(13);
+  const sOr = getScaledFontSize(Platform.OS === "ios" ? 14 : 12);
   const [identifier, setIdentifier] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -119,8 +123,8 @@ const ForgotPassword = ({ navigation }) => {
           </View>
 
           <View style={styles.textBlock}>
-            <Text style={styles.title}>Forgot Password?</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { fontSize: s24 }]}>Forgot Password?</Text>
+            <Text style={[styles.subtitle, { fontSize: s14 }]}>
               No worries! Enter your registered email address or phone number,
               and we&apos;ll send you a verification code to reset your
               password.
@@ -151,23 +155,23 @@ const ForgotPassword = ({ navigation }) => {
             />
 
             <View style={styles.rememberRow}>
-              <Text style={styles.rememberText}>Remember your password?</Text>
+              <Text style={[styles.rememberText, { fontSize: s13 }]}>Remember your password?</Text>
               <Pressable onPress={handleBackToLogin} style={styles.backToLoginButton}>
-                <Text style={styles.backToLoginText}>Back to Login</Text>
+                <Text style={[styles.backToLoginText, { fontSize: s13 }]}>Back to Login</Text>
               </Pressable>
             </View>
 
             <View style={styles.orSection}>
             <View style={styles.straightLine} />
             <View style={styles.orContainer}>
-              <Text style={styles.orText}>OR</Text>
+              <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
             </View>
 
             <Pressable
               style={styles.otpButton}
               onPress={() => navigation.navigate("OTPLogin")}
             >
-              <Text style={styles.otpText}>Get OTP</Text>
+              <Text style={[styles.otpText, { fontSize: s14 }]}>Get OTP</Text>
             </Pressable>
             </View>
           </View>

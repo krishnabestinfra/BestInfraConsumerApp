@@ -21,12 +21,17 @@ import { API_ENDPOINTS } from '../constants/constants';
 import { getToken } from '../utils/storage';
 import CloseIcon from "../../assets/icons/cross.svg";
 import { SkeletonLoader } from '../utils/loadingManager';
+import { useTheme } from '../context/ThemeContext';
 
 const ConsumerDetailsBottomSheet = ({ 
   visible,
   consumerUid, 
   onClose 
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s12 = getScaledFontSize(12);
+  const s14 = getScaledFontSize(14);
+  const s16 = getScaledFontSize(16);
   const [consumerData, setConsumerData] = useState(null);
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -315,6 +320,9 @@ const ConsumerDetailsBottomSheet = ({
                       unit="V" 
                       color="#E70000"
                       loading={isLoading}
+                      scaledPhase={s14}
+                      scaledValue={s16}
+                      scaledUnit={s12}
                     />
                     <ReadingCard 
                       phase="Y-Phase" 
@@ -322,6 +330,9 @@ const ConsumerDetailsBottomSheet = ({
                       unit="V" 
                       color="#FFC107"
                       loading={isLoading}
+                      scaledPhase={s14}
+                      scaledValue={s16}
+                      scaledUnit={s12}
                     />
                     <ReadingCard 
                       phase="B-Phase" 
@@ -329,6 +340,9 @@ const ConsumerDetailsBottomSheet = ({
                       unit="V" 
                       color="#007AFF"
                       loading={isLoading}
+                      scaledPhase={s14}
+                      scaledValue={s16}
+                      scaledUnit={s12}
                     />
                   </View>
 
@@ -341,6 +355,9 @@ const ConsumerDetailsBottomSheet = ({
                       unit="A" 
                       color="#E70000"
                       loading={isLoading}
+                      scaledPhase={s14}
+                      scaledValue={s16}
+                      scaledUnit={s12}
                     />
                     <ReadingCard 
                       phase="Y-Phase" 
@@ -348,6 +365,9 @@ const ConsumerDetailsBottomSheet = ({
                       unit="A" 
                       color="#FFC107"
                       loading={isLoading}
+                      scaledPhase={s14}
+                      scaledValue={s16}
+                      scaledUnit={s12}
                     />
                     <ReadingCard 
                       phase="B-Phase" 
@@ -355,6 +375,9 @@ const ConsumerDetailsBottomSheet = ({
                       unit="A" 
                       color="#007AFF"
                       loading={isLoading}
+                      scaledPhase={s14}
+                      scaledValue={s16}
+                      scaledUnit={s12}
                     />
                   </View>
 
@@ -367,6 +390,9 @@ const ConsumerDetailsBottomSheet = ({
                       unit="W" 
                       color="#E70000"
                       loading={isLoading}
+                      scaledPhase={s14}
+                      scaledValue={s16}
+                      scaledUnit={s12}
                     />
                     <ReadingCard 
                       phase="Y-Phase" 
@@ -374,6 +400,9 @@ const ConsumerDetailsBottomSheet = ({
                       unit="W" 
                       color="#FFC107"
                       loading={isLoading}
+                      scaledPhase={s14}
+                      scaledValue={s16}
+                      scaledUnit={s12}
                     />
                     <ReadingCard 
                       phase="B-Phase" 
@@ -381,6 +410,9 @@ const ConsumerDetailsBottomSheet = ({
                       unit="W" 
                       color="#007AFF"
                       loading={isLoading}
+                      scaledPhase={s14}
+                      scaledValue={s16}
+                      scaledUnit={s12}
                     />
                   </View>
                 </View>

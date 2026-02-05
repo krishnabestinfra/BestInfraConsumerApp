@@ -26,7 +26,10 @@ const screenHeight = Dimensions.get("window").height;
 const OTP_RESEND_SECONDS = 30;
 
 const OTPLogin = ({ navigation }) => {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s22 = getScaledFontSize(22);
+  const s14 = getScaledFontSize(14);
+  const sOr = getScaledFontSize(Platform.OS === "ios" ? 14 : 12);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
@@ -111,10 +114,10 @@ const OTPLogin = ({ navigation }) => {
           </View>
 
           <View style={styles.textBlock}>
-            <Text style={styles.welcomeTitle}>
+            <Text style={[styles.welcomeTitle, { fontSize: s22 }]}>
               Welcome to Best Infra for GMR Customers
             </Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.subtitle, { fontSize: s14 }]}>
               Access your smart meter data, monitor energy usage, and manage
               everything seamlessly - all within one secure platform.
             </Text>
@@ -156,7 +159,7 @@ const OTPLogin = ({ navigation }) => {
                     <Tick size={14} fill={COLORS.secondaryFontColor} />
                   )}
                 </View>
-                <Text style={styles.rememberText}>Remember</Text>
+                <Text style={[styles.rememberText, { fontSize: s14 }]}>Remember</Text>
               </Pressable>
             </View>
 
@@ -173,7 +176,7 @@ const OTPLogin = ({ navigation }) => {
             <View style={styles.orSection}>
               <View style={styles.straightLine} />
               <View style={styles.orContainer}>
-                <Text style={styles.orText}>OR</Text>
+                <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
               </View>
             </View>
 
@@ -182,10 +185,11 @@ const OTPLogin = ({ navigation }) => {
               onPress={() => canResend && handleGenerateOTP()}
               disabled={!canResend}
             >
-              <Text style={styles.resendText}>Did not receive the code? </Text>
+              <Text style={[styles.resendText, { fontSize: s14 }]}>Did not receive the code? </Text>
               <Text
                 style={[
                   styles.timerText,
+                  { fontSize: s14 },
                   canResend && styles.timerTextLink,
                 ]}
               >

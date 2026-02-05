@@ -37,7 +37,11 @@ const PASSWORD_RULES = [
 const SetNewPassword = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s24 = getScaledFontSize(24);
+  const s14 = getScaledFontSize(14);
+  const s13 = getScaledFontSize(13);
+  const s12 = getScaledFontSize(12);
   const { email, code, userId } = route.params || {};
 
   const [newPassword, setNewPassword] = useState("");
@@ -146,8 +150,8 @@ const SetNewPassword = () => {
           </View>
 
           <View style={styles.textBlock}>
-            <Text style={styles.title}>Reset Password</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { fontSize: s24 }]}>Reset Password</Text>
+            <Text style={[styles.subtitle, { fontSize: s14 }]}>
               Create a new password below and continue to your account.
             </Text>
           </View>
@@ -180,7 +184,7 @@ const SetNewPassword = () => {
 
             {newPassword.length > 0 && !allRulesMet && (
               <View style={styles.passwordRulesBox}>
-                <Text style={styles.passwordRulesTitle}>Password must contain:</Text>
+                <Text style={[styles.passwordRulesTitle, { fontSize: s13 }]}>Password must contain:</Text>
                 {passwordRulesMet.map((rule) => (
                   <View key={rule.key} style={styles.passwordRuleRow}>
                     <View style={styles.ruleIconWrap}>
@@ -190,7 +194,7 @@ const SetNewPassword = () => {
                         <CrossIcon width={15} height={15} stroke="#FF4444" />
                       )}
                     </View>
-                    <Text style={styles.passwordRuleText}>
+                    <Text style={[styles.passwordRuleText, { fontSize: s12 }]}>
                       {rule.label}
                     </Text>
                   </View>
@@ -211,7 +215,7 @@ const SetNewPassword = () => {
               style={styles.inputContainer}
               hasErrorBorder={passwordsDontMatch}
               error={passwordsDontMatch ? "Passwords do not match" : undefined}
-              errorStyle={styles.passwordMatchErrorText}
+              errorStyle={[styles.passwordMatchErrorText, { fontSize: s12 }]}
               rightIcon={
                 <Pressable onPress={() => setShowConfirmPassword((v) => !v)}>
                   <View style={styles.eyeIconContainer}>
@@ -236,9 +240,9 @@ const SetNewPassword = () => {
             />
 
             <View style={styles.rememberRow}>
-              <Text style={styles.rememberText}>Remember your password?</Text>
+              <Text style={[styles.rememberText, { fontSize: s13 }]}>Remember your password?</Text>
               <Pressable onPress={handleBackToLogin} style={styles.backToLoginButton}>
-                <Text style={styles.backToLoginText}>Back to Login</Text>
+                <Text style={[styles.backToLoginText, { fontSize: s13 }]}>Back to Login</Text>
               </Pressable>
             </View>
           </View>
