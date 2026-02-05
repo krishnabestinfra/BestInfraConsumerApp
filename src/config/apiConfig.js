@@ -52,9 +52,9 @@ if (__DEV__) {
   console.log(`   API.TICKETS_URL: ${API.TICKETS_URL}`);
 }
 
-// Specific endpoint builders
+
 export const API_ENDPOINTS = {
-  // Consumer endpoints
+
   consumers: {
     get: (id) => `${API.BASE_URL}/consumers/${id}`,
     list: () => `${API.BASE_URL}/consumers`,
@@ -67,18 +67,16 @@ export const API_ENDPOINTS = {
     logout: () => `${API.AUTH_URL}/logout`,
     refresh: () => `${API.AUTH_URL}/refresh`,
     resetPassword: () => `${API.RESET_PASSWORD_URL}/reset-password`,
-    /** Send OTP - POST with { email } */
+
     forgotPassword: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/login-otp',
-    /** Verify OTP - POST with { email, otp } */
     verifyOtp: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/verify-otp',
     updatePassword: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/update-password',
   },
   
-  // Tickets endpoints (create: POST https://api.bestinfra.app/v2gmr/api/tickets)
   tickets: {
     stats: (uid) => `${API.TICKETS_URL}/tickets/stats?uid=${uid}`,
     table: (uid) => `${API.TICKETS_URL}/tickets/table?uid=${uid}`,
-    create: () => `${API.TICKETS_URL}/tickets`,
+    create: () => 'https://api.bestinfra.app/v2gmr/api/tickets',
     update: (id) => `${API.TICKETS_URL}/tickets/${id}`,
   },
   
@@ -95,26 +93,25 @@ export const API_ENDPOINTS = {
     invoice: (billNumber) => `${API.BASE_URL}/billing/invoice?billNumber=${billNumber}`,
   },
   
-  // Notifications endpoints
+
   notifications: {
     list: (page = 1, limit = 10) => `${API.BASE_URL}/notifications?page=${page}&limit=${limit}`,
     markRead: (id) => `${API.BASE_URL}/notifications/${id}/read`,
     markAllRead: (uid) => `${API.BASE_URL}/notifications/${uid}/read-all`,
-    // Register push token - POST to /notifications endpoint with pushToken in body
     registerPushToken: () => `${API.BASE_URL}/notifications`,
   },
   
-  // LS Data endpoints (15-minute interval consumption data)
+
   lsdata: {
     consumption: (startDate, endDate, meterId) => `${API.BASE_URL}/lsdata/consumption?startDate=${startDate}&endDate=${endDate}&meterId=${meterId}`,
   },
   
-  // Utility endpoints
+
   health: () => `${API.HEALTH_URL}/`,
   version: () => `${API.BASE_URL}/version`,
 };
 
-// Environment information
+
 export const ENV_INFO = {
   isDevelopment: currentEnv.name === 'development',
   isProduction: currentEnv.name === 'production',
@@ -124,7 +121,7 @@ export const ENV_INFO = {
   environmentConfig: currentEnv,
 };
 
-// Helper functions
+
 export const getApiUrl = (endpoint) => {
   return endpoint;
 };

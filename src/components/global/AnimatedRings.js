@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 0,
   },
   ring: {
     position: 'absolute',

@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { View, Dimensions, Text, ActivityIndicator, ScrollView } from "react-native";
 import { BarChart as GiftedBarChart } from "react-native-gifted-charts";
 import { SkeletonLoader } from "../utils/loadingManager";
-
+import { useTheme } from "../context/ThemeContext";
 
 const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data = null, loading = false, onBarPress = null }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const { width } = Dimensions.get("window");
   const [containerWidth, setContainerWidth] = useState(width - 62);
 
@@ -212,22 +213,23 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
   }
 
   // Convert data to GiftedCharts format; for 30D show all labels (scrollable); else every nth when many bars
+  const barColor = isDark ? themeColors.brandBlue : '#163b7c';
+  const labelColor = isDark ? themeColors.textSecondary : '#333';
   const barCount = chartData.labels.length;
   const showEveryNthLabel = barCount === 30 ? 1 : (barCount >= 20 ? (barCount <= 60 ? 10 : 15) : 1);
   const giftedData = chartData.labels.map((label, index) => ({
     value: chartData.blue[index] || 0,
     label: showEveryNthLabel > 1 && index % showEveryNthLabel !== 0 ? '' : label,
-    frontColor: '#163b7c', // Same color as original chart
+    frontColor: barColor,
     labelTextStyle: {
-      color: '#333',
+      color: labelColor,
       fontSize: displayedBars >= 12 ? 6 : 7,
       fontFamily: 'Manrope-Medium',
       transform: [{ rotate: '-60deg' }],
     },
-    // Add top label component with proper positioning
     topLabelComponent: () => (
       <Text style={{
-        color: '#333',
+        color: labelColor,
         fontSize: 7,
         fontFamily: 'Manrope-Medium',
       }}>
@@ -314,34 +316,34 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
       data={giftedData}
       barWidth={barWidth}
       noOfSections={4}
-      frontColor="#163b7c"
+      frontColor={barColor}
       height={190}
       width={chartWidth}
       isAnimated
       animationDuration={1000}
-      yAxisThickness={0}    // removes y-axis line
-      xAxisThickness={0}    // removes x-axis line
-      hideYAxisText          // removes y-axis labels
-      rulesType="none"       // removes grid/rule lines
-      barBorderRadius={4}    // rounded corners like original
-      spacing={spacing}      // spacing between bars
-      initialSpacing={edgeSpacing}    // spacing before first bar
-      endSpacing={edgeSpacing}        // spacing after last bar
-      showGradient={false}   // solid color like original
+      yAxisThickness={0}
+      xAxisThickness={0}
+      hideYAxisText
+      rulesType="none"
+      barBorderRadius={4}
+      spacing={spacing}
+      initialSpacing={edgeSpacing}
+      endSpacing={edgeSpacing}
+      showGradient={false}
       showReferenceLine1={false}
       showReferenceLine2={false}
       showReferenceLine3={false}
       showStrip={false}
       showTextOnBar={false}
       showTextBelowBar={false}
-      showValuesAsTopLabel={false}  // Use custom topLabelComponent instead
+      showValuesAsTopLabel={false}
       topLabelTextStyle={{
-        color: '#333',
+        color: labelColor,
         fontSize: 10,
         fontFamily: 'Manrope-Regular',
       }}
       xAxisLabelTextStyle={{
-        color: '#333',
+        color: labelColor,
         fontSize: xAxisFontSize,
         fontFamily: 'Manrope-Regular',
         textAlign: 'right',
@@ -380,13 +382,15 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     />
   );
 
+  const chartContainerBg = isDark ? '#1A1F2E' : '#eef8f0';
+
   return (
     <View
       style={{ 
         height: 250, 
         width: '100%', 
         borderRadius: 5, 
-        backgroundColor: '#eef8f0',
+        backgroundColor: chartContainerBg,
         overflow: 'hidden',
       }}
       onLayout={(e) => {

@@ -2,8 +2,10 @@ import React, { useRef, useEffect, useState } from "react";
 import { View, Dimensions, Text, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 
 const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const webRef = useRef();
   const { width } = Dimensions.get("window");
 
@@ -12,7 +14,7 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun","July", "Aug","Sept","Oct"],
   });
 
-  // Process API data for chart
+
   useEffect(() => {
     if (data && data.chartData) {
       const chartType = viewType === "daily" ? data.chartData.daily : data.chartData.monthly;
@@ -50,6 +52,10 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
     }
   }, [chartData]);
 
+  const chartBg = isDark ? themeColors.card : '#eef8f0';
+  const axisLabelColor = isDark ? 'rgba(255,255,255,0.6)' : '#333';
+  const barColor = isDark ? themeColors.brandBlue : '#163b7c';
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -59,7 +65,7 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
         html, body, #main {
           margin: 0;
           padding: 0;
-          background:#eef8f0;
+          background: ${chartBg};
         }
       </style>
     </head>
@@ -72,13 +78,14 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
           grid: { left:30, right: 20, bottom: 50, top: 60 },
           tooltip: {},
           legend: { show: false },
+          backgroundColor: 'transparent',
           xAxis: {
             type: 'category',
             data: ${JSON.stringify(chartData.labels)},
             axisLine: { show: false },
             axisTick: { show: false },
             axisLabel: {
-              color: '#333',
+              color: '${axisLabelColor}',
               fontSize: 30
             }
           },
@@ -90,7 +97,6 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
             axisLabel: { show: false }
           },
           series: [
-           
             {
               name: 'Blue',
               type: 'bar',
@@ -98,18 +104,7 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
               barWidth: 55,
               barGap: '10%',
               itemStyle: {
-                color: '#163b7c',
-
-                // color: '#b5ead7',
-                // color: '#ffd6a5',
-                // color: '#a9def9',
-                // color: '#e0bbf9',
-                // color: '#fca5a5',
-                // color: '#dbeafe',
-                // color: '#fff4e6',
-                // color: '#d3e0ea',
-                // color: '#0090ff',
-
+                color: '${barColor}',
                 borderRadius: [4, 4, 0, 0]
               }
             }
@@ -122,6 +117,9 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
     </html>
   `;
 
+  const containerBg = isDark ? '#163B7C' : '#eef8f0';
+  const loadingColor = isDark ? themeColors.textPrimary : COLORS.primaryFontColor;
+
   if (loading) {
     return (
       <View style={{ 
@@ -132,12 +130,12 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
         marginTop: 25,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#eef8f0'
+        backgroundColor: containerBg
       }}>
-        <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+        <ActivityIndicator size="large" color={isDark ? themeColors.accent : COLORS.secondaryColor} />
         <Text style={{ 
           marginTop: 10, 
-          color: COLORS.primaryFontColor,
+          color: loadingColor,
           fontFamily: 'Manrope-Regular',
           fontSize: 14
         }}>
@@ -148,8 +146,9 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
   }
 
   return (
-    <View style={{ height: 210, width: width - 40, marginHorizontal: 20 ,borderRadius:5, marginTop: 25}}>
+    <View style={{ height: 210, width: width - 40, marginHorizontal: 20, borderRadius: 5, marginTop: 25, backgroundColor: containerBg }}>
       <WebView
+        key={isDark ? 'dark' : 'light'}
         ref={webRef}
         originWhitelist={["*"]}
         source={{ html }}

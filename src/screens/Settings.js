@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTheme } from "../context/ThemeContext";
 import Menu from "../../assets/icons/bars.svg";
 import Logo from "../components/global/Logo";
 // Import icons - placeholder comments for icons you'll need to add
@@ -18,24 +19,16 @@ import BackIcon from "../../assets/icons/Back.svg";
 
 const Settings = ({ navigation }) => {
   const appVersion = "1.0.26";
+  const { isDark: isDarkMode, setDarkMode: handleToggleDarkMode } = useTheme();
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [fontSize, setFontSize] = useState(13);
   const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
 
-  // Load saved preferences on mount
+  // Load saved font preference on mount
   useEffect(() => {
-    const loadPreferences = async () => {
+    const loadFontPreference = async () => {
       try {
-        const [storedDark, storedFont] = await Promise.all([
-          AsyncStorage.getItem("settings:darkMode"),
-          AsyncStorage.getItem("settings:fontSize"),
-        ]);
-
-        if (storedDark !== null) {
-          setIsDarkMode(storedDark === "true");
-        }
-
+        const storedFont = await AsyncStorage.getItem("settings:fontSize");
         if (storedFont !== null) {
           const parsed = parseInt(storedFont, 10);
           if ([13, 14, 15].includes(parsed)) {
@@ -43,22 +36,11 @@ const Settings = ({ navigation }) => {
           }
         }
       } catch (e) {
-        // Silent failure; defaults will be used
+        // Silent failure
       }
     };
-
-    loadPreferences();
+    loadFontPreference();
   }, []);
-
-  const handleToggleDarkMode = async (value) => {
-    // Only persist preference; we don't change the actual app theme here
-    setIsDarkMode(value);
-    try {
-      await AsyncStorage.setItem("settings:darkMode", String(value));
-    } catch (e) {
-      // ignore persistence errors
-    }
-  };
 
   const handleFontSizeSelect = async (size) => {
     setFontSize(size);

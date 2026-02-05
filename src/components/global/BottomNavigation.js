@@ -2,6 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import HomeIcon from '../../../assets/icons/Home.svg';
 import ActiveHomeIcon from '../../../assets/icons/activeHome.svg';
 import RechargeIcon from '../../../assets/icons/recharge.svg';
@@ -15,8 +16,8 @@ import ActiveUsageIcon from '../../../assets/icons/activeUsageIcon.svg';
 
 const BottomNavigation = ({ navigation }) => {
   const route = useRoute();
+  const { isDark, colors: themeColors } = useTheme();
 
-  // Navigation configuration - memoized for performance
   const navigationItems = useMemo(() => [
     {
       key: 'home',
@@ -61,7 +62,6 @@ const BottomNavigation = ({ navigation }) => {
     }
   ], []);
 
-  // Map route names to navigation keys
   const getActiveKey = useCallback(() => {
     const routeName = route.name;
     
@@ -89,7 +89,7 @@ const BottomNavigation = ({ navigation }) => {
   // Handle navigation press - memoized for performance
   const handleNavigationPress = useCallback((item) => {
     if (item.route && navigation) {
-      // Use smooth navigation if available
+
       if (navigation.navigateSmoothly) {
         navigation.navigateSmoothly(item.route);
       } else {
@@ -98,13 +98,14 @@ const BottomNavigation = ({ navigation }) => {
     }
   }, [navigation]);
 
-  // Render individual navigation item - memoized for performance
   const renderNavigationItem = useCallback((item) => {
     const activeKey = getActiveKey();
     const isActive = activeKey === item.key;
     const IconComponent = isActive ? item.activeIcon : item.icon;
-    const iconColor = isActive ? COLORS.secondaryFontColor : '#55B56C';
-    
+    const iconColor = isDark
+      ? '#FFFFFF' 
+      : (isActive ? COLORS.secondaryFontColor : '#55B56C');
+
     return (
       <Pressable 
         key={item.key}
@@ -113,6 +114,7 @@ const BottomNavigation = ({ navigation }) => {
       >
         <View style={[
           styles.iconBox,
+          isDark && { backgroundColor: themeColors.card },
           isActive && styles.iconBoxActive
         ]}>
           <IconComponent 
@@ -123,22 +125,28 @@ const BottomNavigation = ({ navigation }) => {
         </View>
         <Text style={[
           styles.iconText,
-          isActive && styles.iconTextActive
+          isDark && !isActive && { color: themeColors.textSecondary },
+          isActive && styles.iconTextActive,
+          isActive && isDark && { color: themeColors.accent }
         ]}>
           {item.label}
         </Text>
       </Pressable>
     );
-  }, [getActiveKey, handleNavigationPress]);
+  }, [getActiveKey, handleNavigationPress, isDark, themeColors]);
+
+  const containerBg = isDark ? themeColors.card : COLORS.secondaryFontColor;
+  const borderColor = isDark ? themeColors.cardBorder : '#E5E7EB';
+  const spacerBg = isDark ? themeColors.card : '#fff';
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: containerBg, borderTopColor: borderColor }]}>
         <View style={styles.iconsContainer}>
           {navigationItems.map(renderNavigationItem)}
         </View>
       </View>
-      <View style={styles.graySpacer} />
+      <View style={[styles.graySpacer, { backgroundColor: spacerBg }]} />
     </View>
   );
 };

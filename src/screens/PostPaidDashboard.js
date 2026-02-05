@@ -26,6 +26,7 @@ import LastCommunicationIcon from "../../assets/icons/signal.svg";
 import EyeIcon from "../../assets/icons/eyeFill.svg";
 import { API, API_ENDPOINTS } from "../constants/constants";
 import { getUser, getToken } from "../utils/storage";
+import { useTheme } from "../context/ThemeContext";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 import { apiClient } from '../services/apiClient';
@@ -114,6 +115,7 @@ const VIEW_OPTIONS = ["Chart", "Table"];
 const TIME_PERIODS = ["7D", "30D", "90D", "1Y"];
 
 const PostPaidDashboard = ({ navigation, route }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [selectedView] = useState("daily"); // Always daily; date is chosen via Pick a Date
   const [pickedDate, setPickedDate] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -124,8 +126,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const [endDate, setEndDate] = useState(new Date());
   const [tableData, setTableData] = useState([]);
   const [isTableLoading, setIsTableLoading] = useState(true);
-  // const { userName } = route?.params || {};
-  //  const { isGuest } = route.params || {};
   const [consumerData, setConsumerData] = useState(null);
   const { isLoading, setLoading } = useLoading('consumerData', true);
 
@@ -784,23 +784,83 @@ const PostPaidDashboard = ({ navigation, route }) => {
     console.log("🔎 View tamper event", event?.raw || event);
   }, []);
 
+
+  const darkOverlay = React.useMemo(() => isDark ? {
+    container: { backgroundColor: themeColors.screen },
+    contentOnTop: { backgroundColor: themeColors.screen },
+    amountSection: { backgroundColor: themeColors.screen },
+    amountContainer: { backgroundColor: '#163B7C' },
+    dueText: { color: themeColors.textPrimary },
+    dateText: { color: themeColors.textSecondary },
+    greenBox: { backgroundColor: '#163B7C' },
+    paynowbox: { backgroundColor: themeColors.textOnPrimary },
+    paynowText: { color: '#000000' },
+    dueDaysText: { color: themeColors.textSecondary },
+    meterContainer: { backgroundColor: themeColors.screen },
+    meterInfoContainer: { backgroundColor: '#163B7C' },
+    meterConsumerText: { color: themeColors.textPrimary },
+    LastCommunicationText: { color: themeColors.textSecondary },
+    tapIndicator: { backgroundColor: themeColors.accent },
+    tapIndicatorText: { color: themeColors.textOnPrimary },
+    meterNumberText: { color: themeColors.textPrimary },
+    lastCommunicationTimeText: { color: themeColors.textSecondary },
+    graphSection: {},
+    energyText: { color: themeColors.textPrimary },
+    pickDateRow: { backgroundColor: '#1A1F2E' },
+    pickDateText: { color: themeColors.textPrimary },
+    graphsContainer: { backgroundColor: '#1A1F2E' },
+    thismonthText: { color: themeColors.textPrimary },
+    kwhText: { color: themeColors.accent },
+    lastText: { color: themeColors.textSecondary },
+    viewDropdownButton: { backgroundColor: themeColors.accent },
+    viewDropdownButtonText: { color: themeColors.textOnPrimary },
+    viewDropdownContent: { backgroundColor: themeColors.card, borderColor: themeColors.cardBorder },
+    viewDropdownItem: { borderBottomColor: themeColors.cardBorder },
+    viewDropdownItemText: { color: themeColors.textPrimary },
+    viewDropdownItemSelected: { backgroundColor: themeColors.accent + '20' },
+    viewDropdownItemTextSelected: { color: themeColors.accent },
+    timePeriodButton: {},
+    timePeriodButtonActive: { backgroundColor: themeColors.brandBlue },
+    timePeriodButtonText: { color: themeColors.textPrimary },
+    timePeriodButtonTextActive: { color: themeColors.textOnPrimary },
+    usageStatsCard: { backgroundColor: '#1A1F2E', borderColor: themeColors.cardBorder },
+    usageStatsCardTitle: { color: themeColors.textSecondary },
+    usageStatsCardValueBlue: { color: themeColors.brandBlue },
+    usageStatsCardValueRed: { color: themeColors.danger },
+    comparisonCard: { backgroundColor: '#1A1F2E', borderColor: themeColors.cardBorder },
+    comparisonTitle: { color: themeColors.textPrimary },
+    monthlyValueLabel: { color: themeColors.textSecondary },
+    monthlyValueBlue: { color: themeColors.brandBlue },
+    monthlyValueGrey: { color: themeColors.textSecondary },
+    progressBar: { backgroundColor: themeColors.progressBarTrack },
+    progressBarFill: { backgroundColor: themeColors.accent },
+    savingsMessage: { color: themeColors.savingsText },
+    tableTitle: { color: themeColors.textPrimary },
+    tableContainer: {},
+    meterSiText: { color: themeColors.textPrimary },
+    consumptionValue: { color: themeColors.accent },
+    cumulativeValue: { color: themeColors.textPrimary },
+  } : {}, [isDark, themeColors]);
+
+  const screenRootBg = isDark ? themeColors.screen : COLORS.secondaryFontColor;
+
   return (
-    <>
+    <View style={[styles.screenRoot, { backgroundColor: screenRootBg }]}>
       <ScrollView
-        style={styles.Container}
+        style={[styles.Container, darkOverlay.container]}
         contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
             onRefresh={fetchConsumerData}
-            colors={[COLORS.secondaryColor]}
-            tintColor={COLORS.secondaryColor}
+            colors={[themeColors.accent]}
+            tintColor={themeColors.accent}
           />
         }
       >
-        <View style={styles.Container}>
-          <StatusBar style="dark" />
+        <View style={[styles.Container, darkOverlay.container]}>
+          <StatusBar style={isDark ? "light" : "dark"} />
           <DashboardHeader
             navigation={navigation}
             showBalance={false}
@@ -808,19 +868,20 @@ const PostPaidDashboard = ({ navigation, route }) => {
             isLoading={isLoading}
           />
 
-          <View style={styles.amountSection}>
-            <View style={styles.amountContainer}>
-              <Text style={styles.dueText}>
+          <View style={[styles.contentOnTop, darkOverlay.contentOnTop]}>
+          <View style={[styles.amountSection, darkOverlay.amountSection]}>
+            <View style={[styles.amountContainer, darkOverlay.amountContainer]}>
+              <Text style={[styles.dueText, darkOverlay.dueText]}>
                 Due Amount: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
               </Text>
-              <Text style={styles.dateText}>Due on 15 Feb 2026</Text>
+              <Text style={[styles.dateText, darkOverlay.dateText]}>Due on 15 Feb 2026</Text>
             </View>
-            <View style={styles.greenBox}>
+            <View style={[styles.greenBox, darkOverlay.greenBox]}>
               <View style={styles.payInfoContainer}>
                 <GlobeShield
                   width={25}
                   height={25}
-                  fill="#55b56c"
+                  fill={themeColors.textOnPrimary}
                   style={styles.shieldIcon}
                 />
                 <View>
@@ -830,51 +891,48 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 </View>
               </View>
               <View style={styles.paynowboxContainer}>
-                <Pressable style={styles.paynowbox} onPress={() => navigation.navigate('PostPaidRechargePayments')}>
-                  <Text style={styles.paynowText}>Pay Now</Text>
+                <Pressable style={[styles.paynowbox, darkOverlay.paynowbox]} onPress={() => navigation.navigate('PostPaidRechargePayments')}>
+                  <Text style={[styles.paynowText, darkOverlay.paynowText]}>Pay Now</Text>
                 </Pressable>
-                <Text style={styles.dueDaysText}>10 Days left</Text>
+                <Text style={[styles.dueDaysText, darkOverlay.dueDaysText]}>10 Days left</Text>
               </View>
             </View>
           </View>
 
-          <View style={styles.meterContainer}>
+          <View style={[styles.meterContainer, darkOverlay.meterContainer]}>
             <TouchableOpacity
-              style={styles.meterInfoContainer}
+              style={[styles.meterInfoContainer, darkOverlay.meterInfoContainer]}
               onPress={handleConsumerPress}
             >
-              {/* Left side container */}
               <View style={styles.leftContainer}>
                 <View style={styles.meterInfoRow}>
                   <Meter width={30} height={30} style={{ marginTop: 5 }} />
                   <View style={styles.meterConsumerRow}>
-                    <Text style={styles.meterConsumerText}>
+                    <Text style={[styles.meterConsumerText, darkOverlay.meterConsumerText]}>
                       {consumerData?.name || consumerData?.consumerName || "Loading..."}
                     </Text>
-                    <Text style={styles.LastCommunicationText}>
+                    <Text style={[styles.LastCommunicationText, darkOverlay.LastCommunicationText]}>
                       Last Communication
                     </Text>
                   </View>
                 </View>
               </View>
 
-              {/* Right side container */}
               <View style={styles.rightContainer}>
-                <View style={styles.tapIndicator}>
-                  <Text style={styles.tapIndicatorText}>Tap for details</Text>
+                <View style={[styles.tapIndicator, darkOverlay.tapIndicator]}>
+                  <Text style={[styles.tapIndicatorText, darkOverlay.tapIndicatorText]}>Tap for details</Text>
                 </View>
                 <View>
                 <View style={styles.lastCommunicationLeft}>
                   <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
-                  <Text style={styles.meterNumberText}>
+                  <Text style={[styles.meterNumberText, darkOverlay.meterNumberText]}>
                     {consumerData?.meterSerialNumber || "Loading..."}
                   </Text>
                 </View>
-                <Text style={styles.lastCommunicationTimeText}>
+                <Text style={[styles.lastCommunicationTimeText, darkOverlay.lastCommunicationTimeText]}>
                 {formatReadingDate(consumerData?.readingDate)}
               </Text>
                 </View>
-                
               </View>
             </TouchableOpacity>
             {/* <View style={styles.lastCommunicationContainer}>
@@ -884,16 +942,16 @@ const PostPaidDashboard = ({ navigation, route }) => {
             </View> */}
           </View>
 
-          <View style={styles.graphSection}>
+          <View style={[styles.graphSection, darkOverlay.graphSection]}>
             <View style={styles.energySummaryHeader}>
-              <Text style={styles.energyText}>Energy Summary</Text>
-              <Pressable style={styles.pickDateRow} onPress={() => setShowDatePicker(true)}>
-                <Text style={styles.pickDateText} numberOfLines={1}>
+              <Text style={[styles.energyText, darkOverlay.energyText]}>Energy Summary</Text>
+              <Pressable style={[styles.pickDateRow, darkOverlay.pickDateRow]} onPress={() => setShowDatePicker(true)}>
+                <Text style={[styles.pickDateText, darkOverlay.pickDateText]} numberOfLines={1}>
                   {pickedDate
                     ? `${pickedDate.getDate().toString().padStart(2, "0")}/${(pickedDate.getMonth() + 1).toString().padStart(2, "0")}/${pickedDate.getFullYear()}`
                     : "Pick a Date"}
                 </Text>
-                <CalendarIcon width={18} height={18} fill={COLORS.secondaryFontColor} style={styles.pickDateIcon} />
+                <CalendarIcon width={18} height={18} fill={isDark ? themeColors.textPrimary : COLORS.secondaryFontColor} style={styles.pickDateIcon} />
               </Pressable>
             <CalendarDatePicker
               visible={showDatePicker}
@@ -903,15 +961,14 @@ const PostPaidDashboard = ({ navigation, route }) => {
             />
             </View>
 
-            <View style={styles.graphsContainer}>
-              {/* Summary Header row: usage + % on left, Chart/Table dropdown on right */}
+            <View style={[styles.graphsContainer, darkOverlay.graphsContainer]}>
               <View style={styles.usageSummaryRow}>
                 <View style={styles.usageSummaryLeft}>
                   {selectedView === "daily" ? (
                     <>
-                      <Text style={styles.thismonthText}>Today's Usage:</Text>
+                      <Text style={[styles.thismonthText, darkOverlay.thismonthText]}>Today's Usage:</Text>
                       <View style={styles.usageValueRow}>
-                        <Text style={styles.kwhText}>
+                        <Text style={[styles.kwhText, darkOverlay.kwhText]}>
                           {isLoading ? "Loading..." : getDailyUsage()} kWh
                         </Text>
                         <View style={[
@@ -924,18 +981,18 @@ const PostPaidDashboard = ({ navigation, route }) => {
                           <Arrow 
                             width={12} 
                             height={12} 
-                            fill={getDailyTrendPercentage() >= 0 ? "#55B56C" : "#FF6B6B"} 
+                            fill={getDailyTrendPercentage() >= 0 ? themeColors.accent : "#FF6B6B"} 
                             style={getDailyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
                           />
                         </View>
-                        <Text style={styles.lastText}>vs. Yesterday.</Text>
+                        <Text style={[styles.lastText, darkOverlay.lastText]}>vs. Yesterday.</Text>
                       </View>
                     </>
                   ) : (
                     <>
-                      <Text style={styles.thismonthText}>This Month's Usage:</Text>
+                      <Text style={[styles.thismonthText, darkOverlay.thismonthText]}>This Month's Usage:</Text>
                       <View style={styles.usageValueRow}>
-                        <Text style={styles.kwhText}>
+                        <Text style={[styles.kwhText, darkOverlay.kwhText]}>
                           {isLoading ? "Loading..." : getMonthlyUsage()} kWh
                         </Text>
                         <View style={[
@@ -948,26 +1005,25 @@ const PostPaidDashboard = ({ navigation, route }) => {
                           <Arrow 
                             width={12} 
                             height={12} 
-                            fill={getMonthlyTrendPercentage() >= 0 ? "#55B56C" : "#FF6B6B"} 
+                            fill={getMonthlyTrendPercentage() >= 0 ? themeColors.accent : "#FF6B6B"} 
                             style={getMonthlyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
                           />
                         </View>
-                        <Text style={styles.lastText}>vs. Last Month.</Text>
+                        <Text style={[styles.lastText, darkOverlay.lastText]}>vs. Last Month.</Text>
                       </View>
                     </>
                   )}
                 </View>
-                {/* Chart/Table Dropdown - green button with chevron */}
                 <View style={styles.viewDropdownWrapper}>
                   <TouchableOpacity
-                    style={styles.viewDropdownButton}
+                    style={[styles.viewDropdownButton, darkOverlay.viewDropdownButton]}
                     onPress={() => setShowViewDropdown(!showViewDropdown)}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.viewDropdownButtonText}>
+                    <Text style={[styles.viewDropdownButtonText, darkOverlay.viewDropdownButtonText]}>
                       {displayMode === "chart" ? "Chart" : "Table"}
                     </Text>
-                    <DropdownIcon width={14} height={14} fill={COLORS.secondaryFontColor} />
+                    <DropdownIcon width={14} height={14} fill={isDark ? themeColors.textOnPrimary : COLORS.secondaryFontColor} />
                   </TouchableOpacity>
                   {showViewDropdown && (
                     <Modal
@@ -981,7 +1037,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                         onPress={() => setShowViewDropdown(false)}
                       >
                         <Pressable
-                          style={styles.viewDropdownContent}
+                          style={[styles.viewDropdownContent, darkOverlay.viewDropdownContent]}
                           onPress={() => {}}
                         >
                           {VIEW_OPTIONS.map((option) => (
@@ -989,7 +1045,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
                               key={option}
                               style={[
                                 styles.viewDropdownItem,
-                                (displayMode === option.toLowerCase() && styles.viewDropdownItemSelected)
+                                darkOverlay.viewDropdownItem,
+                                displayMode === option.toLowerCase() && styles.viewDropdownItemSelected,
+                                displayMode === option.toLowerCase() && darkOverlay.viewDropdownItemSelected
                               ]}
                               onPress={() => {
                                 setDisplayMode(option.toLowerCase());
@@ -998,7 +1056,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
                             >
                               <Text style={[
                                 styles.viewDropdownItemText,
-                                displayMode === option.toLowerCase() && styles.viewDropdownItemTextSelected
+                                darkOverlay.viewDropdownItemText,
+                                displayMode === option.toLowerCase() && styles.viewDropdownItemTextSelected,
+                                displayMode === option.toLowerCase() && darkOverlay.viewDropdownItemTextSelected
                               ]}>
                                 {option}
                               </Text>
@@ -1011,21 +1071,22 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 </View>
               </View>
 
-              {/* Time period selector: 7D, 30D, 90D, 1Y */}
               <View style={styles.timePeriodRow}>
                 {TIME_PERIODS.map((period) => (
                   <TouchableOpacity
                     key={period}
                     style={[
                       styles.timePeriodButton,
-                      timePeriod === period && styles.timePeriodButtonActive
+                      darkOverlay.timePeriodButton,
+                      timePeriod === period && [styles.timePeriodButtonActive, darkOverlay.timePeriodButtonActive]
                     ]}
                     onPress={() => setTimePeriod(period)}
                     activeOpacity={0.8}
                   >
                     <Text style={[
                       styles.timePeriodButtonText,
-                      timePeriod === period && styles.timePeriodButtonTextActive
+                      darkOverlay.timePeriodButtonText,
+                      timePeriod === period && [styles.timePeriodButtonTextActive, darkOverlay.timePeriodButtonTextActive]
                     ]}>
                       {period}
                     </Text>
@@ -1073,7 +1134,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                           flex: 1.5,
                           align: 'right',
                           render: (item) => (
-                            <Text style={styles.consumptionValue}>
+                            <Text style={[styles.consumptionValue, darkOverlay.consumptionValue]}>
                               {item.consumption.toFixed(2)}
                             </Text>
                           )
@@ -1084,7 +1145,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                           flex: 1.5,
                           align: 'right',
                           render: (item) => (
-                            <Text style={styles.cumulativeValue}>
+                            <Text style={[styles.cumulativeValue, darkOverlay.cumulativeValue]}>
                               {item.cumulative.toFixed(2)}
                             </Text>
                           )
@@ -1096,59 +1157,45 @@ const PostPaidDashboard = ({ navigation, route }) => {
               )}
             </View>
           </View>
-          {/* Usage Statistics Section */}
           <View style={styles.usageStatsContainer}>
-            {/* Top Row - Two Cards */}
             <View style={styles.usageStatsTopRow}>
-              {/* Average Daily Card */}
-              <View style={styles.usageStatsCard}>
-                <Text style={styles.usageStatsCardTitle}>Average Daily</Text>
-                <Text style={styles.usageStatsCardValueBlue}>284 kWh</Text>
+              <View style={[styles.usageStatsCard, darkOverlay.usageStatsCard]}>
+                <Text style={[styles.usageStatsCardTitle, darkOverlay.usageStatsCardTitle]}>Average Daily</Text>
+                <Text style={[styles.usageStatsCardValueBlue, darkOverlay.usageStatsCardValueBlue]}>284 kWh</Text>
               </View>
-              
-              {/* Peak Usage Card */}
-              <View style={styles.usageStatsCard}>
-                <Text style={styles.usageStatsCardTitle}>Peak Usage</Text>
-                <Text style={styles.usageStatsCardValueRed}>329 kWh</Text>
+              <View style={[styles.usageStatsCard, darkOverlay.usageStatsCard]}>
+                <Text style={[styles.usageStatsCardTitle, darkOverlay.usageStatsCardTitle]}>Peak Usage</Text>
+                <Text style={[styles.usageStatsCardValueRed, darkOverlay.usageStatsCardValueRed]}>329 kWh</Text>
               </View>
             </View>
-            
-            {/* Bottom Row - Comparison Card */}
-            <View style={styles.comparisonCard}>
-              {/* Comparison Header */}
+            <View style={[styles.comparisonCard, darkOverlay.comparisonCard]}>
               <View style={styles.comparisonHeader}>
                 <View style={styles.doubleArrowIcon}>
-                  <SwitchIcon width={20} height={20} />
+                  <SwitchIcon width={20} height={20} fill={isDark ? themeColors.textPrimary : undefined} />
                 </View>
-                <Text style={styles.comparisonTitle}>Comparison</Text>
+                <Text style={[styles.comparisonTitle, darkOverlay.comparisonTitle]}>Comparison</Text>
               </View>
-              
-              {/* Monthly Values */}
               <View style={styles.monthlyValuesContainer}>
                 <View style={styles.monthlyValueItem}>
-                  <Text style={styles.monthlyValueLabel}>This Month</Text>
-                  <Text style={styles.monthlyValueBlue}>2,060 kWh</Text>
+                  <Text style={[styles.monthlyValueLabel, darkOverlay.monthlyValueLabel]}>This Month</Text>
+                  <Text style={[styles.monthlyValueBlue, darkOverlay.monthlyValueBlue]}>2,060 kWh</Text>
                 </View>
                 <View style={styles.monthlyValueItem2}>
-                  <Text style={styles.monthlyValueLabel}>Last Month</Text>
-                  <Text style={styles.monthlyValueGrey}>2,340 kWh</Text>
+                  <Text style={[styles.monthlyValueLabel, darkOverlay.monthlyValueLabel]}>Last Month</Text>
+                  <Text style={[styles.monthlyValueGrey, darkOverlay.monthlyValueGrey]}>2,340 kWh</Text>
                 </View>
               </View>
-              
-              {/* Progress Bar */}
               <View style={styles.progressBarContainer}>
-                <View style={styles.progressBar}>
-                  <View style={styles.progressBarFill} />
+                <View style={[styles.progressBar, darkOverlay.progressBar]}>
+                  <View style={[styles.progressBarFill, darkOverlay.progressBarFill]} />
                   <View style={styles.progressBarRemainder} />
                 </View>
               </View>
-              
-              {/* Savings Message */}
-              <Text style={styles.savingsMessage}>You saved 280 kWh compared to last month</Text>
+              <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>You saved 280 kWh compared to last month</Text>
             </View>
           </View>
-          <View style={styles.tableContainer}>
-            <Text style={styles.tableTitle}>Alerts</Text>
+          <View style={[styles.tableContainer, darkOverlay.tableContainer]}>
+            <Text style={[styles.tableTitle, darkOverlay.tableTitle]}>Alerts</Text>
           </View>
           <View style={styles.tableScrollWrapper}>
             <ScrollView
@@ -1175,7 +1222,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                       render: (item) => (
                         <View style={styles.meterSiCell}>
                           <StatusBlinkingDot status={item.status} />
-                          <Text style={styles.meterSiText}>{item.meterSerialNumber}</Text>
+                          <Text style={[styles.meterSiText, darkOverlay.meterSiText]}>{item.meterSerialNumber}</Text>
                         </View>
                       )
                     },
@@ -1227,6 +1274,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
               </View>
             </ScrollView>
           </View>
+          </View>
         </View>
       </ScrollView>
 
@@ -1239,16 +1287,25 @@ const PostPaidDashboard = ({ navigation, route }) => {
       
       {/* Bottom Navigation */}
       <BottomNavigation navigation={navigation} />
-    </>
+    </View>
   );
 };
 
 export default PostPaidDashboard;
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+  },
   Container: {
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
+  },
+  contentOnTop: {
+    zIndex: 1,
+    backgroundColor: COLORS.secondaryFontColor,
+    borderTopLeftRadius: 30,
+    elevation: 2,
   },
   graphSection: {
     padding: 16,

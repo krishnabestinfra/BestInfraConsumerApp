@@ -294,6 +294,7 @@ const EnhancedPostPaidRechargePayments = ({ navigation }) => {
           isLoading={isConsumerLoading}
         />
 
+        <View style={styles.contentOnTop}>
         <View style={styles.contentSection}>
           {/* Input Boxes Section */}
           <View style={styles.inputSection}>
@@ -351,6 +352,7 @@ const EnhancedPostPaidRechargePayments = ({ navigation }) => {
             <Text style={styles.errorText}>⚠️ {paymentError}</Text>
           </View>
         )}
+        </View>
       </ScrollView>
       
       <View style={styles.buttonContainer}>
@@ -396,6 +398,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
     borderBottomRightRadius: 30,
+  },
+  contentOnTop: {
+    zIndex: 1,
+    backgroundColor: COLORS.secondaryFontColor,
+    borderTopLeftRadius: 30,
+    elevation: 2,
   },
   scrollContentContainer: {
     flexGrow: 1,
