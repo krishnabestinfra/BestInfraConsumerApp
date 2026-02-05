@@ -19,7 +19,6 @@ const SelectDropdown = ({
   ...props
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-
   const handleSelect = (option) => {
     onSelect(option);
     setIsOpen(false);
