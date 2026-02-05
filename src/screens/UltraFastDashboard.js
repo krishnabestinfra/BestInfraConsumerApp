@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import Arrow from "../../assets/icons/arrow.svg";
 import GroupedBarChart from "../components/GroupedBarChart";
 import DashboardHeader from "../components/global/DashboardHeader";
@@ -29,6 +30,7 @@ import UltraFastScreen from "../components/UltraFastScreen";
 import { useUltraFastData } from "../hooks/useUltraFastData";
 
 const UltraFastDashboard = React.memo(({ navigation, route }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [selectedView, setSelectedView] = useState("daily");
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
@@ -137,7 +139,7 @@ const UltraFastDashboard = React.memo(({ navigation, route }) => {
       maxLoadingTime={500}
       onDataLoaded={handleDataLoaded}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
         <StatusBar style="light" />
         
         <DashboardHeader
@@ -148,7 +150,7 @@ const UltraFastDashboard = React.memo(({ navigation, route }) => {
         />
 
         <ScrollView 
-          style={styles.content} 
+          style={[styles.content, isDark && { backgroundColor: themeColors.screen }]} 
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true} // Optimize for large lists
         >

@@ -16,6 +16,7 @@ import {
   Platform 
 } from "react-native";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import React, { useState, useEffect, useCallback } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
@@ -34,6 +35,7 @@ import {
 } from "../services/EnhancedPaymentService";
 
 const EnhancedPostPaidRechargePayments = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [selectedOption, setSelectedOption] = useState("option1");
   const [customAmount, setCustomAmount] = useState("");
   const [outstandingAmount, setOutstandingAmount] = useState("NA");
@@ -294,7 +296,7 @@ const EnhancedPostPaidRechargePayments = ({ navigation }) => {
           isLoading={isConsumerLoading}
         />
 
-        <View style={styles.contentOnTop}>
+        <View style={[styles.contentOnTop, isDark && { backgroundColor: themeColors.screen }]}>
         <View style={styles.contentSection}>
           {/* Input Boxes Section */}
           <View style={styles.inputSection}>

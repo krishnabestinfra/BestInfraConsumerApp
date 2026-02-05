@@ -18,6 +18,7 @@ import Button from "../components/global/Button";
 import Input from "../components/global/Input";
 import Logo from "../components/global/Logo";
 import { COLORS, colors } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import { API_ENDPOINTS } from "../config/apiConfig";
 import EyeBlank from "../../assets/icons/eyeBlank.svg";
 import EyeFill from "../../assets/icons/eyeFill.svg";
@@ -36,6 +37,7 @@ const PASSWORD_RULES = [
 const SetNewPassword = () => {
   const route = useRoute();
   const navigation = useNavigation();
+  const { isDark, colors: themeColors } = useTheme();
   const { email, code, userId } = route.params || {};
 
   const [newPassword, setNewPassword] = useState("");
@@ -129,7 +131,7 @@ const SetNewPassword = () => {
         style={{ flex: 1 }}
       >
         <ScrollView
-          style={styles.subContainer}
+          style={[styles.subContainer, isDark && { backgroundColor: themeColors.screen }]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.imageContainer}>

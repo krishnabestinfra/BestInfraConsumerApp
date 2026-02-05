@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, ScrollView} from "react-native";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Input from "../components/global/Input";
@@ -12,6 +13,7 @@ import { getCachedConsumerData } from "../utils/cacheManager";
 
 
 const Payments = React.memo(({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [selectedOption, setSelectedOption] = useState("option3");
   const [customAmount, setCustomAmount] = useState("");
   const [consumerData, setConsumerData] = useState(null);
@@ -85,12 +87,12 @@ const Payments = React.memo(({ navigation }) => {
   return (
     <>
       <ScrollView
-        style={styles.Container}
+        style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
 
-        <StatusBar barStyle="dark-content" />
+        <StatusBar style={isDark ? "light" : "dark"} />
         <DashboardHeader 
           navigation={navigation} 
           variant="payments" 
@@ -99,7 +101,7 @@ const Payments = React.memo(({ navigation }) => {
           isLoading={isLoading}
         />
 
-        <View style={styles.contentOnTop}>
+        <View style={[styles.contentOnTop, isDark && { backgroundColor: themeColors.screen }]}>
         <View style={styles.contentSection}>
           <View style={styles.inputContainer}>
             <Input 

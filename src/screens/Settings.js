@@ -5,6 +5,7 @@ import { COLORS } from "../constants/colors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../context/ThemeContext";
 import Menu from "../../assets/icons/bars.svg";
+import MenuWhite from "../../assets/icons/menuBarWhite.svg";
 import Logo from "../components/global/Logo";
 // Import icons - placeholder comments for icons you'll need to add
 import ThemeIcon from "../../assets/icons/theme.svg";
@@ -19,7 +20,7 @@ import BackIcon from "../../assets/icons/Back.svg";
 
 const Settings = ({ navigation }) => {
   const appVersion = "1.0.26";
-  const { isDark: isDarkMode, setDarkMode: handleToggleDarkMode } = useTheme();
+  const { isDark: isDarkMode, colors: themeColors, setDarkMode: handleToggleDarkMode } = useTheme();
 
   const [fontSize, setFontSize] = useState(13);
   const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
@@ -105,17 +106,21 @@ const Settings = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.Container}>
+    <View style={[styles.Container, isDarkMode && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
 
       {/* Header */}
       <View style={styles.TopMenu}>
         <Pressable
-          style={styles.barsIcon}
+          style={[styles.barsIcon, isDarkMode && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.navigate("SideMenu")}
           android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: false, radius: 27 }}
         >
-          <Menu width={18} height={18} fill={COLORS.brandBlueColor} />
+          {isDarkMode ? (
+            <MenuWhite width={18} height={18} />
+          ) : (
+            <Menu width={18} height={18} fill={COLORS.brandBlueColor} />
+          )}
         </Pressable>
 
         <Pressable onPress={() => navigation.navigate("PostPaidDashboard")}>
@@ -123,15 +128,15 @@ const Settings = ({ navigation }) => {
         </Pressable>
 
         <Pressable
-          style={styles.bellIcon}
+          style={[styles.bellIcon, isDarkMode && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.goBack()}
         >
-          <BackIcon width={20} height={20} fill={COLORS.brandBlueColor} />
+          <BackIcon width={20} height={20} fill={isDarkMode ? '#FFFFFF' : COLORS.brandBlueColor} />
         </Pressable>
       </View>
 
       <ScrollView
-        style={styles.scrollContainer}
+        style={[styles.scrollContainer, isDarkMode && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -228,7 +233,7 @@ const Settings = ({ navigation }) => {
               </View>
             }
             title="Terms of Service"
-            onPress={() => { }}
+            onPress={() => navigation.navigate("TermsOfServices")}
           />
 
           <PreferenceItem
@@ -238,7 +243,7 @@ const Settings = ({ navigation }) => {
               </View>
             }
             title="Privacy Policy"
-            onPress={() => { }}
+            onPress={() => navigation.navigate("PrivacyPolicy")}
           />
         </View>
       </ScrollView>

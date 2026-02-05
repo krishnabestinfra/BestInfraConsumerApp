@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, ScrollView, RefreshControl } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import DashboardHeader from "../components/global/DashboardHeader";
 import BottomNavigation from "../components/global/BottomNavigation";
 import { getCachedConsumerData } from "../utils/cacheManager";
@@ -16,6 +17,7 @@ import WalletIcon from "../../assets/icons/walletCard.svg";
 
 
 const Usage = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   // Main state
   const [consumerData, setConsumerData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -203,9 +205,9 @@ const Usage = ({ navigation }) => {
 
 
   return (
-    <View style={styles.mainContainer}>
+    <View style={[styles.mainContainer, isDark && { backgroundColor: themeColors.screen }]}>
       <ScrollView
-        style={styles.Container}
+        style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -226,7 +228,7 @@ const Usage = ({ navigation }) => {
           isLoading={isLoading}
         />
 
-        <View style={styles.contentOnTop}>
+        <View style={[styles.contentOnTop, isDark && { backgroundColor: themeColors.screen }]}>
         {/* Usage Summary Section */}
         <View style={styles.usageSummaryContainer}>
           {/* Header with Toggle */}

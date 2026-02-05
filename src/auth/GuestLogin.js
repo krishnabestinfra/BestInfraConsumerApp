@@ -6,6 +6,7 @@ import {
   Dimensions,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "../context/ThemeContext";
 import Button from "../components/global/Button";
 
 const screenHeight = Dimensions.get("window").height;
@@ -23,8 +24,8 @@ const GuestLogin = () => {
   };
 
   return (
-    <View style={styles.Maincontainer}>
-      <View style={styles.container}>
+    <View style={[styles.Maincontainer, isDark && { backgroundColor: themeColors.screen }]}>
+      <View style={[styles.container, isDark && { backgroundColor: themeColors.card }]}>
         <Text style={styles.description}>
           You are logging in as a guest. Some features may be limited.
         </Text>

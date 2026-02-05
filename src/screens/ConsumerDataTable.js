@@ -8,9 +8,12 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import Table from "../components/global/Table";
 import Menu from "../../assets/icons/bars.svg";
+import MenuWhite from "../../assets/icons/menuBarWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
+import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
 import BiLogo from "../../assets/icons/Logo.svg";
 import DropdownIcon from "../../assets/icons/dropDown.svg";
 import { API_ENDPOINTS } from "../constants/constants";
@@ -21,6 +24,7 @@ import { SkeletonLoader } from '../utils/loadingManager';
 // Pagination is handled by Table component (5 rows per page)
 
 const ConsumerDataTable = ({ navigation, route }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const { date, meterId, viewType: initialViewType, barData, consumerData } = route?.params || {};
   const [lsData, setLsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -321,24 +325,32 @@ const ConsumerDataTable = ({ navigation, route }) => {
   // Pagination is handled by Table component
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      <View style={styles.bluecontainer}>
+    <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View style={[styles.bluecontainer, isDark && { backgroundColor: themeColors.screen }]}>
         <View style={styles.TopMenu}>
           <Pressable
-            style={styles.barsIcon}
+            style={[styles.barsIcon, isDark && { backgroundColor: '#1A1F2E' }]}
             onPress={() => navigation.navigate("SideMenu")}
           >
-            <Menu width={18} height={18} fill="#202d59" />
+            {isDark ? (
+              <MenuWhite width={18} height={18} />
+            ) : (
+              <Menu width={18} height={18} fill="#202d59" />
+            )}
           </Pressable>
           <Pressable onPress={() => navigation.navigate("Dashboard")}>
             <BiLogo width={45} height={45} />
           </Pressable>
           <Pressable
-            style={styles.bellIcon}
+            style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}
             onPress={() => navigation.navigate("Profile")}
           >
-            <Notification width={18} height={18} fill="#202d59" />
+            {isDark ? (
+              <NotificationWhite width={18} height={18} />
+            ) : (
+              <Notification width={18} height={18} fill="#202d59" />
+            )}
           </Pressable>
         </View>
       </View>

@@ -21,12 +21,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { Easing } from "react-native-reanimated";
 import Menu from "../../assets/icons/bars.svg";
+import MenuWhite from "../../assets/icons/menuBarWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
+import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
 import CrossIcon from "../../assets/icons/crossWhite.svg";
 import SendIcon from "../../assets/icons/messageSend.svg";
 import Logo from "../components/global/Logo";
 import BottomNavigation from "../components/global/BottomNavigation";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import { getUser } from "../utils/storage";
 import ChatIcon from "../../assets/icons/chatIcon.svg";
 
@@ -55,6 +58,7 @@ const Ring = ({ index, progress }) => {
 };
 
 const ChatSupport = ({ navigation, route }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const progress = useSharedValue(0);
   const scrollViewRef = useRef(null);
   const [message, setMessage] = useState("");
@@ -166,33 +170,41 @@ const ChatSupport = ({ navigation, route }) => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}
       behavior={Platform.OS === "ios" ? "padding" : "padding"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
       <View style={styles.header}>
         <Pressable
-          style={styles.headerButton}
+          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.navigate("SideMenu")}
         >
-          <Menu width={18} height={18} fill="#202d59" />
+          {isDark ? (
+            <MenuWhite width={18} height={18} />
+          ) : (
+            <Menu width={18} height={18} fill="#202d59" />
+          )}
         </Pressable>
 
         <View style={styles.logoWrapper}>
           {Array.from({ length: RING_COUNT }).map((_, index) => (
             <Ring key={index} index={index} progress={progress} />
           ))}
-          <Logo variant="blue" size="medium" />
+          <Logo variant={isDark ? "white" : "blue"} size="medium" />
         </View>
 
         <Pressable
-          style={styles.headerButton}
+          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.navigate("Profile")}
         >
-          <Notification width={18} height={18} fill="#202d59" />
+          {isDark ? (
+            <NotificationWhite width={18} height={18} />
+          ) : (
+            <Notification width={18} height={18} fill="#202d59" />
+          )}
         </Pressable>
       </View>
 
@@ -214,7 +226,7 @@ const ChatSupport = ({ navigation, route }) => {
       </View>
 
       {/* Chat Messages Container with White Background */}
-      <View style={styles.whiteContainer}>
+      <View style={[styles.whiteContainer, isDark && { backgroundColor: themeColors.screen }]}>
         <ScrollView
           ref={scrollViewRef}
           style={styles.messagesContainer}

@@ -36,6 +36,7 @@ const SideMenuNavigation = ({ navigation }) => {
   const [paymentConfirmations, setPaymentConfirmations] = useState(true);
   const [billAmountAlerts, setBillAmountAlerts] = useState(true);
   const [tamperAlerts, setTamperAlerts] = useState(true);
+  const [emailNotifications, setEmailNotifications] = useState(true);
 
   // Get current route to sync sidebar highlighting
   const currentRoute = useNavigationState(state => 
@@ -107,7 +108,8 @@ const SideMenuNavigation = ({ navigation }) => {
       billDueReminders,
       paymentConfirmations,
       billAmountAlerts,
-      tamperAlerts
+      tamperAlerts,
+      emailNotifications
     });
     setShowAlertsModal(false);
   };
@@ -385,6 +387,21 @@ const SideMenuNavigation = ({ navigation }) => {
                 <Switch
                   value={tamperAlerts}
                   onValueChange={setTamperAlerts}
+                  trackColor={{ false: "#D1D5DB", true: COLORS.secondaryColor }}
+                  thumbColor={"#FFFFFF"}
+                  ios_backgroundColor="#D1D5DB"
+                />
+              </View>
+
+              {/* Email Notifications */}
+              <View style={styles.toggleRow}>
+                <View style={styles.toggleInfo}>
+                  <Text style={styles.toggleTitle}>Email Notifications</Text>
+                  <Text style={styles.toggleSubtitle}>Receive updates via email</Text>
+                </View>
+                <Switch
+                  value={emailNotifications}
+                  onValueChange={setEmailNotifications}
                   trackColor={{ false: "#D1D5DB", true: COLORS.secondaryColor }}
                   thumbColor={"#FFFFFF"}
                   ios_backgroundColor="#D1D5DB"

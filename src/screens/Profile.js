@@ -21,10 +21,12 @@ import CheapDollar from "../../assets/icons/cheapDollar.svg";
 import NotificationCard from "../components/global/NotificationCard";
 import Logo from "../components/global/Logo";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/AppContext";
 import { useNotifications } from "../context/NotificationsContext";
 
 const Profile = ({ navigation, route }) => {
+  const { isDark, colors: themeColors } = useTheme();
   // Get consumer data from context
   let consumerData = null;
   let user = null;
@@ -112,7 +114,7 @@ const Profile = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.Container}>
+    <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
       <View style={styles.TopMenu}>
         <Pressable
@@ -131,7 +133,7 @@ const Profile = ({ navigation, route }) => {
       </View>
       
       <ScrollView
-        style={styles.notificationsContainer}
+        style={[styles.notificationsContainer, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={

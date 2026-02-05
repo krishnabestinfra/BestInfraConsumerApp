@@ -1,9 +1,12 @@
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Modal, Alert } from "react-native";
 import React, { useState } from "react";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import BottomNavigation from "../components/global/BottomNavigation";
 import Menu from "../../assets/icons/bars.svg";
+import MenuWhite from "../../assets/icons/menuBarWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
+import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
 import Logo from "../components/global/Logo";
 import AnimatedRings from "../components/global/AnimatedRings";
 import { StatusBar } from "expo-status-bar";
@@ -14,6 +17,7 @@ import DocumentIcon from "../../assets/icons/document.svg";
 
 
 const Reports = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [filterType, setFilterType] = useState("Monthly Consumption");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -49,33 +53,41 @@ const Reports = ({ navigation }) => {
   const reportTypes = ["Monthly Consumption", "Yearly Consumption", "Payment History", "Usage Analysis"];
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       
       {/* Header */}
       <View style={styles.header}>
         <Pressable
-          style={styles.headerButton}
+          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.goBack()}
         >
-          <Menu width={18} height={18} fill="#202d59" />
+          {isDark ? (
+            <MenuWhite width={18} height={18} />
+          ) : (
+            <Menu width={18} height={18} fill="#202d59" />
+          )}
         </Pressable>
 
         <View style={styles.logoWrapper}>
           <AnimatedRings />
-          <Logo variant="blue" size="medium" />
+          <Logo variant={isDark ? "white" : "blue"} size="medium" />
         </View>
 
         <Pressable
-          style={styles.headerButton}
+          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.navigate("Profile")}
         >
-          <Notification width={18} height={18} fill="#202d59" />
+          {isDark ? (
+            <NotificationWhite width={18} height={18} />
+          ) : (
+            <Notification width={18} height={18} fill="#202d59" />
+          )}
         </Pressable>
       </View>
 
       <ScrollView
-        style={styles.scrollContainer}
+        style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

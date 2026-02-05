@@ -10,6 +10,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import Arrow from "../../assets/icons/upArrow.svg";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import OnBoardingSlides from "../components/OnBoardingSlides";
 import RippleEffect from "../components/RippleEffect";
 import Button from "../components/global/Button";
@@ -17,6 +18,7 @@ import Button from "../components/global/Button";
 const { width, height } = Dimensions.get("window");
 
 const OnBoarding = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const moveAnim = useRef(new Animated.Value(20)).current;
   const [activeIndex, setActiveIndex] = useState(0); 
   const scrollRef = useRef(null); 
@@ -67,7 +69,7 @@ const handleButtonPress = () => {
 
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
       
       {/* Blue gradient background */}

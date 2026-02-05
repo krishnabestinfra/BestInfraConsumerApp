@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import Arrow from "../../assets/icons/arrow.svg";
 import GroupedBarChart from "../components/GroupedBarChart";
 import DashboardHeader from "../components/global/DashboardHeader";
@@ -119,7 +120,7 @@ const OptimizedDashboard = React.memo(({ navigation, route }) => {
       dataType="consumerData" 
       showLoader={false} // Dashboard header handles loading
     >
-      <View style={styles.container}>
+      <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
         <StatusBar style="light" />
         
         <DashboardHeader
@@ -129,7 +130,7 @@ const OptimizedDashboard = React.memo(({ navigation, route }) => {
           onNavigationPress={handleNavigationPress}
         />
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView style={[styles.content, isDark && { backgroundColor: themeColors.screen }]} showsVerticalScrollIndicator={false}>
           {/* Energy Summary Section */}
           <View style={styles.energySummary}>
             <Text style={styles.sectionTitle}>Energy Summary</Text>

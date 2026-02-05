@@ -295,7 +295,8 @@ const PostPaidDashboard = ({ navigation, route }) => {
 
   const formatDuration = useCallback((durationValue) => {
     if (typeof durationValue === "string" && durationValue.trim().length > 0) {
-      return durationValue;
+      // Remove seconds part (e.g. " 30s", " 0s") so duration shows only hours and minutes
+      return durationValue.replace(/\s*\d+\s*s\s*/gi, "").trim() || durationValue.trim();
     }
 
     if (typeof durationValue === "number" && durationValue >= 0) {
@@ -694,7 +695,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
         }
       }
 
-      // Validate the date
       if (isNaN(date.getTime())) {
         console.warn('Invalid date parsed, using today:', label);
         date = new Date();
@@ -792,9 +792,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
     amountContainer: { backgroundColor: '#163B7C' },
     dueText: { color: themeColors.textPrimary },
     dateText: { color: themeColors.textSecondary },
-    greenBox: { backgroundColor: '#163B7C' },
-    paynowbox: { backgroundColor: themeColors.textOnPrimary },
-    paynowText: { color: '#000000' },
+    greenBox: { backgroundColor: COLORS.secondaryColor },
+    paynowbox: { backgroundColor: COLORS.secondaryFontColor },
+    paynowText: { color: COLORS.primaryFontColor },
     dueDaysText: { color: themeColors.textSecondary },
     meterContainer: { backgroundColor: themeColors.screen },
     meterInfoContainer: { backgroundColor: '#163B7C' },

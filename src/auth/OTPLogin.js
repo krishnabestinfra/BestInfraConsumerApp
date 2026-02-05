@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
+import { useTheme } from "../context/ThemeContext";
 import { COLORS } from "../constants/colors";
 import Logo from "../components/global/Logo";
 import Button from "../components/global/Button";
@@ -25,6 +26,7 @@ const screenHeight = Dimensions.get("window").height;
 const OTP_RESEND_SECONDS = 30;
 
 const OTPLogin = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
@@ -81,7 +83,7 @@ const OTPLogin = ({ navigation }) => {
   const canResend = resendSeconds <= 0 && !isLoading;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
       <LinearGradient
         colors={["#55b56c", "#2a6f65", "#1f3d6d", "#163b7c"]}
@@ -94,7 +96,7 @@ const OTPLogin = ({ navigation }) => {
         style={{ flex: 1 }}
       >
         <ScrollView
-          style={styles.subContainer}
+          style={[styles.subContainer, isDark && { backgroundColor: themeColors.screen }]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.imageContainer}>

@@ -2,8 +2,11 @@ import { StyleSheet, Text, View, Pressable, ScrollView, TouchableOpacity, Refres
 import React, { useState, useEffect, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import Menu from "../../assets/icons/bars.svg";
+import MenuWhite from "../../assets/icons/menuBarWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
+import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
 import BiLogo from "../../assets/icons/Logo.svg";
 import DatePicker from "../components/global/DatePicker";
 import Table from "../components/global/Table";
@@ -14,6 +17,7 @@ import { API, API_ENDPOINTS } from "../constants/constants";
 
 
 const Transactions = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [tableData, setTableData] = useState([]);
@@ -177,7 +181,7 @@ const Transactions = ({ navigation }) => {
   return (
     <>
     <ScrollView
-      style={styles.Container}
+      style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
       contentContainerStyle={{ paddingBottom: 30 }}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -189,27 +193,35 @@ const Transactions = ({ navigation }) => {
         />
       }
     >
-      <View style={styles.bluecontainer}>
+      <View style={[styles.bluecontainer, isDark && { backgroundColor: themeColors.screen }]}>
         <View style={styles.TopMenu}>
           <Pressable
-            style={styles.barsIcon}
+            style={[styles.barsIcon, isDark && { backgroundColor: '#1A1F2E' }]}
             onPress={() => navigation.navigate("SideMenu")}
           >
-            <Menu width={18} height={18} fill="#202d59" />
+            {isDark ? (
+              <MenuWhite width={18} height={18} />
+            ) : (
+              <Menu width={18} height={18} fill="#202d59" />
+            )}
           </Pressable>
           <Pressable onPress={() => navigation.navigate("Dashboard")}>
             <BiLogo width={45} height={45} />
           </Pressable>
           <Pressable
-            style={styles.bellIcon}
+            style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}
             onPress={() => navigation.navigate("Profile")}
           >
-            <Notification width={18} height={18} fill="#202d59" />
+            {isDark ? (
+              <NotificationWhite width={18} height={18} />
+            ) : (
+              <Notification width={18} height={18} fill="#202d59" />
+            )}
           </Pressable>
         </View>
       </View>
 
-      <View style={styles.TransactionsContainer}>
+      <View style={[styles.TransactionsContainer, isDark && { backgroundColor: themeColors.screen }]}>
         <Text style={styles.ViewText}>View Transactions</Text>
         <TouchableOpacity>
           <Text style={styles.CreateText}>Pick Date</Text>
