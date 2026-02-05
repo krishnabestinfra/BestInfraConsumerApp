@@ -6,7 +6,9 @@ import Hand from '../../../assets/icons/hand.svg';
 import Arrow from '../../../assets/icons/arrow.svg';
 import Plus from '../../../assets/icons/plus.svg';
 import Menu from '../../../assets/icons/bars.svg';
+import MenuWhite from '../../../assets/icons/menuBarWhite.svg';
 import Notification from '../../../assets/icons/notification.svg';
+import NotificationWhite from '../../../assets/icons/NotificationWhite.svg';
 import { getUser, getConsumerDisplayName, cleanupStoredUserData } from '../../utils/storage';
 import { getCachedConsumerData, backgroundSyncConsumerData } from '../../utils/cacheManager';
 import { cacheManager } from '../../utils/cacheManager';
@@ -114,6 +116,7 @@ const DashboardHeader = React.memo(({
 
   const headerBg = isDark ? themeColors.headerBg : undefined;
   const iconFill = isDark ? '#FFFFFF' : '#202d59';
+  const iconWrapperBg = isDark ? '#1A1F2E' : undefined;
   const handFill = isDark ? themeColors.accent : '#55B56C';
   const hiStyle = [styles.hiText, isDark && { color: themeColors.textPrimary }];
   const stayingStyle = [styles.stayingText, isDark && { color: themeColors.textSecondary }];
@@ -121,14 +124,17 @@ const DashboardHeader = React.memo(({
   const amountStyle = [styles.amountText, isDark && { color: themeColors.textPrimary }];
   const plusFill = isDark ? themeColors.accent : '#55B56C';
 
+  const MenuIcon = isDark ? MenuWhite : Menu;
+  const NotificationIcon = isDark ? NotificationWhite : Notification;
+
   return (
     <View style={[styles.bluecontainer, headerBg && { backgroundColor: headerBg }]}>
       <View style={styles.TopMenu}>
         <Pressable
-          style={[styles.barsIcon, isDark && { backgroundColor: themeColors.card }]}
+          style={[styles.barsIcon, iconWrapperBg && { backgroundColor: iconWrapperBg }]}
           onPress={() => navigation.navigate('SideMenu')}
         >
-          <Menu width={18} height={18} fill={iconFill} />
+          <MenuIcon width={18} height={18} fill={isDark ? undefined : iconFill} />
         </Pressable>
         
         <Pressable style={styles.logoWrapper} onPress={() => navigation.navigate('PostPaidDashboard')}>
@@ -142,8 +148,8 @@ const DashboardHeader = React.memo(({
           style={styles.bellWrapper}
           onPress={() => navigation.navigate('Profile')}
         >
-          <View style={[styles.bellIcon, isDark && { backgroundColor: themeColors.card }]}>
-          <Notification width={18} height={18} fill={iconFill} />
+          <View style={[styles.bellIcon, iconWrapperBg && { backgroundColor: iconWrapperBg }]}>
+          <NotificationIcon width={18} height={18} fill={isDark ? undefined : iconFill} />
           </View>
           {unreadCount > 0 && (
             <View style={styles.badge}>

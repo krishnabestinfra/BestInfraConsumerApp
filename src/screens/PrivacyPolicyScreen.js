@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS } from '../constants/colors';
-import { useTheme } from '../context/ThemeContext';
 import Menu from '../../assets/icons/bars.svg';
 import BackIcon from '../../assets/icons/Back.svg';
 import Logo from '../components/global/Logo';
@@ -12,42 +11,49 @@ const LAST_UPDATED = 'January 1, 2024';
 const SECTIONS = [
   {
     id: '01',
-    title: 'Acceptance of Terms',
-    body: 'By accessing and using this application, you accept and agree to be bound by the terms and provision of this agreement.',
+    title: 'Information We Collect',
+    body: 'We collect information you provide directly to us, such as when you create an account, log in, or contact us for support.',
   },
   {
     id: '02',
-    title: 'Use License',
-    body: 'Permission is granted to temporarily download one copy of the application for personal, non-commercial transitory viewing only.',
+    title: 'How We Use Your Information',
+    body: 'We use the information we collect to',
+    bullets: [
+      'Provide, maintain, and improve our services',
+      'Process transactions and send related information',
+      'Send technical notices, updates, security alerts, and support messages',
+      'Respond to your comments, questions, and customer service requests',
+    ],
   },
   {
     id: '03',
-    title: 'Disclaimer',
-    body: "The materials on this application are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.",
+    title: 'Information Sharing',
+    body: 'We do not share, sell, or otherwise disclose your personal information for purposes other than those outlined in this Privacy Policy.',
   },
   {
     id: '04',
-    title: 'Limitations',
-    body: 'In no event shall we or our suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on our application.',
+    title: 'Your Rights',
+    body: 'You have the right to',
+    bullets: [
+      'Access your personal information',
+      'Correct inaccurate personal information',
+      'Request deletion of your personal information',
+      'Object to our processing of your personal information',
+    ],
   },
   {
     id: '05',
-    title: 'Revisions and Errata',
-    body: 'The materials appearing on our application could include technical, typographical, or photographic errors. We do not warrant that any of the materials on our application are accurate, complete or current.',
+    title: 'Changes to This Policy',
+    body: 'We may update this privacy policy from time to time. We will notify you of any changes by posting the new policy on this page.',
   },
   {
     id: '06',
-    title: 'Links',
-    body: 'We have not reviewed all of the sites linked to our application and are not responsible for the contents of any such linked site.',
-  },
-  {
-    id: '07',
-    title: 'Modifications',
-    body: 'We may revise these terms of service for our application at any time without notice.',
+    title: 'Contact Us',
+    body: 'If you have any questions about this Privacy Policy, please contact us.',
   },
 ];
 
-function SectionItem({ id, title, body }) {
+function SectionItem({ id, title, body, bullets }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -56,15 +62,24 @@ function SectionItem({ id, title, body }) {
         </View>
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
-      <Text style={styles.sectionBody}>{body}</Text>
+      <View style={styles.sectionContent}>
+        {body ? <Text style={styles.sectionBody}>{body}</Text> : null}
+        {bullets?.length
+          ? bullets.map((item, index) => (
+              <View key={index} style={styles.bulletRow}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.bulletText}>{item}</Text>
+              </View>
+            ))
+          : null}
+      </View>
     </View>
   );
 }
 
-export default function TermsOfServicesScreen({ navigation }) {
-  const { isDark, colors: themeColors } = useTheme();
+export default function PrivacyPolicyScreen({ navigation }) {
   return (
-    <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
+    <View style={styles.container}>
       <StatusBar style="light" />
 
       <ScrollView
@@ -90,7 +105,7 @@ export default function TermsOfServicesScreen({ navigation }) {
           </Pressable>
         </View>
 
-        <Text style={styles.pageTitle}>Terms Of Service</Text>
+        <Text style={styles.pageTitle}>Privacy Policy</Text>
         <Text style={styles.lastUpdated}>Last updated: {LAST_UPDATED}</Text>
 
         {SECTIONS.map((section) => (
@@ -99,6 +114,7 @@ export default function TermsOfServicesScreen({ navigation }) {
             id={section.id}
             title={section.title}
             body={section.body}
+            bullets={section.bullets}
           />
         ))}
       </ScrollView>
@@ -179,11 +195,32 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope-SemiBold',
     color: '#FFFFFF',
   },
+  sectionContent: {
+    paddingLeft: 44,
+  },
   sectionBody: {
     fontSize: 14,
     fontFamily: 'Manrope-Regular',
     color: 'rgba(255, 255, 255, 0.75)',
     lineHeight: 22,
-    paddingLeft: 44,
+    marginBottom: 4,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 4,
+  },
+  bullet: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.75)',
+    marginRight: 8,
+    lineHeight: 22,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'Manrope-Regular',
+    color: 'rgba(255, 255, 255, 0.75)',
+    lineHeight: 22,
   },
 });

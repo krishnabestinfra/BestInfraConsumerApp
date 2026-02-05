@@ -9,9 +9,12 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import React, { useEffect, useState } from "react";
 import Menu from "../../assets/icons/bars.svg";
+import MenuWhite from "../../assets/icons/menuBarWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
+import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
 import CheckCircle from "../../assets/icons/checkmark.svg";
 import ChevronRight from "../../assets/icons/rightArrow.svg";
 import ChatIcon from "../../assets/icons/chatIcon.svg";
@@ -56,6 +59,7 @@ const Ring = ({ index, progress }) => {
 };
 
 const TicketDetails = ({ navigation, route }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const progress = useSharedValue(0);
   const [userName, setUserName] = useState("");
 
@@ -142,31 +146,39 @@ const TicketDetails = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="dark" />
 
       {/* Header */}
       <View style={styles.header}>
         <Pressable
-          style={styles.headerButton}
+          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.goBack()}
         >
-          <Menu width={18} height={18} fill="#202d59" />
+          {isDark ? (
+            <MenuWhite width={18} height={18} />
+          ) : (
+            <Menu width={18} height={18} fill="#202d59" />
+          )}
         </Pressable>
 
         <View style={styles.logoWrapper}>
           {Array.from({ length: RING_COUNT }).map((_, index) => (
             <Ring key={index} index={index} progress={progress} />
           ))}
-          <Logo variant="blue" size="medium" />
+          <Logo variant={isDark ? "white" : "blue"} size="medium" />
         </View>
 
         <View style={styles.headerRightContainer}>
           <Pressable
-            style={styles.headerButton}
+            style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
             onPress={() => navigation.navigate("Profile")}
           >
-            <Notification width={18} height={18} fill="#202d59" />
+            {isDark ? (
+              <NotificationWhite width={18} height={18} />
+            ) : (
+              <Notification width={18} height={18} fill="#202d59" />
+            )}
           </Pressable>
         </View>
       </View>

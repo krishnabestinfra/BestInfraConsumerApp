@@ -19,6 +19,7 @@ import Input from "../components/global/Input";
 import Logo from "../components/global/Logo";
 import OTPInput from "../components/global/OTPInput";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import { API_ENDPOINTS } from "../config/apiConfig";
 import UserIcon from "../../assets/icons/user.svg";
 
@@ -27,6 +28,7 @@ const screenHeight = Dimensions.get("window").height;
 const ResetPassword = () => {
   const route = useRoute();
   const navigation = useNavigation();
+  const { isDark, colors: themeColors } = useTheme();
   const { email: initialEmail } = route.params || {};
 
   const [email, setEmail] = useState(initialEmail || "");
@@ -130,7 +132,7 @@ const ResetPassword = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
 
       <LinearGradient
@@ -145,7 +147,7 @@ const ResetPassword = () => {
         style={{ flex: 1 }}
       >
         <ScrollView
-          style={styles.subContainer}
+          style={[styles.subContainer, isDark && { backgroundColor: themeColors.screen }]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.imageContainer}>

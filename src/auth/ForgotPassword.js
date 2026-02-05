@@ -17,6 +17,7 @@ import Button from "../components/global/Button";
 import Input from "../components/global/Input";
 import Logo from "../components/global/Logo";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import { API_ENDPOINTS } from "../config/apiConfig";
 import UserIcon from "../../assets/icons/user.svg";
 
@@ -27,6 +28,7 @@ const proceedToResetPassword = (email, navigation) => {
 };
 
 const ForgotPassword = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [identifier, setIdentifier] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -87,7 +89,7 @@ const ForgotPassword = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
 
       <LinearGradient
@@ -102,7 +104,7 @@ const ForgotPassword = ({ navigation }) => {
         style={{ flex: 1 }}
       >
         <ScrollView
-          style={styles.subContainer}
+          style={[styles.subContainer, isDark && { backgroundColor: themeColors.screen }]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.imageContainer}>

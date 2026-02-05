@@ -9,6 +9,7 @@ import {
 import React, { useEffect, useState, useCallback } from "react";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import Arrow from "../../assets/icons/arrow.svg";
 import GroupedBarChart from "../components/GroupedBarChart";
 import DashboardHeader from "../components/global/DashboardHeader";
@@ -29,6 +30,7 @@ import UltraFastScreen from "../components/UltraFastScreen";
 
 
 const Dashboard = React.memo(({ navigation, route }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [selectedView, setSelectedView] = useState("daily");
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
@@ -235,7 +237,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
   return (
     <InstantLoader dataKey="dashboard_data" onDataReady={(data) => setConsumerData(data.data)}>
       <ScrollView
-        style={styles.Container}
+        style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{ paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -247,8 +249,8 @@ const Dashboard = React.memo(({ navigation, route }) => {
           />
         }
       >
-        <View style={styles.Container}>
-          <StatusBar style="dark" />
+        <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
+          <StatusBar style={isDark ? "light" : "dark"} />
           <DashboardHeader 
             navigation={navigation} 
             showBalance={false}
@@ -256,7 +258,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
             isLoading={isLoading}
           />
 
-        <View style={styles.contentOnTop}>
+        <View style={[styles.contentOnTop, isDark && { backgroundColor: themeColors.screen }]}>
         <View style={styles.meterContainer}>
           <View style={styles.meterInfoContainer}>
           <View style={styles.meterInfoRow}>
@@ -281,7 +283,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
             </View>
         </View>
 
-        <View style={styles.whiteContainer}>
+        <View style={[styles.whiteContainer, isDark && { backgroundColor: themeColors.screen }]}>
           <View style={styles.energyHeader}>
             <Text style={styles.energyText}>Energy Summary</Text>
             <View style={styles.toggleContainer}>
@@ -336,7 +338,7 @@ const Dashboard = React.memo(({ navigation, route }) => {
             />
           </View> */}
 
-          <View style={styles.graphsContainer}>
+          <View style={[styles.graphsContainer, isDark && { backgroundColor: themeColors.card }]}>
             {selectedView === "daily" ? (
               <>
                 <Text style={styles.thismonthText}>

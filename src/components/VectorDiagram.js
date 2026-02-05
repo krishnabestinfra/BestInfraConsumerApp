@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 2,
   },
   phaseDot: {
     width: 8,
@@ -677,7 +677,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope-SemiBold',
     color: COLORS.primaryFontColor,
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: 0,
   },
 });
 

@@ -2,6 +2,7 @@ import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import { getUser, getToken } from "../utils/storage";
 import { API_ENDPOINTS } from "../constants/constants";
 import { 
@@ -15,7 +16,9 @@ import { handleViewBill } from "../services/InvoicePDFService";
 import { authService } from "../services/authService";
 import { apiClient } from "../services/apiClient";
 import Menu from "../../assets/icons/bars.svg";
+import MenuWhite from "../../assets/icons/menuBarWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
+import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
 import EyeIcon from "../../assets/icons/eyeFill.svg";
 import Logo from "../components/global/Logo";
 import AnimatedRings from "../components/global/AnimatedRings";
@@ -363,6 +366,7 @@ const transformInvoicesToCards = (invoices) => {
 };
 
 const Invoices = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [invoiceCards, setInvoiceCards] = useState([]);
   const [filteredInvoiceCards, setFilteredInvoiceCards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -627,33 +631,41 @@ const Invoices = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       
       {/* Header */}
       <View style={styles.header}>
         <Pressable
-          style={styles.headerButton}
+          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.navigate("SideMenu")}
         >
-          <Menu width={18} height={18} fill="#202d59" />
+          {isDark ? (
+            <MenuWhite width={18} height={18} />
+          ) : (
+            <Menu width={18} height={18} fill="#202d59" />
+          )}
         </Pressable>
 
         <View style={styles.logoWrapper}>
           <AnimatedRings />
-          <Logo variant="blue" size="medium" />
+          <Logo variant={isDark ? "white" : "blue"} size="medium" />
         </View>
 
         <Pressable
-          style={styles.headerButton}
+          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.navigate("Profile")}
         >
-          <Notification width={18} height={18} fill="#202d59" />
+          {isDark ? (
+            <NotificationWhite width={18} height={18} />
+          ) : (
+            <Notification width={18} height={18} fill="#202d59" />
+          )}
         </Pressable>
       </View>
 
       <ScrollView
-        style={styles.scrollContainer}
+        style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={

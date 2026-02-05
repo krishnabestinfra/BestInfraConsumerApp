@@ -14,16 +14,19 @@ import {
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from 'expo-image-picker';
 import Menu from "../../assets/icons/bars.svg";
+import MenuWhite from "../../assets/icons/menuBarWhite.svg";
 import Notification from "../../assets/icons/notificationDark.svg";
 import CameraIcon from "../../assets/icons/cameraIcon.svg";
 import Logo from "../components/global/Logo";
 import BackArrowIcon from "../../assets/icons/Back.svg";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/AppContext";
 import { useNotifications } from "../context/NotificationsContext";
 import { getUser, storeUser } from "../utils/storage";
 
 const ProfileScreenMain = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -195,7 +198,7 @@ const ProfileScreenMain = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <View style={styles.Container}>
+      <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
         <StatusBar style="light" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.secondaryColor} />
@@ -206,7 +209,7 @@ const ProfileScreenMain = ({ navigation }) => {
   }
 
   return (
-    <View style={styles.Container}>
+    <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
 
       {/* Header */}
@@ -214,12 +217,17 @@ const ProfileScreenMain = ({ navigation }) => {
         <Pressable
           style={({ pressed }) => [
             styles.barsIcon,
+            isDark && { backgroundColor: '#1A1F2E' },
             pressed && styles.buttonPressed
           ]}
           onPress={() => navigation.navigate("SideMenu")}
           android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: false, radius: 27 }}
         >
-          <Menu width={18} height={18} fill="#202d59" />
+          {isDark ? (
+            <MenuWhite width={18} height={18} />
+          ) : (
+            <Menu width={18} height={18} fill="#202d59" />
+          )}
         </Pressable>
 
         <Pressable
@@ -230,7 +238,7 @@ const ProfileScreenMain = ({ navigation }) => {
           onPress={() => navigation.navigate("PostPaidDashboard")}
           android_ripple={{ color: 'rgba(85,181,108,0.2)', borderless: false, radius: 40 }}
         >
-          <Logo variant="blue" size="medium" />
+          <Logo variant={isDark ? "white" : "blue"} size="medium" />
         </Pressable>
 
         <Pressable
@@ -241,8 +249,8 @@ const ProfileScreenMain = ({ navigation }) => {
           onPress={() => navigation.navigate("SideMenu")}
           android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: false, radius: 27 }}
         >
-          <View style={styles.bellIcon}>
-            <BackArrowIcon width={18} height={18} fill="#202d59" />
+          <View style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}>
+            <BackArrowIcon width={18} height={18} fill={isDark ? '#FFFFFF' : '#202d59'} />
           </View>
           {unreadCount > 0 && (
             <View style={styles.badge}>
@@ -253,7 +261,7 @@ const ProfileScreenMain = ({ navigation }) => {
       </View>
 
       <ScrollView
-        style={styles.scrollContainer}
+        style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >

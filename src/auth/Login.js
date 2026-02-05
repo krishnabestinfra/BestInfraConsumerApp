@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import LoginForm from "./LoginForm";
 import { storeUser, extractConsumerInfo } from "../utils/storage";
 import { testConsumerCredentials } from "../services/apiService";
@@ -27,6 +28,7 @@ import MobileLogin from "./MobileLogin";
 const screenHeight = Dimensions.get("window").height;
 
 const Login = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [checked, setChecked] = useState(false);
@@ -299,7 +301,7 @@ const Login = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
       <LinearGradient
         colors={["#55b56c", "#2a6f65", "#1f3d6d", "#163b7c"]}
@@ -319,7 +321,7 @@ const Login = ({ navigation }) => {
         style={{ flex: 1 }}
       >
         <ScrollView
-          style={styles.subContainer}
+          style={[styles.subContainer, isDark && { backgroundColor: themeColors.screen }]}
           keyboardShouldPersistTaps="handled"
         >
             <View style={styles.imageContainer}>

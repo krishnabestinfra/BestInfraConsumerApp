@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
 import Button from "../components/global/Button";
@@ -7,6 +8,7 @@ import SuccessIcon from "../../assets/icons/checkmark.svg";
 import { getPaymentStatus, formatAmount, formatPaymentDate } from "../services/paymentService";
 
 const PaymentStatus = ({ navigation, route }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const { billId, paymentData: initialPaymentData, success } = route?.params || {};
   const [paymentDetails, setPaymentDetails] = useState(initialPaymentData || null);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,7 +67,7 @@ const PaymentStatus = ({ navigation, route }) => {
   // Render loading state
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, isDark && { backgroundColor: themeColors.screen }]}>
         <ActivityIndicator size="large" color={COLORS.secondaryColor} />
         <Text style={styles.loadingText}>Loading payment details...</Text>
       </View>
@@ -75,7 +77,7 @@ const PaymentStatus = ({ navigation, route }) => {
   // Render error state
   if (error) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={[styles.errorContainer, isDark && { backgroundColor: themeColors.screen }]}>
         <Text style={styles.errorText}>Error: {error}</Text>
         <Button 
           title="Go to Dashboard" 
@@ -91,12 +93,12 @@ const PaymentStatus = ({ navigation, route }) => {
   return (
     <>
       <ScrollView
-        style={styles.Container}
+        style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.MainContainer}>
-          <StatusBar barStyle="dark-content" />
+        <View style={[styles.MainContainer, isDark && { backgroundColor: themeColors.screen }]}>
+          <StatusBar style={isDark ? "light" : "dark"} />
           <View style={styles.successContainer}>
             <SuccessIcon width={60} height={60} style={styles.successIcon} />
             <Text style={styles.successText}>Payment Confirmation</Text>

@@ -1,6 +1,7 @@
 import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import React, { useState, useCallback, useEffect, useContext } from "react";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import Menu from "../../assets/icons/barsWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
 import BiLogo from "../../assets/icons/LogoWhite.svg";
@@ -18,6 +19,7 @@ import { logoutUser, getUser } from "../utils/storage";
 import CrossIcon from "../../assets/icons/crossWhite.svg";
 
 const SideMenu = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const { activeItem, setActiveItem } = useContext(TabContext);
   const [userData, setUserData] = useState(null);
 
@@ -79,7 +81,7 @@ const SideMenu = ({ navigation }) => {
     }
   };
   return (
-    <View style={styles.Container}>
+    <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light"/>
       <View style={styles.TopMenu}>
         <Pressable style={styles.barsIcon} onPress={() => navigation.navigate("PostPaidDashboard")}>

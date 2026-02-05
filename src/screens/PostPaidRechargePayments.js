@@ -10,6 +10,7 @@ import {
   Platform 
 } from "react-native";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import React, { useState, useEffect, useMemo } from "react";
 import Input from "../components/global/Input";
 import Button from "../components/global/Button";
@@ -37,7 +38,7 @@ const TEST_PAYMENT_AMOUNT = 100; // ₹1 in paise (100 paise = 1 rupee)
 // ============================================================================
 
 const PostPaidRechargePayments = ({ navigation }) => {
-
+  const { isDark, colors: themeColors } = useTheme();
   const [selectedOption, setSelectedOption] = useState("option1");
   const [customAmount, setCustomAmount] = useState("");
   const [outstandingAmount, setOutstandingAmount] = useState("NA");
@@ -395,13 +396,13 @@ const PostPaidRechargePayments = ({ navigation }) => {
 
   return (
     <KeyboardAvoidingView 
-      style={styles.keyboardAvoidingView} 
+      style={[styles.keyboardAvoidingView, isDark && { backgroundColor: themeColors.screen }]} 
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
     >
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ScrollView
-        style={styles.Container}
+        style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -415,7 +416,7 @@ const PostPaidRechargePayments = ({ navigation }) => {
           isLoading={isConsumerLoading}
         />
 
-        <View style={styles.contentOnTop}>
+        <View style={[styles.contentOnTop, isDark && { backgroundColor: themeColors.screen }]}>
         <View style={styles.contentSection}>
           {/* Input Boxes Section */}
           <View style={styles.inputSection}>

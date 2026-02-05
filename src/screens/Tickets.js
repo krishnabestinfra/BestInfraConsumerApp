@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, RefreshControl, Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Button from "../components/global/Button";
 import Table from "../components/global/Table";
@@ -23,6 +24,7 @@ import CreateNewTicket from "../components/global/CreateNewTicket";
 import TicketSuccessModal from "../components/global/TicketSuccessModal";
 
 const Tickets = ({ navigation }) => {
+  const { isDark, colors: themeColors } = useTheme();
   const bottomSheetRef = useRef(null);
   const pendingSuccessModalRef = useRef(false);
   const snapPoints = ['100%']; // Nearly full screen
@@ -195,7 +197,7 @@ const Tickets = ({ navigation }) => {
     <GestureHandlerRootView style={{ flex: 1 }}>
 
       <ScrollView
-        style={styles.Container}
+        style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{flexGrow: 1, paddingBottom: 130}}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -216,7 +218,7 @@ const Tickets = ({ navigation }) => {
           consumerData={consumerData}
           isLoading={isLoading}
         />
-        <View style={styles.contentOnTop}>
+        <View style={[styles.contentOnTop, isDark && { backgroundColor: themeColors.screen }]}>
         <View style={styles.TicketContainer}>
           <Text style={styles.usageText}>Tickets</Text>
           <Button
@@ -466,7 +468,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   usageText: {
-    color: COLORS.primaryFontColor,
+    color: '#FFFFFF',
     fontFamily: "Manrope-Bold",
     fontSize: 14,
   },
@@ -618,14 +620,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 5,
-    // marginHorizontal: 20,
-    // marginTop: 20,
-    backgroundColor: COLORS.secondaryFontColor,
+    backgroundColor: '#1A1F2E',
     width: "43%",
     height: 80,
   },
   TicketBoxtext: {
-    color: COLORS.primaryFontColor,
+    color: '#FFFFFF',
     fontFamily: "Manrope-Medium",
     fontSize: 12,
   },
