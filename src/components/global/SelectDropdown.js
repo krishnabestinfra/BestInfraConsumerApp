@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../constants/colors';
-import DropdownIcon from '../../../assets/icons/dropDown.svg';
+import DropdownIcon from '../../../assets/icons/dropdownArrow.svg';
 
 const SelectDropdown = ({
   label,

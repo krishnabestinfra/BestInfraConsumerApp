@@ -7,7 +7,7 @@ import Notification from "../../assets/icons/notification.svg";
 import Logo from "../components/global/Logo";
 import AnimatedRings from "../components/global/AnimatedRings";
 import { StatusBar } from "expo-status-bar";
-import DropDownIcon from "../../assets/icons/dropDown.svg";
+import DropDownIcon from "../../assets/icons/dropdownArrow.svg";
 import ShareIcon from "../../assets/icons/share.svg";
 import DatePicker from "../components/global/DatePicker";
 import DocumentIcon from "../../assets/icons/document.svg";

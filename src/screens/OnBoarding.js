@@ -103,9 +103,6 @@ const handleButtonPress = () => {
 
       <View style={styles.loginContainer}>
         <View style={styles.loginContent}>
-          <Text style={styles.donthavetext}>
-            Don't have an account? Need Help!
-          </Text>
           <Button 
            title="Login" 
            variant="secondary"
@@ -147,15 +144,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.1)", // Subtle overlay for better content visibility
+    backgroundColor: "rgba(0, 0, 0, 0.1)", 
   },
-  /////// button \\\\\\
+
   ButtonBox: {
     width: "100%",
     height: 43,
     alignItems: "center",
     marginTop: 40,
-    zIndex: 1, // Ensure button is above background
+    zIndex: 1, 
   },
   buttonContainer: {
     width: "80%",
@@ -163,21 +160,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 4,
   },
-
-  /////Arrow \\\\\\
   arrowContainer: {
     height: "15%",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1, // Ensure arrow is above background
+    zIndex: 1, 
   },
-  ////// login container \\\\\\\
   loginContainer: {
     width: "100%",
     height: "15%",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1, // Ensure login container is above background
+    zIndex: 1, 
   },
   loginContent: {
     backgroundColor: "rgba(0, 0, 0, 0.1)",
@@ -185,11 +179,6 @@ const styles = StyleSheet.create({
     height: "100%",
     alignItems: "center",
     justifyContent: "space-evenly",
-  },
-  donthavetext: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 14,
-    fontFamily: "Manrope-Regular",
   },
   loginBox: {
     padding: 10,

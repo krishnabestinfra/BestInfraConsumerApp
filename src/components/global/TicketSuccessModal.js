@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: MODAL_BG,
     borderRadius: 16,
-    paddingVertical: 28,
+    paddingVertical: 50,
     paddingHorizontal: 24,
     width: "100%",
     maxWidth: 340,
@@ -90,10 +90,10 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   iconWrap: {
-    marginBottom: 16,
+    marginBottom: 36,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     color: COLORS.primaryFontColor,
     textAlign: "center",
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.primaryFontColor,
     textAlign: "center",
-    marginBottom: 24,
+    marginBottom: 40,
     opacity: 0.9,
   },
   actions: {
@@ -132,7 +132,6 @@ const styles = StyleSheet.create({
   returnLinkText: {
     fontSize: 15,
     color: COLORS.primaryColor,
-    textDecorationLine: "underline",
     fontWeight: "500",
   },
 });

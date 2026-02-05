@@ -24,6 +24,7 @@ const CreateNewTicket = ({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("HIGH");
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = [
     "Technical Issue",
@@ -34,7 +35,7 @@ const CreateNewTicket = ({
   ];
   const priorities = ["LOW", "MEDIUM", "HIGH"];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const ticketData = {
       subject,
       category: selectedCategory,
@@ -43,13 +44,20 @@ const CreateNewTicket = ({
       files: uploadedFiles,
     };
 
-    if (onSubmit) onSubmit(ticketData);
-
-    setSelectedCategory("");
-    setSubject("");
-    setDescription("");
-    setPriority("HIGH");
-    setUploadedFiles([]);
+    if (!onSubmit) return;
+    setIsSubmitting(true);
+    try {
+      const success = await onSubmit(ticketData);
+      if (success) {
+        setSelectedCategory("");
+        setSubject("");
+        setDescription("");
+        setPriority("HIGH");
+        setUploadedFiles([]);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -126,10 +134,12 @@ const CreateNewTicket = ({
 
         <View style={styles.buttonRow}>
           <Button
-            variant="outline"
+            variant={isSubmitting ? "primary" : "outline"}
             title="Submit"
             onPress={handleSubmit}
-            style={styles.button}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+            style={[styles.button, !isSubmitting && styles.submitButton]}
           />
         </View>
       </ScrollView>
@@ -151,12 +161,8 @@ const styles = StyleSheet.create({
     marginTop: 100,
     flexDirection: "column",
     flex: 1,
-    justifyContent: "center", // center vertically
-    //   alignItems: "center",     // center horizontally
-    // alignSelf:"center",
-    //
+    justifyContent: "center", 
     marginHorizontal: 20
-
   },
   header: {
     flexDirection: "row",
@@ -196,6 +202,9 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
+  },
+  submitButton: {
+    backgroundColor: "transparent",
   },
   cancelButton: {
     flex: 1,
