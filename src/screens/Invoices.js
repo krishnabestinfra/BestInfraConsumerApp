@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated ,Image} from "react-native";
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated } from "react-native";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../constants/colors";
@@ -695,10 +695,10 @@ const Invoices = ({ navigation }) => {
       {isGeneratingPDF && (
         <View style={styles.pdfOverlay}>
           <View style={styles.pdfOverlayContent}>
-            <Image
-              source={require("../../assets/images/pdf.gif")}
+            <ActivityIndicator
+              size="large"
+              color={COLORS.primaryColor}
               style={styles.loadingGif}
-              resizeMode="contain"
             />
             <Text style={styles.pdfOverlayText}>Generating Invoice PDF...</Text>
           </View>
@@ -967,7 +967,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 10,
     fontFamily: "Manrope-SemiBold",
-    color: COLORS.primaryFontColor,
+    color: "#FFB400",
   },
   datesContainer: {
     flexDirection: "row",
