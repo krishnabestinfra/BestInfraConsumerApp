@@ -24,6 +24,7 @@ import TicketSuccessModal from "../components/global/TicketSuccessModal";
 
 const Tickets = ({ navigation }) => {
   const bottomSheetRef = useRef(null);
+  const pendingSuccessModalRef = useRef(false);
   const snapPoints = ['100%']; // Nearly full screen
 
   const handleOpenBottomSheet = useCallback(() => {
@@ -32,6 +33,13 @@ const Tickets = ({ navigation }) => {
 
   const handleCloseBottomSheet = useCallback(() => {
     bottomSheetRef.current?.close();
+  }, []);
+
+  const handleBottomSheetClosed = useCallback(() => {
+    if (pendingSuccessModalRef.current) {
+      pendingSuccessModalRef.current = false;
+      setShowSuccessModal(true);
+    }
   }, []);
 
   // const [showModal, setShowModal] = useState(false);
@@ -59,7 +67,6 @@ const Tickets = ({ navigation }) => {
       const user = await getUser();
       
       if (user && user.identifier) {
-        // Try to get cached data first for instant display
         const cachedResult = await getCachedConsumerData(user.identifier);
         if (cachedResult.success) {
           setConsumerData(cachedResult.data);
@@ -126,27 +133,27 @@ const Tickets = ({ navigation }) => {
       const user = await getUser();
       if (!user?.identifier) {
         Alert.alert("Error", "Please sign in to create a ticket.");
-        return;
+        return false;
       }
       const result = await createTicket(user.identifier, ticketData);
       const isSuccess = result?.success === true || result?.status === "success" || (result?.data && !result?.error);
       if (isSuccess) {
-        handleCloseBottomSheet();
-        fetchData();
         const raw = result.data || result;
         const ticket = raw.ticket || raw.data || raw;
         const ticketNumber = ticket.ticketNumber ?? ticket.ticket_number ?? ticket.id ?? ticket.number ?? ticket.ticketId ?? raw.ticketNumber ?? raw.ticketId ?? raw.id;
         setCreatedTicket({ ...ticket, ticketNumber: ticketNumber ?? ticket.ticketNumber });
-        // Show modal after bottom sheet has closed so it is not covered
-        setTimeout(() => {
-          setShowSuccessModal(true);
-        }, 400);
+        fetchData();
+        pendingSuccessModalRef.current = true;
+        handleCloseBottomSheet();
+        return true;
       } else {
         Alert.alert("Error", result?.message || result?.error || "Failed to create ticket.");
+        return false;
       }
     } catch (error) {
       console.error("Create ticket error:", error);
       Alert.alert("Error", error.message || "Failed to create ticket.");
+      return false;
     }
   }, []);
 
@@ -154,6 +161,12 @@ const Tickets = ({ navigation }) => {
     setShowSuccessModal(false);
     setCreatedTicket(null);
   }, []);
+
+  const handleReturnToHome = useCallback(() => {
+    setShowSuccessModal(false);
+    setCreatedTicket(null);
+    navigation.navigate("PostPaidDashboard");
+  }, [navigation]);
 
   const handleViewTicketFromSuccess = useCallback(() => {
     setShowSuccessModal(false);
@@ -168,7 +181,6 @@ const Tickets = ({ navigation }) => {
     setCreatedTicket(null);
   }, [createdTicket, navigation]);
 
-  // Handle view ticket details (pass numeric id for API; ticketNumber for display)
   const handleViewTicket = useCallback((ticket) => {
     console.log("📄 Viewing ticket:", ticket);
     navigation.navigate('TicketDetails', {
@@ -211,9 +223,7 @@ const Tickets = ({ navigation }) => {
             variant="primary"
             size="small"
             textStyle={styles.forgotText}
-            // onPress={handleOpenModal}
             onPress={handleOpenBottomSheet}
-            // onPress={() => navigation.navigate('TicketDetails')}
           />
         </View>
 
@@ -353,6 +363,7 @@ const Tickets = ({ navigation }) => {
         enableContentPanningGesture={false}
         enableOverDrag={false}
         animateOnMount={false}
+        onClose={handleBottomSheetClosed}
       >
         <BottomSheetView style={styles.bottomSheetContent}>
           <CreateNewTicket 
@@ -368,7 +379,7 @@ const Tickets = ({ navigation }) => {
         ticketNumber={createdTicket?.ticketNumber ?? createdTicket?.ticket_number ?? createdTicket?.id}
         ticketData={createdTicket}
         onViewDetails={handleViewTicketFromSuccess}
-        onReturnHome={handleCloseSuccessModal}
+        onReturnHome={handleReturnToHome}
       />
       
       {/* Bottom Navigation */}
