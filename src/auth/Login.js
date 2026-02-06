@@ -6,14 +6,12 @@ import {
   Dimensions,
   Platform,
   KeyboardAvoidingView,
-  ScrollView,
   SafeAreaView,
   Alert,
   Pressable,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import LoginForm from "./LoginForm";
 import { storeUser, extractConsumerInfo } from "../utils/storage";
@@ -26,6 +24,11 @@ import EmailLogin from "./EmailLogin";
 import MobileLogin from "./MobileLogin";
 
 const screenHeight = Dimensions.get("window").height;
+
+// Blue/gradient behind the logo – same in light and dark theme (brand).
+const LOGIN_HEADER_GRADIENT = ["#55b56c", "#2a6f65", "#1f3d6d", "#163b7c"];
+// Logo circle gradient – same in light and dark theme (brand blue-to-green).
+const LOGO_CIRCLE_GRADIENT = ["#163b7c", "#1f3d6d", "#2a6f65", "#55b56c"];
 
 const Login = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
@@ -304,31 +307,28 @@ const Login = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
-      <StatusBar style="light" />
-      <LinearGradient
-        colors={["#55b56c", "#2a6f65", "#1f3d6d", "#163b7c"]}
-        start={{ x: 0.5, y: 1.3 }}
-        end={{ x: 0.3, y: 0.5 }}
-        style={{
-          height: screenHeight * 0.2,
-          width: "100%",
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-        }}
-      />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          style={[styles.subContainer, isDark && { backgroundColor: themeColors.screen }]}
-          keyboardShouldPersistTaps="handled"
-        >
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View style={styles.loginScreenContent}>
+        <LinearGradient
+          colors={LOGIN_HEADER_GRADIENT}
+          start={{ x: 0.5, y: 1.3 }}
+          end={{ x: 0.3, y: 0.5 }}
+          style={[styles.loginHeaderGradient, { height: screenHeight * 0.2 }]}
+        />
+        <View style={styles.loginScrollWrapper}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.keyboardView}
+          >
+            <View
+              style={[
+                styles.subContainer,
+                isDark && { backgroundColor: "transparent" },
+              ]}
+            >
             <View style={styles.imageContainer}>
               <LinearGradient
-                colors={["#163b7c", "#1f3d6d", "#2a6f65", "#55b56c"]}
+                colors={LOGO_CIRCLE_GRADIENT}
                 start={{ x: 0.5, y: 1 }}
                 end={{ x: 1.2, y: 0.2 }}
                 style={styles.gradientBackground}
@@ -338,11 +338,11 @@ const Login = ({ navigation }) => {
             </View>
 
             <View style={styles.TextContainer}>
-              <Text style={[styles.welcomeText, { fontSize: s24 }]}>Welcome</Text>
-              <Text style={[styles.bestinfraText, { fontSize: s24 }]}>to Best Infra</Text>
+              <Text style={[styles.welcomeText, { fontSize: s24, color: themeColors.textPrimary }]}>Welcome</Text>
+              <Text style={[styles.bestinfraText, { fontSize: s24, color: themeColors.textPrimary }]}>to Best Infra</Text>
             </View>
             <View style={styles.TextContainer}>
-              <Text style={[styles.LoginText, { fontSize: s14 }]}>
+              <Text style={[styles.LoginText, { fontSize: s14, color: themeColors.textSecondary }]}>
               Access your smart meter data, monitor energy usage, and manage everything seamlessly — all within one secure platform.
               </Text>
             </View>
@@ -392,8 +392,10 @@ const Login = ({ navigation }) => {
               isLoading={isLoading}
             /> */}
 
-        </ScrollView>
-      </KeyboardAvoidingView>
+            </View>
+          </KeyboardAvoidingView>x  
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
@@ -404,6 +406,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  loginScreenContent: {
+    flex: 1,
+  },
+  loginHeaderGradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    width: "100%",
+    zIndex: 1,
+  },
+  loginScrollWrapper: {
+    flex: 1,
+    zIndex: 2,
+  },
+  keyboardView: {
+    flex: 1,
   },
   imageContainer: {
     alignItems: "center",
@@ -420,7 +440,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#1f255e",
     ...Platform.select({
       ios: {
-        shadowColor: COLORS.primaryFontColor,
+        shadowColor: "#262626",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 6,
@@ -438,17 +458,14 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   welcomeText: {
-    color: COLORS.primaryFontColor,
     fontSize: 24,
     fontFamily: "Manrope-Bold",
   },
   bestinfraText: {
-    color: COLORS.primaryFontColor,
     fontSize: 24,
     fontFamily: "Manrope-Bold",
   },
   LoginText: {
-    color: COLORS.primaryFontColor,
     fontSize: 14,
     textAlign: "center",
     fontFamily: "Manrope-Regular",
@@ -463,28 +480,24 @@ const styles = StyleSheet.create({
     borderColor: "#e9ecef",
   },
   demoTitle: {
-    color: COLORS.primaryFontColor,
     fontSize: 16,
     fontFamily: "Manrope-Bold",
     textAlign: "center",
     marginBottom: 8,
   },
   demoText: {
-    color: COLORS.primaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-Regular",
     textAlign: "center",
     marginBottom: 8,
   },
   demoCredential: {
-    color: COLORS.primaryColor,
     fontSize: 12,
     fontFamily: "Manrope-Medium",
     textAlign: "center",
     marginBottom: 4,
   },
   demoNote: {
-    color: COLORS.color_text_secondary,
     fontSize: 10,
     fontFamily: "Manrope-Regular",
     textAlign: "center",
@@ -492,12 +505,10 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   allText: {
-    color: COLORS.primaryFontColor,
     fontSize: 14,
     textAlign: "center",
     fontFamily: "Manrope-Regular",
   },
-
   orContainer: {
     backgroundColor: "#e9eaee",
     width: 32,
@@ -516,7 +527,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   orText: {
-    color: COLORS.primaryFontColor,
     fontSize: Platform.OS === "ios" ? 14 : 12,
     textAlign: "center",
     fontFamily: "Manrope-SemiBold",
@@ -532,7 +542,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   guestText: {
-    color: COLORS.primaryFontColor,
     fontSize: 16,
     fontFamily: "Manrope-Medium",
   },
