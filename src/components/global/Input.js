@@ -26,11 +26,15 @@ const Input = React.memo(({
   inputStyle,
   labelStyle,
   errorStyle,
+  placeholderTextColor,
   onFocus,
   onBlur,
   ...props
 }) => {
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, colors: themeColors, isDark } = useTheme();
+  const resolvedPlaceholderColor = placeholderTextColor ?? (isDark ? themeColors.textSecondary : '#6E6E6E');
+  const resolvedInputColor = isDark ? themeColors.textPrimary : undefined;
+  const resolvedContainerDark = isDark ? { backgroundColor: themeColors.inputBg, borderColor: themeColors.cardBorder } : {};
   const s12 = getScaledFontSize(12);
   const s14 = getScaledFontSize(14);
   const s16 = getScaledFontSize(16);
@@ -79,16 +83,16 @@ const Input = React.memo(({
   return (
     <View style={[styles.container, style]}>
       {label && (
-        <Text style={[styles.label, { fontSize: s14 }, labelStyle]}>
+        <Text style={[styles.label, { fontSize: s14, color: themeColors.textPrimary }, labelStyle]}>
           {label}
         </Text>
       )}
       
-      <View style={getInputContainerStyle}>        
+      <View style={[getInputContainerStyle, resolvedContainerDark]}>        
         <TextInput
-          style={[getInputStyle, { fontSize: size === 'small' ? s12 : size === 'large' ? s16 : s14 }, inputStyle]}
+          style={[getInputStyle, { fontSize: size === 'small' ? s12 : size === 'large' ? s16 : s14 }, resolvedInputColor && { color: resolvedInputColor }, inputStyle]}
           placeholder={placeholder}
-          placeholderTextColor="#6E6E6E"
+          placeholderTextColor={resolvedPlaceholderColor}
           value={value}
           onChangeText={handleChangeText}
           secureTextEntry={secureTextEntry}
@@ -111,7 +115,7 @@ const Input = React.memo(({
       </View>
       
       {error && (
-        <Text style={[styles.errorText, { fontSize: s12 }, errorStyle]}>
+        <Text style={[styles.errorText, { fontSize: s12 }, isDark && { color: themeColors.danger }, errorStyle]}>
           {error}
         </Text>
       )}
@@ -127,7 +131,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: COLORS.primaryFontColor,
     marginBottom: 8,
     fontFamily: 'Manrope-Medium',
   },

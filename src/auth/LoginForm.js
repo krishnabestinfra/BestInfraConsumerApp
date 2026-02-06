@@ -5,7 +5,6 @@ import {
   Pressable,
   Platform,
 } from "react-native";
-import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import Tick from "../../assets/icons/tick.svg";
 import Button from "../components/global/Button";
@@ -42,9 +41,10 @@ const LoginForm = ({
   loginError,
   setLoginError,
 }) => {
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const s14 = getScaledFontSize(14);
   const sOr = getScaledFontSize(Platform.OS === "ios" ? 14 : 12);
+  const iconFill = themeColors.textSecondary;
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -148,7 +148,7 @@ const LoginForm = ({
   };
 
   return (
-    <View style={styles.Container}>
+    <View style={[styles.Container, isDark && { backgroundColor: 'transparent' }]}>
       <View style={styles.inputBoxes}>
         <Input
           placeholder="User Name"
@@ -166,7 +166,7 @@ const LoginForm = ({
             <User 
               width={20} 
               height={20} 
-              fill={COLORS.color_text_secondary} 
+              fill={iconFill} 
               style={styles.userIcon}
             />
           }
@@ -188,9 +188,9 @@ const LoginForm = ({
             <Pressable onPress={togglePasswordVisibility} disabled={isLoading}>
               <View style={styles.eyeIconContainer}>
                 {showPassword ? (
-                  <EyeFill width={18} height={18} fill={COLORS.color_text_secondary} />
+                  <EyeFill width={18} height={18} fill={iconFill} />
                 ) : (
-                  <EyeBlank width={18} height={18} fill={COLORS.color_text_secondary} />
+                  <EyeBlank width={18} height={18} fill={iconFill} />
                 )}
               </View>
             </Pressable>
@@ -200,9 +200,9 @@ const LoginForm = ({
       </View>
 
       {loginError ? (
-        <View style={styles.errorContainer}>
+        <View style={[styles.errorContainer, isDark && { backgroundColor: themeColors.card, borderColor: themeColors.danger }]}>
           <ErrorIcon width={16} height={16} style={styles.errorIcon} />
-          <Text style={[styles.errorText, { fontSize: s14 }]}>{loginError}</Text>
+          <Text style={[styles.errorText, { fontSize: s14 }, isDark && { color: themeColors.danger }]}>{loginError}</Text>
         </View>
       ) : null}
 
@@ -212,22 +212,22 @@ const LoginForm = ({
           onPress={() => !isLoading && setChecked(!checked)}
           disabled={isLoading}
         >
-          <View style={[styles.checkbox, checked && styles.checked]}>
+          <View style={[styles.checkbox, checked && { backgroundColor: themeColors.accent, borderColor: themeColors.accent }, isDark && !checked && styles.checkboxDark]}>
             {checked && (
               <Tick 
                 size={14} 
-                fill={COLORS.surfaceColor} 
+                fill={themeColors.textOnPrimary} 
               />
             )}
           </View>
-          <Text style={[styles.rememberText, { fontSize: s14 }]}>Remember</Text>
+          <Text style={[styles.rememberText, { fontSize: s14, color: isDark ? themeColors.textPrimary : themeColors.accent }]}>Remember</Text>
         </Pressable>
         <Button
           title="Forgot Password?"
           variant="ghost"
           size="small"
           onPress={() => !isLoading && navigation.navigate("ForgotPassword")}
-          textStyle={[styles.forgotText, { fontSize: s14 }]}
+          textStyle={[styles.forgotText, { fontSize: s14, color: themeColors.accent }]}
           disabled={isLoading}
         />
       </View>
@@ -243,16 +243,16 @@ const LoginForm = ({
       />
 
       <View style={styles.orSection}>
-        <View style={styles.straightLine} />
-        <View style={styles.orContainer}>
-          <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
+        <View style={[styles.straightLine, isDark && { backgroundColor: themeColors.cardBorder }]} />
+        <View style={[styles.orContainer, isDark && { backgroundColor: themeColors.card }]}>
+          <Text style={[styles.orText, { fontSize: sOr, color: themeColors.textPrimary }]}>OR</Text>
         </View>
         <Pressable
           style={styles.otpButton}
           onPress={() => !isLoading && navigation.navigate("OTPLogin")}
           disabled={isLoading}
         >
-          <Text style={[styles.otpText, { fontSize: s14 }]}>Get OTP</Text>
+          <Text style={[styles.otpText, { fontSize: s14, color: themeColors.textPrimary }]}>Get OTP</Text>
         </Pressable>
       </View>
     </View>
@@ -300,14 +300,12 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-Medium",
   },
   rememberText: {
-    color: COLORS.secondaryColor,
     fontSize: 14,
     textAlign: "center",
     fontFamily: "Manrope-Medium",
     marginLeft: 10,
   },
   forgotText: {
-    color: COLORS.secondaryColor,
     fontSize: 14,
     textAlign: "center",
     fontFamily: "Manrope-Medium",
@@ -337,7 +335,6 @@ const styles = StyleSheet.create({
     marginTop: -18,
   },
   orText: {
-    color: COLORS.primaryFontColor,
     fontSize: Platform.OS === "ios" ? 14 : 12,
     fontFamily: "Manrope-SemiBold",
     textAlign: "center",
@@ -347,7 +344,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   otpText: {
-    color: COLORS.primaryFontColor,
     fontSize: 14,
     fontFamily: "Manrope-Medium",
   },
@@ -368,9 +364,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  checked: {
-    backgroundColor: COLORS.secondaryColor,
-    borderColor: COLORS.secondaryColor,
+  checkboxDark: {
+    borderColor: "rgba(255,255,255,0.3)",
   },
   eyeIconContainer: {
     padding: 8,

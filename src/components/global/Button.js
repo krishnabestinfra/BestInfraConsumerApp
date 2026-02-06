@@ -15,7 +15,7 @@ const Button = React.memo(({
   children,
   ...props
 }) => {
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, colors: themeColors, isDark } = useTheme();
   const s12 = getScaledFontSize(12);
   const s14 = getScaledFontSize(14);
   const s16 = getScaledFontSize(16);
@@ -25,26 +25,34 @@ const Button = React.memo(({
     switch (variant) {
       case 'primary':
         baseStyle.push(styles.primary);
+        if (isDark) baseStyle.push({ backgroundColor: themeColors.accent });
         break;
       case 'secondary':
         baseStyle.push(styles.secondary);
         break;
       case 'outline':
         baseStyle.push(styles.outline);
+        if (isDark) baseStyle.push({ backgroundColor: 'transparent', borderColor: themeColors.accent });
         break;
       case 'ghost':
         baseStyle.push(styles.ghost);
         break;
       default:
         baseStyle.push(styles.primary);
+        if (isDark) baseStyle.push({ backgroundColor: themeColors.accent });
     }
 
+    // Disabled state styling
     if (disabled) {
-      baseStyle.push(styles.disabled);
+      if (isDark && variant === 'primary') {
+        baseStyle.push({ backgroundColor: '#1F2E34', borderColor: '#1F2E34' });
+      } else {
+        baseStyle.push(styles.disabled);
+      }
     }
 
     return baseStyle;
-  }, [variant, size, disabled]);
+  }, [variant, size, disabled, isDark, themeColors.accent]);
 
   const getTextStyle = useMemo(() => {
     const fontSize = size === 'small' ? s12 : size === 'large' ? s16 : s14;
@@ -53,18 +61,22 @@ const Button = React.memo(({
     switch (variant) {
       case 'primary':
         baseTextStyle.push(styles.primaryText);
+        if (isDark) baseTextStyle.push({ color: themeColors.textOnPrimary });
         break;
       case 'secondary':
         baseTextStyle.push(styles.secondaryText);
         break;
       case 'outline':
         baseTextStyle.push(styles.outlineText);
+        if (isDark) baseTextStyle.push({ color: themeColors.accent });
         break;
       case 'ghost':
         baseTextStyle.push(styles.ghostText);
+        if (isDark) baseTextStyle.push({ color: themeColors.accent });
         break;
       default:
         baseTextStyle.push(styles.primaryText);
+        if (isDark) baseTextStyle.push({ color: themeColors.textOnPrimary });
     }
 
     if (disabled) {
@@ -72,7 +84,7 @@ const Button = React.memo(({
     }
 
     return baseTextStyle;
-  }, [variant, size, disabled, s12, s14, s16]);
+  }, [variant, size, disabled, isDark, themeColors.textOnPrimary, themeColors.accent, s12, s14, s16]);
 
   const handlePress = useCallback(() => {
     if (!disabled && !loading && onPress) {
@@ -89,7 +101,7 @@ const Button = React.memo(({
     >
       {loading ? (
         <ActivityIndicator 
-          color={variant === 'primary' ? COLORS.secondaryFontColor : COLORS.secondaryColor} 
+          color={variant === 'primary' || variant === 'secondary' ? themeColors.textOnPrimary : themeColors.accent} 
           size="small" 
         />
       ) : (
