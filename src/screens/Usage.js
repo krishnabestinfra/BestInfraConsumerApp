@@ -233,23 +233,25 @@ const Usage = ({ navigation }) => {
         <View style={styles.usageSummaryContainer}>
           {/* Header with Toggle */}
           <View style={styles.summaryHeader}>
-            <Text style={styles.summaryTitle}>Usage Summary</Text>
+            <Text style={[styles.summaryTitle, isDark && { color: '#FFFFFF' }]}>Usage Summary</Text>
             <View style={styles.textToggleContainer}>
               <Text style={styles.toggleText}>
                 <Text
                   style={[
                     styles.toggleTextItem,
-                    selectedView === "daily" && styles.toggleTextSelected
+                    selectedView === "daily" && styles.toggleTextSelected,
+                    selectedView !== "daily" && isDark && { color: 'rgba(255,255,255,0.6)' }
                   ]}
                   onPress={() => setSelectedView("daily")}
                 >
                   Daily
                 </Text>
-                <Text style={styles.toggleSeparator}> / </Text>
+                <Text style={[styles.toggleSeparator, isDark && { color: 'rgba(255,255,255,0.6)' }]}> / </Text>
                 <Text
                   style={[
                     styles.toggleTextItem,
-                    selectedView === "monthly" && styles.toggleTextSelected
+                    selectedView === "monthly" && styles.toggleTextSelected,
+                    selectedView !== "monthly" && isDark && { color: 'rgba(255,255,255,0.6)' }
                   ]}
                   onPress={() => setSelectedView("monthly")}
                 >
@@ -262,10 +264,10 @@ const Usage = ({ navigation }) => {
           {/* Professional Cards */}
           <View style={styles.professionalCardsContainer}>
             {/* Consumption Card */}
-            <View style={styles.professionalCard}>
+            <View style={[styles.professionalCard, isDark && { backgroundColor: '#1A1F2E', borderColor: 'rgba(255,255,255,0.08)' }]}>
               <View style={styles.cardContent}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.professionalCardTitle}>
+                  <Text style={[styles.professionalCardTitle, isDark && { color: '#FFFFFF' }]}>
                     {selectedView === "daily" ? "Daily Consumption" : "Monthly Consumption"}
                   </Text>
                   <LinearGradient
@@ -284,10 +286,10 @@ const Usage = ({ navigation }) => {
             </View>
 
             {/* Charges Card */}
-            <View style={styles.professionalCard}>
+            <View style={[styles.professionalCard, isDark && { backgroundColor: '#1A1F2E', borderColor: 'rgba(255,255,255,0.08)' }]}>
               <View style={styles.cardContent}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.professionalCardTitle}>
+                  <Text style={[styles.professionalCardTitle, isDark && { color: '#FFFFFF' }]}>
                     {selectedView === "daily" ? "Daily\nCharges" : "Monthly\nCharges"}
                   </Text>
                   <LinearGradient
@@ -311,6 +313,8 @@ const Usage = ({ navigation }) => {
 
         {/* Vector Diagram Section */}
         <VectorDiagram
+          containerStyle={isDark ? { backgroundColor: '#1A1F2E' } : undefined}
+          isDark={isDark}
           voltage={{
             r: consumerData?.rPhaseVoltage || 0,
             y: consumerData?.yPhaseVoltage || 0,
@@ -391,7 +395,7 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-Medium",
   },
   toggleTextItem: {
-    color: COLORS.primaryFontColor,
+    color: '#787878',
     fontSize: 12,
     fontFamily: "Manrope-Medium",
   },
@@ -399,7 +403,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryColor,
   },
   toggleSeparator: {
-    color: COLORS.primaryFontColor,
+    color: '#787878',
     fontSize: 12,
     fontFamily: "Manrope-Regular",
     marginHorizontal: 4,

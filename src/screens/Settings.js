@@ -1,8 +1,7 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, Switch, TouchableOpacity } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../context/ThemeContext";
 import Menu from "../../assets/icons/bars.svg";
 import MenuWhite from "../../assets/icons/menuBarWhite.svg";
@@ -18,39 +17,34 @@ import TermsIcon from "../../assets/icons/info.svg";
 import ChevronRight from "../../assets/icons/rightArrow.svg";
 import BackIcon from "../../assets/icons/Back.svg";
 
+const FONT_CHOICES = [
+  { value: 'default', label: 'Default' },
+  { value: 14, label: '14' },
+  { value: 15, label: '15' },
+  { value: 16, label: '16' },
+];
+
 const Settings = ({ navigation }) => {
   const appVersion = "1.0.26";
-  const { isDark: isDarkMode, colors: themeColors, setDarkMode: handleToggleDarkMode } = useTheme();
+  const {
+    isDark: isDarkMode,
+    colors: themeColors,
+    setDarkMode: handleToggleDarkMode,
+    fontSizePreference,
+    setFontSizePreference,
+    getScaledFontSize,
+  } = useTheme();
 
-  const [fontSize, setFontSize] = useState(13);
   const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
 
-  // Load saved font preference on mount
-  useEffect(() => {
-    const loadFontPreference = async () => {
-      try {
-        const storedFont = await AsyncStorage.getItem("settings:fontSize");
-        if (storedFont !== null) {
-          const parsed = parseInt(storedFont, 10);
-          if ([13, 14, 15].includes(parsed)) {
-            setFontSize(parsed);
-          }
-        }
-      } catch (e) {
-        // Silent failure
-      }
-    };
-    loadFontPreference();
-  }, []);
-
-  const handleFontSizeSelect = async (size) => {
-    setFontSize(size);
-    try {
-      await AsyncStorage.setItem("settings:fontSize", String(size));
-    } catch (e) {
-      // ignore persistence errors
-    }
+  const handleFontSizeSelect = (value) => {
+    setFontSizePreference(value);
   };
+
+  const scaledTitle = getScaledFontSize(15);
+  const scaledSubtitle = getScaledFontSize(12);
+  const scaledSection = getScaledFontSize(14);
+  const scaledChip = getScaledFontSize(12);
 
   const PreferenceItem = ({
     icon,
@@ -72,13 +66,13 @@ const Settings = ({ navigation }) => {
         </View>
         <View style={styles.textContainer}>
           <Text
-            style={styles.settingTitle}
+            style={[styles.settingTitle, { fontSize: scaledTitle }]}
           >
             {title}
           </Text>
           {subtitle && (
             <Text
-              style={styles.settingSubtitle}
+              style={[styles.settingSubtitle, { fontSize: scaledSubtitle }]}
             >
               {subtitle}
             </Text>
@@ -142,7 +136,7 @@ const Settings = ({ navigation }) => {
       >
         {/* PREFERENCES Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PREFERENCES</Text>
+          <Text style={[styles.sectionTitle, { fontSize: scaledSection }]}>PREFERENCES</Text>
 
           {/* Dark Mode toggle */}
           <PreferenceItem
@@ -179,30 +173,31 @@ const Settings = ({ navigation }) => {
                   <FontSizeIcon width={24} height={24} />
                 </View>
               </View>
-              <View style={styles.textContainer}>
+                <View style={styles.textContainer}>
                 <View style={styles.fontTitleRow}>
-                  <Text style={styles.settingTitle}>Font Size</Text>
+                  <Text style={[styles.settingTitle, { fontSize: scaledTitle }]}>Font Size</Text>
                   {isFontDropdownOpen && (
                     <View style={styles.fontSizeRow}>
-                      {[13, 14, 15].map((size) => {
-                        const isActive = size === fontSize;
+                      {FONT_CHOICES.map(({ value, label }) => {
+                        const isActive = value === fontSizePreference;
                         return (
                           <TouchableOpacity
-                            key={size}
+                            key={String(value)}
                             style={[
                               styles.fontChip,
                               isActive && styles.fontChipActive,
                             ]}
-                            onPress={() => handleFontSizeSelect(size)}
+                            onPress={() => handleFontSizeSelect(value)}
                             activeOpacity={0.85}
                           >
                             <Text
                               style={[
                                 styles.fontChipText,
+                                { fontSize: scaledChip },
                                 isActive && styles.fontChipTextActive,
                               ]}
                             >
-                              {size}
+                              {label}
                             </Text>
                           </TouchableOpacity>
                         );

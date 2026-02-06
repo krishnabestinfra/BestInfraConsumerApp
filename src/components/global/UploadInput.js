@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import { useEffect } from 'react';
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -23,6 +24,12 @@ const UploadInput = ({
   disabled = false,
   ...props
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s9 = getScaledFontSize(9);
+  const s10 = getScaledFontSize(10);
+  const s12 = getScaledFontSize(12);
+  const s14 = getScaledFontSize(14);
+  const s16 = getScaledFontSize(16);
 
 const handleUpload = async () => {
   if (disabled) return;
@@ -147,7 +154,7 @@ const handleSelectedFiles = (assets) => {
   return (
     <View style={[styles.container, style]}>
       {label && (
-        <Text style={[styles.label, labelStyle]}>
+        <Text style={[styles.label, { fontSize: s14 }, labelStyle]}>
           {label}
         </Text>
       )}
@@ -165,14 +172,14 @@ const handleSelectedFiles = (assets) => {
           </View>
           
           <View style={styles.textContainer}>
-            <Text style={getTextStyle()}>
-              {value.length > 0 
+<Text style={[getTextStyle(), { fontSize: size === 'large' ? s16 : size === 'small' ? s12 : s14 }]}>
+            {value.length > 0 
                 ? `${value.length} file${value.length > 1 ? 's' : ''} selected`
                 : placeholder
               }
             </Text>
             {value.length > 0 && (
-              <Text style={styles.fileNames}>
+              <Text style={[styles.fileNames, { fontSize: s12 }]}>
                 {value.map((file, index) => file.name || `File ${index + 1}`).join(', ')}
               </Text>
             )}
@@ -184,7 +191,7 @@ const handleSelectedFiles = (assets) => {
             activeOpacity={0.7}
             disabled={disabled}
           >
-            <Text style={styles.browseButtonText}>Browse</Text>
+            <Text style={[styles.browseButtonText, { fontSize: s16 }]}>Browse</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -195,11 +202,11 @@ const handleSelectedFiles = (assets) => {
           {value.map((file, index) => (
             <View key={index} style={styles.fileItem}>
               <View style={styles.fileInfo}>
-                <Text style={styles.fileName} numberOfLines={1}>
+                <Text style={[styles.fileName, { fontSize: s14 }]} numberOfLines={1}>
                   {file.name || `File ${index + 1}`}
                 </Text>
                 {file.size && (
-                  <Text style={styles.fileSize}>
+                  <Text style={[styles.fileSize, { fontSize: s12 }]}>
                     {(file.size / 1024).toFixed(1)} KB
                   </Text>
                 )}
@@ -210,7 +217,7 @@ const handleSelectedFiles = (assets) => {
                 disabled={disabled}
                 activeOpacity={0.7}
               >
-                <Text style={styles.removeButtonText}>×</Text>
+                <Text style={[styles.removeButtonText, { fontSize: s10 }]}>×</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -218,7 +225,7 @@ const handleSelectedFiles = (assets) => {
       )}
       
       {error && (
-        <Text style={[styles.errorText, errorStyle]}>
+        <Text style={[styles.errorText, { fontSize: s12 }, errorStyle]}>
           {error}
         </Text>
       )}

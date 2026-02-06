@@ -5,7 +5,9 @@ import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 
 const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) => {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const scaled30 = getScaledFontSize(30);
+  const scaled14 = getScaledFontSize(14);
   const webRef = useRef();
   const { width } = Dimensions.get("window");
 
@@ -86,7 +88,7 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
             axisTick: { show: false },
             axisLabel: {
               color: '${axisLabelColor}',
-              fontSize: 30
+              fontSize: ${scaled30}
             }
           },
           yAxis: {
@@ -137,7 +139,7 @@ const GroupedBarChart = ({ viewType = "daily", data = null, loading = false }) =
           marginTop: 10, 
           color: loadingColor,
           fontFamily: 'Manrope-Regular',
-          fontSize: 14
+          fontSize: scaled14
         }}>
           Loading chart data...
         </Text>

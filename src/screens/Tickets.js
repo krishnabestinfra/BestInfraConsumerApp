@@ -220,7 +220,7 @@ const Tickets = ({ navigation }) => {
         />
         <View style={[styles.contentOnTop, isDark && { backgroundColor: themeColors.screen }]}>
         <View style={styles.TicketContainer}>
-          <Text style={styles.usageText}>Tickets</Text>
+          <Text style={[styles.usageText, isDark && { color: '#FFFFFF' }]}>Tickets</Text>
           <Button
             title="Create New"
             variant="primary"
@@ -252,9 +252,9 @@ const Tickets = ({ navigation }) => {
                   <OpenIcon width={16} height={16} />
               </LinearGradient>
           </View>
-          <View style={styles.TicketBox}>
+          <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
             <View style={styles.TicketBoxTextContainer}>
-              <Text style={styles.TicketBoxtext}>In Progress</Text>
+              <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>In Progress</Text>
               <View style={{ minWidth: 20 }}> 
                 {statsLoading ? (
                   <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
@@ -292,9 +292,9 @@ const Tickets = ({ navigation }) => {
                 <ResolvedIcon width={16} height={16} />
               </LinearGradient>
           </View>
-          <View style={styles.TicketBox}>
+          <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
             <View style={styles.TicketBoxTextContainer}>
-              <Text style={styles.TicketBoxtext}>Closed</Text>
+              <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>Closed</Text>
               <View style={{ minWidth: 20 }}> 
                 {statsLoading ? (
                   <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   usageText: {
-    color: '#FFFFFF',
+    color: COLORS.primaryFontColor,
     fontFamily: "Manrope-Bold",
     fontSize: 14,
   },
@@ -620,12 +620,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     borderRadius: 5,
-    backgroundColor: '#1A1F2E',
+    backgroundColor: COLORS.secondaryFontColor,
     width: "43%",
     height: 80,
   },
   TicketBoxtext: {
-    color: '#FFFFFF',
+    color: COLORS.primaryFontColor,
     fontFamily: "Manrope-Medium",
     fontSize: 12,
   },

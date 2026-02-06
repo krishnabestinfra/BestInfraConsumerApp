@@ -8,6 +8,7 @@ import {
   Pressable,
 } from "react-native";
 import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
 import CheckmarkIcon from "../../../assets/icons/checkmark.svg";
 import Button from "./Button";
 
@@ -21,6 +22,10 @@ const TicketSuccessModal = ({
   onViewDetails,
   onReturnHome,
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s18 = getScaledFontSize(18);
+  const s15 = getScaledFontSize(15);
+  const s14 = getScaledFontSize(14);
   const displayNumber = ticketNumber
     ? (String(ticketNumber).startsWith("#") ? ticketNumber : `#${ticketNumber}`)
     : "#—";
@@ -38,11 +43,11 @@ const TicketSuccessModal = ({
           <View style={styles.iconWrap}>
             <CheckmarkIcon width={64} height={64} />
           </View>
-          <Text style={styles.title}>Ticket Submitted Successfully!</Text>
-          <Text style={styles.ticketNumber}>
+          <Text style={[styles.title, { fontSize: s18 }]}>Ticket Submitted Successfully!</Text>
+          <Text style={[styles.ticketNumber, { fontSize: s15 }]}>
             Your ticket number is {displayNumber}
           </Text>
-          <Text style={styles.subtext}>You will receive Email/SMS shortly</Text>
+          <Text style={[styles.subtext, { fontSize: s14 }]}>You will receive Email/SMS shortly</Text>
           <View style={styles.actions}>
             <Button
               title="View Ticket Details"
@@ -56,7 +61,7 @@ const TicketSuccessModal = ({
               onPress={onReturnHome}
               activeOpacity={0.7}
             >
-              <Text style={styles.returnLinkText}>Return to Home</Text>
+              <Text style={[styles.returnLinkText, { fontSize: s15 }]}>Return to Home</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

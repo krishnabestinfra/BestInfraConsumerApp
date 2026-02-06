@@ -12,6 +12,7 @@ import React, { memo, useMemo, useCallback, useEffect, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { useUltraFastData } from '../hooks/useUltraFastData';
 import { COLORS } from '../constants/colors';
+import { useTheme } from '../context/ThemeContext';
 
 const UltraFastScreen = memo(({ 
   children, 
@@ -22,6 +23,9 @@ const UltraFastScreen = memo(({
   style = {},
   onDataLoaded = null
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
+  const s12 = getScaledFontSize(12);
   const { data, isLoading, isInitialLoad, error, refresh } = useUltraFastData(dataType, {
     maxLoadingTime,
     autoRefresh: true
@@ -78,8 +82,8 @@ const UltraFastScreen = memo(({
 
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>⚠️ {error}</Text>
-        <Text style={styles.retryText} onPress={refresh}>
+        <Text style={[styles.errorText, { fontSize: s14 }]}>⚠️ {error}</Text>
+        <Text style={[styles.retryText, { fontSize: s12 }]} onPress={refresh}>
           Tap to retry
         </Text>
       </View>

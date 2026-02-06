@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import DropdownIcon from '../../../assets/icons/dropdownArrow.svg';
 
 const SelectDropdown = ({
@@ -18,6 +19,10 @@ const SelectDropdown = ({
   disabled = false,
   ...props
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
+  const s12 = getScaledFontSize(12);
+  const s16 = getScaledFontSize(16);
   const [isOpen, setIsOpen] = useState(false);
   const handleSelect = (option) => {
     onSelect(option);
@@ -55,7 +60,7 @@ const SelectDropdown = ({
   return (
     <View style={[styles.wrapper, style]}>
       {label && (
-        <Text style={[styles.label, labelStyle]}>
+        <Text style={[styles.label, { fontSize: s14 }, labelStyle]}>
           {label}
         </Text>
       )}
@@ -68,7 +73,7 @@ const SelectDropdown = ({
           disabled={disabled}
           {...props}
         >
-          <Text style={getTextStyle()}>
+          <Text style={[getTextStyle(), { fontSize: size === 'small' ? s12 : size === 'large' ? s16 : s14 }]}>
             {value || placeholder}
           </Text>
           <DropdownIcon width={16} height={16} />
@@ -88,6 +93,7 @@ const SelectDropdown = ({
               >
                 <Text style={[
                   styles.dropdownItemText,
+                  { fontSize: s14 },
                   value === option && styles.selectedItemText
                 ]}>
                   {option}
@@ -99,7 +105,7 @@ const SelectDropdown = ({
       </View>
       
       {error && (
-        <Text style={[styles.errorText, errorStyle]}>
+        <Text style={[styles.errorText, { fontSize: s12 }, errorStyle]}>
           {error}
         </Text>
       )}

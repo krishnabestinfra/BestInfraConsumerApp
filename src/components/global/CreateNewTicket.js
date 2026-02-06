@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
 import SelectDropdown from "./SelectDropdown";
 import TextArea from "./TextArea";
 import UploadInput from "./UploadInput";
@@ -19,18 +20,20 @@ const CreateNewTicket = ({
   onClose,
   title = "Create New Ticket",
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s18 = getScaledFontSize(18);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("HIGH");
+  const [priority, setPriority] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = [
-    "Technical Issue",
-    "Billing Issue",
-    "Connection Issue",
-    "Meter Issue",
+    "Technical",
+    "Billing",
+    "Connection",
+    "Meter",
     "General Inquiry",
   ];
   const priorities = ["LOW", "MEDIUM", "HIGH"];
@@ -40,7 +43,7 @@ const CreateNewTicket = ({
       subject,
       category: selectedCategory,
       description,
-      priority,
+      priority: priority || "HIGH",
       files: uploadedFiles,
     };
 
@@ -52,7 +55,7 @@ const CreateNewTicket = ({
         setSelectedCategory("");
         setSubject("");
         setDescription("");
-        setPriority("HIGH");
+        setPriority("");
         setUploadedFiles([]);
       }
     } finally {
@@ -64,7 +67,7 @@ const CreateNewTicket = ({
     setSelectedCategory("");
     setSubject("");
     setDescription("");
-    setPriority("HIGH");
+    setPriority("");
     setUploadedFiles([]);
 
     if (onClose) {
@@ -76,7 +79,7 @@ const CreateNewTicket = ({
 
     <View style={styles.NewTicketContainer}>
       <View style={styles.header}>
-        <Text style={styles.NewticketTitle}>{title}</Text>
+        <Text style={[styles.NewticketTitle, { fontSize: s18 }]}>{title}</Text>
         {onClose && (
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <CloseIcon width={16} height={16} />
@@ -88,6 +91,12 @@ const CreateNewTicket = ({
         contentContainerStyle={{ paddingBottom: 20 }}
         showsVerticalScrollIndicator={false}
       >
+        <Input
+          placeholder="Subject"
+          value={subject}
+          onChangeText={setSubject}
+        />
+
         <SelectDropdown
           placeholder="Select category"
           value={selectedCategory}
@@ -95,12 +104,6 @@ const CreateNewTicket = ({
           options={categories}
           variant="default"
           size="medium"
-        />
-
-        <Input
-          placeholder="Subject"
-          value={subject}
-          onChangeText={setSubject}
         />
 
         <SelectDropdown
@@ -119,7 +122,7 @@ const CreateNewTicket = ({
           variant="default"
           size="medium"
           numberOfLines={4}
-          maxLength={500}
+          maxLength={1000}
         />
 
         <UploadInput

@@ -423,10 +423,11 @@ const PostPaidRechargePayments = ({ navigation }) => {
             {/* Outstanding Amount */}
             <View style={[
               styles.amountCard1,
-              selectedOption === "option1" && styles.amountCardSelected1
+              selectedOption === "option1" && styles.amountCardSelected1,
+              isDark && { backgroundColor: '#1A1F2E' }
             ]}>
               <View style={styles.amountCardHeader}>
-                <Text style={styles.amountCardTitle}>Outstanding Amount</Text>
+                <Text style={[styles.amountCardTitle, isDark && { color: '#FFFFFF' }]}>Outstanding Amount</Text>
                 <View style={[
                   styles.statusDot,
                   selectedOption === "option1" && styles.statusDotSelected

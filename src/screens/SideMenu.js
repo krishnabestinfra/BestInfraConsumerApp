@@ -19,7 +19,9 @@ import { logoutUser, getUser } from "../utils/storage";
 import CrossIcon from "../../assets/icons/crossWhite.svg";
 
 const SideMenu = ({ navigation }) => {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
+  const s11 = getScaledFontSize(11);
   const { activeItem, setActiveItem } = useContext(TabContext);
   const [userData, setUserData] = useState(null);
 
@@ -117,8 +119,8 @@ const SideMenu = ({ navigation }) => {
             />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{userData?.name || "Rakesh Kumar"}</Text>
-            <Text style={styles.profileId}>ID: {userData?.identifier || "GMR-2024-001234"}</Text>
+            <Text style={[styles.profileName, { fontSize: s14 }]}>{userData?.name || "Rakesh Kumar"}</Text>
+            <Text style={[styles.profileId, { fontSize: s11 }]}>ID: {userData?.identifier || "GMR-2024-001234"}</Text>
           </View>
         </View>
       </Pressable>

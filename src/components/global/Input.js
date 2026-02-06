@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { TextInput, View, Text, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import User from '../../../assets/icons/user.svg';
 
 const Input = React.memo(({
@@ -29,6 +30,10 @@ const Input = React.memo(({
   onBlur,
   ...props
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s12 = getScaledFontSize(12);
+  const s14 = getScaledFontSize(14);
+  const s16 = getScaledFontSize(16);
   const getInputContainerStyle = useMemo(() => {
     const baseStyle = [styles.inputContainer, styles[`${variant}Container`], styles[size]];
     
@@ -74,14 +79,14 @@ const Input = React.memo(({
   return (
     <View style={[styles.container, style]}>
       {label && (
-        <Text style={[styles.label, labelStyle]}>
+        <Text style={[styles.label, { fontSize: s14 }, labelStyle]}>
           {label}
         </Text>
       )}
       
       <View style={getInputContainerStyle}>        
         <TextInput
-          style={[getInputStyle, inputStyle]}
+          style={[getInputStyle, { fontSize: size === 'small' ? s12 : size === 'large' ? s16 : s14 }, inputStyle]}
           placeholder={placeholder}
           placeholderTextColor="#6E6E6E"
           value={value}
@@ -106,7 +111,7 @@ const Input = React.memo(({
       </View>
       
       {error && (
-        <Text style={[styles.errorText, errorStyle]}>
+        <Text style={[styles.errorText, { fontSize: s12 }, errorStyle]}>
           {error}
         </Text>
       )}

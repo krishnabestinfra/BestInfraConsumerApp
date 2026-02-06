@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 const NotificationCard = ({
   title,
@@ -23,6 +24,10 @@ const NotificationCard = ({
   showTimestamp = true, // New prop to control timestamp display
   ...props
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
+  const s12 = getScaledFontSize(12);
+  const s10 = getScaledFontSize(10);
   // Format timestamp to human-readable format
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
@@ -97,7 +102,7 @@ const NotificationCard = ({
           <View style={styles.titleRow}>
             <Text style={[
               styles.title,
-              { color: variantStyles.titleColor },
+              { fontSize: s14, color: variantStyles.titleColor },
               titleStyle,
               !isRead && styles.unreadTitle
             ]}>
@@ -106,17 +111,17 @@ const NotificationCard = ({
             {/* {!isRead && <View style={styles.unreadDot} />} */}
           </View>
           {displayDescription && (
-            <Text style={[styles.description, descriptionStyle]}>
+            <Text style={[styles.description, { fontSize: s14 }, descriptionStyle]}>
               {displayDescription}
             </Text>
           )}
           {subDescription && (
-            <Text style={[styles.description, subDescriptionStyle]}>
+            <Text style={[styles.description, { fontSize: s14 }, subDescriptionStyle]}>
               {subDescription}
             </Text>
           )}
           {showTimestamp && (sentAt || formatTimestamp(sentAt)) && (
-            <Text style={[styles.timestamp, { color: variantStyles.titleColor }]}>
+            <Text style={[styles.timestamp, { fontSize: s10, color: variantStyles.titleColor }]}>
               {formatTimestamp(sentAt)}
             </Text>
           )}

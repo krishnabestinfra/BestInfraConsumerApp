@@ -6,8 +6,9 @@
  */
 
 import React, { memo, useMemo, useCallback } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { useData } from '../context/DataContext';
+import { useTheme } from '../context/ThemeContext';
 import { useNavigationContext } from '../context/NavigationContext';
 import { COLORS } from '../constants/colors';
 
@@ -18,6 +19,8 @@ const OptimizedScreen = memo(({
   loaderText = 'Loading...',
   style = {}
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
   const { getDataLoading, isDataLoaded } = useData();
   const { isNavigating } = useNavigationContext();
 
@@ -30,7 +33,7 @@ const OptimizedScreen = memo(({
         <View style={[styles.loaderContainer, style]}>
           <ActivityIndicator size="large" color={COLORS.secondaryColor} />
           {loaderText && (
-            <Text style={styles.loaderText}>{loaderText}</Text>
+            <Text style={[styles.loaderText, { fontSize: s14 }]}>{loaderText}</Text>
           )}
         </View>
       );

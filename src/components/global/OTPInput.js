@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 
 const OTPInput = ({
   length = 6,
@@ -25,6 +26,9 @@ const OTPInput = ({
   labelStyle,
   ...props
 }) => {
+  const { getScaledFontSize } = useTheme();
+  const s16 = getScaledFontSize(16);
+  const s12 = getScaledFontSize(12);
   const [otp, setOtp] = useState(value.split('').slice(0, length));
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const inputRefs = useRef([]);
@@ -165,7 +169,7 @@ const OTPInput = ({
   return (
     <View style={[styles.container, style]}>
       {label && (
-        <Text style={[styles.label, labelStyle]}>
+        <Text style={[styles.label, { fontSize: s16 }, labelStyle]}>
           {label}
         </Text>
       )}
@@ -179,7 +183,7 @@ const OTPInput = ({
           >
             <TextInput
               ref={(ref) => (inputRefs.current[index] = ref)}
-              style={[getInputStyle(index), inputStyle]}
+              style={[getInputStyle(index), { fontSize: s16 }, inputStyle]}
               value={otp[index] || ''}
               onChangeText={(text) => handleTextChange(text, index)}
               onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
@@ -199,7 +203,7 @@ const OTPInput = ({
       </View>
       
       {error && (
-        <Text style={[styles.errorText, errorStyle]}>
+        <Text style={[styles.errorText, { fontSize: s12 }, errorStyle]}>
           {error}
         </Text>
       )}

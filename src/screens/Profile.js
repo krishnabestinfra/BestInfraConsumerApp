@@ -26,7 +26,9 @@ import { useApp } from "../context/AppContext";
 import { useNotifications } from "../context/NotificationsContext";
 
 const Profile = ({ navigation, route }) => {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
+  const s12 = getScaledFontSize(12);
   // Get consumer data from context
   let consumerData = null;
   let user = null;
@@ -152,24 +154,24 @@ const Profile = ({ navigation, route }) => {
         {isLoading && displayNotifications.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.secondaryFontColor} />
-            <Text style={styles.loadingText}>Loading notifications...</Text>
+            <Text style={[styles.loadingText, { fontSize: s14 }]}>Loading notifications...</Text>
           </View>
         ) : error && displayNotifications.length === 0 ? (
           <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>
+            <Text style={[styles.errorText, { fontSize: s14 }]}>
               {error.includes('Failed to fetch') ? 
                 `Unable to load notifications for ${consumerUid}` : 
                 error
               }
             </Text>
             <Pressable style={styles.retryButton} onPress={refreshNotifications}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={[styles.retryButtonText, { fontSize: s14 }]}>Retry</Text>
             </Pressable>
           </View>
         ) : displayNotifications.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No notifications available</Text>
-            <Text style={styles.emptySubText}>for {consumerUid}</Text>
+            <Text style={[styles.emptyText, { fontSize: s14 }]}>No notifications available</Text>
+            <Text style={[styles.emptySubText, { fontSize: s12 }]}>for {consumerUid}</Text>
           </View>
         ) : (
           displayNotifications.map((notification) => (

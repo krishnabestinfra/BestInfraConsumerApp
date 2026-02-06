@@ -12,10 +12,14 @@ import {
   Dimensions, 
 } from "react-native";
 import { COLORS } from "../constants/colors";
+import { useTheme } from "../context/ThemeContext";
 import Input from "./global/Input";
 import Send from "../../assets/icons/sendMessage.svg";
 
 const TicketChatBox = () => {
+  const { getScaledFontSize } = useTheme();
+  const s14 = getScaledFontSize(14);
+  const s9 = getScaledFontSize(9);
   const messages = [
     {
       type: "receiver",
@@ -83,20 +87,22 @@ const TicketChatBox = () => {
                     }
                   >
                     <Text
-                      style={
+                      style={[
                         msg.type === "receiver"
                           ? styles.receviersChatText
-                          : styles.senderChatText
-                      }
+                          : styles.senderChatText,
+                        { fontSize: s14 },
+                      ]}
                     >
                       {msg.text}
                     </Text>
                     <Text
-                      style={
+                      style={[
                         msg.type === "receiver"
                           ? styles.receviersChatTime
-                          : styles.senderChatTime
-                      }
+                          : styles.senderChatTime,
+                        { fontSize: s9 },
+                      ]}
                     >
                       {msg.time}
                     </Text>

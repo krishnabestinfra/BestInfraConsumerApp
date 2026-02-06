@@ -48,17 +48,30 @@ const darkColors = {
   meterCardBg: '#1C3D6E',
 };
 
+const FONT_SIZE_STORAGE_KEY = 'settings:fontSize';
+const DEFAULT_BODY_SIZE = 14;
+const FONT_OPTIONS = ['default', 14, 15, 16];
+
 const ThemeContext = createContext(null);
 
 export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkModeState] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [fontSizePreference, setFontSizePreferenceState] = useState('default');
 
   useEffect(() => {
     const load = async () => {
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        setIsDarkModeState(stored === 'true');
+        const [storedTheme, storedFont] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY),
+          AsyncStorage.getItem(FONT_SIZE_STORAGE_KEY),
+        ]);
+        setIsDarkModeState(storedTheme === 'true');
+        if (storedFont !== null) {
+          if (storedFont === 'default' || ['14', '15', '16'].includes(storedFont)) {
+            setFontSizePreferenceState(storedFont === 'default' ? 'default' : parseInt(storedFont, 10));
+          }
+        }
       } catch (e) {
         // ignore
       } finally {
@@ -77,12 +90,32 @@ export const ThemeProvider = ({ children }) => {
     }
   }, []);
 
+  const setFontSizePreference = useCallback(async (value) => {
+    const next = value === 'default' || value === 14 || value === 15 || value === 16 ? value : 'default';
+    setFontSizePreferenceState(next);
+    try {
+      await AsyncStorage.setItem(FONT_SIZE_STORAGE_KEY, String(next));
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const getScaledFontSize = useCallback((baseSize) => {
+    if (fontSizePreference === 'default') return baseSize;
+    const scale = fontSizePreference / DEFAULT_BODY_SIZE;
+    return Math.round(baseSize * scale);
+  }, [fontSizePreference]);
+
   const theme = useMemo(() => ({
     isDark: isDarkMode,
     isLoaded,
     colors: isDarkMode ? darkColors : lightColors,
     setDarkMode,
-  }), [isDarkMode, isLoaded, setDarkMode]);
+    fontSizePreference,
+    setFontSizePreference,
+    getScaledFontSize,
+    fontOptions: FONT_OPTIONS,
+  }), [isDarkMode, isLoaded, setDarkMode, fontSizePreference, setFontSizePreference, getScaledFontSize]);
 
   return (
     <ThemeContext.Provider value={theme}>

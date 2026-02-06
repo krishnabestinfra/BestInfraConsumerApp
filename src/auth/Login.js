@@ -28,7 +28,9 @@ import MobileLogin from "./MobileLogin";
 const screenHeight = Dimensions.get("window").height;
 
 const Login = ({ navigation }) => {
-  const { isDark, colors: themeColors } = useTheme();
+  const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const s24 = getScaledFontSize(24);
+  const s14 = getScaledFontSize(14);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [checked, setChecked] = useState(false);
@@ -336,11 +338,11 @@ const Login = ({ navigation }) => {
             </View>
 
             <View style={styles.TextContainer}>
-              <Text style={styles.welcomeText}>Welcome</Text>
-              <Text style={styles.bestinfraText}>to Best Infra</Text>
+              <Text style={[styles.welcomeText, { fontSize: s24 }]}>Welcome</Text>
+              <Text style={[styles.bestinfraText, { fontSize: s24 }]}>to Best Infra</Text>
             </View>
             <View style={styles.TextContainer}>
-              <Text style={styles.LoginText}>
+              <Text style={[styles.LoginText, { fontSize: s14 }]}>
               Access your smart meter data, monitor energy usage, and manage everything seamlessly — all within one secure platform.
               </Text>
             </View>

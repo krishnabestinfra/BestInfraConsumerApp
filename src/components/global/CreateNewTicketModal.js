@@ -9,6 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
 import CloseIcon from "../../../assets/icons/cross.svg";
 import SelectDropdown from './SelectDropdown';
 import TextArea from './TextArea';
@@ -18,6 +19,9 @@ import Input from "../global/Input";
 const { width, height } = Dimensions.get("window");
 
 const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
+  const { getScaledFontSize } = useTheme();
+  const s18 = getScaledFontSize(18);
+  const s14 = getScaledFontSize(14);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [description, setDescription] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -81,7 +85,7 @@ const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
               <CloseIcon width={12} height={12} fill="#55B56C" />
             </TouchableOpacity>
 
-            <Text style={styles.modalTitle}>Create New Ticket</Text>
+            <Text style={[styles.modalTitle, { fontSize: s18 }]}>Create New Ticket</Text>
             
             <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
               {/* Category Selection */}
