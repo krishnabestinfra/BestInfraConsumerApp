@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   serialColumn: {
-    width: 45,
+    width: 46,
     flex: 0,
     alignItems: "center",
     justifyContent: "center",
