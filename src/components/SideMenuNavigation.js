@@ -68,7 +68,7 @@ const SideMenuNavigation = ({ navigation }) => {
       } else if (currentRoute === "PostPaidRechargePayments" || currentRoute === "Payments") {
         setActiveItem("Payments");
       } else if (currentRoute === "Invoices") {
-        setActiveItem("Reports");
+        setActiveItem("Dashboard");
       } else if (currentRoute === "Tickets") {
         setActiveItem("Tickets");
       } else if (currentRoute === "Settings") {

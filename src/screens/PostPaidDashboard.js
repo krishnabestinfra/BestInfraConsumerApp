@@ -114,6 +114,13 @@ const StatusBlinkingDot = ({ status }) => {
 const VIEW_OPTIONS = ["Chart", "Table"];
 const TIME_PERIODS = ["7D", "30D", "90D", "1Y"];
 
+const USAGE_CARD_LABELS = {
+  "7D": { title: "This Week's Usage:", comparisonLabel: "vs. Last Week." },
+  "30D": { title: "This Month's Usage:", comparisonLabel: "vs. Last Month." },
+  "90D": { title: "This Quarter's Usage:", comparisonLabel: "vs. Last Quarter." },
+  "1Y": { title: "This Year's Usage:", comparisonLabel: "vs. Last Year." },
+};
+
 const PostPaidDashboard = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
   const [selectedView] = useState("daily"); // Always daily; date is chosen via Pick a Date
@@ -121,6 +128,8 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [displayMode, setDisplayMode] = useState("chart"); // "chart" or "table"
   const [showViewDropdown, setShowViewDropdown] = useState(false);
+  const [dropdownButtonLayout, setDropdownButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const viewDropdownRef = useRef(null);
   const [timePeriod, setTimePeriod] = useState("30D");
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
@@ -439,6 +448,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
     const monthlyData = consumerData.chartData.monthly.seriesData[0].data;
     return monthlyData[monthlyData.length - 1] || 0; // Get last value
   };
+
+  const getUsageForTimePeriod = () => (timePeriod === "7D" ? getDailyUsage() : getMonthlyUsage());
+  const getTrendPercentageForTimePeriod = () => (timePeriod === "7D" ? getDailyTrendPercentage() : getMonthlyTrendPercentage());
 
   // Transform chart data into table format
   const getConsumptionTableData = useCallback(() => {
@@ -911,27 +923,29 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     <Text style={[styles.meterConsumerText, darkOverlay.meterConsumerText]}>
                       {consumerData?.name || consumerData?.consumerName || "Loading..."}
                     </Text>
-                    <Text style={[styles.LastCommunicationText, darkOverlay.LastCommunicationText]}>
-                      Last Communication
-                    </Text>
                   </View>
+                </View>
+                <View style={styles.lastCommunicationLabelWrap}>
+                  <Text style={[styles.LastCommunicationText, darkOverlay.LastCommunicationText]}>
+                    Last Communication
+                  </Text>
                 </View>
               </View>
 
               <View style={styles.rightContainer}>
-                <View style={[styles.tapIndicator, darkOverlay.tapIndicator]}>
+                <View style={[styles.tapIndicator, darkOverlay.tapIndicator, styles.rightBlockEnd]}>
                   <Text style={[styles.tapIndicatorText, darkOverlay.tapIndicatorText]}>Tap for details</Text>
                 </View>
-                <View>
-                <View style={styles.lastCommunicationLeft}>
+                <View style={[styles.lastCommunicationLeft, styles.rightBlockEnd]}>
                   <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
                   <Text style={[styles.meterNumberText, darkOverlay.meterNumberText]}>
                     {consumerData?.meterSerialNumber || "Loading..."}
                   </Text>
                 </View>
-                <Text style={[styles.lastCommunicationTimeText, darkOverlay.lastCommunicationTimeText]}>
-                {formatReadingDate(consumerData?.readingDate)}
-              </Text>
+                <View style={styles.rightBlockEnd}>
+                  <Text style={[styles.lastCommunicationTimeText, darkOverlay.lastCommunicationTimeText]}>
+                    {formatReadingDate(consumerData?.readingDate)}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -964,60 +978,49 @@ const PostPaidDashboard = ({ navigation, route }) => {
             <View style={[styles.graphsContainer, darkOverlay.graphsContainer]}>
               <View style={styles.usageSummaryRow}>
                 <View style={styles.usageSummaryLeft}>
-                  {selectedView === "daily" ? (
-                    <>
-                      <Text style={[styles.thismonthText, darkOverlay.thismonthText]}>Today's Usage:</Text>
-                      <View style={styles.usageValueRow}>
-                        <Text style={[styles.kwhText, darkOverlay.kwhText]}>
-                          {isLoading ? "Loading..." : getDailyUsage()} kWh
-                        </Text>
-                        <View style={[
-                          styles.tenPercentageTextContainer,
-                          getDailyTrendPercentage() < 0 && styles.negativeTrendContainer
-                        ]}>
-                          <Text style={styles.percentText}>
-                            {isLoading ? "..." : `${Math.abs(getDailyTrendPercentage())}%`}
+                  {(() => {
+                    const labels = USAGE_CARD_LABELS[timePeriod] || USAGE_CARD_LABELS["30D"];
+                    const trendPct = getTrendPercentageForTimePeriod();
+                    return (
+                      <>
+                        <Text style={[styles.thismonthText, darkOverlay.thismonthText]}>{labels.title}</Text>
+                        <View style={styles.usageValueRow}>
+                          <Text style={[styles.kwhText, darkOverlay.kwhText]}>
+                            {isLoading ? "Loading..." : getUsageForTimePeriod()} kWh
                           </Text>
-                          <Arrow 
-                            width={12} 
-                            height={12} 
-                            fill={getDailyTrendPercentage() >= 0 ? themeColors.accent : "#FF6B6B"} 
-                            style={getDailyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
-                          />
+                          <View style={[
+                            styles.tenPercentageTextContainer,
+                            trendPct < 0 && styles.negativeTrendContainer
+                          ]}>
+                            <Text style={styles.percentText}>
+                              {isLoading ? "..." : `${Math.abs(trendPct)}%`}
+                            </Text>
+                            <Arrow 
+                              width={12} 
+                              height={12} 
+                              fill={trendPct >= 0 ? themeColors.accent : "#FF6B6B"} 
+                              style={trendPct < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
+                            />
+                          </View>
+                          <Text style={[styles.lastText, darkOverlay.lastText]}>{labels.comparisonLabel}</Text>
                         </View>
-                        <Text style={[styles.lastText, darkOverlay.lastText]}>vs. Yesterday.</Text>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={[styles.thismonthText, darkOverlay.thismonthText]}>This Month's Usage:</Text>
-                      <View style={styles.usageValueRow}>
-                        <Text style={[styles.kwhText, darkOverlay.kwhText]}>
-                          {isLoading ? "Loading..." : getMonthlyUsage()} kWh
-                        </Text>
-                        <View style={[
-                          styles.tenPercentageTextContainer,
-                          getMonthlyTrendPercentage() < 0 && styles.negativeTrendContainer
-                        ]}>
-                          <Text style={styles.percentText}>
-                            {isLoading ? "..." : `${Math.abs(getMonthlyTrendPercentage())}%`}
-                          </Text>
-                          <Arrow 
-                            width={12} 
-                            height={12} 
-                            fill={getMonthlyTrendPercentage() >= 0 ? themeColors.accent : "#FF6B6B"} 
-                            style={getMonthlyTrendPercentage() < 0 ? { transform: [{ rotate: '180deg' }] } : {}}
-                          />
-                        </View>
-                        <Text style={[styles.lastText, darkOverlay.lastText]}>vs. Last Month.</Text>
-                      </View>
-                    </>
-                  )}
+                      </>
+                    );
+                  })()}
                 </View>
-                <View style={styles.viewDropdownWrapper}>
+                <View style={styles.viewDropdownWrapper} ref={viewDropdownRef} collapsable={false}>
                   <TouchableOpacity
                     style={[styles.viewDropdownButton, darkOverlay.viewDropdownButton]}
-                    onPress={() => setShowViewDropdown(!showViewDropdown)}
+                    onPress={() => {
+                      if (showViewDropdown) {
+                        setShowViewDropdown(false);
+                      } else {
+                        viewDropdownRef.current?.measureInWindow((x, y, width, height) => {
+                          setDropdownButtonLayout({ x, y, width, height });
+                          setShowViewDropdown(true);
+                        });
+                      }
+                    }}
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.viewDropdownButtonText, darkOverlay.viewDropdownButtonText]}>
@@ -1037,7 +1040,16 @@ const PostPaidDashboard = ({ navigation, route }) => {
                         onPress={() => setShowViewDropdown(false)}
                       >
                         <Pressable
-                          style={[styles.viewDropdownContent, darkOverlay.viewDropdownContent]}
+                          style={[
+                            styles.viewDropdownContent,
+                            darkOverlay.viewDropdownContent,
+                            {
+                              position: "absolute",
+                              top: dropdownButtonLayout.y + dropdownButtonLayout.height + 4,
+                              left: dropdownButtonLayout.x,
+                              minWidth: dropdownButtonLayout.width,
+                            },
+                          ]}
                           onPress={() => {}}
                         >
                           {VIEW_OPTIONS.map((option) => (
@@ -1305,7 +1317,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
-    elevation: 2,
   },
   graphSection: {
     padding: 16,
@@ -1456,10 +1467,6 @@ const styles = StyleSheet.create({
   viewDropdownOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "flex-start",
-    alignItems: "flex-end",
-    paddingTop: 120,
-    paddingRight: 24,
   },
   viewDropdownContent: {
     backgroundColor: COLORS.secondaryFontColor,
@@ -1623,8 +1630,8 @@ const styles = StyleSheet.create({
   },
   avoidText: {
     color: COLORS.secondaryFontColor,
-    fontSize: 10,
-    fontFamily: "Manrope-Regular",
+    fontSize: 12,
+    fontFamily: "Manrope-Medium",
     marginBottom: 10,
   },
   paynowbox: {
@@ -1655,14 +1662,13 @@ const styles = StyleSheet.create({
     paddingRight: 13,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "stretch",
     minHeight: 90,
   },
 
-
   leftContainer: {
     flexDirection: "column",
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
     flex: 1,
     marginRight: 10,
   },
@@ -1671,9 +1677,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     gap: 10,
   },
-  meterConsumerRow: {    flexDirection: "column",
+  meterConsumerRow: {
+    flexDirection: "column",
     justifyContent: "flex-start",
     gap: 13,
+  },
+  lastCommunicationLabelWrap: {
+    marginLeft: 40,
   },
   LastCommunicationRow:{    flexDirection: "column",
     justifyContent: "flex-end",
@@ -1698,10 +1708,10 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "space-between",
     flex: 1,
-    // paddingVertical: 22
-    // backgroundColor: "red",
-    height: 60,
-    justifyContent: "space-between",
+    gap: 4,
+  },
+  rightBlockEnd: {
+    alignSelf: "flex-end",
   },
 
   tapIndicator: {
@@ -1913,10 +1923,9 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
     fontFamily: "Manrope-Medium",
   },
-  // Usage Statistics Styles
   usageStatsContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingVertical: 11,
     gap: 16,
   },
   usageStatsTopRow: {
@@ -2028,7 +2037,7 @@ const styles = StyleSheet.create({
   },
   savingsMessage: {
     fontSize: 11,
-    fontFamily: "Manrope-Regular",
+    fontFamily: "Manrope-Medium",
     color: "#6B9E78",
     marginTop: 4,
     textAlign: "center",

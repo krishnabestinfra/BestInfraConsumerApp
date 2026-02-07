@@ -73,8 +73,11 @@ const BottomNavigation = ({ navigation }) => {
     if (routeName === 'PostPaidRechargePayments' || routeName === 'Payments') {
       return 'payments';
     }
-    if (routeName === 'Invoices' || routeName === 'Reports') {
+    if (routeName === 'Invoices') {
       return 'invoices';
+    }
+    if (routeName === 'Reports') {
+      return null; 
     }
     if (routeName === 'Tickets' || routeName === 'TicketDetails' || routeName === 'ChatSupport') {
       return 'tickets';
@@ -83,11 +86,10 @@ const BottomNavigation = ({ navigation }) => {
       return 'usage';
     }
     
-    // Other pages - no active state
     return null;
   }, [route.name]);
 
-  // Handle navigation press - memoized for performance
+
   const handleNavigationPress = useCallback((item) => {
     if (item.route && navigation) {
 
@@ -166,7 +168,6 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
     paddingTop: 8,
     paddingBottom: 0,
-    elevation: 1,
   },
   graySpacer: {
     height: Platform.OS === 'ios' ? 40 : 40,
@@ -184,7 +185,6 @@ const styles = StyleSheet.create({
   iconBox: {
     backgroundColor: COLORS.secondaryFontColor,
     borderRadius: 35,
-    elevation: 1,
     width: 45,
     height: 45,
     alignItems: 'center',
@@ -194,7 +194,6 @@ const styles = StyleSheet.create({
   iconBoxActive: {
     backgroundColor: COLORS.secondaryColor,
     borderRadius: 35,
-    elevation: 1,
     width: 45,
     height: 45,
     alignItems: 'center',
