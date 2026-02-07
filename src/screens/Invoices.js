@@ -24,6 +24,7 @@ import Logo from "../components/global/Logo";
 import AnimatedRings from "../components/global/AnimatedRings";
 import { StatusBar } from "expo-status-bar";
 import FilterIcon from "../../assets/icons/filter.svg";
+import NoInvoiceIcon from "../../assets/icons/NoInvoice.svg";
 
 const INVOICE_FILTERS = [
   { key: "all", label: "All" },
@@ -31,9 +32,15 @@ const INVOICE_FILTERS = [
   { key: "unpaid", label: "Unpaid" },
 ];
 
-// Shimmer effect component for skeleton loading
-const Shimmer = ({ style }) => {
+// Shimmer colors for light/dark theme (aligned with loadingManager)
+const SHIMMER_LIGHT = { base: "#e0e0e0", gradient: ["#e0e0e0", "#f5f5f5", "#e0e0e0"] };
+const SHIMMER_DARK = { base: "#3a3a3c", gradient: ["#3a3a3c", "rgba(255,255,255,0.06)", "#3a3a3c"] };
+
+// Shimmer effect component for skeleton loading (theme-aware via baseColor/gradientColors)
+const Shimmer = ({ style, baseColor, gradientColors }) => {
   const shimmerAnim = useRef(new Animated.Value(-1)).current;
+  const base = baseColor ?? SHIMMER_LIGHT.base;
+  const gradient = gradientColors ?? SHIMMER_LIGHT.gradient;
 
   useEffect(() => {
     shimmerAnim.setValue(-1);
@@ -52,7 +59,7 @@ const Shimmer = ({ style }) => {
   });
 
   return (
-    <View style={[style, { overflow: "hidden", backgroundColor: "#e0e0e0" }]}>
+    <View style={[style, { overflow: "hidden", backgroundColor: base }]}>
       <Animated.View
         style={[
           StyleSheet.absoluteFill,
@@ -60,7 +67,7 @@ const Shimmer = ({ style }) => {
         ]}
       >
         <LinearGradient
-          colors={["#e0e0e0", "#f5f5f5", "#e0e0e0"]}
+          colors={gradient}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={{ flex: 1 }}
@@ -70,38 +77,42 @@ const Shimmer = ({ style }) => {
   );
 };
 
-// Skeleton Invoice Card Component
-const SkeletonInvoiceCard = () => {
+// Skeleton Invoice Card Component (theme-aware for dark mode)
+const SkeletonInvoiceCard = ({ isDark, themeColors }) => {
+  const shimmer = isDark ? SHIMMER_DARK : SHIMMER_LIGHT;
+  const cardBg = isDark ? (themeColors?.card ?? "#2C2C2E") : undefined;
+  const detailsBg = isDark ? "rgba(255,255,255,0.06)" : undefined;
+
   return (
-    <View style={styles.invoiceCard}>
+    <View style={[styles.invoiceCard, cardBg && { backgroundColor: cardBg }]}>
       {/* Header skeleton */}
       <View style={styles.cardHeader}>
-        <Shimmer style={[styles.skeletonBox, { width: 120, height: 16 }]} />
-        <Shimmer style={[styles.skeletonBox, { width: 60, height: 24, borderRadius: 12 }]} />
+        <Shimmer style={[styles.skeletonBox, { width: 120, height: 16 }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+        <Shimmer style={[styles.skeletonBox, { width: 60, height: 24, borderRadius: 12 }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
       </View>
 
       {/* Dates skeleton */}
       <View style={styles.datesContainer}>
-        <Shimmer style={[styles.skeletonBox, { width: 100, height: 14 }]} />
-        <Shimmer style={[styles.skeletonBox, { width: 100, height: 14 }]} />
+        <Shimmer style={[styles.skeletonBox, { width: 100, height: 14 }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+        <Shimmer style={[styles.skeletonBox, { width: 100, height: 14 }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
       </View>
 
       {/* Details section skeleton */}
-      <View style={styles.detailsSection}>
+      <View style={[styles.detailsSection, detailsBg && { backgroundColor: detailsBg }]}>
         <View style={styles.detailItem}>
-          <Shimmer style={[styles.skeletonBox, { width: 80, height: 12, marginBottom: 4 }]} />
-          <Shimmer style={[styles.skeletonBox, { width: 60, height: 16 }]} />
+          <Shimmer style={[styles.skeletonBox, { width: 80, height: 12, marginBottom: 4 }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+          <Shimmer style={[styles.skeletonBox, { width: 60, height: 16 }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
         </View>
         <View style={styles.detailItem}>
-          <Shimmer style={[styles.skeletonBox, { width: 80, height: 12, marginBottom: 4 }]} />
-          <Shimmer style={[styles.skeletonBox, { width: 80, height: 16 }]} />
+          <Shimmer style={[styles.skeletonBox, { width: 80, height: 12, marginBottom: 4 }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+          <Shimmer style={[styles.skeletonBox, { width: 80, height: 16 }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
         </View>
       </View>
 
       {/* Action buttons skeleton */}
       <View style={styles.actionButtons}>
-        <Shimmer style={[styles.skeletonBox, { flex: 1, height: 44, borderRadius: 5 }]} />
-        <Shimmer style={[styles.skeletonBox, { flex: 1, height: 44, borderRadius: 5 }]} />
+        <Shimmer style={[styles.skeletonBox, { flex: 1, height: 44, borderRadius: 5 }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+        <Shimmer style={[styles.skeletonBox, { flex: 1, height: 44, borderRadius: 5 }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
       </View>
     </View>
   );
@@ -666,7 +677,10 @@ const Invoices = ({ navigation }) => {
 
       <ScrollView
         style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          !isLoading && filteredInvoiceCards.length === 0 && { flexGrow: 1 },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -679,9 +693,18 @@ const Invoices = ({ navigation }) => {
       >
         {/* Page Title with Filter */}
         <View style={styles.pageHeader}>
-          <Text style={styles.pageTitle}>My Invoices</Text>
-          <Pressable style={styles.filterButton} onPress={handleFilterPress}>  
-            <FilterIcon width={24} height={24} />
+          <Text style={[
+            styles.pageTitle,
+            isDark && { color: themeColors.textPrimary ?? "#FFFFFF" },
+          ]}>
+            My Invoices
+          </Text>
+          <Pressable style={styles.filterButton} onPress={handleFilterPress}>
+            <FilterIcon
+              width={24}
+              height={24}
+              fill={isDark ? "#FFFFFF" : "#151515"}
+            />
           </Pressable>
         </View>
 
@@ -689,7 +712,7 @@ const Invoices = ({ navigation }) => {
         {isLoading ? (
           <View style={styles.cardsContainer}>
             {[1, 2, 3].map((index) => (
-              <SkeletonInvoiceCard key={index} />
+              <SkeletonInvoiceCard key={index} isDark={isDark} themeColors={themeColors} />
             ))}
           </View>
         ) : filteredInvoiceCards.length > 0 ? (
@@ -697,8 +720,33 @@ const Invoices = ({ navigation }) => {
             {filteredInvoiceCards.map(renderInvoiceCard)}
           </View>
         ) : (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No invoices available</Text>
+          <View style={[
+            styles.emptyContainer,
+            { flex: 1 },
+            isDark && { backgroundColor: "#1C1E26" },
+          ]}>
+            <View style={[
+              styles.emptyIconCircle,
+              isDark && { backgroundColor: themeColors?.card ?? "#2C2C2E" },
+            ]}>
+              <NoInvoiceIcon
+                width={28}
+                height={28}
+                fill={isDark ? themeColors?.textSecondary ?? "#9CA3AF" : "#BABECC"}
+              />
+            </View>
+            <Text style={[
+              styles.emptyTitle,
+              isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
+            ]}>
+              No Invoices Yet
+            </Text>
+            <Text style={[
+              styles.emptySubtitle,
+              isDark && { color: themeColors?.textSecondary ?? "#9CA3AF" },
+            ]}>
+              Your invoices will appear here once they are generated. Check back soon!
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -785,8 +833,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingTop: 75,
-    paddingBottom: 20,
-    paddingHorizontal: 30,
+    paddingBottom: 70,
+    paddingHorizontal: 16,
   },
   headerButton: {
     backgroundColor: COLORS.secondaryFontColor,
@@ -810,7 +858,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 30,
+    paddingHorizontal: 16,
     paddingBottom: 130,
   },
   pageHeader: {
@@ -933,13 +981,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyContainer: {
-    paddingVertical: 40,
+    paddingVertical: 48,
+    paddingHorizontal: 24,
     alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
   },
-  emptyText: {
+  emptyIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+    elevation: 2,
+    zIndex: 2,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: "Manrope-Bold",
+    color: COLORS.primaryFontColor,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  emptySubtitle: {
     fontSize: 14,
     fontFamily: "Manrope-Regular",
-    color: "#9CA3AF",
+    color: "#6B7280",
+    textAlign: "center",
+    paddingHorizontal: 16,
+    lineHeight: 20,
   },
   cardsContainer: {
     gap: 16,

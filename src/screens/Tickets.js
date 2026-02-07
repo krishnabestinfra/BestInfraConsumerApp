@@ -231,9 +231,9 @@ const Tickets = ({ navigation }) => {
         </View>
 
         <View style={styles.TicketContainerTwo}>
-          <View style={styles.TicketBox}>
+          <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
             <View style={styles.TicketBoxTextContainer}>
-              <Text style={styles.TicketBoxtext}>Open Tickets</Text>
+              <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>Open Tickets</Text>
 
               <View style={{ minWidth: 20 }}> 
                 {statsLoading ? (
@@ -272,9 +272,9 @@ const Tickets = ({ navigation }) => {
                 <ProgressIcon width={16} height={16} />
               </LinearGradient>
           </View>
-          <View style={styles.TicketBox}>
+          <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
             <View style={styles.TicketBoxTextContainer}>
-              <Text style={styles.TicketBoxtext}>Resolved</Text>
+              <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>Resolved</Text>
               <View style={{ minWidth: 20 }}> 
                 {statsLoading ? (
                   <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />

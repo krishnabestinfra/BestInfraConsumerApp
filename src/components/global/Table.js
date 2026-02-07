@@ -205,7 +205,6 @@ const Table = ({
         })}
       </View>
 
-      {/* Body: SkeletonLoader when loading, else data rows */}
       {loading ? (
         <SkeletonLoader
           variant="table"
