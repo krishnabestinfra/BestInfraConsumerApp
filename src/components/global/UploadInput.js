@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import UploadClipIcon from '../../../assets/icons/uploadClip.svg';
+import CloseIcon from '../../../assets/icons/cross.svg';
 
 const UploadInput = ({
   label,
@@ -217,7 +218,7 @@ const handleSelectedFiles = (assets) => {
                 disabled={disabled}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.removeButtonText, { fontSize: s10 }]}>×</Text>
+                <CloseIcon width={14} height={14} fill={COLORS.primaryFontColor} />
               </TouchableOpacity>
             </View>
           ))}
@@ -353,17 +354,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope-Regular',
   },
   removeButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#ff4444',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F0F0F0',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  removeButtonText: {
-    color: COLORS.secondaryFontColor,
-    fontSize: 12,
-    fontFamily: 'Manrope-Bold',
   },
   // Disabled styles
   disabledContainer: {

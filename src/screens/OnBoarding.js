@@ -183,7 +183,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-evenly",
   },
   loginBox: {
-    padding: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     width: "80%",
     borderRadius: 4,
   },

@@ -29,6 +29,12 @@ const CreateNewTicket = ({
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isFormComplete =
+    subject.trim() !== "" &&
+    selectedCategory !== "" &&
+    priority !== "" &&
+    description.trim() !== "";
+
   const categories = [
     "Technical",
     "Billing",
@@ -36,7 +42,7 @@ const CreateNewTicket = ({
     "Meter",
     "General Inquiry",
   ];
-  const priorities = ["LOW", "MEDIUM", "HIGH"];
+  const priorities = ["Low", "Medium", "High"];
 
   const handleSubmit = async () => {
     const ticketData = {
@@ -137,12 +143,12 @@ const CreateNewTicket = ({
 
         <View style={styles.buttonRow}>
           <Button
-            variant={isSubmitting ? "primary" : "outline"}
+            variant={isSubmitting || isFormComplete ? "primary" : "outline"}
             title="Submit"
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={isSubmitting}
-            style={[styles.button, !isSubmitting && styles.submitButton]}
+            style={[styles.button, !isFormComplete && !isSubmitting && styles.submitButton]}
           />
         </View>
       </ScrollView>
@@ -191,7 +197,7 @@ const styles = StyleSheet.create({
   },
   NewticketTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontFamily: "Manrope-Bold",
     color: COLORS.primaryFontColor,
     paddingHorizontal: 20,
     paddingVertical: 10,

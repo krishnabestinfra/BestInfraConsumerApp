@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     justifyContent: "center",
     zIndex: 9,
-    marginTop: -18,
+    marginTop: -20,
   },
   straightLine: {
     width: "40%",
