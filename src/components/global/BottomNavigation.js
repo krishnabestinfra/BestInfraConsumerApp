@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
-import HomeIcon from '../../../assets/icons/Home.svg';
+import HomeIcon from '../../../assets/icons/HomeIcon.svg';
 import ActiveHomeIcon from '../../../assets/icons/activeHome.svg';
 import RechargeIcon from '../../../assets/icons/recharge.svg';
 import InvoicesIcon from '../../../assets/icons/invoices.svg';
@@ -66,7 +66,7 @@ const BottomNavigation = ({ navigation }) => {
   const getActiveKey = useCallback(() => {
     const routeName = route.name;
     
-    // Direct route matches
+
     if (routeName === 'PostPaidDashboard' || routeName === 'Dashboard') {
       return 'home';
     }
