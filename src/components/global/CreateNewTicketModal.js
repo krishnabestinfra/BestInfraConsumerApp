@@ -26,6 +26,11 @@ const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
   const [description, setDescription] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [subject, setSubject] = useState('');
+  const isFormComplete =
+    subject.trim() !== '' &&
+    selectedCategory !== '' &&
+    description.trim() !== '';
+
   const categories = [
     'Technical Issue',
     'Billing Issue', 
@@ -134,9 +139,9 @@ const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
                 style={styles.cancelButton}
               />
               <Button
+                variant={isFormComplete ? "primary" : "outline"}
                 title="Submit"
-                // onPress={handleSubmit}
-                onPress={() => navigation.navigate('TicketDetails')}
+                onPress={handleSubmit}
                 style={styles.submitButton}
               />
             </View>
@@ -194,7 +199,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontFamily: "Manrope-Bold",
     color: COLORS.primaryFontColor,
     textAlign: 'center',
     marginTop: 20,

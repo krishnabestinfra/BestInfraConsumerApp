@@ -9,6 +9,7 @@ import Menu from '../../../assets/icons/bars.svg';
 import MenuWhite from '../../../assets/icons/menuBarWhite.svg';
 import Notification from '../../../assets/icons/notification.svg';
 import NotificationWhite from '../../../assets/icons/NotificationWhite.svg';
+import BackIcon from '../../../assets/icons/Back.svg';
 import { getUser, getConsumerDisplayName, cleanupStoredUserData } from '../../utils/storage';
 import { getCachedConsumerData, backgroundSyncConsumerData } from '../../utils/cacheManager';
 import { cacheManager } from '../../utils/cacheManager';
@@ -23,7 +24,9 @@ const DashboardHeader = React.memo(({
   variant = 'default', // 'default', 'payments', 'tickets', 'usage', 'invoices'
   showBalance = true, // Control balance section visibility
   consumerData = null, // API consumer data
-  isLoading = false // Loading state
+  isLoading = false, // Loading state
+  rightIcon = 'notification', // 'notification' | 'back' - back icon for Terms/Privacy screens
+  showProfileSection = true, // Hide greeting/balance for legal pages
 }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
   const [userName, setUserName] = useState('');
@@ -150,12 +153,16 @@ const DashboardHeader = React.memo(({
         
         <Pressable
           style={styles.bellWrapper}
-          onPress={() => navigation.navigate('Profile')}
+          onPress={() => rightIcon === 'back' ? navigation.goBack() : navigation.navigate('Profile')}
         >
           <View style={[styles.bellIcon, iconWrapperBg && { backgroundColor: iconWrapperBg }]}>
-          <NotificationIcon width={18} height={18} fill={isDark ? undefined : iconFill} />
+            {rightIcon === 'back' ? (
+              <BackIcon width={20} height={20} fill={isDark ? undefined : iconFill} />
+            ) : (
+              <NotificationIcon width={18} height={18} fill={isDark ? undefined : iconFill} />
+            )}
           </View>
-          {unreadCount > 0 && (
+          {rightIcon !== 'back' && unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={[styles.badgeText, { fontSize: scaledBadge }]}>{unreadCount}</Text>
             </View>
@@ -163,6 +170,7 @@ const DashboardHeader = React.memo(({
         </Pressable>
       </View>
       
+      {showProfileSection && (
       <View style={styles.ProfileBox}>
         <View>
           <View style={styles.greetingContainer}>
@@ -189,6 +197,7 @@ const DashboardHeader = React.memo(({
         )}
 
       </View>
+      )}
     </View>
   );
 });

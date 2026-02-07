@@ -405,7 +405,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
-    elevation: 2,
   },
   bluecontainer: {
     backgroundColor: "#eef8f0",

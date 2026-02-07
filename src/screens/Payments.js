@@ -85,10 +85,10 @@ const Payments = React.memo(({ navigation }) => {
   }, []);
 
   return (
-    <>
+    <View style={[styles.root, isDark && { backgroundColor: themeColors.screen }]}>
       <ScrollView
         style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
         showsVerticalScrollIndicator={false}
       >
 
@@ -134,10 +134,10 @@ const Payments = React.memo(({ navigation }) => {
         </View>
 
       </ScrollView>
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, isDark && { backgroundColor: themeColors.screen }]}>
         <Button title="Proceed to Recharge" variant="primary" size="medium" onPress={() => navigation.navigate("PostPaidRechargePayments")} />
       </View>
-    </>
+    </View>
   );
 });
 
@@ -146,7 +146,11 @@ Payments.displayName = 'Payments';
 export default Payments;
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   Container: {
+    flex: 1,
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
     borderBottomRightRadius: 30,
@@ -331,14 +335,14 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 24,
     left: 0,
     right: 0,
     paddingHorizontal: 20,
     paddingBottom: 40,
     paddingTop: 20,
     backgroundColor: COLORS.secondaryFontColor,
-
+    zIndex: 10,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },

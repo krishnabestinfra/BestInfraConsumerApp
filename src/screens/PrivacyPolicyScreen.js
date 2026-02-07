@@ -1,13 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { COLORS } from '../constants/colors';
+import { COLORS, colors } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
-import Menu from '../../assets/icons/bars.svg';
-import BackIcon from '../../assets/icons/Back.svg';
-import Logo from '../components/global/Logo';
+import DashboardHeader from '../components/global/DashboardHeader';
 
 const LAST_UPDATED = 'January 1, 2024';
+
+const BG_LIGHT_GREEN = '#F2F8F2';
 
 const SECTIONS = [
   {
@@ -18,13 +18,7 @@ const SECTIONS = [
   {
     id: '02',
     title: 'How We Use Your Information',
-    body: 'We use the information we collect to',
-    bullets: [
-      'Provide, maintain, and improve our services',
-      'Process transactions and send related information',
-      'Send technical notices, updates, security alerts, and support messages',
-      'Respond to your comments, questions, and customer service requests',
-    ],
+    body: 'We use the information we collect to provide, maintain, and improve our services; process transactions and send related information; send technical notices, updates, security alerts, and support messages; and respond to your comments, questions, and customer service requests.',
   },
   {
     id: '03',
@@ -34,13 +28,7 @@ const SECTIONS = [
   {
     id: '04',
     title: 'Your Rights',
-    body: 'You have the right to',
-    bullets: [
-      'Access your personal information',
-      'Correct inaccurate personal information',
-      'Request deletion of your personal information',
-      'Object to our processing of your personal information',
-    ],
+    body: 'You have the right to access your personal information, correct inaccurate personal information, request deletion of your personal information, and object to our processing of your personal information.',
   },
   {
     id: '05',
@@ -54,26 +42,14 @@ const SECTIONS = [
   },
 ];
 
-function SectionItem({ id, title, body, bullets, scaled }) {
+function SectionItem({ id, title, body, scaled }) {
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionBadge}>
-          <Text style={[styles.sectionBadgeText, scaled && { fontSize: scaled.badge }]}>{id}</Text>
-        </View>
-        <Text style={[styles.sectionTitle, scaled && { fontSize: scaled.title }]}>{title}</Text>
+      <View style={styles.slnoBadge}>
+        <Text style={[styles.slnoText, scaled && { fontSize: scaled.badge }]}>{id}</Text>
       </View>
-      <View style={styles.sectionContent}>
-        {body ? <Text style={[styles.sectionBody, scaled && { fontSize: scaled.body }]}>{body}</Text> : null}
-        {bullets?.length
-          ? bullets.map((item, index) => (
-              <View key={index} style={styles.bulletRow}>
-                <Text style={[styles.bullet, scaled && { fontSize: scaled.body }]}>•</Text>
-                <Text style={[styles.bulletText, scaled && { fontSize: scaled.body }]}>{item}</Text>
-              </View>
-            ))
-          : null}
-      </View>
+      <Text style={[styles.sectionTitle, scaled && { fontSize: scaled.title }]}>{title}</Text>
+      <Text style={[styles.sectionBody, scaled && { fontSize: scaled.body }]}>{body}</Text>
     </View>
   );
 }
@@ -88,44 +64,33 @@ export default function PrivacyPolicyScreen({ navigation }) {
   const scaled = { badge: s12, title: s16, body: s14 };
   return (
     <View style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Pressable
-            style={styles.headerButton}
-            onPress={() => navigation.navigate('SideMenu')}
-            android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: false, radius: 27 }}
-          >
-            <Menu width={18} height={18} fill={COLORS.brandBlueColor} />
-          </Pressable>
+        <DashboardHeader
+          navigation={navigation}
+          rightIcon="back"
+          showProfileSection={false}
+          showRings={false}
+        />
+        <View style={styles.card}>
+          <Text style={[styles.pageTitle, { fontSize: s24 }]}>Privacy Policy</Text>
+          <Text style={[styles.lastUpdated, { fontSize: s13 }]}>Last updated: {LAST_UPDATED}</Text>
 
-          <Pressable onPress={() => navigation.navigate('PostPaidDashboard')}>
-            <Logo variant="white" size="medium" />
-          </Pressable>
-
-          <Pressable style={styles.headerButton} onPress={() => navigation.goBack()}>
-            <BackIcon width={20} height={20} fill={COLORS.brandBlueColor} />
-          </Pressable>
+          {SECTIONS.map((section) => (
+            <SectionItem
+              key={section.id}
+              id={section.id}
+              title={section.title}
+              body={section.body}
+              scaled={scaled}
+            />
+          ))}
         </View>
-
-        <Text style={[styles.pageTitle, { fontSize: s24 }]}>Privacy Policy</Text>
-        <Text style={[styles.lastUpdated, { fontSize: s13 }]}>Last updated: {LAST_UPDATED}</Text>
-
-        {SECTIONS.map((section) => (
-          <SectionItem
-            key={section.id}
-            id={section.id}
-            title={section.title}
-            body={section.body}
-            bullets={section.bullets}
-            scaled={scaled}
-          />
-        ))}
       </ScrollView>
     </View>
   );
@@ -134,102 +99,61 @@ export default function PrivacyPolicyScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.brandBlueColor,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 75,
-    paddingBottom: 20,
-    paddingHorizontal: 30,
-  },
-  headerButton: {
-    backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    backgroundColor: BG_LIGHT_GREEN,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
+    paddingTop: 0,
     paddingBottom: 48,
   },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 5,
+    padding: 24,
+    marginTop: 16,
+  },
   pageTitle: {
-    fontSize: 24,
+    fontSize: 16,
     fontFamily: 'Manrope-Bold',
-    color: '#FFFFFF',
+    color: colors.color_text_primary,
     marginBottom: 6,
   },
   lastUpdated: {
     fontSize: 13,
     fontFamily: 'Manrope-Regular',
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginBottom: 28,
+    color: colors.color_text_secondary,
+    marginBottom: 24,
   },
   section: {
     marginBottom: 24,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionBadge: {
+  slnoBadge: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.secondaryColor,
+    backgroundColor: '#B9E0BE',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginBottom: 8,
   },
-  sectionBadgeText: {
+  slnoText: {
     fontSize: 12,
     fontFamily: 'Manrope-SemiBold',
-    color: '#FFFFFF',
+    color: '#5BB56C',
   },
   sectionTitle: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: 'Manrope-SemiBold',
-    color: '#FFFFFF',
-  },
-  sectionContent: {
-    paddingLeft: 44,
+    fontSize: 14,
+    fontFamily: 'Manrope-Bold',
+    color: colors.color_text_primary,
+    marginBottom: 8,
   },
   sectionBody: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Manrope-Regular',
-    color: 'rgba(255, 255, 255, 0.75)',
-    lineHeight: 22,
-    marginBottom: 4,
-  },
-  bulletRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: 4,
-  },
-  bullet: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.75)',
-    marginRight: 8,
-    lineHeight: 22,
-  },
-  bulletText: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: 'Manrope-Regular',
-    color: 'rgba(255, 255, 255, 0.75)',
+    color: colors.color_text_secondary,
     lineHeight: 22,
   },
 });

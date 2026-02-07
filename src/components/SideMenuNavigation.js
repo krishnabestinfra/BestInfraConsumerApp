@@ -68,7 +68,7 @@ const SideMenuNavigation = ({ navigation }) => {
       } else if (currentRoute === "PostPaidRechargePayments" || currentRoute === "Payments") {
         setActiveItem("Payments");
       } else if (currentRoute === "Invoices") {
-        setActiveItem("Reports");
+        setActiveItem("Dashboard");
       } else if (currentRoute === "Tickets") {
         setActiveItem("Tickets");
       } else if (currentRoute === "Settings") {
@@ -108,7 +108,7 @@ const SideMenuNavigation = ({ navigation }) => {
     setShowLogoutConfirm(false);
   };
 
-  // Sync thumb position when alerts modal opens
+
   useEffect(() => {
     if (showAlertsModal) sliderThumbAnim.setValue(usageThreshold);
   }, [showAlertsModal]);
@@ -320,7 +320,7 @@ const SideMenuNavigation = ({ navigation }) => {
                     },
                   ]}
                 />
-                {/* Slider on top: transparent track and thumb, only for touch */}
+
                 <Slider
                   style={styles.slider}
                   minimumValue={0}
@@ -378,7 +378,7 @@ const SideMenuNavigation = ({ navigation }) => {
                 />
               </View>
 
-              {/* Bill Amount Alerts */}
+              {/* Bill Amount Alerts - commented out
               <View style={styles.toggleRow}>
                 <View style={styles.toggleInfo}>
                   <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }]}>Bill Amount Alerts</Text>
@@ -392,6 +392,7 @@ const SideMenuNavigation = ({ navigation }) => {
                   ios_backgroundColor="#D1D5DB"
                 />
               </View>
+              */}
 
               {/* Tamper Alerts */}
               <View style={styles.toggleRow}>

@@ -315,19 +315,9 @@ const ProfileScreenMain = ({ navigation }) => {
 
           {/* Editable Fields */}
           <View style={styles.fieldsContainer}>
-            {/* Full Name */}
+            {/* Full Name - not editable */}
             <View style={styles.fieldWrapper}>
-              {isEditing ? (
-                <TextInput
-                  style={styles.input}
-                  value={editData.name}
-                  onChangeText={(text) => setEditData(prev => ({ ...prev, name: text }))}
-                  placeholder="Full Name"
-                  placeholderTextColor="#9CA3AF"
-                />
-              ) : (
-                <Text style={styles.fieldValue}>{userData.name || "Full Name"}</Text>
-              )}
+              <Text style={styles.fieldValue}>{userData.name || "Full Name"}</Text>
             </View>
 
             {/* Mobile Number */}
