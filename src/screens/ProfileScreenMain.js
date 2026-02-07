@@ -171,29 +171,60 @@ const ProfileScreenMain = ({ navigation }) => {
     }
   };
 
-  const handleChangePhoto = async () => {
+  const pickImageFromLibrary = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
       if (!permissionResult.granted) {
         Alert.alert("Permission Required", "Please allow access to your photo library to change profile picture.");
         return;
       }
-
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
       });
-
       if (!result.canceled && result.assets[0]) {
         setProfileImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      console.error('Error picking image from library:', error);
       Alert.alert("Error", "Failed to pick image. Please try again.");
     }
+  };
+
+  const pickImageFromCamera = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert("Permission Required", "Please allow access to the camera to take a profile picture.");
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        setProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert("Error", "Failed to take photo. Please try again.");
+    }
+  };
+
+  const handleChangePhoto = () => {
+    Alert.alert(
+      "Change Profile Photo",
+      "Choose an option",
+      [
+        { text: "Take Photo", onPress: pickImageFromCamera },
+        { text: "Choose from Gallery", onPress: pickImageFromLibrary },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
   };
 
   if (isLoading) {

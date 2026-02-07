@@ -215,7 +215,7 @@ const Table = ({
       ) : data.length === 0 ? (
         <View style={emptyContainerStyle}>
           <View style={emptyIconWrapperStyle}>
-            <NoDataIcon width={28} height={28} fill={isDark ? themeColors.textSecondary : undefined} />
+            <NoDataIcon width={28} height={28} color={isDark ? themeColors.textSecondary : '#BABECC'} />
           </View>
           <Text style={emptyTitleStyle}>
             {emptyMessage || "No Data Available"}
