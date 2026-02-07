@@ -58,8 +58,9 @@ const OnBoarding = ({ navigation }) => {
 const handleButtonPress = () => {
   const next = activeIndex + 1;
   if (next < 3) {
+    // Scroll first, let the scroll handler update the index when animation completes
+    // This prevents race conditions between button press and scroll events
     scrollRef.current?.scrollTo({ x: next * width, animated: true });
-    setActiveIndex(next);
   } else {
     navigation.navigate("Login"); // Navigate only when next index exceeds last slide
   }
@@ -108,7 +109,7 @@ const handleButtonPress = () => {
           <Button 
            title="Login" 
            variant="secondary"
-            size="small" 
+            size="medium" 
             style={styles.loginBox} 
             onPress={()=>navigation.navigate('Login')}
           />
