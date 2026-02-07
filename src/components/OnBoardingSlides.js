@@ -21,7 +21,13 @@ const OnBoardingSlides = ({ scrollRef, onIndexChange}) => {
   const [activeIndex, setActiveIndex] = useState(0); // State for the active slide index
 
   const currentIndex = useRef(0);
+  const isScrolling = useRef(false);
   const slides = [0, 1, 2]; // Just placeholders for the static views
+
+  // Sync ref with initial state
+  useEffect(() => {
+    currentIndex.current = activeIndex;
+  }, []);
 
   const animatedValues = useRef(slides.map(() => new Animated.Value(10))).current;
   // useEffect(() => {
@@ -74,12 +80,21 @@ const OnBoardingSlides = ({ scrollRef, onIndexChange}) => {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        scrollEnabled={true} // disables manual swipe
-        onScroll={(event) => {
+        scrollEnabled={true}
+        scrollEventThrottle={16}
+        onScrollBeginDrag={() => {
+          isScrolling.current = true;
+        }}
+        onMomentumScrollEnd={(event) => {
+          isScrolling.current = false;
           const contentOffsetX = event.nativeEvent.contentOffset.x;
-          const index = Math.round(contentOffsetX / width); // Use Math.round to handle fractional values
-          setActiveIndex(index); // Update the active index based on scroll position
-          onIndexChange?.(index);
+          const index = Math.round(contentOffsetX / width);
+          // Only update if index actually changed and is valid
+          if (index !== currentIndex.current && index >= 0 && index < slides.length) {
+            currentIndex.current = index;
+            setActiveIndex(index);
+            onIndexChange?.(index);
+          }
         }}
       >
         {/* Slide 1 */}

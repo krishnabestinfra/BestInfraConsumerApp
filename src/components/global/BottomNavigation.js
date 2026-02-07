@@ -162,8 +162,8 @@ const styles = StyleSheet.create({
   },
   container: {
     backgroundColor: COLORS.secondaryFontColor,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopWidth: 0.2,
+    borderTopColor: '#eee',
     paddingTop: 8,
     paddingBottom: 0,
     elevation: 1,
