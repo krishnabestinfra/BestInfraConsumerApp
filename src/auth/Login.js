@@ -393,7 +393,7 @@ const Login = ({ navigation }) => {
             /> */}
 
             </View>
-          </KeyboardAvoidingView>x  
+          </KeyboardAvoidingView>  
         </View>
       </View>
     </SafeAreaView>
