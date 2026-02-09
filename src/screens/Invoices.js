@@ -15,6 +15,7 @@ import BottomNavigation from "../components/global/BottomNavigation";
 import { handleViewBill } from "../services/InvoicePDFService";
 import { authService } from "../services/authService";
 import { apiClient } from "../services/apiClient";
+import { isDemoUser, getDemoConsumerCore, DEMO_INVOICES } from "../constants/demoData";
 import Menu from "../../assets/icons/bars.svg";
 import MenuWhite from "../../assets/icons/menuBarWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
@@ -387,7 +388,7 @@ const Invoices = ({ navigation }) => {
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [pendingStatusFilter, setPendingStatusFilter] = useState("all");
 
-  // Fetch invoices and consumer data
+  // Fetch invoices and consumer data (or demo data if using demo credentials)
   const fetchInvoices = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -399,6 +400,20 @@ const Invoices = ({ navigation }) => {
       }
 
       const identifier = user.identifier;
+
+      // DEMO MODE: use local demo invoices and consumer data
+      if (isDemoUser(identifier)) {
+        const core = getDemoConsumerCore(identifier);
+        setConsumerData(core);
+
+        const cards = transformInvoicesToCards(DEMO_INVOICES);
+        setInvoiceCards(cards);
+        setFilteredInvoiceCards(cards);
+
+        console.log("📄 Using demo invoices for:", identifier);
+        setIsLoading(false);
+        return;
+      }
 
       // Try to get cached consumer data first for instant UI population
       const cachedResult = await getCachedConsumerData(identifier);

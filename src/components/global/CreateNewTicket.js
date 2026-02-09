@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 10,
-    marginBottom: 10,
+    // marginBottom: 10,
   },
 
   closeButton: {
@@ -221,7 +221,6 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 20,
     gap: 12,
   },
   button: {

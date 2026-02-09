@@ -30,6 +30,7 @@ import { useTheme } from "../context/ThemeContext";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 import { apiClient } from '../services/apiClient';
+import { isDemoUser, getDemoDashboardConsumerData } from "../constants/demoData";
 import SwitchIcon from "../../assets/icons/switch.svg";
 import DropdownIcon from "../../assets/icons/dropDown.svg";
 import CalendarIcon from "../../assets/icons/CalendarBlue.svg";
@@ -143,7 +144,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
 
-  // Fetch API data
+  // Fetch API data (or demo data if using demo credentials)
   const fetchConsumerData = useCallback(async () => {
     try {
       setLoading(true);
@@ -153,6 +154,15 @@ const PostPaidDashboard = ({ navigation, route }) => {
 
       if (!user || !user.identifier) {
         console.error("No authenticated user found");
+        setLoading(false);
+        return;
+      }
+
+      // DEMO MODE: if logged in with demo credentials, use local demo data
+      if (isDemoUser(user.identifier)) {
+        const demoData = getDemoDashboardConsumerData(user.identifier);
+        setConsumerData(demoData);
+        console.log("📊 Using demo dashboard data for:", user.identifier);
         setLoading(false);
         return;
       }
