@@ -27,15 +27,18 @@ const OTP_RESEND_SECONDS = 30;
 
 const OTPLogin = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
-  const s22 = getScaledFontSize(22);
+  const s24 = getScaledFontSize(24);
   const s14 = getScaledFontSize(14);
+  const s12 = getScaledFontSize(12);
   const sOr = getScaledFontSize(Platform.OS === "ios" ? 14 : 12);
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
   const [remember, setRemember] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
+  const [otpSent, setOtpSent] = useState(false);
 
   useEffect(() => {
     if (resendSeconds <= 0) return;
@@ -43,17 +46,46 @@ const OTPLogin = ({ navigation }) => {
     return () => clearInterval(timer);
   }, [resendSeconds]);
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailChange = (text) => {
+    setEmail(text);
+    if (emailError) setEmailError("");
+    // Reset OTP sent state if email changes after OTP was sent
+    if (otpSent) {
+      setOtpSent(false);
+      setOtp("");
+      setResendSeconds(0);
+    }
+  };
+
   const handleGenerateOTP = () => {
+    // Validate email first
+    if (!email.trim()) {
+      setEmailError("Please enter your email address");
+      return;
+    }
+    
+    if (!validateEmail(email.trim())) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    setEmailError("");
     setOtpError("");
     setOtp("");
     setIsLoading(true);
     // Simulate API call to send OTP
     setTimeout(() => {
       setIsLoading(false);
+      setOtpSent(true);
       setResendSeconds(OTP_RESEND_SECONDS);
       Alert.alert(
         "OTP Sent",
-        "A 6-digit code has been sent to your registered mobile number."
+        `A 6-digit code has been sent to ${email.trim()}`
       );
     }, 800);
   };
@@ -114,12 +146,10 @@ const OTPLogin = ({ navigation }) => {
           </View>
 
           <View style={styles.textBlock}>
-            <Text style={[styles.welcomeTitle, { fontSize: s22 }]}>
-              Welcome to Best Infra for GMR Customers
-            </Text>
+            <Text style={[styles.title, { fontSize: s24 }]}>OTP Login</Text>
             <Text style={[styles.subtitle, { fontSize: s14 }]}>
-              Access your smart meter data, monitor energy usage, and manage
-              everything seamlessly - all within one secure platform.
+              Enter your registered email address, and we&apos;ll send you a
+              6-digit verification code to complete your login.
             </Text>
           </View>
 
@@ -127,26 +157,31 @@ const OTPLogin = ({ navigation }) => {
             <Input
               label={null}
               placeholder="Email"
-              value={phone}
-              onChangeText={setPhone}
+              value={email}
+              onChangeText={handleEmailChange}
               keyboardType="email-address"
               variant="default"
               size="medium"
               rightIcon={<User width={18} height={18} fill={COLORS.primaryFontColor} />}
               style={styles.phoneInput}
+              error={emailError}
+              autoFocus={!otpSent}
+              editable={!isLoading && !otpSent}
             />
 
-            <View style={styles.otpInputContainer}>
-              <OTPInput
-                length={6}
-                value={otp}
-                onChange={handleOTPChange}
-                onComplete={handleOTPComplete}
-                error={otpError}
-                disabled={isLoading}
-                style={styles.otpInputWrapper}
-              />
-            </View>
+            {otpSent && (
+              <View style={styles.otpInputContainer}>
+                <OTPInput
+                  length={6}
+                  value={otp}
+                  onChange={handleOTPChange}
+                  onComplete={handleOTPComplete}
+                  error={otpError}
+                  disabled={isLoading}
+                  style={styles.otpInputWrapper}
+                />
+              </View>
+            )}
 
             <View style={styles.rememberRow}>
               <Pressable
@@ -170,32 +205,46 @@ const OTPLogin = ({ navigation }) => {
               style={styles.generateButton}
               onPress={handleGenerateOTP}
               loading={isLoading}
-              disabled={isLoading}
+              disabled={isLoading || !email.trim() || !validateEmail(email.trim())}
             />
 
-            <View style={styles.orSection}>
-              <View style={styles.straightLine} />
-              <View style={styles.orContainer}>
-                <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
-              </View>
-            </View>
-
-            <Pressable
-              style={styles.resendRow}
-              onPress={() => canResend && handleGenerateOTP()}
-              disabled={!canResend}
-            >
-              <Text style={[styles.resendText, { fontSize: s14 }]}>Did not receive the code? </Text>
-              <Text
-                style={[
-                  styles.timerText,
-                  { fontSize: s14 },
-                  canResend && styles.timerTextLink,
-                ]}
+            {otpSent && resendSeconds > 0 && (
+              <Pressable
+                style={styles.resendRow}
+                onPress={() => canResend && handleGenerateOTP()}
+                disabled={!canResend}
               >
-                ({formatTimer(resendSeconds)})
-              </Text>
-            </Pressable>
+                <Text style={[styles.resendText, { fontSize: s14 }]}>Did not receive the code? </Text>
+                <Text
+                  style={[
+                    styles.timerText,
+                    { fontSize: s14 },
+                    canResend && styles.timerTextLink,
+                  ]}
+                >
+                  Resend in {formatTimer(resendSeconds)}
+                </Text>
+              </Pressable>
+            )}
+
+            {otpSent && resendSeconds === 0 && (
+              <Pressable
+                style={styles.resendRow}
+                onPress={() => handleGenerateOTP()}
+                disabled={isLoading}
+              >
+                <Text style={[styles.resendText, { fontSize: s14 }]}>Did not receive the code? </Text>
+                <Text
+                  style={[
+                    styles.timerText,
+                    { fontSize: s14 },
+                    styles.timerTextLink,
+                  ]}
+                >
+                  Resend OTP
+                </Text>
+              </Pressable>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -248,13 +297,12 @@ const styles = StyleSheet.create({
   },
   textBlock: {
     alignItems: "center",
-    marginTop: 32,
+    marginTop: 18,
   },
-  welcomeTitle: {
+  title: {
     color: COLORS.primaryFontColor,
-    fontSize: 22,
+    fontSize: 24,
     fontFamily: "Manrope-Bold",
-    textAlign: "center",
   },
   subtitle: {
     marginTop: 12,
@@ -267,9 +315,19 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   phoneInput: {
+    marginBottom: 8,
+  },
+  helperText: {
+    color: COLORS.primaryFontColor,
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    marginTop: -8,
     marginBottom: 16,
+    paddingLeft: 4,
+    opacity: 0.7,
   },
   otpInputContainer: {
+    marginTop: 8,
     marginBottom: 16,
     width: "100%",
   },
@@ -308,7 +366,7 @@ const styles = StyleSheet.create({
   },
   orSection: {
     marginTop: 24,
-    paddingVertical: 50,
+    // paddingVertical: 50,
   },
   straightLine: {
     width: "40%",
@@ -337,7 +395,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 16,
   },
   resendText: {
     color: COLORS.primaryFontColor,

@@ -34,17 +34,48 @@ const ForgotPassword = ({ navigation }) => {
   const s13 = getScaledFontSize(13);
   const sOr = getScaledFontSize(Platform.OS === "ios" ? 14 : 12);
   const [identifier, setIdentifier] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [sending, setSending] = useState(false);
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailChange = (text) => {
+    setIdentifier(text);
+    // Real-time validation: clear error if valid, show error if invalid (only after user has typed something)
+    if (text.trim()) {
+      if (validateEmail(text.trim())) {
+        setEmailError("");
+      } else {
+        // Only show error if user has typed something that looks like an attempt at email
+        if (text.includes("@") || text.length > 3) {
+          setEmailError("Please enter a valid email address");
+        } else {
+          setEmailError("");
+        }
+      }
+    } else {
+      setEmailError("");
+    }
+  };
 
   const handleForgotPassword = async () => {
     const trimmedEmail = identifier.trim();
+    
+    // Validate email
     if (!trimmedEmail) {
-      Alert.alert(
-        "Error",
-        "Please enter your registered email address or phone number."
-      );
+      setEmailError("Please enter your email address");
       return;
     }
+    
+    if (!validateEmail(trimmedEmail)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    setEmailError("");
 
     const url = API_ENDPOINTS.auth.forgotPassword();
     const body = { email: trimmedEmail };
@@ -125,7 +156,7 @@ const ForgotPassword = ({ navigation }) => {
           <View style={styles.textBlock}>
             <Text style={[styles.title, { fontSize: s24 }]}>Forgot Password?</Text>
             <Text style={[styles.subtitle, { fontSize: s14 }]}>
-              No worries! Enter your registered email address or phone number,
+              No worries! Enter your registered email address,
               and we&apos;ll send you a verification code to reset your
               password.
             </Text>
@@ -136,12 +167,14 @@ const ForgotPassword = ({ navigation }) => {
               label={null}
               placeholder="Email Address"
               value={identifier}
-              onChangeText={setIdentifier}
+              onChangeText={handleEmailChange}
               autoCapitalize="none"
               keyboardType="email-address"
               variant="default"
               size="medium"
               rightIcon={<UserIcon width={18} height={18} />}
+              error={emailError}
+              editable={!sending}
             />
 
             <Button
@@ -151,7 +184,7 @@ const ForgotPassword = ({ navigation }) => {
               size="large"
               style={styles.submitButton}
               loading={sending}
-              disabled={sending}
+              disabled={sending || !identifier.trim() || !validateEmail(identifier.trim())}
             />
 
             <View style={styles.rememberRow}>
@@ -265,8 +298,8 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-Medium",
   },
   orSection: {
-    marginTop: 90,
-    paddingVertical: 60,
+    // marginTop: 90,
+    // paddingVertical: 60,
   },
   straightLine: {
     width: "40%",

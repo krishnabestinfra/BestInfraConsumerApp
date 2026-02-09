@@ -58,7 +58,8 @@ const LoginForm = ({
   useEffect(() => {
     const hasIdentifier = email && email.trim().length > 0;
     const hasPassword = password && password.trim().length > 0;
-    setHasAnyInput(hasIdentifier || hasPassword);
+    // Button should only activate when BOTH UID and password are entered
+    setHasAnyInput(hasIdentifier && hasPassword);
   }, [email, password]);
 
   const handleInputChange = (field, value) => {
@@ -151,7 +152,7 @@ const LoginForm = ({
     <View style={[styles.Container, isDark && { backgroundColor: 'transparent' }]}>
       <View style={styles.inputBoxes}>
         <Input
-          placeholder="User Name"
+          placeholder="UID"
           value={email}
           onChangeText={(value) => handleInputChange('identifier', value)}
           onBlur={() => handleBlur('identifier')}
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
   },
   orSection: {
     marginTop: 24,
-    paddingVertical: 50,
+    // paddingVertical: 50,
   },
   straightLine: {
     width: "40%",
