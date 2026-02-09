@@ -439,10 +439,17 @@ const PostPaidRechargePayments = ({ navigation }) => {
                   value={selectedOption === "option1" ? (isLoading ? "Loading..." : outstandingAmount) : ""}
                   editable={false}
                   style={styles.amountInput}
+                  containerStyle={[
+                    styles.amountInput,
+                    isDark && {
+                      backgroundColor: "#1F2E34",
+                    },
+                  ]}
                   onChangeText={handleCustomAmountChange}
                   inputStyle={[
                     styles.amountInputText,
-                    isOverdue && styles.amountInputOverdue
+                    isOverdue && styles.amountInputOverdue,
+                    isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
                   ]}
                 />
               </View>

@@ -22,38 +22,42 @@ const TextArea = ({
   onBlur,
   ...props
 }) => {
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const s14 = getScaledFontSize(14);
   const s12 = getScaledFontSize(12);
   const s16 = getScaledFontSize(16);
   const getInputContainerStyle = () => {
     const baseStyle = [styles.inputContainer, styles[`${variant}Container`], styles[size]];
-    
+    if (isDark) {
+      baseStyle.push({
+        backgroundColor: "#2C3A3F",
+        borderColor: "#2C3A3F",
+      });
+    }
     if (error) {
       baseStyle.push(styles.errorContainer);
     }
-
     if (!editable) {
       baseStyle.push(styles.disabledContainer);
     }
-
     return baseStyle;
   };
 
   const getInputStyle = () => {
     const baseStyle = [styles.input, styles[`${variant}Input`], styles[`${size}Input`], styles.multilineInput];
-    
+    if (isDark) {
+      baseStyle.push({ color: themeColors?.textPrimary ?? "#FFFFFF" });
+    }
     if (!editable) {
       baseStyle.push(styles.disabledInput);
     }
-
     return baseStyle;
   };
 
   return (
     <View style={[styles.container, style]}>
       {label && (
-        <Text style={[styles.label, { fontSize: s14 }, labelStyle]}>
+        <Text style={[styles.label, { fontSize: s14 }, isDark && { color: themeColors?.textPrimary }, labelStyle]}>
           {label}
         </Text>
       )}
@@ -62,7 +66,7 @@ const TextArea = ({
         <TextInput
           style={[getInputStyle(), { fontSize: size === 'small' ? s12 : size === 'large' ? s16 : s14 }, inputStyle]}
           placeholder={placeholder}
-          placeholderTextColor="#6E6E6E"
+          placeholderTextColor={isDark ? (themeColors?.textSecondary ?? "rgba(255,255,255,0.6)") : "#6E6E6E"}
           value={value}
           onChangeText={onChangeText}
           multiline={true}

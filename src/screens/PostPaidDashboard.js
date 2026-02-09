@@ -124,7 +124,7 @@ const USAGE_CARD_LABELS = {
 const PostPaidDashboard = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
   const [selectedView] = useState("daily"); // Always daily; date is chosen via Pick a Date
-  const [pickedDate, setPickedDate] = useState(null);
+  const [pickedDateRange, setPickedDateRange] = useState(null); // { startDate, endDate } or null
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [displayMode, setDisplayMode] = useState("chart"); // "chart" or "table"
   const [showViewDropdown, setShowViewDropdown] = useState(false);
@@ -961,8 +961,10 @@ const PostPaidDashboard = ({ navigation, route }) => {
               <Text style={[styles.energyText, darkOverlay.energyText]}>Energy Summary</Text>
               <Pressable style={[styles.pickDateRow, darkOverlay.pickDateRow]} onPress={() => setShowDatePicker(true)}>
                 <Text style={[styles.pickDateText, darkOverlay.pickDateText]} numberOfLines={1}>
-                  {pickedDate
-                    ? `${pickedDate.getDate().toString().padStart(2, "0")}/${(pickedDate.getMonth() + 1).toString().padStart(2, "0")}/${pickedDate.getFullYear()}`
+                  {pickedDateRange
+                    ? (pickedDateRange.startDate.getTime() === pickedDateRange.endDate.getTime()
+                        ? `${pickedDateRange.startDate.getDate().toString().padStart(2, "0")}/${(pickedDateRange.startDate.getMonth() + 1).toString().padStart(2, "0")}/${pickedDateRange.startDate.getFullYear()}`
+                        : `${pickedDateRange.startDate.getDate().toString().padStart(2, "0")}/${(pickedDateRange.startDate.getMonth() + 1).toString().padStart(2, "0")}/${pickedDateRange.startDate.getFullYear()} - ${pickedDateRange.endDate.getDate().toString().padStart(2, "0")}/${(pickedDateRange.endDate.getMonth() + 1).toString().padStart(2, "0")}/${pickedDateRange.endDate.getFullYear()}`)
                     : "Pick a Date"}
                 </Text>
                 <CalendarIcon width={18} height={18} fill={isDark ? themeColors.textPrimary : COLORS.secondaryFontColor} style={styles.pickDateIcon} />
@@ -970,8 +972,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
             <CalendarDatePicker
               visible={showDatePicker}
               onClose={() => setShowDatePicker(false)}
-              value={pickedDate}
-              onChange={(date) => setPickedDate(date)}
+              value={pickedDateRange}
+              onChange={(range) => setPickedDateRange(range)}
+              allowRangeSelection={true}
             />
             </View>
 

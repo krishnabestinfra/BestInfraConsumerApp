@@ -18,10 +18,17 @@ import Button from './Button';
 import Input from "../global/Input";
 const { width, height } = Dimensions.get("window");
 
-const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
-  const { getScaledFontSize } = useTheme();
+const CreateNewTicketModal = ({ visible, onClose, onSubmit, isDark: isDarkProp }) => {
+  const { getScaledFontSize, isDark: isDarkTheme, colors: themeColors } = useTheme();
+  const isDark = isDarkProp ?? isDarkTheme;
   const s18 = getScaledFontSize(18);
   const s14 = getScaledFontSize(14);
+  // Modal dark: #1A1F2E per design; input boxes: #2C3A3F (dark teal, not blue)
+  const modalDarkBg = "#1A1F2E";
+  const inputDarkBg = "#2C3A3F";
+  const darkInputContainer = isDark
+    ? { backgroundColor: inputDarkBg, borderColor: inputDarkBg }
+    : undefined;
   const [selectedCategory, setSelectedCategory] = useState('');
   const [description, setDescription] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -81,30 +88,45 @@ const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
     >
       <View style={styles.overlay}>
         <View style={styles.modalWrapper}>
-          <View style={styles.modalContainer}>
+          <View style={[
+            styles.modalContainer,
+            isDark && { backgroundColor: modalDarkBg },
+          ]}>
             {/* Close button */}
             <TouchableOpacity
               style={styles.closeButton}
               onPress={onClose}
             >
-              <CloseIcon width={12} height={12} fill="#55B56C" />
+              <CloseIcon width={12} height={12} fill={isDark ? "#FFFFFF" : "#55B56C"} />
             </TouchableOpacity>
 
-            <Text style={[styles.modalTitle, { fontSize: s18 }]}>Create New Ticket</Text>
-            
-            <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <Text style={[
+              styles.modalTitle,
+              { fontSize: s18 },
+              isDark && { color: "#FFFFFF" },
+            ]}>
+              Create New Ticket
+            </Text>
+
+            <ScrollView
+              style={[styles.scrollContent, isDark && { backgroundColor: modalDarkBg }]}
+              showsVerticalScrollIndicator={false}
+            >
               {/* Category Selection */}
               <SelectDropdown
-                placeholder="Select category"
+                placeholder="Select Category"
                 value={selectedCategory}
                 onSelect={setSelectedCategory}
                 options={categories}
                 variant="default"
                 size="medium"
               />
-              <Input placeholder="Subject"
-              value={subject}
-              onChangeText={setSubject}
+              <Input
+                placeholder="Subject"
+                value={subject}
+                onChangeText={setSubject}
+                containerStyle={darkInputContainer}
+                inputStyle={isDark ? { color: themeColors?.textPrimary ?? "#FFFFFF" } : undefined}
               />
 
               {/* Description */}
@@ -120,7 +142,7 @@ const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
 
               {/* File Upload */}
               <UploadInput
-                placeholder="No files selected"
+                placeholder="No files Selected"
                 value={uploadedFiles}
                 onChange={setUploadedFiles}
                 multiple={true}
@@ -131,7 +153,7 @@ const CreateNewTicketModal = ({ visible, onClose, onSubmit }) => {
             </ScrollView>
 
             {/* Action Buttons */}
-            <View style={styles.buttonContainer}>
+            <View style={[styles.buttonContainer, isDark && { backgroundColor: modalDarkBg }]}>
               <Button
                 variant="outline"
                 title="Cancel"

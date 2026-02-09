@@ -25,7 +25,7 @@ const UploadInput = ({
   disabled = false,
   ...props
 }) => {
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const s9 = getScaledFontSize(9);
   const s10 = getScaledFontSize(10);
   const s12 = getScaledFontSize(12);
@@ -126,25 +126,29 @@ const handleSelectedFiles = (assets) => {
 
   const getContainerStyle = () => {
     const baseStyle = [styles.inputContainer, styles[`${variant}Container`], styles[size]];
-    
+    if (isDark) {
+      baseStyle.push({
+        backgroundColor: "#2C3A3F",
+        borderColor: COLORS.secondaryColor,
+      });
+    }
     if (error) {
       baseStyle.push(styles.errorContainer);
     }
-
     if (disabled) {
       baseStyle.push(styles.disabledContainer);
     }
-
     return baseStyle;
   };
 
   const getTextStyle = () => {
     const baseStyle = [styles.text, styles[`${size}Text`]];
-    
     if (value.length === 0) {
       baseStyle.push(styles.placeholderText);
     }
-
+    if (isDark) {
+      baseStyle.push({ color: themeColors?.textPrimary ?? "#FFFFFF" });
+    }
     if (disabled) {
       baseStyle.push(styles.disabledText);
     }
@@ -169,7 +173,7 @@ const handleSelectedFiles = (assets) => {
       >
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <UploadClipIcon width={20} height={20} />
+            <UploadClipIcon width={20} height={20} fill={isDark ? "#FFFFFF" : "#6B7280"} stroke={isDark ? "#FFFFFF" : "#6B7280"} />
           </View>
           
           <View style={styles.textContainer}>

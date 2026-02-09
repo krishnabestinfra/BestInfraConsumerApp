@@ -23,6 +23,7 @@ const Input = React.memo(({
   leftIcon,
   rightIcon,
   style,
+  containerStyle,
   inputStyle,
   labelStyle,
   errorStyle,
@@ -88,7 +89,11 @@ const Input = React.memo(({
         </Text>
       )}
       
-      <View style={[getInputContainerStyle, resolvedContainerDark]}>        
+      <View style={[
+        getInputContainerStyle,
+        !containerStyle && resolvedContainerDark,
+        containerStyle,
+      ]}>        
         <TextInput
           style={[getInputStyle, { fontSize: size === 'small' ? s12 : size === 'large' ? s16 : s14 }, resolvedInputColor && { color: resolvedInputColor }, inputStyle]}
           placeholder={placeholder}

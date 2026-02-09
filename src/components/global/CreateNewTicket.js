@@ -20,8 +20,13 @@ const CreateNewTicket = ({
   onClose,
   title = "Create New Ticket",
 }) => {
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const s18 = getScaledFontSize(18);
+  const modalDarkBg = "#1A1F2E";
+  const inputDarkBg = "#2C3A3F";
+  const darkInputContainer = isDark
+    ? { backgroundColor: inputDarkBg, borderColor: inputDarkBg }
+    : undefined;
   const [selectedCategory, setSelectedCategory] = useState("");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -82,18 +87,26 @@ const CreateNewTicket = ({
   };
 
   return (
-
-    <View style={styles.NewTicketContainer}>
+    <View style={[
+      styles.NewTicketContainer,
+      isDark && { backgroundColor: modalDarkBg },
+    ]}>
       <View style={styles.header}>
-        <Text style={[styles.NewticketTitle, { fontSize: s18 }]}>{title}</Text>
+        <Text style={[
+          styles.NewticketTitle,
+          { fontSize: s18 },
+          isDark && { color: "#FFFFFF" },
+        ]}>
+          {title}
+        </Text>
         {onClose && (
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <CloseIcon width={16} height={16} />
+            <CloseIcon width={16} height={16} fill={isDark ? "#FFFFFF" : undefined} />
           </TouchableOpacity>
         )}
       </View>
       <ScrollView
-        style={styles.formContainer}
+        style={[styles.formContainer, isDark && { backgroundColor: modalDarkBg }]}
         contentContainerStyle={{ paddingBottom: 20 }}
         showsVerticalScrollIndicator={false}
       >
@@ -101,6 +114,8 @@ const CreateNewTicket = ({
           placeholder="Subject"
           value={subject}
           onChangeText={setSubject}
+          containerStyle={darkInputContainer}
+          inputStyle={isDark ? { color: themeColors?.textPrimary ?? "#FFFFFF" } : undefined}
         />
 
         <SelectDropdown
