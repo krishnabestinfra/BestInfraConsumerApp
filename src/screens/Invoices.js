@@ -592,30 +592,60 @@ const Invoices = ({ navigation }) => {
     const isPaid = invoiceCard.isPaid;
     
     return (
-      <View key={invoiceCard.id} style={styles.invoiceCard}>
+      <View
+        key={invoiceCard.id}
+        style={[
+          styles.invoiceCard,
+          isDark && { backgroundColor: themeColors?.card ?? "#2C2C2E" },
+        ]}
+      >
         {/* Header with Invoice ID and Status */}
         <View style={styles.cardHeader}>
-          <Text style={styles.invoiceIdText}>{invoiceCard.invoiceId}</Text>
-          <View style={[styles.statusBadge, isPaid ? styles.paidBadge : styles.unpaidBadge]}>
-            <Text style={styles.statusText}>{isPaid ? 'Paid' : 'Unpaid'}</Text>
+          <Text style={[styles.invoiceIdText, isDark && { color: "#FFFFFF" }]}>
+            {invoiceCard.invoiceId}
+          </Text>
+          <View style={[
+            styles.statusBadge,
+            isPaid ? styles.paidBadge : styles.unpaidBadge,
+            isDark && !isPaid && { backgroundColor: "#C6993B" },
+            isDark && isPaid && { backgroundColor: "#2E7D5E" },
+          ]}>
+            <Text style={[styles.statusText, isDark && { color: "#FFFFFF" }]}>
+              {isPaid ? "Paid" : "Unpaid"}
+            </Text>
           </View>
         </View>
 
         {/* Dates */}
         <View style={styles.datesContainer}>
-          <Text style={styles.dateLabel}>Issued: {invoiceCard.issuedDate}</Text>
-          <Text style={styles.dateLabel}>Due: {invoiceCard.dueDate}</Text>
+          <Text style={[styles.dateLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
+            Issued: {invoiceCard.issuedDate}
+          </Text>
+          <Text style={[styles.dateLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
+            Due: {invoiceCard.dueDate}
+          </Text>
         </View>
 
         {/* Details Section */}
-        <View style={styles.detailsSection}>
+        <View style={[
+          styles.detailsSection,
+          isDark && { backgroundColor: "#2C3A3F" },
+        ]}>
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Units Consumed</Text>
-            <Text style={styles.detailValue}>{invoiceCard.unitsConsumed} kWh</Text>
+            <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
+              Units Consumed
+            </Text>
+            <Text style={[styles.detailValue, isDark && { color: "#FFFFFF" }]}>
+              {invoiceCard.unitsConsumed} kWh
+            </Text>
           </View>
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Amount Due</Text>
-            <Text style={styles.detailValue}>{invoiceCard.amountDue}</Text>
+            <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
+              Amount Due
+            </Text>
+            <Text style={[styles.detailValue, isDark && { color: "#FFFFFF" }]}>
+              {invoiceCard.amountDue}
+            </Text>
           </View>
         </View>
 
@@ -626,15 +656,26 @@ const Invoices = ({ navigation }) => {
             onPress={() => isPaid ? handleShare(invoiceCard) : handlePayNow(invoiceCard)}
             activeOpacity={0.7}
           >
-            <Text style={styles.primaryButtonText}>{isPaid ? 'Share' : 'Pay Now'}</Text>
+            <Text style={styles.primaryButtonText}>{isPaid ? "Share" : "Pay Now"}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.secondaryButton}
+            style={[
+              styles.secondaryButton,
+              isDark && {
+                backgroundColor: themeColors?.card ?? "#2C2C2E",
+                borderColor: COLORS.secondaryColor,
+              },
+            ]}
             onPress={() => handleViewInvoice(invoiceCard)}
             activeOpacity={0.7}
           >
-            <EyeIcon width={16} height={16} fill={COLORS.secondaryColor} />
-            <Text style={styles.secondaryButtonText}>View</Text>
+            <EyeIcon width={16} height={16} fill={isDark ? "#FFFFFF" : COLORS.secondaryColor} />
+            <Text style={[
+              styles.secondaryButtonText,
+              isDark && { color: "#FFFFFF" },
+            ]}>
+              View
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

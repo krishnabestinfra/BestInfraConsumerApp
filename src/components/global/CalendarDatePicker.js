@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,21 +19,50 @@ const MONTH_NAMES = [
 
 const DAY_HEADERS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const dateToKey = (d) => d.getFullYear() * 10000 + d.getMonth() * 100 + d.getDate();
+
+const normalizeDate = (d) => d ? new Date(d.getFullYear(), d.getMonth(), d.getDate()) : null;
+
 const CalendarDatePicker = ({
   visible,
   onClose,
   value,
   onChange,
+  allowRangeSelection = false,
 }) => {
   const { getScaledFontSize } = useTheme();
   const s18 = getScaledFontSize(18);
   const s16 = getScaledFontSize(16);
   const s12 = getScaledFontSize(12);
   const s14 = getScaledFontSize(14);
-  const initialDate = value || new Date();
-  const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
-  const [viewYear, setViewYear] = useState(initialDate.getFullYear());
-  const [selectedDate, setSelectedDate] = useState(initialDate);
+
+  const valueStart = value && (value.startDate || (value.getTime ? value : null));
+  const valueEnd = value && (value.endDate || (value.getTime ? value : null));
+  const initialStart = normalizeDate(valueStart || new Date());
+  const initialEnd = normalizeDate(valueEnd || initialStart);
+
+  const [viewMonth, setViewMonth] = useState(initialStart.getMonth());
+  const [viewYear, setViewYear] = useState(initialStart.getFullYear());
+  const [selectedDate, setSelectedDate] = useState(initialStart);
+  const [rangeStart, setRangeStart] = useState(allowRangeSelection ? initialStart : null);
+  const [rangeEnd, setRangeEnd] = useState(allowRangeSelection ? initialEnd : null);
+
+  useEffect(() => {
+    if (visible) {
+      const start = normalizeDate(valueStart || new Date());
+      const end = normalizeDate(valueEnd || start);
+      setViewMonth(start.getMonth());
+      setViewYear(start.getFullYear());
+      setSelectedDate(start);
+      if (allowRangeSelection) {
+        setRangeStart(value ? start : null);
+        setRangeEnd(value ? end : null);
+      } else {
+        setRangeStart(null);
+        setRangeEnd(null);
+      }
+    }
+  }, [visible, allowRangeSelection, value]);
 
   const handlePrevMonth = () => {
     if (viewMonth === 0) {
@@ -93,10 +122,26 @@ const CalendarDatePicker = ({
   };
 
   const isSelected = (date) => {
+    if (allowRangeSelection && rangeStart && rangeEnd) {
+      const key = dateToKey(date);
+      return key >= dateToKey(rangeStart) && key <= dateToKey(rangeEnd);
+    }
     return selectedDate &&
       date.getDate() === selectedDate.getDate() &&
       date.getMonth() === selectedDate.getMonth() &&
       date.getFullYear() === selectedDate.getFullYear();
+  };
+
+  const isRangeStart = (date) => {
+    return allowRangeSelection && rangeStart && dateToKey(date) === dateToKey(rangeStart);
+  };
+
+  const isRangeEnd = (date) => {
+    return allowRangeSelection && rangeEnd && dateToKey(date) === dateToKey(rangeEnd);
+  };
+
+  const isSingleDayRange = () => {
+    return allowRangeSelection && rangeStart && rangeEnd && dateToKey(rangeStart) === dateToKey(rangeEnd);
   };
 
   const isWeekend = (date) => {
@@ -105,9 +150,48 @@ const CalendarDatePicker = ({
   };
 
   const handleDateSelect = (date) => {
-    setSelectedDate(date);
-    if (onChange) onChange(date);
+    if (!allowRangeSelection) {
+      setSelectedDate(date);
+      if (onChange) onChange(date);
+      onClose();
+      return;
+    }
+    if (rangeStart === null) {
+      setRangeStart(date);
+      setRangeEnd(date);
+      setSelectedDate(date);
+      return;
+    }
+    const startKey = dateToKey(rangeStart);
+    const dateKey = dateToKey(date);
+    if (dateKey < startKey) {
+      setRangeStart(date);
+      setRangeEnd(date);
+      setSelectedDate(date);
+      return;
+    }
+    setRangeEnd(date);
+    if (onChange) onChange({ startDate: rangeStart, endDate: date });
     onClose();
+  };
+
+  const isInRangeMiddle = (date) => {
+    return allowRangeSelection && rangeStart && rangeEnd && isSelected(date) && !isRangeStart(date) && !isRangeEnd(date);
+  };
+
+  const getDayCellStyle = (date) => {
+    const selected = isSelected(date);
+    const rangeStartDay = isRangeStart(date);
+    const rangeEndDay = isRangeEnd(date);
+    const single = allowRangeSelection && selected && rangeStartDay && rangeEndDay;
+    if (!selected) return [];
+    return [
+      styles.dayCellSelected,
+      single && styles.dayCellSelectedSingle,
+      allowRangeSelection && rangeStartDay && !single && styles.dayCellRangeStart,
+      allowRangeSelection && rangeEndDay && !single && styles.dayCellRangeEnd,
+      allowRangeSelection && isInRangeMiddle(date) && styles.dayCellRangeMiddle,
+    ].filter(Boolean);
   };
 
   const calendarDays = getCalendarDays();
@@ -153,12 +237,13 @@ const CalendarDatePicker = ({
             {calendarDays.map(({ day, isCurrentMonth, date, disabled }, index) => {
               const selected = isSelected(date);
               const weekend = isCurrentMonth && !disabled && isWeekend(date);
+              const extraSelectedStyles = getDayCellStyle(date);
               return (
                 <TouchableOpacity
                   key={index}
                   style={[
                     styles.dayCell,
-                    selected && !disabled && styles.dayCellSelected,
+                    selected && !disabled && (extraSelectedStyles.length ? extraSelectedStyles : styles.dayCellSelected),
                     disabled && styles.dayCellDisabled,
                   ]}
                   onPress={() => !disabled && handleDateSelect(date)}
@@ -255,6 +340,20 @@ const styles = StyleSheet.create({
   dayCellSelected: {
     backgroundColor: 'rgba(22, 59, 124, 1)',
     borderRadius: 8,
+  },
+  dayCellSelectedSingle: {
+    borderRadius: 8,
+  },
+  dayCellRangeStart: {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  dayCellRangeEnd: {
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
+  dayCellRangeMiddle: {
+    borderRadius: 0,
   },
   dayText: {
     fontSize: 14,

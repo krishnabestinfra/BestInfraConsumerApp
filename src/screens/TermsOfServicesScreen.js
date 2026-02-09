@@ -47,20 +47,38 @@ const SECTIONS = [
   },
 ];
 
-function SectionItem({ id, title, body, scaled }) {
+function SectionItem({ id, title, body, scaled, isDark }) {
   return (
     <View style={styles.section}>
-      <View style={styles.slnoBadge}>
-        <Text style={[styles.slnoText, scaled && { fontSize: scaled.badge }]}>{id}</Text>
+      <View style={[styles.slnoBadge, isDark && { backgroundColor: COLORS.secondaryColor }]}>
+        <Text style={[
+          styles.slnoText,
+          scaled && { fontSize: scaled.badge },
+          isDark && { color: '#FFFFFF' },
+        ]}>
+          {id}
+        </Text>
       </View>
-      <Text style={[styles.sectionTitle, scaled && { fontSize: scaled.title }]}>{title}</Text>
-      <Text style={[styles.sectionBody, scaled && { fontSize: scaled.body }]}>{body}</Text>
+      <Text style={[
+        styles.sectionTitle,
+        scaled && { fontSize: scaled.title },
+        isDark && { color: '#FFFFFF' },
+      ]}>
+        {title}
+      </Text>
+      <Text style={[
+        styles.sectionBody,
+        scaled && { fontSize: scaled.body },
+        isDark && { color: 'rgba(255,255,255,0.6)' },
+      ]}>
+        {body}
+      </Text>
     </View>
   );
 }
 
 export default function TermsOfServicesScreen({ navigation }) {
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const s12 = getScaledFontSize(12);
   const s13 = getScaledFontSize(13);
   const s14 = getScaledFontSize(14);
@@ -68,11 +86,11 @@ export default function TermsOfServicesScreen({ navigation }) {
   const s24 = getScaledFontSize(24);
   const scaled = { badge: s12, title: s16, body: s14 };
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, isDark && { backgroundColor: themeColors?.screen ?? '#121212' }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, isDark && { backgroundColor: themeColors?.screen ?? '#121212' }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -82,9 +100,29 @@ export default function TermsOfServicesScreen({ navigation }) {
           showProfileSection={false}
           showRings={false}
         />
-        <View style={styles.card}>
-          <Text style={[styles.pageTitle, { fontSize: s24 }]}>Terms Of Service</Text>
-          <Text style={[styles.lastUpdated, { fontSize: s13 }]}>Last updated: {LAST_UPDATED}</Text>
+        <View style={[
+          styles.card,
+          isDark && {
+            backgroundColor: '#1A1F2E',
+            borderTopLeftRadius: 12,
+            borderTopRightRadius: 12,
+            borderRadius: 12,
+          },
+        ]}>
+          <Text style={[
+            styles.pageTitle,
+            { fontSize: s24 },
+            isDark && { color: '#FFFFFF' },
+          ]}>
+            Terms Of Service
+          </Text>
+          <Text style={[
+            styles.lastUpdated,
+            { fontSize: s13 },
+            isDark && { color: 'rgba(255,255,255,0.6)' },
+          ]}>
+            Last updated: {LAST_UPDATED}
+          </Text>
 
           {SECTIONS.map((section) => (
             <SectionItem
@@ -93,6 +131,7 @@ export default function TermsOfServicesScreen({ navigation }) {
               title={section.title}
               scaled={scaled}
               body={section.body}
+              isDark={isDark}
             />
           ))}
         </View>
