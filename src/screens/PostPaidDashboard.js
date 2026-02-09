@@ -33,6 +33,7 @@ import { apiClient } from '../services/apiClient';
 import SwitchIcon from "../../assets/icons/switch.svg";
 import DropdownIcon from "../../assets/icons/dropDown.svg";
 import CalendarIcon from "../../assets/icons/CalendarBlue.svg";
+import PiggybankIcon from "../../assets/icons/piggybank.svg";
 import CalendarDatePicker from "../components/global/CalendarDatePicker";
 
 const FALLBACK_ALERT_ROWS = [
@@ -304,7 +305,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
 
   const formatDuration = useCallback((durationValue) => {
     if (typeof durationValue === "string" && durationValue.trim().length > 0) {
-      // Remove seconds part (e.g. " 30s", " 0s") so duration shows only hours and minutes
       return durationValue.replace(/\s*\d+\s*s\s*/gi, "").trim() || durationValue.trim();
     }
 
@@ -1206,7 +1206,10 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   <View style={styles.progressBarRemainder} />
                 </View>
               </View>
-              <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>You saved 280 kWh compared to last month</Text>
+              <View style={styles.savingsMessageRow}>
+                <PiggybankIcon width={16} height={16} fill={isDark ? themeColors.accent : COLORS.secondaryColor} style={styles.savingsMessageIcon} />
+                <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>You saved 280 kWh</Text>
+              </View>
             </View>
           </View>
           <View style={[styles.tableContainer, darkOverlay.tableContainer]}>
@@ -2038,11 +2041,18 @@ const styles = StyleSheet.create({
     flex: 0.12,
     backgroundColor: "transparent",
   },
+  savingsMessageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  savingsMessageIcon: {
+    marginRight: 8,
+  },
   savingsMessage: {
     fontSize: 11,
     fontFamily: "Manrope-Medium",
     color: "#6B9E78",
-    marginTop: 4,
     textAlign: "center",
   },
 });
