@@ -891,8 +891,8 @@ const PostPaidDashboard = ({ navigation, route }) => {
             <View style={[styles.greenBox, darkOverlay.greenBox]}>
               <View style={styles.payInfoContainer}>
                 <GlobeShield
-                  width={25}
-                  height={25}
+                  width={28}
+                  height={28}
                   fill={themeColors.textOnPrimary}
                   style={styles.shieldIcon}
                 />
@@ -1029,7 +1029,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     <Text style={[styles.viewDropdownButtonText, darkOverlay.viewDropdownButtonText]}>
                       {displayMode === "chart" ? "Chart" : "Table"}
                     </Text>
-                    <DropdownIcon width={14} height={14} fill={isDark ? themeColors.textOnPrimary : COLORS.secondaryFontColor} />
+                    <DropdownIcon width={14} height={14} fill={COLORS.secondaryFontColor} />
                   </TouchableOpacity>
                   {showViewDropdown && (
                     <Modal
@@ -1382,7 +1382,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAFA",
     paddingHorizontal: 10,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 5,
   },
   pickDateText: {
     fontSize: 12,
@@ -1424,7 +1424,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#eef8f0",
     paddingHorizontal: 15,
     paddingTop: 15,
-    marginTop: 10,
     borderRadius: 5,
     paddingBottom: 5,
     overflow: "hidden",
@@ -1458,7 +1457,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryColor,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 5,
     gap: 6,
     minHeight: 36,
   },
@@ -1469,28 +1468,23 @@ const styles = StyleSheet.create({
   },
   viewDropdownOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(0,0,0,0.2)",
   },
   viewDropdownContent: {
     backgroundColor: COLORS.secondaryFontColor,
-    borderRadius: 8,
+    borderRadius: 5,
     minWidth: 140,
-    borderWidth: 1,
-    borderColor: "#F1F3F4",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 5,
   },
   viewDropdownItem: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomLeftRadius: 5,
+    borderBottomRightRadius: 5,
   },
   viewDropdownItemSelected: {
     backgroundColor: "#E8F5E9",
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
   },
   viewDropdownItemText: {
     fontSize: 14,
@@ -1578,14 +1572,15 @@ const styles = StyleSheet.create({
     padding: 10,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    borderRadius: 8,
+    borderRadius: 5,
     alignItems: "center",
     paddingHorizontal: 16,
     marginTop: 10,
   },
   paynowboxContainer: {
     flexDirection: "column",
-    alignItems: "flex-start",
+    alignItems: "flex-end",
+    gap: 5,
   },
   dueText: {
     color: COLORS.secondaryFontColor,
@@ -1596,8 +1591,8 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-Medium",
-    marginTop: 8,
-    marginHorizontal: 14,
+    textAlign: "center",
+    // width: "100%",
   },
   dateText: {
     color: COLORS.secondaryFontColor,
@@ -1607,9 +1602,9 @@ const styles = StyleSheet.create({
   greenBox: {
     flexDirection: "row",
     backgroundColor: COLORS.secondaryColor,
-    borderRadius: 8,
+    borderRadius: 5,
     justifyContent: "space-between",
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     alignItems: "center",
     padding: 10,
     marginVertical: 4,
@@ -1618,7 +1613,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   shieldIcon: {
-    marginHorizontal: 12,
+    marginRight: 12,
     marginTop: 10,
   },
   payText: {
@@ -1643,7 +1638,6 @@ const styles = StyleSheet.create({
     width: 95,
     borderRadius: 5,
     justifyContent: "center",
-    marginHorizontal: 12,
   },
   paynowText: {
     color: COLORS.primaryFontColor,
@@ -1927,9 +1921,9 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-Medium",
   },
   usageStatsContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 11,
-    gap: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 5,
+    gap: 10,
   },
   usageStatsTopRow: {
     flexDirection: "row",
@@ -1938,10 +1932,8 @@ const styles = StyleSheet.create({
   usageStatsCard: {
     flex: 1,
     backgroundColor: "#eef8f0",
-    borderRadius: 8,
-    padding: 15,
-    borderWidth: 1,
-    borderColor: "#F1F3F4",
+    borderRadius: 5,
+    padding: 16,
   },
   usageStatsCardTitle: {
     fontSize: 12,
@@ -1963,10 +1955,8 @@ const styles = StyleSheet.create({
   },
   comparisonCard: {
     backgroundColor: "#eef8f0",
-    borderRadius: 8,
+    borderRadius: 5,
     padding: 16,
-    borderWidth: 1,
-    borderColor: "#F1F3F4",
   },
   comparisonHeader: {
     flexDirection: "row",
