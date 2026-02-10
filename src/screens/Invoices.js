@@ -703,41 +703,11 @@ const Invoices = ({ navigation }) => {
   return (
     <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable
-          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-          onPress={() => navigation.navigate("SideMenu")}
-        >
-          {isDark ? (
-            <MenuWhite width={18} height={18} />
-          ) : (
-            <Menu width={18} height={18} fill="#202d59" />
-          )}
-        </Pressable>
-
-        <View style={styles.logoWrapper}>
-          <AnimatedRings />
-          <Logo variant={isDark ? "white" : "blue"} size="medium" />
-        </View>
-
-        <Pressable
-          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-          onPress={() => navigation.navigate("Profile")}
-        >
-          {isDark ? (
-            <NotificationWhite width={18} height={18} />
-          ) : (
-            <Notification width={18} height={18} fill="#202d59" />
-          )}
-        </Pressable>
-      </View>
 
       <ScrollView
         style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={[
-          styles.scrollContent,
+          { paddingBottom: 130 },
           !isLoading && filteredInvoiceCards.length === 0 && { flexGrow: 1 },
         ]}
         showsVerticalScrollIndicator={false}
@@ -750,64 +720,96 @@ const Invoices = ({ navigation }) => {
           />
         }
       >
-        {/* Page Title with Filter */}
-        <View style={styles.pageHeader}>
-          <Text style={[
-            styles.pageTitle,
-            isDark && { color: themeColors.textPrimary ?? "#FFFFFF" },
-          ]}>
-            My Invoices
-          </Text>
-          <Pressable style={styles.filterButton} onPress={handleFilterPress}>
-            <FilterIcon
-              width={24}
-              height={24}
-              fill={isDark ? "#FFFFFF" : "#151515"}
-            />
+        {/* Header (inside scroll so it scrolls with content) */}
+        <View style={styles.header}>
+          <Pressable
+            style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
+            onPress={() => navigation.navigate("SideMenu")}
+          >
+            {isDark ? (
+              <MenuWhite width={18} height={18} />
+            ) : (
+              <Menu width={18} height={18} fill="#202d59" />
+            )}
+          </Pressable>
+
+          <View style={styles.logoWrapper}>
+            <AnimatedRings />
+            <Logo variant={isDark ? "white" : "blue"} size="medium" />
+          </View>
+
+          <Pressable
+            style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
+            onPress={() => navigation.navigate("Profile")}
+          >
+            {isDark ? (
+              <NotificationWhite width={18} height={18} />
+            ) : (
+              <Notification width={18} height={18} fill="#202d59" />
+            )}
           </Pressable>
         </View>
 
-        {/* Invoice Cards */}
-        {isLoading ? (
-          <View style={styles.cardsContainer}>
-            {[1, 2, 3].map((index) => (
-              <SkeletonInvoiceCard key={index} isDark={isDark} themeColors={themeColors} />
-            ))}
-          </View>
-        ) : filteredInvoiceCards.length > 0 ? (
-          <View style={styles.cardsContainer}>
-            {filteredInvoiceCards.map(renderInvoiceCard)}
-          </View>
-        ) : (
-          <View style={[
-            styles.emptyContainer,
-            { flex: 1 },
-            isDark && { backgroundColor: "#1C1E26" },
-          ]}>
-            <View style={[
-              styles.emptyIconCircle,
-              isDark && { backgroundColor: "#1A1F2E" },
+        <View style={styles.scrollBody}>
+          {/* Page Title with Filter */}
+          <View style={styles.pageHeader}>
+            <Text style={[
+              styles.pageTitle,
+              isDark && { color: themeColors.textPrimary ?? "#FFFFFF" },
             ]}>
-              <NoInvoiceIcon
-                width={28}
-                height={28}
-                fill={isDark ? themeColors?.textSecondary ?? "#9CA3AF" : "#BABECC"}
+              My Invoices
+            </Text>
+            <Pressable style={styles.filterButton} onPress={handleFilterPress}>
+              <FilterIcon
+                width={24}
+                height={24}
+                fill={isDark ? "#FFFFFF" : "#151515"}
               />
-            </View>
-            <Text style={[
-              styles.emptyTitle,
-              isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
-            ]}>
-              No Invoices Yet
-            </Text>
-            <Text style={[
-              styles.emptySubtitle,
-              isDark && { color: themeColors?.textSecondary ?? "#9CA3AF" },
-            ]}>
-              Your invoices will appear here once they are generated. Check back soon!
-            </Text>
+            </Pressable>
           </View>
-        )}
+
+          {/* Invoice Cards */}
+          {isLoading ? (
+            <View style={styles.cardsContainer}>
+              {[1, 2, 3].map((index) => (
+                <SkeletonInvoiceCard key={index} isDark={isDark} themeColors={themeColors} />
+              ))}
+            </View>
+          ) : filteredInvoiceCards.length > 0 ? (
+            <View style={styles.cardsContainer}>
+              {filteredInvoiceCards.map(renderInvoiceCard)}
+            </View>
+          ) : (
+            <View style={[
+              styles.emptyContainer,
+              { flex: 1 },
+              isDark && { backgroundColor: "#1C1E26" },
+            ]}>
+              <View style={[
+                styles.emptyIconCircle,
+                isDark && { backgroundColor: "#1A1F2E" },
+              ]}>
+                <NoInvoiceIcon
+                  width={28}
+                  height={28}
+                  fill={isDark ? themeColors?.textSecondary ?? "#9CA3AF" : "#BABECC"}
+                />
+              </View>
+              <Text style={[
+                styles.emptyTitle,
+                isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
+              ]}>
+                No Invoices Yet
+              </Text>
+              <Text style={[
+                styles.emptySubtitle,
+                isDark && { color: themeColors?.textSecondary ?? "#9CA3AF" },
+              ]}>
+                Your invoices will appear here once they are generated. Check back soon!
+              </Text>
+            </View>
+          )}
+        </View>
       </ScrollView>
 
       {/* PDF Generation Overlay */}
@@ -916,9 +918,8 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
-  scrollContent: {
+  scrollBody: {
     paddingHorizontal: 16,
-    paddingBottom: 130,
   },
   pageHeader: {
     flexDirection: "row",

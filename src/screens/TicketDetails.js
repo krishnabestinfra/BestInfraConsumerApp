@@ -2,66 +2,24 @@ import {
   StyleSheet,
   Text,
   View,
-  Pressable,
   ScrollView,
-  Dimensions,
   TouchableOpacity,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
-import React, { useEffect, useState } from "react";
-import Menu from "../../assets/icons/bars.svg";
-import MenuWhite from "../../assets/icons/menuBarWhite.svg";
-import Notification from "../../assets/icons/notification.svg";
-import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
-import CheckCircle from "../../assets/icons/checkmark.svg";
+import React from "react";
 import ChevronRight from "../../assets/icons/rightArrow.svg";
 import ChatIcon from "../../assets/icons/chatIcon.svg";
 import TimelineCheckBlue from "../../assets/icons/timeLineCheckBlue.svg";
 import TimelineCheckGreen from "../../assets/icons/timeLineCheckGreen.svg";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  interpolate,
-  runOnJS,
-} from "react-native-reanimated";
-import { Easing } from "react-native-reanimated";
-import { getUser } from "../utils/storage";
-import Logo from "../components/global/Logo";
+import DashboardHeader from "../components/global/DashboardHeader";
 import BottomNavigation from "../components/global/BottomNavigation";
 
-const { width } = Dimensions.get("window");
-
-const RING_COUNT = 20;
-const RING_DELAY = 800;
-const ANIMATION_DURATION = 5000;
-
-const Ring = ({ index, progress }) => {
-  const ringStyle = useAnimatedStyle(() => {
-    const delay = index * RING_DELAY;
-    const localProgress =
-      Math.max(0, progress.value - delay) / ANIMATION_DURATION;
-    const clamped = Math.min(localProgress, 1);
-
-    return {
-      opacity: interpolate(clamped, [0, 0.1, 1], [0, 0.6, 0]),
-      transform: [
-        {
-          scale: interpolate(clamped, [0, 1], [0.4, 4]),
-        },
-      ],
-    };
-  });
-
-  return <Animated.View style={[styles.ring, ringStyle]} />;
-};
+const DARK_CARD_BG = "#1A1F2E";
 
 const TicketDetails = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
-  const progress = useSharedValue(0);
-  const [userName, setUserName] = useState("");
 
   // Get ticket data from navigation params
   const { ticketId, ticketData, category, status } = route?.params || {};
@@ -105,32 +63,6 @@ const TicketDetails = ({ navigation, route }) => {
     },
   ];
 
-  const loopAnimation = () => {
-    progress.value = 0;
-    progress.value = withTiming(
-      RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
-      {
-        duration: RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
-        easing: Easing.inOut(Easing.ease),
-      },
-      () => runOnJS(loopAnimation)()
-    );
-  };
-
-  useEffect(() => {
-    loopAnimation();
-  }, []);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const user = await getUser();
-      if (user) {
-        setUserName(user.name);
-      }
-    };
-    loadUser();
-  }, []);
-
   const getPriorityStyle = (priority) => {
     const p = priority?.toLowerCase();
     if (p === "low") return styles.lowPriority;
@@ -147,144 +79,137 @@ const TicketDetails = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
-      <StatusBar style="dark" />
-
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable
-          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-          onPress={() => navigation.goBack()}
-        >
-          {isDark ? (
-            <MenuWhite width={18} height={18} />
-          ) : (
-            <Menu width={18} height={18} fill="#202d59" />
-          )}
-        </Pressable>
-
-        <View style={styles.logoWrapper}>
-          {Array.from({ length: RING_COUNT }).map((_, index) => (
-            <Ring key={index} index={index} progress={progress} />
-          ))}
-          <Logo variant={isDark ? "white" : "blue"} size="medium" />
-        </View>
-
-        <View style={styles.headerRightContainer}>
-          <Pressable
-            style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-            onPress={() => navigation.navigate("Profile")}
-          >
-            {isDark ? (
-              <NotificationWhite width={18} height={18} />
-            ) : (
-              <Notification width={18} height={18} fill="#202d59" />
-            )}
-          </Pressable>
-        </View>
-      </View>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <ScrollView
-        style={styles.scrollContainer}
+        style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Ticket Details Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Ticket Details</Text>
-          <View style={[styles.priorityBadge, getPriorityStyle(priority)]}>
-            <Text style={styles.priorityText}>
-              {priority}
+        <DashboardHeader navigation={navigation} showBalance={false} showProfileSection={false} />
+
+        <View style={styles.scrollBody}>
+          {/* Ticket Details Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, isDark && { color: themeColors.textPrimary }]}>
+              Ticket Details
             </Text>
-          </View>
-        </View>
-
-        <View style={styles.detailsCard}>
-          <View style={styles.detailsGrid}>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Ticket ID</Text>
-              <Text style={styles.detailValue}>
-                #{ticketData?.ticketNumber || ticketId || "298"}
-              </Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Category</Text>
-              <Text style={styles.detailValue}>
-                {ticketData?.category || category || "Connection Issue"}
-              </Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Status</Text>
-              <Text style={styles.detailValue}>
-                {ticketData?.status || status || "Open"}
-              </Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Created On</Text>
-              <Text style={styles.detailValue}>
-                {ticketData?.createdOn || "08/17/2025, 04:04 PM"}
-              </Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Last Updated</Text>
-              <Text style={styles.detailValue}>
-                {ticketData?.lastUpdated || ticketData?.updatedOn || "17/08/2025, 04:04 PM"}
-              </Text>
-            </View>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Assigned to</Text>
-              <Text style={styles.detailValue}>
-                {ticketData?.assignedTo || "BI-Tech Team"}
+            <View style={[styles.priorityBadge, getPriorityStyle(priority)]}>
+              <Text style={styles.priorityText}>
+                {priority}
               </Text>
             </View>
           </View>
-        </View>
 
-        {/* Ticket Timeline Section */}
-        <Text style={styles.timelineTitle}>Ticket Timeline</Text>
+          <View style={[styles.detailsCard, isDark && { backgroundColor: DARK_CARD_BG }]}>
+            <View style={styles.detailsGrid}>
+              <View style={styles.detailItem}>
+                <Text style={[styles.detailLabel, isDark && { color: themeColors.textSecondary }]}>
+                  Ticket ID
+                </Text>
+                <Text style={[styles.detailValue, isDark && { color: themeColors.textPrimary }]}>
+                  #{ticketData?.ticketNumber || ticketId || "298"}
+                </Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={[styles.detailLabel, isDark && { color: themeColors.textSecondary }]}>
+                  Category
+                </Text>
+                <Text style={[styles.detailValue, isDark && { color: themeColors.textPrimary }]}>
+                  {ticketData?.category || category || "Connection Issue"}
+                </Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={[styles.detailLabel, isDark && { color: themeColors.textSecondary }]}>
+                  Status
+                </Text>
+                <Text style={[styles.detailValue, isDark && { color: themeColors.textPrimary }]}>
+                  {ticketData?.status || status || "Open"}
+                </Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={[styles.detailLabel, isDark && { color: themeColors.textSecondary }]}>
+                  Created On
+                </Text>
+                <Text style={[styles.detailValue, isDark && { color: themeColors.textPrimary }]}>
+                  {ticketData?.createdOn || "08/17/2025, 04:04 PM"}
+                </Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={[styles.detailLabel, isDark && { color: themeColors.textSecondary }]}>
+                  Last Updated
+                </Text>
+                <Text style={[styles.detailValue, isDark && { color: themeColors.textPrimary }]}>
+                  {ticketData?.lastUpdated || ticketData?.updatedOn || "17/08/2025, 04:04 PM"}
+                </Text>
+              </View>
+              <View style={styles.detailItem}>
+                <Text style={[styles.detailLabel, isDark && { color: themeColors.textSecondary }]}>
+                  Assigned to
+                </Text>
+                <Text style={[styles.detailValue, isDark && { color: themeColors.textPrimary }]}>
+                  {ticketData?.assignedTo || "BI-Tech Team"}
+                </Text>
+              </View>
+            </View>
+          </View>
 
-        <View style={styles.timelineCard}>
-          {timelineData.map((item, index) => (
-            <View key={item.id} style={styles.timelineItem}>
-              <View style={styles.timelineLeft}>
-                <View style={styles.timelineIcon}>
-                  {item.resolved ? (
-                    <TimelineCheckGreen width={16} height={16} />
-                  ) : item.completed ? (
-                    <TimelineCheckBlue width={16} height={16} />
-                  ) : (
-                    <View style={styles.timelineIconPending} />
+          {/* Ticket Timeline Section */}
+          <Text style={[styles.timelineTitle, isDark && { color: themeColors.textPrimary }]}>
+            Ticket Timeline
+          </Text>
+
+          <View style={[styles.timelineCard, isDark && { backgroundColor: DARK_CARD_BG }]}>
+            {timelineData.map((item, index) => (
+              <View key={item.id} style={styles.timelineItem}>
+                <View style={styles.timelineLeft}>
+                  <View style={[styles.timelineIcon, isDark && { backgroundColor: "rgba(255,255,255,0.08)" }]}>
+                    {item.resolved ? (
+                      <TimelineCheckGreen width={12} height={12} />
+                    ) : item.completed ? (
+                      <TimelineCheckBlue width={12} height={12} />
+                    ) : (
+                      <View style={styles.timelineIconPending} />
+                    )}
+                  </View>
+                  {index < timelineData.length - 1 && (
+                    <View style={[
+                      styles.timelineLine,
+                      item.completed && styles.timelineLineCompleted,
+                      isDark && { backgroundColor: "rgba(255,255,255,0.08)" }
+                    ]} />
                   )}
                 </View>
-                {index < timelineData.length - 1 && (
-                  <View style={[
-                    styles.timelineLine,
-                    item.completed && styles.timelineLineCompleted
-                  ]} />
-                )}
+                <View style={styles.timelineContent}>
+                  <Text style={[styles.timelineItemTitle, isDark && { color: themeColors.textPrimary }]}>
+                    {item.title}
+                  </Text>
+                  <Text style={[styles.timelineItemDescription, isDark && { color: themeColors.textSecondary }]}>
+                    {item.description}
+                  </Text>
+                  <Text style={[styles.timelineItemDate, isDark && { color: themeColors.textSecondary }]}>
+                    {item.date}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.timelineContent}>
-                <Text style={styles.timelineItemTitle}>{item.title}</Text>
-                <Text style={styles.timelineItemDescription}>{item.description}</Text>
-                <Text style={styles.timelineItemDate}>{item.date}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* Chat Support Button */}
-        <TouchableOpacity
-          style={styles.chatSupportButton}
-          onPress={handleChatSupport}
-          activeOpacity={0.8}
-        >
-          <View style={styles.chatSupportLeft}>
-            <View style={styles.chatIconWrapper}>
-              <ChatIcon width={20} height={20} fill="#FFFFFF" />
-            </View>
-            <Text style={styles.chatSupportText}>Chat Support</Text>
+            ))}
           </View>
-          <ChevronRight width={24} height={24} />
-        </TouchableOpacity>
+
+          {/* Chat Support Button */}
+          <TouchableOpacity
+            style={styles.chatSupportButton}
+            onPress={handleChatSupport}
+            activeOpacity={0.8}
+          >
+            <View style={styles.chatSupportLeft}>
+              <View style={styles.chatIconWrapper}>
+                <ChatIcon width={20} height={20} fill="#FFFFFF" />
+              </View>
+              <Text style={styles.chatSupportText}>Chat Support</Text>
+            </View>
+            <ChevronRight width={24} height={24} />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {/* Bottom Navigation */}
@@ -300,47 +225,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#EEF8F0",
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 75,
-    paddingBottom: 20,
-    paddingHorizontal: 30,
-  },
-  headerButton: {
-    backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
-    borderRadius: 60,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  logoWrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  ring: {
-    position: "absolute",
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 1,
-    borderColor: "#BABECC66",
-    opacity: 0.2,
-  },
   scrollContainer: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 30,
     paddingBottom: 180, // Space for bottom navigation
+  },
+  scrollBody: {
+    paddingHorizontal: 30,
     gap: 12,
   },
   sectionHeader: {
@@ -408,6 +300,7 @@ const styles = StyleSheet.create({
   },
   timelineItem: {
     flexDirection: "row",
+    alignItems: "flex-start",
     minHeight: 80,
   },
   timelineLeft: {
@@ -416,8 +309,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   timelineIcon: {
-    width: 28,
-    height: 28,
+    width: 20,
+    height: 20,
     borderRadius: 14,
     backgroundColor: "#E8EBF2CC",
     alignItems: "center",
@@ -442,13 +335,17 @@ const styles = StyleSheet.create({
   timelineContent: {
     flex: 1,
     paddingLeft: 12,
+    paddingTop: 0,
     paddingBottom: 16,
+    marginTop: -2,
     gap: 2,
   },
   timelineItemTitle: {
     fontSize: 14,
     fontFamily: "Manrope-Bold",
     color: COLORS.primaryFontColor,
+    lineHeight: 16,
+    includeFontPadding: false,
   },
   timelineItemDescription: {
     fontSize: 13,
@@ -537,18 +434,5 @@ const styles = StyleSheet.create({
     color: COLORS.primaryFontColor,
     flex: 1,
     textAlign: "right",
-  },
-  headerButton: {
-    backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
-    borderRadius: 60,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
 });
