@@ -19,6 +19,7 @@ import Notification from "../../assets/icons/notificationDark.svg";
 import CameraIcon from "../../assets/icons/cameraIcon.svg";
 import Logo from "../components/global/Logo";
 import BackArrowIcon from "../../assets/icons/Back.svg";
+import BackArrowIconWhite from "../../assets/icons/BackWhite.svg";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/AppContext";
@@ -281,7 +282,11 @@ const ProfileScreenMain = ({ navigation }) => {
           android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: false, radius: 27 }}
         >
           <View style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}>
-            <BackArrowIcon width={18} height={18} fill={isDark ? '#FFFFFF' : '#202d59'} />
+            {isDark ? (
+              <BackArrowIconWhite width={18} height={18} />
+            ) : (
+              <BackArrowIcon width={18} height={18} fill="#202d59" />
+            )}
           </View>
           {unreadCount > 0 && (
             <View style={styles.badge}>

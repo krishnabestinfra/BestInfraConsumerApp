@@ -16,6 +16,7 @@ import TermsIcon from "../../assets/icons/info.svg";
 // import VersionIcon from "../../assets/icons/versionIcon.svg";
 import ChevronRight from "../../assets/icons/rightArrow.svg";
 import BackIcon from "../../assets/icons/Back.svg";
+import BackIconWhite from "../../assets/icons/BackWhite.svg";
 
 const FONT_CHOICES = [
   { value: 'default', label: 'Default' },
@@ -125,7 +126,11 @@ const Settings = ({ navigation }) => {
           style={[styles.bellIcon, isDarkMode && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.goBack()}
         >
-          <BackIcon width={20} height={20} fill={isDarkMode ? '#FFFFFF' : COLORS.brandBlueColor} />
+          {isDarkMode ? (
+            <BackIconWhite width={20} height={20} />
+          ) : (
+            <BackIcon width={20} height={20} fill={COLORS.brandBlueColor} />
+          )}
         </Pressable>
       </View>
 

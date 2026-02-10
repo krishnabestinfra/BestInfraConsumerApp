@@ -10,6 +10,7 @@ import MenuWhite from '../../../assets/icons/menuBarWhite.svg';
 import Notification from '../../../assets/icons/notification.svg';
 import NotificationWhite from '../../../assets/icons/NotificationWhite.svg';
 import BackIcon from '../../../assets/icons/Back.svg';
+import BackIconWhite from '../../../assets/icons/BackWhite.svg';
 import { getUser, getConsumerDisplayName, cleanupStoredUserData } from '../../utils/storage';
 import { getCachedConsumerData, backgroundSyncConsumerData } from '../../utils/cacheManager';
 import { cacheManager } from '../../utils/cacheManager';
@@ -157,7 +158,11 @@ const DashboardHeader = React.memo(({
         >
           <View style={[styles.bellIcon, iconWrapperBg && { backgroundColor: iconWrapperBg }]}>
             {rightIcon === 'back' ? (
-              <BackIcon width={20} height={20} fill={isDark ? undefined : iconFill} />
+              isDark ? (
+                <BackIconWhite width={20} height={20} />
+              ) : (
+                <BackIcon width={20} height={20} fill={iconFill} />
+              )
             ) : (
               <NotificationIcon width={18} height={18} fill={isDark ? undefined : iconFill} />
             )}
