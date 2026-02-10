@@ -106,11 +106,9 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
             latestLabels = [...Array(dailyPadCount).fill(""), ...sliceLabels];
           }
         } else {
-          // Monthly: 1Y = always 12 bars (pad if API returns fewer), otherwise last 10 months
           const takeCount = timePeriod === "1Y" ? 12 : monthlyMonthsToShow;
           let slicedData = allData.slice(-takeCount);
           let slicedLabels = allLabels.slice(-takeCount);
-          // For 1Y: always 12 bars with Jan–Dec labels; first (12 - dataLength) bars are 0, then API values; no data = 12 empty (0) bars
           if (timePeriod === "1Y") {
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             const now = new Date();
@@ -127,7 +125,6 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
               latestData = [...Array(padCount).fill(0), ...slicedData];
               latestLabels = last12Labels;
             } else {
-              // No data for any month: show 12 empty (0) bars with Jan–Dec labels only
               latestData = Array(12).fill(0);
               latestLabels = last12Labels;
             }
@@ -138,7 +135,6 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
           startIndex = Math.max(0, allLabels.length - latestLabels.length);
         }
         
-        // Store original full data (dailyPadCount only set for daily view when padded)
         setOriginalData({
           allLabels: allLabels,
           allData: allData,
@@ -146,7 +142,6 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
           dailyPadCount: viewType === "daily" ? dailyPadCount : 0,
         });
         
-        // Ensure we have valid data
         if (latestData.length > 0 && latestLabels.length > 0) {
           setChartData({
             blue: latestData,
@@ -184,7 +179,6 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     }
   }, [data, viewType, timePeriod, loading]);
 
-  // 1Y: 12 bars; daily: 7/30/90 bars depending on period when no data
   function get1YFallback(period, view) {
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     if (period === "1Y") {
@@ -246,26 +240,23 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
   const chartContainerWidth = containerWidth;
 
   const manyBars = displayedBars >= 12;
-  const threeBarsOnly = displayedBars === 3; // 90D: last 3 months
-  const twelveBarsOnly = displayedBars === 12; // 1Y: last 12 months
-  const thirtyBarsOnly = displayedBars === 30; // 30D: scrollable with bigger bars
+  const threeBarsOnly = displayedBars === 3; 
+  const twelveBarsOnly = displayedBars === 12; 
+  const thirtyBarsOnly = displayedBars === 30; 
 
-  // 90D: use equal left/right edge spacing so both sides have the same gap
-  const edgeSpacing = threeBarsOnly ? 20 : 2;
+  const edgeSpacing = (threeBarsOnly || twelveBarsOnly || thirtyBarsOnly) ? 20 : 2;
 
   let spacing, minSpacing, minBarWidth, maxBarWidth;
   if (threeBarsOnly) {
-    // 90D: equal gaps left and right, nice gaps between 3 bars
     spacing = 24;
     minSpacing = 16;
     minBarWidth = 24;
-    maxBarWidth = 999; // no cap so 3 bars fill container
+    maxBarWidth = 999;
   } else if (thirtyBarsOnly) {
-    // 30D: bigger bar width, scrollable so dates are visible below
     spacing = 8;
     minSpacing = 6;
     minBarWidth = 24;
-    maxBarWidth = 32; // fixed bigger bars
+    maxBarWidth = 32;
   } else {
     spacing = manyBars ? 4 : 8;
     minSpacing = manyBars ? 2 : 8;
@@ -281,7 +272,6 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     barWidth = Math.floor(availableForBars / displayedBars);
 
     if (thirtyBarsOnly) {
-      // 30D: use fixed bigger bar width so chart is wider than container (scrollable)
       barWidth = 26;
     } else if (!threeBarsOnly && barWidth < minBarWidth && gaps > 0) {
       spacing = Math.max(
@@ -295,18 +285,15 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     barWidth = Math.min(maxBarWidth, Math.max(minBarWidth, barWidth));
   }
 
-  // Chart width: for 30D use full content width (scrollable); otherwise fit container
   const scrollableChartWidth = thirtyBarsOnly
     ? displayedBars * barWidth + Math.max(0, displayedBars - 1) * spacing + (edgeSpacing * 2)
     : chartContainerWidth;
   const chartWidth = thirtyBarsOnly ? scrollableChartWidth : chartContainerWidth;
 
-  // Label width: 3/12 bars need "Jan 2026"; 30D needs room for date labels
   const xAxisLabelWidth = threeBarsOnly || twelveBarsOnly
     ? Math.max(62, barWidth + spacing)
     : (thirtyBarsOnly ? Math.max(38, barWidth + spacing) : (manyBars ? Math.max(12, barWidth + spacing) : Math.max(40, barWidth + spacing)));
   const xAxisFontSize = manyBars ? 8 : 12;
-  // Only 30D (30 days) is horizontally scrollable; 7D, 90D, 1Y are not
   const isScrollable = timePeriod === "30D" && thirtyBarsOnly;
 
   if (loading) {
@@ -352,34 +339,28 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
         fontFamily: 'Manrope-Regular',
         textAlign: 'right',
       }}
-      // Custom spacing for better grouped bar appearance
       barBorderWidth={0}
       barBorderColor="transparent"
-      // Ensure bars are well spaced
       barMarginBottom={8}
-      // Ensure X-axis labels are visible
       xAxisLabelWidth={xAxisLabelWidth}
       xAxisLabelHeight={20}
-      // Better spacing for readability
-      barCategoryGap={0.5} // Gap between bar categories (0-1 range)
-      // Enable bar press functionality
+      barCategoryGap={0.5}
       onPress={(item, index) => {
         if (onBarPress) {
-          // When daily view is padded, first dailyPadCount bars have no original data
           const pad = originalData.dailyPadCount || 0;
           if (index < pad) return;
           const originalIndex = originalData.startIndex + (index - pad);
           const originalLabel = originalData.allLabels[originalIndex] || item.label;
           
           onBarPress({
-            index: originalIndex, // Original index in full array
-            displayIndex: index, // Index in displayed array
-            label: item.label, // Display label
-            originalLabel: originalLabel, // Original label from full data
+            index: originalIndex,
+            displayIndex: index,
+            label: item.label,
+            originalLabel: originalLabel,
             value: item.value,
-            date: originalLabel, // Use original label for date parsing
+            date: originalLabel,
             consumption: item.value,
-            viewType: (timePeriod === "90D" || timePeriod === "1Y") ? "monthly" : viewType, // 90D and 1Y use monthly data
+            viewType: (timePeriod === "90D" || timePeriod === "1Y") ? "monthly" : viewType,
           });
         }
       }}
