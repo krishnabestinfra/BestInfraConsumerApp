@@ -4,7 +4,7 @@ import { useRoute } from '@react-navigation/native';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 import HomeIcon from '../../../assets/icons/HomeIcon.svg';
-import ActiveHomeIcon from '../../../assets/icons/activeHome.svg';
+import HomeIconWhite from '../../../assets/icons/HomeIconWhite.svg';
 import RechargeIcon from '../../../assets/icons/recharge.svg';
 import InvoicesIcon from '../../../assets/icons/invoices.svg';
 import TicketsIcon from '../../../assets/icons/tickets.svg';
@@ -25,7 +25,7 @@ const BottomNavigation = ({ navigation }) => {
       label: 'Home',
       route: 'PostPaidDashboard',
       icon: HomeIcon,
-      activeIcon: ActiveHomeIcon,
+      activeIcon: HomeIconWhite,
       iconSize: { width: 20, height: 20 }
     },
     {
