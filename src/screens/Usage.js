@@ -11,6 +11,7 @@ import { getUser } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import VectorDiagram from "../components/VectorDiagram";
 import { apiClient } from '../services/apiClient';
+import { isDemoUser, getDemoUsageConsumerData, DEMO_LAST_MONTH_BILL } from "../constants/demoData";
 import { LinearGradient } from "expo-linear-gradient";
 import MeterIcon from "../../assets/icons/meterBolt.svg";
 import WalletIcon from "../../assets/icons/walletCard.svg";
@@ -72,7 +73,7 @@ const Usage = ({ navigation }) => {
     }
   }, []);
 
-  // Fetch consumer data with proper error handling
+  // Fetch consumer data with proper error handling (or demo data if using demo credentials)
   const fetchConsumerData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -83,6 +84,16 @@ const Usage = ({ navigation }) => {
 
       if (!user || !user.identifier) {
         console.error("❌ Usage: No authenticated user found");
+        setIsLoading(false);
+        return;
+      }
+
+      // DEMO MODE: if logged in with demo credentials, use local demo data
+      if (isDemoUser(user.identifier)) {
+        const demoData = getDemoUsageConsumerData(user.identifier);
+        setConsumerData(demoData);
+        setLastMonthBillAmount(DEMO_LAST_MONTH_BILL);
+        console.log("📊 Usage: Using demo consumer data for:", user.identifier);
         setIsLoading(false);
         return;
       }

@@ -219,7 +219,7 @@ const Table = ({
           <Text style={emptyTitleStyle}>
             {emptyMessage || "No Data Available"}
           </Text>
-          <Text style={emptySubtitleStyle}>
+          {/* <Text style={emptySubtitleStyle}>
             There are no records available for the
           </Text>
           <Text style={emptySubtitleStyle}>
@@ -227,7 +227,7 @@ const Table = ({
           </Text>
           <Text style={emptySubtitleStyle}>
            have been synced yet.
-          </Text>
+          </Text> */}
         </View>
       ) : (
 

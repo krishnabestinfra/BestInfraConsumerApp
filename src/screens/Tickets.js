@@ -22,6 +22,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SkeletonLoader } from '../utils/loadingManager';
 import CreateNewTicket from "../components/global/CreateNewTicket";
 import TicketSuccessModal from "../components/global/TicketSuccessModal";
+import { isDemoUser, getDemoConsumerCore, DEMO_TICKET_STATS, DEMO_TICKETS } from "../constants/demoData";
 
 const Tickets = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
@@ -60,7 +61,7 @@ const Tickets = ({ navigation }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdTicket, setCreatedTicket] = useState(null);
 
-  // Fetch data function
+  // Fetch data function (uses demo data if logged in with demo credentials)
   const fetchData = async () => {
     try {
       setIsLoading(true);
@@ -69,6 +70,19 @@ const Tickets = ({ navigation }) => {
       const user = await getUser();
       
       if (user && user.identifier) {
+        // DEMO MODE: use local demo data instead of hitting the backend
+        if (isDemoUser(user.identifier)) {
+          const core = getDemoConsumerCore(user.identifier);
+          setConsumerData(core);
+          setTicketStats(DEMO_TICKET_STATS);
+          setTableData(DEMO_TICKETS);
+          setIsLoading(false);
+          setStatsLoading(false);
+          setTableLoading(false);
+          console.log("🎫 Using demo ticket data for:", user.identifier);
+          return;
+        }
+
         const cachedResult = await getCachedConsumerData(user.identifier);
         if (cachedResult.success) {
           setConsumerData(cachedResult.data);
@@ -237,7 +251,7 @@ const Tickets = ({ navigation }) => {
 
               <View style={{ minWidth: 20 }}> 
                 {statsLoading ? (
-                  <SkeletonLoader variant="lines" lines={1} style={{ height: 60, width: 10 }} />
+                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
                 ) : (
                   <Text style={styles.TicketBoxNumber}>{ticketStats.open}</Text>
                 )}
