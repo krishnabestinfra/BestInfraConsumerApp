@@ -10,6 +10,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../constants/constants';
+import { isDemoUser } from '../constants/demoData';
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'access_token';
@@ -520,13 +521,17 @@ class AuthService {
     try {
       console.log('🔄 Starting logout process...');
       
-      // Step 1: Get current tokens before clearing
+      // Step 1: Get user to check if demo user
+      const user = await this.getUser();
+      const isDemo = user?.identifier ? isDemoUser(user.identifier) : false;
+      
+      // Step 2: Get current tokens before clearing
       const accessToken = await this.getAccessToken();
       const refreshToken = await this.getRefreshToken();
       
-      // Step 2: Call logout endpoint to revoke refresh token on server
-      // Send both tokens if available (some servers need access token for validation)
-      if (accessToken || refreshToken) {
+      // Step 3: Call logout endpoint to revoke refresh token on server
+      // Skip API call for demo users (instant logout)
+      if (!isDemo && (accessToken || refreshToken)) {
         try {
           console.log('🔄 Calling logout endpoint to revoke tokens on server...');
           
@@ -565,16 +570,18 @@ class AuthService {
           // Continue with local logout even if server call fails
           // This ensures user can still logout even if server is unreachable
         }
+      } else if (isDemo) {
+        console.log('📦 Demo user - skipping server logout call for instant logout');
       } else {
         console.log('ℹ️ No tokens found - skipping server logout call');
       }
 
-      // Step 3: Clear all tokens from local storage
+      // Step 4: Clear all tokens from local storage
       // This deletes access token and refresh token from memory/local storage
       console.log('🔄 Clearing tokens from local storage...');
       await this.clearTokens();
       
-      // Step 4: Clear user data
+      // Step 5: Clear user data
       console.log('🔄 Clearing user data...');
       await this.clearUser();
       
@@ -582,8 +589,10 @@ class AuthService {
       console.log('   - Access token deleted from local storage');
       console.log('   - Refresh token deleted from local storage');
       console.log('   - User data cleared');
-      console.log('   - Server has revoked refresh token (if call succeeded)');
-      console.log('   - Any future use of revoked refresh token will be rejected');
+      if (!isDemo) {
+        console.log('   - Server has revoked refresh token (if call succeeded)');
+        console.log('   - Any future use of revoked refresh token will be rejected');
+      }
       
       return { 
         success: true,

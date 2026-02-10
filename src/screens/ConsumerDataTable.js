@@ -20,6 +20,7 @@ import { API_ENDPOINTS } from "../constants/constants";
 import { getUser } from "../utils/storage";
 import { authService } from "../services/authService";
 import { SkeletonLoader } from '../utils/loadingManager';
+import { isDemoUser, getDemoLsDataForDate } from "../constants/demoData";
 
 // Pagination is handled by Table component (5 rows per page)
 
@@ -36,7 +37,7 @@ const ConsumerDataTable = ({ navigation, route }) => {
   const [energyType, setEnergyType] = useState("kva"); // "kva" or "kw"
   const [measurementType, setMeasurementType] = useState("voltage"); // "voltage" or "current"
 
-  // Fetch LS data from API
+  // Fetch LS data from API (or demo data for demo users)
   const fetchLSData = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -95,6 +96,15 @@ const ConsumerDataTable = ({ navigation, route }) => {
       console.log('   Date:', formattedDate);
       console.log('   Meter ID:', finalMeterId);
       console.log('   User identifier:', user?.identifier);
+
+      // DEMO MODE: use locally generated LS data instead of API
+      if (isDemoUser(user.identifier)) {
+        const demo = getDemoLsDataForDate(user.identifier, formattedDate, finalMeterId);
+        setLsData(demo.data);
+        setMetadata(demo.metadata);
+        setIsLoading(false);
+        return;
+      }
 
       // Get access token (will auto-refresh if expired)
       const token = await authService.getValidAccessToken();

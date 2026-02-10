@@ -401,4 +401,4 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
   );
 };
 
-export default ConsumerGroupedBarChart;
+export default React.memo(ConsumerGroupedBarChart);

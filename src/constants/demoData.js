@@ -185,6 +185,17 @@ export const getDemoDashboardConsumerData = (identifier) => {
     yPhasePowerFactor: 0.95,
     bPhasePowerFactor: 0.97,
     kW: 145.3,
+    // Demo billing-related fields for payments / overdue logic
+    dueDate: "2026-02-15T00:00:00Z",
+    paymentDueDate: "2026-02-15T00:00:00Z",
+    outstandingDueDate: "2026-02-15T00:00:00Z",
+    lastBillDueDate: "2026-01-15T00:00:00Z",
+    billDueDate: "2026-02-15T00:00:00Z",
+    // Contact info for payment flows
+    email: `${core.identifier}@demo.consumer`,
+    contact: "9876543210",
+    // Demo bill identifier for payment integration
+    billId: "DEMO-BILL-2401",
   };
 };
 
@@ -192,6 +203,79 @@ export const getDemoUsageConsumerData = getDemoDashboardConsumerData;
 
 // Demo last month bill amount for Usage screen
 export const DEMO_LAST_MONTH_BILL = 18340.75;
+
+// Detailed consumer snapshot used by ConsumerDetailsBottomSheet
+export const getDemoConsumerDetails = (identifier) => {
+  const core = getDemoDashboardConsumerData(identifier);
+
+  return {
+    name: core.name,
+    consumerNumber: core.consumerNumber,
+    meterSerialNumber: core.meterSerialNumber,
+    uniqueIdentificationNo: core.uniqueIdentificationNo,
+    meterPhase: 3,
+    occupancyStatus: "Active",
+    readingDate: core.readingDate,
+    rPhaseVoltage: core.rPhaseVoltage,
+    yPhaseVoltage: core.yPhaseVoltage,
+    bPhaseVoltage: core.bPhaseVoltage,
+    rPhaseCurrent: core.rPhaseCurrent,
+    yPhaseCurrent: core.yPhaseCurrent,
+    bPhaseCurrent: core.bPhaseCurrent,
+  };
+};
+
+// --------- LS (Load Survey) DEMO DATA (Daily - 96 intervals) ----------
+
+// Generate 96 x 15‑minute intervals for a single day
+export const getDemoLsDataForDate = (identifier, formattedDate, meterId) => {
+  // Use midnight of the given date in local time
+  const baseDate = formattedDate
+    ? new Date(`${formattedDate}T00:00:00`)
+    : new Date();
+
+  const data = [];
+  for (let i = 0; i < 96; i++) {
+    const d = new Date(baseDate.getTime() + i * 15 * 60 * 1000);
+
+    // Smooth-ish demo curve for energy
+    const hour = d.getHours() + d.getMinutes() / 60;
+    const kvaBase = 80 + 40 * Math.sin((Math.PI * hour) / 12); // pseudo daily pattern
+    const kwBase = kvaBase * 0.85;
+
+    data.push({
+      timestamp: d.toISOString(),
+      energies: {
+        kvaImport: kvaBase,
+        kwImport: kwBase,
+      },
+      voltage: {
+        r: 230 + (Math.sin(hour) * 5),
+        y: 231 + (Math.cos(hour) * 5),
+        b: 229 + (Math.sin(hour + 1) * 5),
+      },
+      current: {
+        r: 60 + (Math.sin(hour / 2) * 5),
+        y: 58 + (Math.cos(hour / 2) * 5),
+        b: 59 + (Math.sin(hour / 2 + 1) * 5),
+      },
+    });
+  }
+
+  const metaMeterId = meterId || "DEMO-METER-001";
+
+  return {
+    data,
+    metadata: {
+      meterId: metaMeterId,
+      meterSerialNumber: metaMeterId,
+      totalRecords: data.length,
+      dataInterval: "15min",
+      date: formattedDate,
+      consumerIdentifier: identifier,
+    },
+  };
+};
 
 // --------- TICKETS DEMO DATA ----------
 
@@ -276,3 +360,123 @@ export const DEMO_INVOICES = [
   },
 ];
 
+// --------- NOTIFICATIONS DEMO DATA ----------
+
+// Generate demo notifications for a consumer
+export const getDemoNotifications = (identifier) => {
+  const now = new Date();
+  
+  // Generate timestamps for different times (some recent, some older)
+  const timestamps = [
+    new Date(now.getTime() - 5 * 60 * 1000), // 5 minutes ago
+    new Date(now.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
+    new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+    new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+    new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+    new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+    new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+  ];
+
+  const dashboardData = getDemoDashboardConsumerData(identifier);
+  const core = getDemoConsumerCore(identifier);
+
+  return [
+    {
+      id: `DEMO-NOTIF-001-${identifier}`,
+      title: "Payment Successful",
+      message: `Your payment of ₹${core.totalOutstanding.toFixed(2)} has been successfully processed.`,
+      type: "payment",
+      is_read: false,
+      created_at: timestamps[0].toISOString(),
+      meta: {
+        sentAt: timestamps[0].toISOString(),
+      },
+      redirect_url: "/invoices",
+    },
+    {
+      id: `DEMO-NOTIF-002-${identifier}`,
+      title: "Bill Due Reminder",
+      message: `Your bill of ₹${core.totalOutstanding.toFixed(2)} is due on ${new Date(dashboardData.dueDate || new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. Please pay to avoid late fees.`,
+      type: "due",
+      is_read: false,
+      created_at: timestamps[1].toISOString(),
+      meta: {
+        sentAt: timestamps[1].toISOString(),
+      },
+      redirect_url: "/invoices",
+    },
+    {
+      id: `DEMO-NOTIF-003-${identifier}`,
+      title: "Meter Reading Alert",
+      message: `Unusual consumption pattern detected for meter ${core.meterSerialNumber}. Please verify your usage.`,
+      type: "alert",
+      is_read: true,
+      created_at: timestamps[2].toISOString(),
+      meta: {
+        sentAt: timestamps[2].toISOString(),
+      },
+      redirect_url: "/usage",
+    },
+    {
+      id: `DEMO-NOTIF-004-${identifier}`,
+      title: "Voltage Fluctuation Warning",
+      message: "Voltage imbalance detected in your connection. Our team has been notified.",
+      type: "warning",
+      is_read: false,
+      created_at: timestamps[3].toISOString(),
+      meta: {
+        sentAt: timestamps[3].toISOString(),
+      },
+      redirect_url: "/dashboard",
+    },
+    {
+      id: `DEMO-NOTIF-005-${identifier}`,
+      title: "New Invoice Generated",
+      message: `Invoice INV-2401 for ₹48,230.50 has been generated. View details in the Invoices section.`,
+      type: "info",
+      is_read: true,
+      created_at: timestamps[4].toISOString(),
+      meta: {
+        sentAt: timestamps[4].toISOString(),
+      },
+      redirect_url: "/invoices",
+    },
+    {
+      id: `DEMO-NOTIF-006-${identifier}`,
+      title: "Account Balance Updated",
+      message: `Your account balance has been updated. Outstanding amount: ₹${core.totalOutstanding.toFixed(2)}.`,
+      type: "balance",
+      is_read: true,
+      created_at: timestamps[5].toISOString(),
+      meta: {
+        sentAt: timestamps[5].toISOString(),
+      },
+      redirect_url: "/dashboard",
+    },
+    {
+      id: `DEMO-NOTIF-007-${identifier}`,
+      title: "Maintenance Scheduled",
+      message: "Scheduled maintenance for your area on Jan 20, 2026 from 10:00 AM to 2:00 PM. Power may be interrupted.",
+      type: "info",
+      is_read: true,
+      created_at: timestamps[6].toISOString(),
+      meta: {
+        sentAt: timestamps[6].toISOString(),
+      },
+      redirect_url: null,
+    },
+    {
+      id: `DEMO-NOTIF-008-${identifier}`,
+      title: "Payment Receipt",
+      message: `Payment receipt for ₹51,210.75 has been generated. You can download it from the Invoices section.`,
+      type: "success",
+      is_read: true,
+      created_at: timestamps[7].toISOString(),
+      meta: {
+        sentAt: timestamps[7].toISOString(),
+      },
+      redirect_url: "/invoices",
+    },
+  ];
+};

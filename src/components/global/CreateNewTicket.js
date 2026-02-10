@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -40,14 +40,11 @@ const CreateNewTicket = ({
     priority !== "" &&
     description.trim() !== "";
 
-  const categories = [
-    "Technical",
-    "Billing",
-    "Connection",
-    "Meter",
-    "General Inquiry",
-  ];
-  const priorities = ["Low", "Medium", "High"];
+  const categories = useMemo(
+    () => ["Technical", "Billing", "Connection", "Meter", "General Inquiry"],
+    []
+  );
+  const priorities = useMemo(() => ["Low", "Medium", "High"], []);
 
   const handleSubmit = async () => {
     const ticketData = {
@@ -234,4 +231,6 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CreateNewTicket;
+CreateNewTicket.displayName = "CreateNewTicket";
+
+export default React.memo(CreateNewTicket);

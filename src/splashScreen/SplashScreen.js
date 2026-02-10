@@ -43,26 +43,31 @@ const SplashScreen = () => {
       const isAuthenticated = await authService.isAuthenticated();
       const user = await getUser();
       
-      // Add minimum splash time for better UX
-      setTimeout(() => {
-        setSplashComplete(true);
-        if (rememberMe && isAuthenticated && user) {
-          // User has remember me enabled and is authenticated - go directly to dashboard
-          // Reset navigation stack to prevent going back to splash/onboarding
-          console.log('✅ User authenticated with remember me enabled, navigating to dashboard');
+      // Navigate immediately if authenticated, otherwise show splash briefly
+      if (rememberMe && isAuthenticated && user) {
+        // User has remember me enabled and is authenticated - go directly to dashboard
+        // Reset navigation stack to prevent going back to splash/onboarding
+        console.log('✅ User authenticated with remember me enabled, navigating to dashboard');
+        // Small delay for smooth transition (500ms instead of 8 seconds)
+        setTimeout(() => {
+          setSplashComplete(true);
           navigation.reset({
             index: 0,
             routes: [{ name: "PostPaidDashboard" }],
           });
-        } else {
-          // No valid authentication or remember me disabled - show onboarding/login
-          console.log(' No valid authentication or remember me disabled, navigating to onboarding');
+        }, 500); // Minimal delay for smooth transition
+      } else {
+        // No valid authentication or remember me disabled - show onboarding/login
+        console.log(' No valid authentication or remember me disabled, navigating to onboarding');
+        // Brief splash for non-authenticated users (1 second)
+        setTimeout(() => {
+          setSplashComplete(true);
           navigation.reset({
             index: 0,
             routes: [{ name: "OnBoarding" }],
           });
-        }
-      }, 8000); // Minimum 8 seconds splash time
+        }, 1000); // 1 second splash for non-authenticated users
+      }
     };
 
     initializeApp();

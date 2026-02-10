@@ -16,7 +16,7 @@ import { useTheme } from "../context/ThemeContext";
 import Input from "./global/Input";
 import Send from "../../assets/icons/sendMessage.svg";
 
-const TicketChatBox = () => {
+const TicketChatBox = React.memo(() => {
   const { getScaledFontSize } = useTheme();
   const s14 = getScaledFontSize(14);
   const s9 = getScaledFontSize(9);
@@ -129,7 +129,9 @@ const TicketChatBox = () => {
       </View>
     </TouchableWithoutFeedback>
   );
-};
+});
+
+TicketChatBox.displayName = "TicketChatBox";
 
 export default TicketChatBox;
 

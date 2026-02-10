@@ -347,6 +347,8 @@ const Table = ({
   );
 };
 
+export default React.memo(Table);
+
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
@@ -542,5 +544,3 @@ disabledButton: {
 },
 
 });
-
-export default Table;

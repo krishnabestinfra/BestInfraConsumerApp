@@ -13,6 +13,7 @@
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/apiService';
 import { getUser } from '../utils/storage';
+import { isDemoUser, getDemoNotifications } from '../constants/demoData';
 
 // Action Types
 const ActionTypes = {
@@ -183,7 +184,29 @@ export const NotificationsProvider = ({ children }) => {
       return;
     }
 
-    // Check if we have recent data (less than 5 minutes old)
+    // DEMO MODE: If demo user, use demo notifications immediately (skip API)
+    if (isDemoUser(uid)) {
+      const existingData = state.consumerNotifications[uid];
+      const isStale = existingData && (Date.now() - existingData.lastFetchTime > 300000); // 5 minutes
+
+      if (!forceRefresh && existingData && !isStale) {
+        dispatch({ type: ActionTypes.SWITCH_CONSUMER, payload: uid });
+        return;
+      }
+
+      // For demo users, load instantly without loading state or async overhead
+      // Use setTimeout(0) to ensure it happens synchronously in the next tick
+      const demoNotifications = getDemoNotifications(uid);
+      // Dispatch immediately without loading state for instant display
+      dispatch({ 
+        type: ActionTypes.SET_NOTIFICATIONS, 
+        payload: demoNotifications,
+        consumerUid: uid
+      });
+      return;
+    }
+
+    // REAL USER: Check if we have recent data (less than 5 minutes old)
     const existingData = state.consumerNotifications[uid];
     const isStale = existingData && (Date.now() - existingData.lastFetchTime > 300000); // 5 minutes
 
@@ -256,6 +279,13 @@ export const NotificationsProvider = ({ children }) => {
   // Mark notification as read
   const markAsRead = useCallback(async (notificationId) => {
     try {
+      // DEMO MODE: For demo users, update local state only (no API call)
+      if (isDemoUser(state.consumerUid)) {
+        dispatch({ type: ActionTypes.MARK_AS_READ, payload: notificationId });
+        return { success: true };
+      }
+      
+      // REAL USER: Call API
       const result = await markNotificationAsRead(notificationId);
       
       if (result.success) {
@@ -267,7 +297,7 @@ export const NotificationsProvider = ({ children }) => {
       console.error('Error marking notification as read:', error);
       return { success: false, message: error.message };
     }
-  }, []);
+  }, [state.consumerUid]);
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
@@ -277,6 +307,13 @@ export const NotificationsProvider = ({ children }) => {
     }
 
     try {
+      // DEMO MODE: For demo users, update local state only (no API call)
+      if (isDemoUser(state.consumerUid)) {
+        dispatch({ type: ActionTypes.MARK_ALL_AS_READ });
+        return { success: true };
+      }
+      
+      // REAL USER: Call API
       const result = await markAllNotificationsAsRead(state.consumerUid);
       
       if (result.success) {

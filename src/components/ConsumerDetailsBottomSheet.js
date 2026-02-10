@@ -19,6 +19,7 @@ import {
 import { COLORS } from '../constants/colors';
 import { API_ENDPOINTS } from '../constants/constants';
 import { getToken } from '../utils/storage';
+import { isDemoUser, getDemoConsumerDetails } from "../constants/demoData";
 import CloseIcon from "../../assets/icons/cross.svg";
 import { SkeletonLoader } from '../utils/loadingManager';
 import { useTheme } from '../context/ThemeContext';
@@ -46,6 +47,14 @@ const ConsumerDetailsBottomSheet = ({
     try {
       setLoading(true);
       setError(null);
+
+      // DEMO MODE: use local demo data for demo identifiers
+      if (isDemoUser(consumerUid)) {
+        const demo = getDemoConsumerDetails(consumerUid);
+        setConsumerData(demo);
+        setLoading(false);
+        return;
+      }
 
       const token = await getToken();
       const API_URL = API_ENDPOINTS.consumers.get(consumerUid);
@@ -140,13 +149,26 @@ const ConsumerDetailsBottomSheet = ({
     }
   };
 
-  // Format reading date without seconds
+  // Format reading date without seconds, with proper date/time when possible
   const formatReadingDate = (dateString) => {
     if (!dateString) return 'N/A';
     
     try {
-      // Remove seconds from timestamp (format: "23rd Jan 2026 04:45:01 AM" -> "23rd Jan 2026 04:45 AM")
-      // Pattern: match "HH:MM:SS" and replace with "HH:MM"
+      // First try to parse as a real Date (handles ISO strings like "2026-01-27T12:34:56Z")
+      const parsed = new Date(dateString);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleString('en-US', {
+          month: 'short',
+          day: '2-digit',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
+      }
+
+      // Fallback: remove seconds from already formatted strings,
+      // e.g. "23rd Jan 2026 04:45:01 AM" -> "23rd Jan 2026 04:45 AM"
       return dateString.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1');
     } catch (error) {
       return dateString;
