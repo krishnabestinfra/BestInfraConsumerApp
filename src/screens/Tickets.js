@@ -2,7 +2,7 @@ import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, Refre
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Button from "../components/global/Button";
 import Table from "../components/global/Table";
 import CreateNewTicketModal from "../components/global/CreateNewTicketModal";
@@ -62,7 +62,7 @@ const Tickets = ({ navigation }) => {
   const [createdTicket, setCreatedTicket] = useState(null);
 
   // Fetch data function (uses demo data if logged in with demo credentials)
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setStatsLoading(true);
@@ -122,18 +122,15 @@ const Tickets = ({ navigation }) => {
       setStatsLoading(false);
       setTableLoading(false);
     }
-  };
-
-  // Fetch consumer data with caching
-  useEffect(() => {
-    fetchData();
   }, []);
+
+  // Fetch consumer data with caching (on focus only, avoid double-call on mount)
 
   // Refresh data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       fetchData();
-    }, [])
+    }, [fetchData])
   );
 
   // const handleOpenModal = () => {
@@ -337,13 +334,13 @@ const Tickets = ({ navigation }) => {
             showPriority={false}
             inlinePriority
             priorityField="category"
-            priorityMapping={{
-              "BILLING": "Low",
-              "METER": "High",
-              "CONNECTION": "High",
-              "TECHNICAL": "High"
-            }}
-            columns={[
+            priorityMapping={useMemo(() => ({
+              BILLING: "Low",
+              METER: "High",
+              CONNECTION: "High",
+              TECHNICAL: "High",
+            }), [])}
+            columns={useMemo(() => [
               { key: 'ticketNumber', title: 'Ticket ID', flex: 1.2 },
               { key: 'category', title: 'Category', flex: 1.5 },
               { key: 'status', title: 'Status', flex: 1 },
@@ -361,7 +358,7 @@ const Tickets = ({ navigation }) => {
                   </TouchableOpacity>
                 )
               }
-            ]}
+            ], [handleViewTicket])}
           />
         </View>
         {/* <CreateNewTicket 

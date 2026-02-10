@@ -10,7 +10,7 @@ import {
   Modal,
   Pressable,
 } from "react-native";
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { StatusBar } from "expo-status-bar";
 import { COLORS, colors } from "../constants/colors";
 import Arrow from "../../assets/icons/arrow.svg";
@@ -132,7 +132,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const [showViewDropdown, setShowViewDropdown] = useState(false);
   const [dropdownButtonLayout, setDropdownButtonLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const viewDropdownRef = useRef(null);
-  const [timePeriod, setTimePeriod] = useState("30D");
+  const [timePeriod, setTimePeriod] = useState("7D");
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [tableData, setTableData] = useState([]);
@@ -462,7 +462,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const getUsageForTimePeriod = () => (timePeriod === "7D" ? getDailyUsage() : getMonthlyUsage());
   const getTrendPercentageForTimePeriod = () => (timePeriod === "7D" ? getDailyTrendPercentage() : getMonthlyTrendPercentage());
 
-  // Transform chart data into table format
+  // Transform chart data into table format, respecting selectedView + timePeriod
   const getConsumptionTableData = useCallback(() => {
     if (!consumerData?.chartData) return [];
 
@@ -496,14 +496,37 @@ const PostPaidDashboard = ({ navigation, route }) => {
       consumptions = data;
     }
 
-    // Transform to table rows
-    return labels.map((label, index) => ({
-      id: index + 1,
+    // Apply time-period slicing so table matches the chart selection
+    let sliceCount;
+    if (selectedView === "daily") {
+      if (timePeriod === "7D") sliceCount = 7;
+      else if (timePeriod === "30D") sliceCount = 30;
+      else if (timePeriod === "90D") sliceCount = 90;
+      else sliceCount = data.length;
+    } else {
+      // Monthly view - keep all points (already aggregated)
+      sliceCount = data.length;
+    }
+
+    const startIndex = Math.max(0, data.length - sliceCount);
+    const visibleData = data.slice(startIndex);
+    const visibleConsumptions = consumptions.slice(startIndex);
+    const visibleLabels = labels.slice(startIndex);
+
+    // Transform to table rows, latest first
+    return visibleLabels.map((label, index) => ({
+      id: startIndex + index + 1,
       period: label,
-      consumption: consumptions[index] || 0,
-      cumulative: data[index] || 0,
-    })).reverse(); // Show latest first
-  }, [consumerData, selectedView]);
+      consumption: visibleConsumptions[index] || 0,
+      cumulative: visibleData[index] || 0,
+    })).reverse();
+  }, [consumerData, selectedView, timePeriod]);
+
+  // Memoize table data so it isn't recomputed on every render
+  const consumptionTableData = useMemo(
+    () => getConsumptionTableData(),
+    [getConsumptionTableData]
+  );
 
   // Dynamic Daily Trend Calculation - works with cumulative data for any date range
   const getDailyTrendPercentage = () => {
@@ -1140,7 +1163,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     <SkeletonLoader variant="table" style={{ marginVertical: 20 }} lines={5} columns={3} />
                   ) : (
                     <Table
-                      data={getConsumptionTableData()}
+                      data={consumptionTableData}
                       loading={isLoading}
                       emptyMessage={`No ${selectedView} consumption data available`}
                       showSerial={true}

@@ -21,6 +21,7 @@ import { getUser } from "../utils/storage";
 import { API, API_ENDPOINTS } from "../constants/constants";
 import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../services/apiService";
 import { getCachedConsumerData } from "../utils/cacheManager";
+import { isDemoUser, getDemoDashboardConsumerData } from "../constants/demoData";
 import { 
   processRazorpayPayment, 
   handlePaymentSuccess, 
@@ -342,6 +343,25 @@ const PostPaidRechargePayments = ({ navigation }) => {
         const user = await getUser();
         
         if (user && user.identifier) {
+          // DEMO MODE: use local demo consumer data and skip backend calls
+          if (isDemoUser(user.identifier)) {
+            const demo = getDemoDashboardConsumerData(user.identifier);
+            setConsumerData(demo);
+
+            if (demo.totalOutstanding !== undefined) {
+              const formattedAmount = demo.totalOutstanding.toLocaleString('en-IN', {
+                maximumFractionDigits: 2,
+              });
+              setOutstandingAmount(formattedAmount);
+            } else {
+              setOutstandingAmount("NA");
+            }
+
+            setIsConsumerLoading(false);
+            setIsLoading(false);
+            return;
+          }
+
           // Try to get cached data first for instant display
           const cachedResult = await getCachedConsumerData(user.identifier);
           if (cachedResult.success) {

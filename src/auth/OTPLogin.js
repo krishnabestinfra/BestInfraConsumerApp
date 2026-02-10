@@ -170,17 +170,17 @@ const OTPLogin = ({ navigation }) => {
             />
 
             {otpSent && (
-              <View style={styles.otpInputContainer}>
-                <OTPInput
-                  length={6}
-                  value={otp}
-                  onChange={handleOTPChange}
-                  onComplete={handleOTPComplete}
-                  error={otpError}
-                  disabled={isLoading}
-                  style={styles.otpInputWrapper}
-                />
-              </View>
+            <View style={styles.otpInputContainer}>
+              <OTPInput
+                length={6}
+                value={otp}
+                onChange={handleOTPChange}
+                onComplete={handleOTPComplete}
+                error={otpError}
+                disabled={isLoading}
+                style={styles.otpInputWrapper}
+              />
+            </View>
             )}
 
             <View style={styles.rememberRow}>
@@ -209,19 +209,19 @@ const OTPLogin = ({ navigation }) => {
             />
 
             {otpSent && resendSeconds > 0 && (
-              <Pressable
-                style={styles.resendRow}
-                onPress={() => canResend && handleGenerateOTP()}
-                disabled={!canResend}
+            <Pressable
+              style={styles.resendRow}
+              onPress={() => canResend && handleGenerateOTP()}
+              disabled={!canResend}
+            >
+              <Text style={[styles.resendText, { fontSize: s14 }]}>Did not receive the code? </Text>
+              <Text
+                style={[
+                  styles.timerText,
+                  { fontSize: s14 },
+                  canResend && styles.timerTextLink,
+                ]}
               >
-                <Text style={[styles.resendText, { fontSize: s14 }]}>Did not receive the code? </Text>
-                <Text
-                  style={[
-                    styles.timerText,
-                    { fontSize: s14 },
-                    canResend && styles.timerTextLink,
-                  ]}
-                >
                   Resend in {formatTimer(resendSeconds)}
                 </Text>
               </Pressable>
@@ -242,8 +242,8 @@ const OTPLogin = ({ navigation }) => {
                   ]}
                 >
                   Resend OTP
-                </Text>
-              </Pressable>
+              </Text>
+            </Pressable>
             )}
           </View>
         </ScrollView>
