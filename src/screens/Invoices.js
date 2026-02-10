@@ -81,8 +81,8 @@ const Shimmer = ({ style, baseColor, gradientColors }) => {
 // Skeleton Invoice Card Component (theme-aware for dark mode)
 const SkeletonInvoiceCard = ({ isDark, themeColors }) => {
   const shimmer = isDark ? SHIMMER_DARK : SHIMMER_LIGHT;
-  const cardBg = isDark ? (themeColors?.card ?? "#2C2C2E") : undefined;
-  const detailsBg = isDark ? "rgba(255,255,255,0.06)" : undefined;
+  const cardBg = isDark ? "#1A1F2E" : undefined;
+  const detailsBg = isDark ? "#1F2E34" : undefined;
 
   return (
     <View style={[styles.invoiceCard, cardBg && { backgroundColor: cardBg }]}>
@@ -611,7 +611,7 @@ const Invoices = ({ navigation }) => {
         key={invoiceCard.id}
         style={[
           styles.invoiceCard,
-          isDark && { backgroundColor: themeColors?.card ?? "#2C2C2E" },
+          isDark && { backgroundColor: "#1A1F2E" },
         ]}
       >
         {/* Header with Invoice ID and Status */}
@@ -622,10 +622,13 @@ const Invoices = ({ navigation }) => {
           <View style={[
             styles.statusBadge,
             isPaid ? styles.paidBadge : styles.unpaidBadge,
-            isDark && !isPaid && { backgroundColor: "#C6993B" },
-            isDark && isPaid && { backgroundColor: "#2E7D5E" },
+            isDark && !isPaid && { backgroundColor: "rgba(255, 180, 0, 0.15)" },
+            isDark && isPaid && { backgroundColor: "rgba(85, 181, 108, 0.15)" },
           ]}>
-            <Text style={[styles.statusText, isDark && { color: "#FFFFFF" }]}>
+            <Text style={[
+              styles.statusText,
+              isDark && { color: isPaid ? "#55B56C" : "#FFB400" },
+            ]}>
               {isPaid ? "Paid" : "Unpaid"}
             </Text>
           </View>
@@ -644,7 +647,7 @@ const Invoices = ({ navigation }) => {
         {/* Details Section */}
         <View style={[
           styles.detailsSection,
-          isDark && { backgroundColor: "#2C3A3F" },
+          isDark && { backgroundColor: "#1F2E34" },
         ]}>
           <View style={styles.detailItem}>
             <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
@@ -677,7 +680,7 @@ const Invoices = ({ navigation }) => {
             style={[
               styles.secondaryButton,
               isDark && {
-                backgroundColor: themeColors?.card ?? "#2C2C2E",
+                backgroundColor: "#1A1F2E",
                 borderColor: COLORS.secondaryColor,
               },
             ]}
@@ -783,7 +786,7 @@ const Invoices = ({ navigation }) => {
           ]}>
             <View style={[
               styles.emptyIconCircle,
-              isDark && { backgroundColor: themeColors?.card ?? "#2C2C2E" },
+              isDark && { backgroundColor: "#1A1F2E" },
             ]}>
               <NoInvoiceIcon
                 width={28}
@@ -1127,21 +1130,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 12,
     flexDirection: "row",
-    justifyContent: "space-around",  
+    justifyContent: "space-around",
     alignItems: "center",
   },
   detailItem: {
     gap: 4,
+    alignItems: "center",
+    flex: 1,
   },
   detailLabel: {
     fontSize: 12,
     fontFamily: "Manrope-Regular",
     color: "#6B7280",
+    textAlign: "center",
   },
   detailValue: {
     fontSize: 14,
     fontFamily: "Manrope-Bold",
     color: COLORS.primaryFontColor,
+    textAlign: "center",
   },
   actionButtons: {
     flexDirection: "row",
