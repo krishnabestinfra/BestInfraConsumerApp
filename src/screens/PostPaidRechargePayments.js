@@ -574,7 +574,8 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 60,
-    alignItems: "center",    justifyContent: "center",
+    alignItems: "center",    
+    justifyContent: "center",
     elevation: 5,
     zIndex: 2,
   },  logo: {
