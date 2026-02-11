@@ -10,38 +10,110 @@ import { ENVIRONMENT_CONFIG, getCurrentEnvironment } from './environment';
 // Get current environment configuration
 const currentEnv = getCurrentEnvironment();
 
-// API Base URLs
-const API_CONFIG = {
-  // Development (Local) Configuration
-  development: {
-    BASE_URL: ENVIRONMENT_CONFIG.development.apiBaseUrl,
-    TICKETS_URL: ENVIRONMENT_CONFIG.development.ticketsBaseUrl,
-    AUTH_URL: ENVIRONMENT_CONFIG.development.authBaseUrl,
-    RESET_PASSWORD_URL: ENVIRONMENT_CONFIG.development.resetPasswordUrl,
-    HEALTH_URL: ENVIRONMENT_CONFIG.development.healthUrl,
-    PAYMENT_URL: ENVIRONMENT_CONFIG.development.paymentUrl,
-  },
-  
-  // Production (Hosted) Configuration
-  production: {
-    BASE_URL: ENVIRONMENT_CONFIG.production.apiBaseUrl,
-    TICKETS_URL: ENVIRONMENT_CONFIG.production.ticketsBaseUrl,
-    AUTH_URL: ENVIRONMENT_CONFIG.production.authBaseUrl,
-    RESET_PASSWORD_URL: ENVIRONMENT_CONFIG.production.resetPasswordUrl,
-    HEALTH_URL: ENVIRONMENT_CONFIG.production.healthUrl,
-    PAYMENT_URL: ENVIRONMENT_CONFIG.production.paymentUrl,
+// -----------------------------
+// Tenant (subdomain) handling
+// -----------------------------
+// Default tenant for hosted APIs – will be overridden after login using middleware response
+let currentTenantSubdomain = 'gmr';
+
+export const setTenantSubdomain = (subdomain) => {
+  if (!subdomain || typeof subdomain !== 'string') {
+    return;
+  }
+  currentTenantSubdomain = subdomain.toLowerCase();
+  if (__DEV__) {
+    console.log('🔧 Tenant subdomain set to:', currentTenantSubdomain);
   }
 };
 
-// Get current environment configuration
-const getCurrentConfig = () => {
-  // You can override this with environment variables or user settings
-  const environment = currentEnv.name;
-  return API_CONFIG[environment];
+export const getTenantSubdomain = () => currentTenantSubdomain;
+
+// Helper: extract host from configured API base URL
+// e.g. 'https://api.bestinfra.app/gmr/api' -> 'https://api.bestinfra.app'
+const getApiHost = () => {
+  const baseUrl = currentEnv.apiBaseUrl || ENVIRONMENT_CONFIG.production.apiBaseUrl;
+  try {
+    const url = new URL(baseUrl);
+    return `${url.protocol}//${url.host}`;
+  } catch (e) {
+    // Fallback to known host
+    return 'https://api.bestinfra.app';
+  }
 };
 
-// Current API configuration
-export const API = getCurrentConfig();
+const API_HOST = getApiHost();
+
+// Build tenant-specific base URLs (for hosted / production mode)
+const getTenantBaseUrl = () => {
+  if (currentEnv.name === 'development') {
+    // In development we keep using direct local URL
+    return currentEnv.apiBaseUrl;
+  }
+  return `${API_HOST}/${currentTenantSubdomain}/api`;
+};
+
+const getTenantTicketsBaseUrl = () => {
+  if (currentEnv.name === 'development') {
+    return currentEnv.ticketsBaseUrl;
+  }
+  // Tickets also live under tenant API
+  return `${API_HOST}/${currentTenantSubdomain}/api`;
+};
+
+const getTenantHealthUrl = () => {
+  if (currentEnv.name === 'development') {
+    return currentEnv.healthUrl;
+  }
+  return `${API_HOST}/${currentTenantSubdomain}/api/health`;
+};
+
+const getTenantPaymentUrl = () => {
+  if (currentEnv.name === 'development') {
+    return currentEnv.paymentUrl;
+  }
+  return `${API_HOST}/${currentTenantSubdomain}/api/payment`;
+};
+
+// Tenant-specific auth base URL (sub-app auth)
+const getTenantAuthUrl = () => {
+  if (currentEnv.name === 'development') {
+    return currentEnv.authBaseUrl;
+  }
+  return `${API_HOST}/${currentTenantSubdomain}/api/sub-app/auth`;
+};
+
+// Middleware base URL for authentication (common for all clients)
+// NOTE: Currently, the live backend exposes working auth at the tenant sub-app
+// route (e.g. https://api.bestinfra.app/gmr/api/sub-app/auth/login), not at
+// /middleware/auth/login. We keep this value for future use, but login/refresh/
+// logout are wired to AUTH_URL to match the working backend.
+const MIDDLEWARE_BASE_URL = currentEnv.middlewareBaseUrl || 'https://api.bestinfra.app/middleware';
+
+// Current API configuration (exposed as dynamic getters so tenant can change at runtime)
+export const API = {
+  get BASE_URL() {
+    return getTenantBaseUrl();
+  },
+  get TICKETS_URL() {
+    return getTenantTicketsBaseUrl();
+  },
+  get AUTH_URL() {
+    return getTenantAuthUrl();
+  },
+  get RESET_PASSWORD_URL() {
+    return currentEnv.resetPasswordUrl;
+  },
+  get HEALTH_URL() {
+    return getTenantHealthUrl();
+  },
+  get PAYMENT_URL() {
+    return getTenantPaymentUrl();
+  },
+  // Expose middleware base for debugging if needed
+  get MIDDLEWARE_BASE_URL() {
+    return MIDDLEWARE_BASE_URL;
+  },
+};
 
 // Debug API configuration (only in development)
 if (__DEV__) {
@@ -61,22 +133,26 @@ export const API_ENDPOINTS = {
     health: () => `${API.HEALTH_URL}/`,
   },
   
-  // Authentication endpoints (sub-app auth: explicit v2gmr URLs to avoid route-not-found)
+  // Authentication endpoints
   auth: {
+    // Use the working sub-app auth base (e.g. https://api.bestinfra.app/gmr/api/sub-app/auth)
+    // so that login works for current backend deployment.
     login: () => `${API.AUTH_URL}/login`,
     logout: () => `${API.AUTH_URL}/logout`,
     refresh: () => `${API.AUTH_URL}/refresh`,
     resetPassword: () => `${API.RESET_PASSWORD_URL}/reset-password`,
 
-    forgotPassword: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/login-otp',
-    verifyOtp: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/verify-otp',
-    updatePassword: () => 'https://api.bestinfra.app/v2gmr/api/sub-app/auth/update-password',
+    // These remain tenant app-specific (currently GMR); they are not part of middleware auth spec
+    forgotPassword: () => 'https://api.bestinfra.app/gmr/api/sub-app/auth/login-otp',
+    verifyOtp: () => 'https://api.bestinfra.app/gmr/api/sub-app/auth/verify-otp',
+    updatePassword: () => 'https://api.bestinfra.app/gmr/api/sub-app/auth/update-password',
   },
   
   tickets: {
     stats: (uid) => `${API.TICKETS_URL}/tickets/stats?uid=${uid}`,
     table: (uid) => `${API.TICKETS_URL}/tickets/table?uid=${uid}`,
-    create: () => 'https://api.bestinfra.app/v2gmr/api/tickets',
+    // Ticket creation is tenant-specific; use current tenant base URL
+    create: () => `${API.TICKETS_URL}/tickets`,
     update: (id) => `${API.TICKETS_URL}/tickets/${id}`,
   },
   

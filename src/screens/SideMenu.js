@@ -17,6 +17,7 @@ import SideMenuNavigation from "../components/SideMenuNavigation";
 import Logo from "../components/global/Logo";
 import { logoutUser, getUser } from "../utils/storage";
 import CrossIcon from "../../assets/icons/crossWhite.svg";
+import { getTenantSubdomain } from "../config/apiConfig";
 
 const SideMenu = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
@@ -24,6 +25,13 @@ const SideMenu = ({ navigation }) => {
   const s11 = getScaledFontSize(11);
   const { activeItem, setActiveItem } = useContext(TabContext);
   const [userData, setUserData] = useState(null);
+
+  // Determine current tenant (client) for branding (GMR vs NTPL)
+  const tenantSubdomain = getTenantSubdomain ? getTenantSubdomain() : "gmr";
+  const tenantLogoSource =
+    tenantSubdomain === "ntpl"
+      ? require("../../assets/images/ntpl.png")
+      : require("../../assets/images/gmr.png");
 
   // Fetch user data
   useEffect(() => {
@@ -114,7 +122,7 @@ const SideMenu = ({ navigation }) => {
               style={styles.gmrLogo}
             />
             <Image 
-              source={require("../../assets/images/gmr.png")} 
+              source={tenantLogoSource} 
               style={styles.profileImage}
             />
           </View>

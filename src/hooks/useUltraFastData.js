@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ultraFastApiClient } from '../services/UltraFastApiClient';
 import { getUser } from '../utils/storage';
 import { getCachedConsumerData } from '../utils/cacheManager';
+import { isDemoUser, getDemoDashboardConsumerData } from '../constants/demoData';
 
 export const useUltraFastData = (dataType = 'consumerData', options = {}) => {
   const {
@@ -26,6 +27,7 @@ export const useUltraFastData = (dataType = 'consumerData', options = {}) => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [lastFetch, setLastFetch] = useState(null);
   const [error, setError] = useState(null);
+  const [isDemo, setIsDemo] = useState(false);
   
   const loadingTimeoutRef = useRef(null);
   const refreshIntervalRef = useRef(null);
@@ -44,7 +46,32 @@ export const useUltraFastData = (dataType = 'consumerData', options = {}) => {
         throw new Error('No user identifier found');
       }
 
-      console.log(`🚀 UltraFast: Loading ${dataType} for ${user.identifier}`);
+      const identifier = user.identifier;
+      const demoUser = isDemoUser(identifier);
+      if (demoUser !== isDemo) {
+        setIsDemo(demoUser);
+      }
+
+      console.log(`🚀 UltraFast: Loading ${dataType} for ${identifier}`);
+
+      // For demo users, bypass network completely and use demo data
+      if (demoUser) {
+        if (dataType === 'consumerData') {
+          const demoData = getDemoDashboardConsumerData(identifier);
+          setData(demoData);
+          setIsLoading(false);
+          setIsInitialLoad(false);
+          setLastFetch(Date.now());
+          console.log('🟡 UltraFast: Demo user detected - using demo consumerData without API call');
+          return;
+        }
+        // For other data types, just stop loading without errors
+        console.log(`🟡 UltraFast: Demo user detected - skipping UltraFast API for dataType=${dataType}`);
+        setIsLoading(false);
+        setIsInitialLoad(false);
+        setLastFetch(Date.now());
+        return;
+      }
 
       // Strategy 1: Try cache first (instant)
       if (!forceRefresh) {
@@ -62,7 +89,7 @@ export const useUltraFastData = (dataType = 'consumerData', options = {}) => {
       }
 
       // Strategy 2: Ultra-fast API call
-      const result = await ultraFastApiClient.getConsumerDataUltraFast(user.identifier);
+      const result = await ultraFastApiClient.getConsumerDataUltraFast(identifier);
       
       if (result.success) {
         setData(result.data);
@@ -88,7 +115,8 @@ export const useUltraFastData = (dataType = 'consumerData', options = {}) => {
       const totalTime = Date.now() - startTime;
       console.log(`⏱️ UltraFast: Total loading time: ${totalTime}ms`);
       
-      if (totalTime > maxLoadingTime) {
+      // Only warn about slow loads for non-demo users
+      if (!isDemo && totalTime > maxLoadingTime) {
         console.warn(`⚠️ UltraFast: Loading time exceeded ${maxLoadingTime}ms`);
       }
     }
@@ -145,7 +173,8 @@ export const useUltraFastData = (dataType = 'consumerData', options = {}) => {
 
   // Auto-refresh effect
   useEffect(() => {
-    if (!autoRefresh) return;
+    // Disable auto-refresh for demo users to avoid repeated logs
+    if (!autoRefresh || isDemo) return;
 
     refreshIntervalRef.current = setInterval(() => {
       if (!isLoading) {
@@ -158,7 +187,7 @@ export const useUltraFastData = (dataType = 'consumerData', options = {}) => {
         clearInterval(refreshIntervalRef.current);
       }
     };
-  }, [autoRefresh, refreshInterval, isLoading, loadData]);
+  }, [autoRefresh, refreshInterval, isLoading, loadData, isDemo]);
 
   // Initial load
   useEffect(() => {
@@ -167,6 +196,9 @@ export const useUltraFastData = (dataType = 'consumerData', options = {}) => {
 
   // Loading timeout protection
   useEffect(() => {
+    // Skip timeout warnings for demo users
+    if (isDemo) return;
+
     if (isLoading) {
       loadingTimeoutRef.current = setTimeout(() => {
         if (isLoading) {
@@ -185,7 +217,7 @@ export const useUltraFastData = (dataType = 'consumerData', options = {}) => {
         clearTimeout(loadingTimeoutRef.current);
       }
     };
-  }, [isLoading, maxLoadingTime]);
+  }, [isLoading, maxLoadingTime, isDemo]);
 
   // Memoized refresh function
   const refresh = useCallback((force = false) => {

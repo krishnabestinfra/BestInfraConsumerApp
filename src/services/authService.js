@@ -10,6 +10,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../constants/constants';
+import { setTenantSubdomain } from '../config/apiConfig';
 import { isDemoUser } from '../constants/demoData';
 
 // Token storage keys
@@ -18,6 +19,7 @@ const REFRESH_TOKEN_KEY = 'refresh_token';
 const TOKEN_EXPIRY_KEY = 'token_expiry';
 const USER_KEY = 'user';
 const REMEMBER_ME_KEY = 'remember_me';
+const CLIENT_SUBDOMAIN_KEY = 'client_subdomain';
 
 // Token expiry times (in milliseconds)
 const ACCESS_TOKEN_EXPIRY = 15 * 60 * 1000; // 15 minutes
@@ -26,6 +28,18 @@ const REFRESH_TOKEN_EXPIRY = 30 * 24 * 60 * 60 * 1000; // 30 days
 class AuthService {
   constructor() {
     this.refreshPromise = null; // Prevent concurrent refresh requests
+
+    // Try to restore previously selected tenant (subdomain) from storage on app start
+    AsyncStorage.getItem(CLIENT_SUBDOMAIN_KEY)
+      .then((storedSubdomain) => {
+        if (storedSubdomain) {
+          setTenantSubdomain(storedSubdomain);
+          console.log('✅ Restored tenant subdomain from storage:', storedSubdomain);
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Error restoring tenant subdomain from storage:', error);
+      });
   }
 
   /**
@@ -162,6 +176,7 @@ class AuthService {
   async _performTokenRefresh() {
     try {
       const refreshToken = await this.getRefreshToken();
+      const clientSubdomain = await AsyncStorage.getItem(CLIENT_SUBDOMAIN_KEY);
       
       // If we have a stored refresh token, use it
       // If not, the server may have it in an httpOnly cookie (React Native will send it automatically)
@@ -172,8 +187,14 @@ class AuthService {
       console.log('🔄 Refreshing access token...');
       console.log(`   Refresh endpoint: ${API_ENDPOINTS.auth.refresh()}`);
 
-      // Prepare request body - include refreshToken if we have it
-      const requestBody = refreshToken ? { refreshToken } : {};
+      // Prepare request body - include refreshToken and client (tenant subdomain) if we have them
+      const requestBody = {};
+      if (refreshToken) {
+        requestBody.refreshToken = refreshToken;
+      }
+      if (clientSubdomain) {
+        requestBody.client = clientSubdomain;
+      }
       
       // Add timeout to prevent hanging
       const controller = new AbortController();
@@ -228,17 +249,27 @@ class AuthService {
       const result = await response.json();
       
       // Extract new tokens from response
-      // Support multiple naming conventions: accessToken, token, gmrToken
+      // Support multiple naming conventions:
+      // - Generic: accessToken, token
+      // - GMR-specific: gmrToken
+      // - NTPL-specific: ntplToken
       const newAccessToken = result.data?.accessToken || 
                             result.data?.gmrToken ||
+                            result.data?.ntplToken ||
                             result.accessToken || 
                             result.gmrToken ||
+                            result.ntplToken ||
                             result.data?.token;
-      // Support multiple naming conventions: refreshToken, gmrRefreshToken
+      // Support multiple naming conventions for refresh token:
+      // - Generic: refreshToken
+      // - GMR-specific: gmrRefreshToken
+      // - NTPL-specific: ntplRefreshToken
       const newRefreshToken = result.data?.refreshToken || 
                              result.data?.gmrRefreshToken ||
+                             result.data?.ntplRefreshToken ||
                              result.refreshToken || 
                              result.gmrRefreshToken ||
+                             result.ntplRefreshToken ||
                              this.extractRefreshTokenFromResponse(response) || refreshToken;
 
       if (!newAccessToken) {
@@ -452,13 +483,20 @@ class AuthService {
   async handleLoginResponse(response, responseData) {
     try {
       // Extract access token from response
-      // Support multiple naming conventions: accessToken, token, gmrToken, gmrAccessToken
+      // Support multiple naming conventions:
+      // - Generic: accessToken, token
+      // - GMR-specific: gmrToken, gmrAccessToken
+      // - NTPL-specific: ntplToken, ntplAccessToken
       const accessToken = responseData?.data?.accessToken || 
                          responseData?.data?.gmrAccessToken ||
                          responseData?.data?.gmrToken ||
+                         responseData?.data?.ntplAccessToken ||
+                         responseData?.data?.ntplToken ||
                          responseData?.accessToken || 
                          responseData?.gmrAccessToken ||
                          responseData?.gmrToken ||
+                         responseData?.ntplAccessToken ||
+                         responseData?.ntplToken ||
                          responseData?.data?.token;
       
       if (!accessToken) {
@@ -467,12 +505,17 @@ class AuthService {
       }
 
       // Extract refresh token from response body first (preferred for React Native)
-      // Support multiple naming conventions: refreshToken, gmrRefreshToken
+      // Support multiple naming conventions:
+      // - Generic: refreshToken
+      // - GMR-specific: gmrRefreshToken
+      // - NTPL-specific: ntplRefreshToken
       // Then try cookies as fallback
       let refreshToken = responseData?.data?.refreshToken || 
                        responseData?.data?.gmrRefreshToken ||
+                       responseData?.data?.ntplRefreshToken ||
                        responseData?.refreshToken ||
                        responseData?.gmrRefreshToken ||
+                       responseData?.ntplRefreshToken ||
                        this.extractRefreshTokenFromResponse(response);
 
       // Note: In React Native, httpOnly cookies set by the server are automatically
@@ -492,11 +535,40 @@ class AuthService {
         await this.storeRefreshToken(refreshToken);
       }
 
+      // Extract tenant/client subdomain from middleware login response (if provided)
+      // Supports both top-level and nested "data" structures:
+      // {
+      //   "clients": [{ "subdomain": "ntpl", "name": "ntpl" }]
+      // }
+      const clients =
+        responseData?.data?.clients ||
+        responseData?.clients ||
+        [];
+
+      const clientSubdomain =
+        Array.isArray(clients) && clients.length > 0
+          ? clients[0].subdomain || clients[0].client || null
+          : null;
+
+      if (clientSubdomain) {
+        try {
+          // Persist selected tenant so that all subsequent API calls use correct {subdomain}/api
+          await AsyncStorage.setItem(CLIENT_SUBDOMAIN_KEY, clientSubdomain);
+          setTenantSubdomain(clientSubdomain);
+          console.log('✅ Tenant subdomain stored from login response:', clientSubdomain);
+        } catch (subdomainError) {
+          console.error('❌ Error storing tenant subdomain:', subdomainError);
+        }
+      } else {
+        console.warn('⚠️ No client subdomain found in login response. Falling back to default tenant.');
+      }
+
       console.log('✅ Login tokens stored successfully');
       
       return {
         accessToken,
-        refreshToken
+        refreshToken,
+        clientSubdomain: clientSubdomain || null,
       };
     } catch (error) {
       console.error('❌ Error handling login response:', error);
@@ -525,9 +597,10 @@ class AuthService {
       const user = await this.getUser();
       const isDemo = user?.identifier ? isDemoUser(user.identifier) : false;
       
-      // Step 2: Get current tokens before clearing
+      // Step 2: Get current tokens and tenant before clearing
       const accessToken = await this.getAccessToken();
       const refreshToken = await this.getRefreshToken();
+      const clientSubdomain = await AsyncStorage.getItem(CLIENT_SUBDOMAIN_KEY);
       
       // Step 3: Call logout endpoint to revoke refresh token on server
       // Skip API call for demo users (instant logout)
@@ -539,8 +612,9 @@ class AuthService {
           if (refreshToken) {
             requestBody.refreshToken = refreshToken;
           }
-          if (accessToken) {
-            requestBody.accessToken = accessToken;
+          if (clientSubdomain) {
+            // Middleware spec: client = subdomain from login
+            requestBody.client = clientSubdomain;
           }
           
           const response = await fetch(API_ENDPOINTS.auth.logout(), {
@@ -584,6 +658,14 @@ class AuthService {
       // Step 5: Clear user data
       console.log('🔄 Clearing user data...');
       await this.clearUser();
+      // Clear stored tenant info and reset to default
+      try {
+        await AsyncStorage.removeItem(CLIENT_SUBDOMAIN_KEY);
+        setTenantSubdomain('gmr');
+        console.log('🔄 Cleared tenant subdomain and reset to default');
+      } catch (tenantClearError) {
+        console.error('❌ Error clearing tenant subdomain:', tenantClearError);
+      }
       
       console.log('✅ Logout completed successfully');
       console.log('   - Access token deleted from local storage');

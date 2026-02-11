@@ -12,6 +12,7 @@
 import { getToken, getUser } from '../utils/storage';
 import { API_ENDPOINTS } from '../constants/constants';
 import { authService } from './authService';
+import { getTenantSubdomain } from '../config/apiConfig';
 
 class ApiClient {
   constructor() {
@@ -92,11 +93,13 @@ class ApiClient {
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       // Prepare request headers
+      const tenantSubdomain = getTenantSubdomain ? getTenantSubdomain() : null;
       const requestHeaders = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Cache-Control': 'no-cache',
         ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(tenantSubdomain && { 'X-Client': tenantSubdomain }),
         ...headers,
       };
 

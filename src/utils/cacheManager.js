@@ -15,6 +15,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API, API_ENDPOINTS } from '../constants/constants';
 import { getToken, getUser } from './storage';
+import { isDemoUser, getDemoDashboardConsumerData } from '../constants/demoData';
 
 // Cache configuration
 const CACHE_KEYS = {
@@ -121,12 +122,29 @@ class UnifiedCacheManager {
    */
   async fetchFreshData(endpoint, identifier = null) {
     try {
-      const token = await getToken();
       const user = await getUser();
+      const effectiveIdentifier = identifier || user?.identifier || 'unknown';
+
+      // For demo users, completely skip network calls and return
+      // rich local demo dashboard data instead of hitting the backend.
+      if (isDemoUser(effectiveIdentifier)) {
+        console.log('🟡 Demo user detected - using local demo data in cacheManager for', effectiveIdentifier);
+        const demoData = getDemoDashboardConsumerData(effectiveIdentifier);
+        return {
+          success: true,
+          data: demoData,
+          fromCache: false,
+          timestamp: Date.now(),
+          demo: true,
+          skippedNetwork: true,
+        };
+      }
+
+      const token = await getToken();
       
       console.log('🔄 Fetching fresh data from API:');
       console.log(`   Endpoint: ${endpoint}`);
-      console.log(`   Consumer: ${identifier || user?.identifier || 'unknown'}`);
+      console.log(`   Consumer: ${effectiveIdentifier}`);
       console.log(`   Token present: ${!!token}`);
       
       const response = await fetch(endpoint, {

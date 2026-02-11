@@ -156,6 +156,7 @@ export const testConsumerCredentials = async (identifier, password) => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
+      // Match working backend contract: identifier + password
       body: JSON.stringify({
         identifier: identifier.trim(),
         password: password.trim()

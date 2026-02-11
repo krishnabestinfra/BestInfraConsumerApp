@@ -41,44 +41,37 @@ export const isDemoUser = (identifier) => {
 // --------- DASHBOARD / USAGE DEMO DATA ----------
 
 // Basic chart data used by both dashboard and usage screens
-// Daily: 30 days of non‑zero data so 7D and 30D views are fully filled
+// Daily: 30 days of non‑zero data so 7D and 30D views are fully filled.
+// Values are static, but labels are generated dynamically from "today"
+// so that 7D always means "last 7 days" and 30D means "last 30 days".
 const DEMO_DAILY_SERIES = [
   118, 122, 125, 130, 128, 135, 140, 142, 138, 145,
   150, 148, 152, 155, 149, 160, 158, 162, 165, 168,
   170, 169, 172, 175, 178, 180, 182, 185, 188, 190,
 ];
-const DEMO_DAILY_LABELS = [
-  "01 Jan 2026",
-  "02 Jan 2026",
-  "03 Jan 2026",
-  "04 Jan 2026",
-  "05 Jan 2026",
-  "06 Jan 2026",
-  "07 Jan 2026",
-  "08 Jan 2026",
-  "09 Jan 2026",
-  "10 Jan 2026",
-  "11 Jan 2026",
-  "12 Jan 2026",
-  "13 Jan 2026",
-  "14 Jan 2026",
-  "15 Jan 2026",
-  "16 Jan 2026",
-  "17 Jan 2026",
-  "18 Jan 2026",
-  "19 Jan 2026",
-  "20 Jan 2026",
-  "21 Jan 2026",
-  "22 Jan 2026",
-  "23 Jan 2026",
-  "24 Jan 2026",
-  "25 Jan 2026",
-  "26 Jan 2026",
-  "27 Jan 2026",
-  "28 Jan 2026",
-  "29 Jan 2026",
-  "30 Jan 2026",
-];
+
+const getLastNDaysLabels = (n) => {
+  const labels = [];
+  // Use "yesterday" as the end date so that
+  // the most recent label is the last fully completed day.
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() - 1);
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(endDate);
+    d.setDate(d.getDate() - i);
+
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = monthNames[d.getMonth()];
+    const year = d.getFullYear();
+
+    labels.push(`${day} ${month} ${year}`);
+  }
+
+  return labels;
+};
 
 // Monthly: 12 months of non‑zero data so 90D (3 months) and 1Y (12 months) are filled
 const DEMO_MONTHLY_SERIES = [
@@ -140,18 +133,45 @@ export const getDemoConsumerCore = (identifier) => {
 export const getDemoDashboardConsumerData = (identifier) => {
   const core = getDemoConsumerCore(identifier);
 
+  // Derive high-level dashboard stats from demo series
+  const dailyValues = DEMO_DAILY_SERIES;
+  const averageDaily =
+    dailyValues.length > 0
+      ? Math.round(dailyValues.reduce((sum, v) => sum + v, 0) / dailyValues.length)
+      : 0;
+  const peakUsage = dailyValues.length > 0 ? Math.max(...dailyValues) : 0;
+
+  // Keep these in sync with the key demo invoice units
+  const thisMonthKwh = 2060; // Matches DEMO_INVOICES[0].unitsConsumed
+  const lastMonthKwh = 2340; // Matches DEMO_INVOICES[1].unitsConsumed
+  const savingsKwh = Math.max(lastMonthKwh - thisMonthKwh, 0);
+
+  // Generate daily labels for the last 30 days ending today.
+  // 7D and 30D views slice from this array, so:
+  // - 7D == last 7 days from today
+  // - 30D == last 30 days from today
+  const dailyLabels = getLastNDaysLabels(DEMO_DAILY_SERIES.length);
+
   return {
     ...core,
     // Consumption summary & chart data
     chartData: {
       daily: {
         seriesData: [{ data: DEMO_DAILY_SERIES }],
-        xAxisData: DEMO_DAILY_LABELS,
+        xAxisData: dailyLabels,
       },
       monthly: {
         seriesData: [{ data: DEMO_MONTHLY_SERIES }],
         xAxisData: DEMO_MONTHLY_LABELS,
       },
+    },
+    // Summary statistics used by the PostPaidDashboard "Usage Stats" cards
+    dashboardStats: {
+      averageDailyKwh: averageDaily,
+      peakUsageKwh: peakUsage,
+      thisMonthKwh,
+      lastMonthKwh,
+      savingsKwh,
     },
     // Simple demo tamper events list for Alerts table
     alerts: [

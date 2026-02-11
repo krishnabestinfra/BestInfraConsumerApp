@@ -35,6 +35,8 @@ export const ENVIRONMENT_CONFIG = {
     resetPasswordUrl: process.env.EXPO_PUBLIC_DEV_RESET_PASSWORD_URL || 'http://192.168.1.83:3000/api/v1/auth',
     healthUrl: process.env.EXPO_PUBLIC_DEV_HEALTH_URL || 'http://192.168.1.83/api/health',
     paymentUrl: process.env.EXPO_PUBLIC_DEV_PAYMENT_URL || 'http://192.168.1.83/api/payment',
+    // Middleware auth base (can point to hosted middleware even in dev)
+    middlewareBaseUrl: process.env.EXPO_PUBLIC_DEV_MIDDLEWARE_BASE_URL || 'https://api.bestinfra.app/middleware',
     debugApiCalls: process.env.EXPO_PUBLIC_DEBUG_API_CALLS === 'true' || true,
     logLevel: process.env.EXPO_PUBLIC_LOG_LEVEL || 'debug',
     cacheEnabled: true,
@@ -45,12 +47,14 @@ export const ENVIRONMENT_CONFIG = {
   
   production: {
     name: 'production',
-    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.bestinfra.app/v2gmr/api',
-    ticketsBaseUrl: process.env.EXPO_PUBLIC_TICKETS_BASE_URL || 'https://api.bestinfra.app/v2gmr/api',
-    authBaseUrl: process.env.EXPO_PUBLIC_AUTH_BASE_URL || 'https://api.bestinfra.app/v2gmr/api/sub-app/auth',
-    resetPasswordUrl: process.env.EXPO_PUBLIC_RESET_PASSWORD_URL || 'https://api.bestinfra.app/v2gmr/api/auth',
-    healthUrl: process.env.EXPO_PUBLIC_HEALTH_URL || 'https://api.bestinfra.app/v2gmr/api/health',
-    paymentUrl: process.env.EXPO_PUBLIC_PAYMENT_URL || 'https://api.bestinfra.app/v2gmr/api/payment',
+    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.bestinfra.app/gmr/api',
+    ticketsBaseUrl: process.env.EXPO_PUBLIC_TICKETS_BASE_URL || 'https://api.bestinfra.app/gmr/api',
+    authBaseUrl: process.env.EXPO_PUBLIC_AUTH_BASE_URL || 'https://api.bestinfra.app/gmr/api/sub-app/auth',
+    resetPasswordUrl: process.env.EXPO_PUBLIC_RESET_PASSWORD_URL || 'https://api.bestinfra.app/gmr/api/auth',
+    healthUrl: process.env.EXPO_PUBLIC_HEALTH_URL || 'https://api.bestinfra.app/gmr/api/health',
+    paymentUrl: process.env.EXPO_PUBLIC_PAYMENT_URL || 'https://api.bestinfra.app/gmr/api/payment',
+    // Middleware auth base for multi-tenant authentication
+    middlewareBaseUrl: process.env.EXPO_PUBLIC_MIDDLEWARE_BASE_URL || 'https://api.bestinfra.app/middleware',
     debugApiCalls: process.env.EXPO_PUBLIC_DEBUG_API_CALLS === 'true' || false,
     logLevel: process.env.EXPO_PUBLIC_LOG_LEVEL || 'error',
     cacheEnabled: true,

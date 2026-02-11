@@ -173,7 +173,7 @@ export const networkOptimizer = {
     const startTime = performance.now();
     
     try {
-      await fetch('https://api.bestinfra.app/v2gmr/api/health', {
+      await fetch('https://api.bestinfra.app/gmr/api/health', {
         method: 'HEAD',
         cache: 'no-cache'
       });

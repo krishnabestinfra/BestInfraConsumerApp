@@ -107,6 +107,7 @@ export const testConsumerAuth = async (identifier, password, apiUrl) => {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
+        // Match working backend contract: identifier + password
         identifier: identifier.trim(),
         password: password.trim()
       })

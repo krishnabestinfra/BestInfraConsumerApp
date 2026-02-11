@@ -17,6 +17,7 @@ import LoginForm from "./LoginForm";
 import { storeUser, extractConsumerInfo } from "../utils/storage";
 import { testConsumerCredentials } from "../services/apiService";
 import { API, API_ENDPOINTS } from "../constants/constants";
+import { setTenantSubdomain } from "../config/apiConfig";
 import { authService } from "../services/authService";
 import Button from "../components/global/Button";
 import Logo from "../components/global/Logo";
@@ -50,6 +51,17 @@ const Login = ({ navigation }) => {
       if (!identifier.trim() || !password.trim()) {
         setLoginError("Invalid credentials. Please check your email/phone and password.");
         return;
+      }
+
+      // Infer tenant (client) from identifier pattern (GMR vs NTPL)
+      const upperId = identifier.trim().toUpperCase();
+      if (upperId.startsWith("BI25GMRA")) {
+        setTenantSubdomain("gmr");
+      } else if (upperId.startsWith("BI26NTPA")) {
+        setTenantSubdomain("ntpl");
+      } else {
+        // Default to GMR if pattern is unknown
+        setTenantSubdomain("gmr");
       }
 
       // DEMO MODE: Check for dummy credentials first
@@ -176,6 +188,7 @@ const Login = ({ navigation }) => {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        // Match the working Postman request exactly: identifier + password
         body: JSON.stringify({
           identifier: identifier.trim(),
           password: password.trim()

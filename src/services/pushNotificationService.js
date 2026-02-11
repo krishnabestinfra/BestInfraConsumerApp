@@ -13,6 +13,7 @@ import Constants from 'expo-constants';
 import { API_ENDPOINTS } from '../constants/constants';
 import { authService } from './authService';
 import { getUser } from '../utils/storage';
+import { isDemoUser } from '../constants/demoData';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -108,6 +109,13 @@ export const registerPushToken = async (token) => {
     const user = await getUser();
     if (!user || !user.identifier) {
       return { success: false, message: 'User not logged in' };
+    }
+
+    // For demo users, completely skip backend registration so that
+    // no real API calls or 404 errors are triggered.
+    if (isDemoUser(user.identifier)) {
+      console.log('🟡 Demo user detected - skipping push token registration for', user.identifier);
+      return { success: true, message: 'Demo user - push token registration skipped', demo: true };
     }
 
     // Get access token

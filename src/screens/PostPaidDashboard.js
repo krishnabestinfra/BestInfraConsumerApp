@@ -247,6 +247,62 @@ const PostPaidDashboard = ({ navigation, route }) => {
     }
   }, [consumerData, loadTableData]);
 
+  // --------- DASHBOARD SUMMARY STATS (Average, Peak, This/Last Month, Savings) ----------
+  const averageDailyKwh = useMemo(() => {
+    if (!consumerData) return 284; // fallback to existing UI value
+    if (consumerData.dashboardStats?.averageDailyKwh != null) {
+      return consumerData.dashboardStats.averageDailyKwh;
+    }
+    if (typeof consumerData.averageDaily === "number") {
+      return consumerData.averageDaily;
+    }
+    return 284;
+  }, [consumerData]);
+
+  const peakUsageKwh = useMemo(() => {
+    if (!consumerData) return 329;
+    if (consumerData.dashboardStats?.peakUsageKwh != null) {
+      return consumerData.dashboardStats.peakUsageKwh;
+    }
+    if (typeof consumerData.peakUsage === "number") {
+      return consumerData.peakUsage;
+    }
+    return 329;
+  }, [consumerData]);
+
+  const thisMonthKwh = useMemo(() => {
+    if (!consumerData) return 2060;
+    if (consumerData.dashboardStats?.thisMonthKwh != null) {
+      return consumerData.dashboardStats.thisMonthKwh;
+    }
+    if (typeof consumerData.thisMonthKwh === "number") {
+      return consumerData.thisMonthKwh;
+    }
+    return 2060;
+  }, [consumerData]);
+
+  const lastMonthKwh = useMemo(() => {
+    if (!consumerData) return 2340;
+    if (consumerData.dashboardStats?.lastMonthKwh != null) {
+      return consumerData.dashboardStats.lastMonthKwh;
+    }
+    if (typeof consumerData.lastMonthKwh === "number") {
+      return consumerData.lastMonthKwh;
+    }
+    return 2340;
+  }, [consumerData]);
+
+  const savingsKwh = useMemo(() => {
+    if (consumerData?.dashboardStats?.savingsKwh != null) {
+      return consumerData.dashboardStats.savingsKwh;
+    }
+    if (typeof consumerData?.savingsKwh === "number") {
+      return consumerData.savingsKwh;
+    }
+    const diff = lastMonthKwh - thisMonthKwh;
+    return diff > 0 ? diff : 0;
+  }, [consumerData, lastMonthKwh, thisMonthKwh]);
+
   // Helper function to map tamper type codes to readable text
   const getTamperTypeText = useCallback((tamperType) => {
     const tamperTypes = {
@@ -1210,11 +1266,15 @@ const PostPaidDashboard = ({ navigation, route }) => {
             <View style={styles.usageStatsTopRow}>
               <View style={[styles.usageStatsCard, darkOverlay.usageStatsCard]}>
                 <Text style={[styles.usageStatsCardTitle, darkOverlay.usageStatsCardTitle]}>Average Daily</Text>
-                <Text style={[styles.usageStatsCardValueBlue, darkOverlay.usageStatsCardValueBlue]}>284 kWh</Text>
+                <Text style={[styles.usageStatsCardValueBlue, darkOverlay.usageStatsCardValueBlue]}>
+                  {averageDailyKwh.toLocaleString("en-IN")} kWh
+                </Text>
               </View>
               <View style={[styles.usageStatsCard, darkOverlay.usageStatsCard]}>
                 <Text style={[styles.usageStatsCardTitle, darkOverlay.usageStatsCardTitle]}>Peak Usage</Text>
-                <Text style={[styles.usageStatsCardValueRed, darkOverlay.usageStatsCardValueRed]}>329 kWh</Text>
+                <Text style={[styles.usageStatsCardValueRed, darkOverlay.usageStatsCardValueRed]}>
+                  {peakUsageKwh.toLocaleString("en-IN")} kWh
+                </Text>
               </View>
             </View>
             <View style={[styles.comparisonCard, darkOverlay.comparisonCard]}>
@@ -1231,11 +1291,15 @@ const PostPaidDashboard = ({ navigation, route }) => {
               <View style={styles.monthlyValuesContainer}>
                 <View style={styles.monthlyValueItem}>
                   <Text style={[styles.monthlyValueLabel, darkOverlay.monthlyValueLabel]}>This Month</Text>
-                  <Text style={[styles.monthlyValueBlue, darkOverlay.monthlyValueBlue]}>2,060 kWh</Text>
+                  <Text style={[styles.monthlyValueBlue, darkOverlay.monthlyValueBlue]}>
+                    {thisMonthKwh.toLocaleString("en-IN")} kWh
+                  </Text>
                 </View>
                 <View style={styles.monthlyValueItem2}>
                   <Text style={[styles.monthlyValueLabel, darkOverlay.monthlyValueLabel]}>Last Month</Text>
-                  <Text style={[styles.monthlyValueGrey, darkOverlay.monthlyValueGrey]}>2,340 kWh</Text>
+                  <Text style={[styles.monthlyValueGrey, darkOverlay.monthlyValueGrey]}>
+                    {lastMonthKwh.toLocaleString("en-IN")} kWh
+                  </Text>
                 </View>
               </View>
               <View style={styles.progressBarContainer}>
@@ -1246,7 +1310,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
               </View>
               <View style={styles.savingsMessageRow}>
                 <PiggybankIcon width={16} height={16} fill={isDark ? themeColors.accent : COLORS.secondaryColor} style={styles.savingsMessageIcon} />
-                <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>You saved 280 kWh</Text>
+                <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>
+                  You saved {savingsKwh.toLocaleString("en-IN")} kWh
+                </Text>
               </View>
             </View>
           </View>
