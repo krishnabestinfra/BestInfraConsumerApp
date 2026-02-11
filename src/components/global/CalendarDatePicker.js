@@ -87,9 +87,10 @@ const CalendarDatePicker = ({
     return new Date(t.getFullYear(), t.getMonth(), t.getDate());
   };
 
-  const isPastDate = (date) => {
+  // Disable today and future dates; enable only dates before today (for consumption history)
+  const isTodayOrFuture = (date) => {
     const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    return d.getTime() < getToday().getTime();
+    return d.getTime() >= getToday().getTime();
   };
 
   const getCalendarDays = () => {
@@ -99,23 +100,25 @@ const CalendarDatePicker = ({
 
     const days = [];
 
-    // Leading days from previous month (to complete first row)
+    // Leading days from previous month (to complete first row) - enable if before today
     for (let i = 0; i < firstDay; i++) {
       const day = daysInPrevMonth - firstDay + i + 1;
-      days.push({ day, isCurrentMonth: false, date: new Date(viewYear, viewMonth - 1, day), disabled: true });
+      const date = new Date(viewYear, viewMonth - 1, day);
+      days.push({ day, isCurrentMonth: false, date, disabled: isTodayOrFuture(date) });
     }
 
-    // Current month days
+    // Current month days - disable today and future
     for (let d = 1; d <= daysInMonth; d++) {
       const date = new Date(viewYear, viewMonth, d);
-      days.push({ day: d, isCurrentMonth: true, date, disabled: isPastDate(date) });
+      days.push({ day: d, isCurrentMonth: true, date, disabled: isTodayOrFuture(date) });
     }
 
-    // Trailing days from next month - only enough to complete the last row
+    // Trailing days from next month - disable (always today or future)
     const totalSoFar = days.length;
     const trailingCount = totalSoFar % 7 === 0 ? 0 : 7 - (totalSoFar % 7);
     for (let d = 1; d <= trailingCount; d++) {
-      days.push({ day: d, isCurrentMonth: false, date: new Date(viewYear, viewMonth + 1, d), disabled: true });
+      const date = new Date(viewYear, viewMonth + 1, d);
+      days.push({ day: d, isCurrentMonth: false, date, disabled: isTodayOrFuture(date) });
     }
 
     return days;
@@ -185,13 +188,24 @@ const CalendarDatePicker = ({
     const rangeEndDay = isRangeEnd(date);
     const single = allowRangeSelection && selected && rangeStartDay && rangeEndDay;
     if (!selected) return [];
-    return [
-      styles.dayCellSelected,
-      single && styles.dayCellSelectedSingle,
-      allowRangeSelection && rangeStartDay && !single && styles.dayCellRangeStart,
-      allowRangeSelection && rangeEndDay && !single && styles.dayCellRangeEnd,
-      allowRangeSelection && isInRangeMiddle(date) && styles.dayCellRangeMiddle,
-    ].filter(Boolean);
+    // Range styling:
+    // - Start/end: solid highlight
+    // - Middle: light "shadowish" highlight
+    if (allowRangeSelection) {
+      if (single) {
+        return [styles.dayCellSelected, styles.dayCellSelectedSingle];
+      }
+      if (rangeStartDay) {
+        return [styles.dayCellSelected, styles.dayCellRangeStart];
+      }
+      if (rangeEndDay) {
+        return [styles.dayCellSelected, styles.dayCellRangeEnd];
+      }
+      if (isInRangeMiddle(date)) {
+        return [styles.dayCellRangeMiddle];
+      }
+    }
+    return [styles.dayCellSelected];
   };
 
   const calendarDays = getCalendarDays();
@@ -237,6 +251,7 @@ const CalendarDatePicker = ({
             {calendarDays.map(({ day, isCurrentMonth, date, disabled }, index) => {
               const selected = isSelected(date);
               const weekend = isCurrentMonth && !disabled && isWeekend(date);
+              const inRangeMiddle = isInRangeMiddle(date);
               const extraSelectedStyles = getDayCellStyle(date);
               return (
                 <TouchableOpacity
@@ -255,7 +270,7 @@ const CalendarDatePicker = ({
                       styles.dayText,
                       { fontSize: s14 },
                       !isCurrentMonth && styles.dayTextOtherMonth,
-                      selected && !disabled && styles.dayTextSelected,
+                      selected && !disabled && (inRangeMiddle ? styles.dayTextRangeMiddle : styles.dayTextSelected),
                       isCurrentMonth && !selected && weekend && styles.dayTextWeekend,
                       disabled && styles.dayTextDisabled,
                     ]}
@@ -353,7 +368,13 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
   },
   dayCellRangeMiddle: {
+    backgroundColor: 'rgba(22, 59, 124, 0.16)',
     borderRadius: 0,
+    shadowColor: 'rgba(22, 59, 124, 0.35)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 1,
   },
   dayText: {
     fontSize: 14,
@@ -372,6 +393,10 @@ const styles = StyleSheet.create({
   dayTextSelected: {
     color: '#FFFFFF',
     fontFamily: 'Manrope-SemiBold',
+  },
+  dayTextRangeMiddle: {
+    color: 'rgba(22, 59, 124, 0.95)',
+    fontFamily: 'Manrope-Medium',
   },
   dayTextWeekend: {
     color: '#DC272C',
