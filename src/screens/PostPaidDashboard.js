@@ -27,6 +27,7 @@ import EyeIcon from "../../assets/icons/eyeFill.svg";
 import { API, API_ENDPOINTS } from "../constants/constants";
 import { getUser, getToken } from "../utils/storage";
 import { useTheme } from "../context/ThemeContext";
+import { useFocusEffect } from "@react-navigation/native";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 import { apiClient } from '../services/apiClient';
@@ -144,6 +145,13 @@ const PostPaidDashboard = ({ navigation, route }) => {
   // Bottom sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
+
+  // Reset picked date to default "Pick a Date" when screen loads or gains focus (e.g. after reload or tab switch)
+  useFocusEffect(
+    useCallback(() => {
+      setPickedDateRange(null);
+    }, [])
+  );
 
   // Fetch API data (or demo data if using demo credentials)
   const fetchConsumerData = useCallback(async () => {
@@ -519,7 +527,39 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const getUsageForTimePeriod = () => (timePeriod === "7D" ? getDailyUsage() : getMonthlyUsage());
   const getTrendPercentageForTimePeriod = () => (timePeriod === "7D" ? getDailyTrendPercentage() : getMonthlyTrendPercentage());
 
-  // Transform chart data into table format, respecting selectedView + timePeriod
+  // Parse chart label to Date for range filtering (daily: "DD Mon YYYY", monthly: "Mon YYYY")
+  const parseLabelToDateForTable = useCallback((label, isDaily) => {
+    if (!label || typeof label !== "string") return null;
+    const str = label.trim();
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    try {
+      if (isDaily) {
+        const d = new Date(str);
+        if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const match = str.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/i);
+        if (match) {
+          const monthIdx = monthNames.findIndex((m) => m.toLowerCase() === match[2].substring(0, 3).toLowerCase());
+          const year = parseInt(match[3], 10);
+          const day = parseInt(match[1], 10);
+          if (monthIdx !== -1) return new Date(year, monthIdx, day);
+        }
+        const match2 = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (match2) return new Date(parseInt(match2[1], 10), parseInt(match2[2], 10) - 1, parseInt(match2[3], 10));
+        return null;
+      }
+      const m = str.match(/(\w+)\s+(\d{4})/i);
+      if (m) {
+        const monthIdx = monthNames.findIndex((x) => x.toLowerCase() === m[1].substring(0, 3).toLowerCase());
+        const year = parseInt(m[2], 10);
+        if (monthIdx !== -1) return new Date(year, monthIdx, 1);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Transform chart data into table format, respecting selectedView + timePeriod + pickedDateRange
   const getConsumptionTableData = useCallback(() => {
     if (!consumerData?.chartData) return [];
 
@@ -553,31 +593,58 @@ const PostPaidDashboard = ({ navigation, route }) => {
       consumptions = data;
     }
 
-    // Apply time-period slicing so table matches the chart selection
-    let sliceCount;
-    if (selectedView === "daily") {
-      if (timePeriod === "7D") sliceCount = 7;
-      else if (timePeriod === "30D") sliceCount = 30;
-      else if (timePeriod === "90D") sliceCount = 90;
-      else sliceCount = data.length;
-    } else {
-      // Monthly view - keep all points (already aggregated)
-      sliceCount = data.length;
+    let visibleData, visibleConsumptions, visibleLabels, startIndex;
+
+    // When user picked a date range, filter table to that range (same logic as chart)
+    if (pickedDateRange?.startDate && pickedDateRange?.endDate) {
+      const rangeStart = new Date(pickedDateRange.startDate.getFullYear(), pickedDateRange.startDate.getMonth(), pickedDateRange.startDate.getDate());
+      const rangeEnd = new Date(pickedDateRange.endDate.getFullYear(), pickedDateRange.endDate.getMonth(), pickedDateRange.endDate.getDate());
+      const isDaily = selectedView === "daily";
+      const indices = [];
+      for (let i = 0; i < labels.length; i++) {
+        const labelDate = parseLabelToDateForTable(labels[i], isDaily);
+        if (!labelDate) continue;
+        const dayStart = new Date(labelDate.getFullYear(), labelDate.getMonth(), labelDate.getDate());
+        if (isDaily) {
+          if (dayStart.getTime() >= rangeStart.getTime() && dayStart.getTime() <= rangeEnd.getTime()) indices.push(i);
+        } else {
+          const monthEnd = new Date(labelDate.getFullYear(), labelDate.getMonth() + 1, 0);
+          if (dayStart.getTime() <= rangeEnd.getTime() && monthEnd.getTime() >= rangeStart.getTime()) indices.push(i);
+        }
+      }
+      if (indices.length > 0) {
+        visibleData = indices.map((i) => data[i] ?? 0);
+        visibleConsumptions = indices.map((i) => consumptions[i] ?? 0);
+        visibleLabels = indices.map((i) => labels[i]);
+        startIndex = indices[0];
+      }
     }
 
-    const startIndex = Math.max(0, data.length - sliceCount);
-    const visibleData = data.slice(startIndex);
-    const visibleConsumptions = consumptions.slice(startIndex);
-    const visibleLabels = labels.slice(startIndex);
+    if (!visibleLabels) {
+      // Default: time-period slicing
+      let sliceCount;
+      if (selectedView === "daily") {
+        if (timePeriod === "7D") sliceCount = 7;
+        else if (timePeriod === "30D") sliceCount = 30;
+        else if (timePeriod === "90D") sliceCount = 90;
+        else sliceCount = data.length;
+      } else {
+        sliceCount = data.length;
+      }
+      startIndex = Math.max(0, data.length - sliceCount);
+      visibleData = data.slice(startIndex);
+      visibleConsumptions = consumptions.slice(startIndex);
+      visibleLabels = labels.slice(startIndex);
+    }
 
     // Transform to table rows, latest first
     return visibleLabels.map((label, index) => ({
-      id: startIndex + index + 1,
+      id: (startIndex || 0) + index + 1,
       period: label,
       consumption: visibleConsumptions[index] || 0,
       cumulative: visibleData[index] || 0,
     })).reverse();
-  }, [consumerData, selectedView, timePeriod]);
+  }, [consumerData, selectedView, timePeriod, pickedDateRange, parseLabelToDateForTable]);
 
   // Memoize table data so it isn't recomputed on every render
   const consumptionTableData = useMemo(
@@ -1211,6 +1278,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                       data={consumerData}
                       loading={isLoading}
                       onBarPress={handleBarPress}
+                      pickedDateRange={pickedDateRange}
                     />
                   )}
                 </View>

@@ -4,7 +4,44 @@ import { BarChart as GiftedBarChart } from "react-native-gifted-charts";
 import { SkeletonLoader } from "../utils/loadingManager";
 import { useTheme } from "../context/ThemeContext";
 
-const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data = null, loading = false, onBarPress = null }) => {
+// Parse chart label to Date (start of day or first day of month). Returns null if unparseable.
+const parseLabelToDate = (label, isDaily) => {
+  if (!label || typeof label !== "string") return null;
+  const str = label.trim();
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  try {
+    if (isDaily) {
+      // "01 Jan 2026", "1 Jan 2026", "Jan 1, 2026", "2026-01-01"
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const match = str.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/i);
+      if (match) {
+        const day = parseInt(match[1], 10);
+        const monthIdx = monthNames.findIndex((m) => m.toLowerCase() === match[2].substring(0, 3).toLowerCase());
+        const year = parseInt(match[3], 10);
+        if (monthIdx !== -1) return new Date(year, monthIdx, day);
+      }
+      const match2 = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (match2) return new Date(parseInt(match2[1], 10), parseInt(match2[2], 10) - 1, parseInt(match2[3], 10));
+      return null;
+    }
+    // Monthly: "Jan 2026", "Mar 2025"
+    const m = str.match(/(\w+)\s+(\d{4})/i);
+    if (m) {
+      const monthIdx = monthNames.findIndex((x) => x.toLowerCase() === m[1].substring(0, 3).toLowerCase());
+      const year = parseInt(m[2], 10);
+      if (monthIdx !== -1) return new Date(year, monthIdx, 1);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+// Normalize to start-of-day for range comparison
+const toDayStart = (d) => (d ? new Date(d.getFullYear(), d.getMonth(), d.getDate()) : null);
+
+const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data = null, loading = false, onBarPress = null, pickedDateRange = null }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
   const scaled6 = getScaledFontSize(6);
   const scaled7 = getScaledFontSize(7);
@@ -39,12 +76,50 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
         const seriesData = chartType.seriesData[0]; 
         const allData = seriesData.data || [];
         const allLabels = chartType.xAxisData || [];
-        
+        const isDailyView = (useMonthlyFor90D || useMonthlyFor1Y) ? false : viewType === "daily";
+
         let latestData, latestLabels, startIndex;
         let dailyPadCount = 0;
         const dailyDaysToShow = timePeriod === "7D" ? 7 : timePeriod === "30D" ? 30 : 7;
         const monthlyMonthsToShow = timePeriod === "1Y" ? 12 : 10;
-        
+
+        // When user has picked a date range, filter data to that range only
+        if (pickedDateRange && pickedDateRange.startDate && pickedDateRange.endDate) {
+          const rangeStart = toDayStart(pickedDateRange.startDate);
+          const rangeEnd = toDayStart(pickedDateRange.endDate);
+          if (rangeStart && rangeEnd) {
+            const indices = [];
+            for (let i = 0; i < allLabels.length; i++) {
+              const labelDate = parseLabelToDate(allLabels[i], isDailyView);
+              if (!labelDate) continue;
+              if (isDailyView) {
+                if (labelDate.getTime() >= rangeStart.getTime() && labelDate.getTime() <= rangeEnd.getTime()) {
+                  indices.push(i);
+                }
+              } else {
+                const monthEnd = new Date(labelDate.getFullYear(), labelDate.getMonth() + 1, 0);
+                if (labelDate.getTime() <= rangeEnd.getTime() && monthEnd.getTime() >= rangeStart.getTime()) {
+                  indices.push(i);
+                }
+              }
+            }
+            if (indices.length > 0) {
+              latestData = indices.map((i) => allData[i] ?? 0);
+              latestLabels = indices.map((i) => allLabels[i]);
+              startIndex = indices[0];
+              setOriginalData({
+                allLabels: latestLabels,
+                allData: latestData,
+                startIndex: 0,
+                dailyPadCount: 0,
+              });
+              setChartData({ blue: latestData, labels: latestLabels });
+              return;
+            }
+          }
+        }
+
+        // Default: time-period-based slicing (existing behavior)
         if (timePeriod === "1Y") {
           // 1Y: show last 12 months (12 bars) from monthly data; labels "Jan 2026"
           const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -177,7 +252,7 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
         startIndex: 0
       });
     }
-  }, [data, viewType, timePeriod, loading]);
+  }, [data, viewType, timePeriod, loading, pickedDateRange]);
 
   function get1YFallback(period, view) {
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

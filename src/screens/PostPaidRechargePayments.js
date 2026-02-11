@@ -553,11 +553,10 @@ const styles = StyleSheet.create({
     zIndex: 1,
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,
-    elevation: 2,
   },
   scrollContentContainer: {
     flexGrow: 1,
-    paddingBottom: 180, // Space for the button container and bottom navigation
+    paddingBottom: 180, 
   },
   bluecontainer: {
     backgroundColor: "#eef8f0",
@@ -814,7 +813,6 @@ const styles = StyleSheet.create({
   amountCardSelected1: {
     borderColor: COLORS.secondaryColor,
     borderWidth: 1.5,
-    shadowOpacity: 0.1,
   },
   amountCardSelected2: {
     // borderColor: COLORS.secondaryColor,

@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
     numberOfLines: 1,
   },
   dataRow: {
-    backgroundColor: "#F8F9FA",
+    backgroundColor: "#EEF8F0",
     flexDirection: "row",
     paddingVertical: 6,
     paddingHorizontal: 12,

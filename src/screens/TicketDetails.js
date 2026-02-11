@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 180, // Space for bottom navigation
+    paddingBottom: 180, 
   },
   scrollBody: {
     paddingHorizontal: 30,
