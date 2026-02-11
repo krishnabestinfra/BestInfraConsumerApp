@@ -31,8 +31,8 @@ import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 import { apiClient } from '../services/apiClient';
 import { isDemoUser, getDemoDashboardConsumerData } from "../constants/demoData";
-import SwitchIcon from "../../assets/icons/switch.svg";
-import ReverseIconWhite from "../../assets/icons/Reversewhite.svg";
+import ComparisonIconBlack from "../../assets/icons/comparisonBlack.svg";
+import ComparisonIconWhite from "../../assets/icons/comparisonWhite.svg";
 import DropdownIcon from "../../assets/icons/dropDown.svg";
 import CalendarIcon from "../../assets/icons/CalendarBlue.svg";
 import PiggybankIcon from "../../assets/icons/piggybank.svg";
@@ -1281,9 +1281,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
               <View style={styles.comparisonHeader}>
                 <View style={styles.doubleArrowIcon}>
                   {isDark ? (
-                    <ReverseIconWhite width={20} height={20} />
+                    <ComparisonIconWhite width={20} height={20} />
                   ) : (
-                    <SwitchIcon width={20} height={20} />
+                    <ComparisonIconBlack width={20} height={20} />
                   )}
                 </View>
                 <Text style={[styles.comparisonTitle, darkOverlay.comparisonTitle]}>Comparison</Text>
