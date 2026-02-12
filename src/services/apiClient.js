@@ -26,10 +26,12 @@ class ApiClient {
    * Make an authenticated API request with caching
    */
   async request(endpoint, options = {}) {
-    const cacheKey = `${options.method || 'GET'}:${endpoint}`;
-    
-    // Return cached result if available
-    if (this.requestCache.has(cacheKey)) {
+    const method = options.method || 'GET';
+    const cacheKey = `${method}:${endpoint}`;
+    const isMutation = method !== 'GET';
+
+    // Do not cache POST/PUT/DELETE - only cache GET
+    if (!isMutation && this.requestCache.has(cacheKey)) {
       const cached = this.requestCache.get(cacheKey);
       if (Date.now() - cached.timestamp < 30000) { // 30 second cache
         console.log(`⚡ API: Cache hit for ${endpoint}`);
@@ -37,9 +39,9 @@ class ApiClient {
       }
     }
 
-    // Return pending request if already in progress
-    if (this.pendingRequests.has(cacheKey)) {
-      console.log(` API: Reusing pending request for ${endpoint}`);
+    // Return pending request if already in progress (GET only - mutations get a fresh request each time)
+    if (!isMutation && this.pendingRequests.has(cacheKey)) {
+      console.log(`⚡ API: Reusing pending request for ${endpoint}`);
       return this.pendingRequests.get(cacheKey);
     }
 
@@ -50,8 +52,8 @@ class ApiClient {
     try {
       const result = await requestPromise;
       
-      // Cache successful result
-      if (result.success) {
+      // Cache successful GET result only (never cache POST/PUT/DELETE)
+      if (result.success && !isMutation) {
         this.requestCache.set(cacheKey, {
           data: result,
           timestamp: Date.now()
@@ -86,6 +88,9 @@ class ApiClient {
         console.log(`🔄 API Request: ${method} ${endpoint}`);
         console.log(`   Consumer: ${user?.identifier || 'unknown'}`);
         console.log(`   Token present: ${!!token}`);
+        if (method === 'POST' && body) {
+          console.log(`   Request body:`, JSON.stringify(body, null, 2));
+        }
       }
 
       // Create abort controller for timeout
@@ -444,12 +449,18 @@ class ApiClient {
 
   /**
    * Create new ticket (POST body: subject, description, category, priority, consumerNumber)
+   * Endpoint: https://api.bestinfra.app/gmr/api/tickets (with Bearer token)
    */
   async createTicket(payload) {
     const endpoint = API_ENDPOINTS.tickets.create();
+    if (__DEV__) {
+      console.log('🎫 Create ticket API:', endpoint);
+      console.log('🎫 Create ticket payload:', JSON.stringify(payload, null, 2));
+    }
     return this.request(endpoint, {
       method: 'POST',
       body: payload,
+      showLogs: true,
     });
   }
 

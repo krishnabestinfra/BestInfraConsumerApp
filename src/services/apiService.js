@@ -370,13 +370,25 @@ export const fetchTicketsTable = async (uid) => {
   }
 };
 
-/** Map form category label to API category value */
+/** Map form category label to API category value (backend expects: BILLING, METER, CONNECTION, TECHNICAL, OTHER) */
 const TICKET_CATEGORY_MAP = {
   'Technical Issue': 'TECHNICAL',
+  'Technical': 'TECHNICAL',
   'Billing Issue': 'BILLING',
+  'Billing': 'BILLING',
   'Connection Issue': 'CONNECTION',
+  'Connection': 'CONNECTION',
   'Meter Issue': 'METER',
-  'General Inquiry': 'GENERAL',
+  'Meter': 'METER',
+  'General Inquiry': 'OTHER',
+  'General': 'OTHER',
+};
+/** Map form priority to API value (backend expects: LOW, MEDIUM, HIGH, URGENT) */
+const TICKET_PRIORITY_MAP = {
+  'Low': 'LOW',
+  'Medium': 'MEDIUM',
+  'High': 'HIGH',
+  'Urgent': 'URGENT',
 };
 
 /**
@@ -387,18 +399,28 @@ const TICKET_CATEGORY_MAP = {
  */
 export const createTicket = async (consumerNumber, formData) => {
   try {
-    const category = TICKET_CATEGORY_MAP[formData.category] || formData.category || 'GENERAL';
+    const category = TICKET_CATEGORY_MAP[formData.category] || (typeof formData.category === 'string' ? formData.category.toUpperCase() : 'OTHER').replace('GENERAL', 'OTHER') || 'OTHER';
+    const priority = TICKET_PRIORITY_MAP[formData.priority] || (typeof formData.priority === 'string' ? formData.priority.toUpperCase() : 'HIGH') || 'HIGH';
     const payload = {
       subject: formData.subject || 'No subject',
       description: formData.description || '',
       category,
-      priority: formData.priority || 'HIGH',
+      priority,
       consumerNumber,
     };
+    if (__DEV__) {
+      console.log('🎫 createTicket called → POST https://api.bestinfra.app/gmr/api/tickets (with access token)');
+      console.log('🎫 Payload sent to backend:', JSON.stringify(payload, null, 2));
+    }
     const result = await apiClient.createTicket(payload);
+    if (__DEV__) {
+      console.log('🎫 Create ticket API result:', result?.success ? 'SUCCESS' : 'FAILED', result);
+      if (result?.success) console.log('🎫 Ticket created:', result.data || result);
+      if (!result?.success) console.log('🎫 Error:', result?.message || result?.error);
+    }
     return result;
   } catch (error) {
-    console.error('Error creating ticket:', error);
+    console.error('🎫 Error creating ticket:', error);
     return {
       success: false,
       message: error.message || 'Failed to create ticket',
