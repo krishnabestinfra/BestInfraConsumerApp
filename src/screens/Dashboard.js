@@ -26,6 +26,7 @@ import { useLoading } from "../utils/loadingManager";
 import { InstantLoader } from "../utils/loadingManager";
 import { useUltraFastData } from "../hooks/useUltraFastData";
 import UltraFastScreen from "../components/UltraFastScreen";
+import { formatFrontendDateTime } from "../utils/dateUtils";
 
 
 
@@ -96,22 +97,9 @@ const Dashboard = React.memo(({ navigation, route }) => {
   }, [fetchData]);
 
   const formatEventDateTime = useCallback((value) => {
-    if (!value) {
-      return "--";
-    }
-
-    const parsedDate = new Date(value);
-    if (Number.isNaN(parsedDate.getTime())) {
-      return value;
-    }
-
-    return parsedDate.toLocaleString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    if (value === null || value === undefined) return "--";
+    const formatted = formatFrontendDateTime(value);
+    return formatted || value;
   }, []);
 
   const formatDuration = useCallback((durationValue) => {

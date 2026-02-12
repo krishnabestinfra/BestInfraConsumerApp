@@ -15,7 +15,6 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
-import Arrow from "../../assets/icons/arrow.svg";
 import GroupedBarChart from "../components/GroupedBarChart";
 import DashboardHeader from "../components/global/DashboardHeader";
 import Table from "../components/global/Table";
@@ -55,7 +54,7 @@ const OptimizedDashboard = React.memo(({ navigation, route }) => {
       }));
   }, [consumerData?.alerts]);
 
-  // Helper functions
+
   const getTamperTypeText = (tamperType) => {
     const tamperTypes = {
       24: "Tamper Type 24",

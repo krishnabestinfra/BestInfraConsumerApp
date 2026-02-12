@@ -130,6 +130,8 @@ export const API_ENDPOINTS = {
   consumers: {
     get: (id) => `${API.BASE_URL}/consumers/${id}`,
     list: () => `${API.BASE_URL}/consumers`,
+    report: (identifier, startDate, endDate, reportType) =>
+      `${API.BASE_URL}/consumers/${encodeURIComponent(identifier)}/report?startDate=${startDate}&endDate=${endDate}&reportType=${encodeURIComponent(reportType)}`,
     health: () => `${API.HEALTH_URL}/`,
   },
   
