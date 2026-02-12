@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from 'expo-image-picker';
@@ -22,18 +25,51 @@ import BackArrowIcon from "../../assets/icons/Back.svg";
 import BackArrowIconWhite from "../../assets/icons/BackWhite.svg";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
-import { useApp } from "../context/AppContext";
 import { useNotifications } from "../context/NotificationsContext";
-import { getUser, storeUser } from "../utils/storage";
+import { getUser } from "../utils/storage";
+import { apiClient } from "../services/apiClient";
+import { API, API_ENDPOINTS } from "../constants/constants";
+import { authService } from "../services/authService";
+
+// Skeleton placeholder for loading state
+const SkeletonField = ({ width = "70%", height = 14, style }) => {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.6, duration: 600, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 600, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [opacity]);
+  return (
+    <Animated.View
+      style={[
+        {
+          width,
+          height,
+          backgroundColor: "#E5E7EB",
+          borderRadius: 4,
+          opacity,
+        },
+        style,
+      ]}
+    />
+  );
+};
 
 const ProfileScreenMain = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
+  const scrollViewRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+  const [profileUserId, setProfileUserId] = useState(null); // from auth profile (users table)
 
-  // User data state
+  // User data state (direct mapping from consumerData API response)
   const [userData, setUserData] = useState({
     name: "",
     mobile: "",
@@ -52,15 +88,6 @@ const ProfileScreenMain = ({ navigation }) => {
     address: "",
   });
 
-  // Get consumer data from context
-  let consumerData = null;
-  try {
-    const appContext = useApp();
-    consumerData = appContext.consumerData;
-  } catch (error) {
-    console.log('AppProvider not available');
-  }
-
   // Get notification count
   let unreadCount = 0;
   try {
@@ -70,48 +97,94 @@ const ProfileScreenMain = ({ navigation }) => {
     console.log('NotificationsProvider not available');
   }
 
-  // Fetch user data on mount
+  // Fetch consumer details directly from /consumers/{identifier} once on mount
   useEffect(() => {
-    fetchUserData();
+    const fetchProfile = async () => {
+      try {
+        setIsLoading(true);
+        const user = await getUser();
+        if (!user?.identifier) {
+          setIsLoading(false);
+          return;
+        }
+
+        // 1) Fetch consumer data for name/address/meter info
+        const consumerEndpoint = API_ENDPOINTS.consumers.get(user.identifier);
+        console.log("🔍 ProfileScreenMain fetching consumer details from:", consumerEndpoint);
+        const consumerResult = await apiClient.request(consumerEndpoint, { method: "GET" });
+
+        let name = "";
+        let address = "";
+        let consumerId = "";
+        let meterNumber = "";
+        let connectionType = "Residential";
+
+        if (consumerResult.success && consumerResult.data) {
+          const cd = consumerResult.data;
+          name = cd.name;
+          address = cd.permanentAddress;
+          consumerId = cd.uniqueIdentificationNo;
+          meterNumber = cd.meterSerialNumber;
+          connectionType = cd.connectionType || "Residential";
+        } else {
+          console.log("⚠️ Profile consumer API did not return data");
+        }
+
+        // 2) Fetch auth profile data for email + phone (users table)
+        const token = await authService.getValidAccessToken();
+        const profileUrl = `${API.AUTH_URL}/profile?token=${token}`;
+        console.log("🔍 ProfileScreenMain fetching auth profile from:", profileUrl);
+        const profileResult = await apiClient.request(profileUrl, { method: "GET" });
+
+        let email = "";
+        let mobile = "";
+
+        if (profileResult.success && profileResult.data?.user) {
+          const u = profileResult.data.user;
+          setProfileUserId(u.id);
+          email = u.email || "";
+          mobile = u.phone || "";
+        } else {
+          console.log("⚠️ Auth profile API did not return user data");
+        }
+
+        // Auth profile GET doesn't return phone; use consumer mobileNo as fallback for display
+        if (!mobile && consumerResult.success && consumerResult.data?.mobileNo) {
+          mobile = consumerResult.data.mobileNo;
+        }
+
+        const mapped = {
+          name,
+          mobile,
+          email,
+          address,
+          consumerId,
+          meterNumber,
+          connectionType,
+        };
+
+        setUserData(mapped);
+        setEditData({
+          name: mapped.name || "",
+          mobile: mapped.mobile || "",
+          email: mapped.email || "",
+          address: mapped.address || "",
+        });
+      } catch (error) {
+        console.error("❌ Error fetching profile consumer details:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
   }, []);
 
-  const fetchUserData = async () => {
-    try {
-      setIsLoading(true);
-      const user = await getUser();
-
-      if (user) {
-        const data = {
-          name: user.name || consumerData?.consumerName || "",
-          mobile: user.mobile || user.phone || maskPhoneNumber(consumerData?.mobile) || "",
-          email: user.email || consumerData?.email || "",
-          address: user.address || consumerData?.address || "",
-          consumerId: user.identifier || consumerData?.uid || "",
-          meterNumber: consumerData?.meterNumber || "MTR-456789",
-          connectionType: consumerData?.connectionType || "Residential",
-        };
-        setUserData(data);
-        setEditData({
-          name: data.name,
-          mobile: data.mobile,
-          email: data.email,
-          address: data.address,
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const maskPhoneNumber = (phone) => {
-    if (!phone) return "";
-    const str = String(phone);
-    if (str.length >= 10) {
-      return str.slice(0, 5) + "***" + str.slice(-4);
-    }
-    return str;
+  // Simple safe display helper: if value is null/empty, show "-"
+  const safeDisplay = (value) => {
+    if (value === null || value === undefined) return "-";
+    const str = String(value).trim();
+    return str.length ? str : "-";
   };
 
   const handleEditPress = () => {
@@ -138,32 +211,42 @@ const ProfileScreenMain = ({ navigation }) => {
     try {
       setIsSaving(true);
 
-      // Get current user data
-      const currentUser = await getUser();
+      // Only update phone and email via auth profile API (users table)
+      if (!profileUserId) {
+        throw new Error("Missing profile user id for update-profile");
+      }
 
-      // Update user data
-      const updatedUser = {
-        ...currentUser,
-        name: editData.name,
-        mobile: editData.mobile,
+      const payload = {
+        id: profileUserId,
+        phone: editData.mobile,
         email: editData.email,
-        address: editData.address,
       };
 
-      // Save to storage
-      await storeUser(updatedUser);
+      const updateUrl = `${API.AUTH_URL}/update-profile`;
+      console.log("🔄 Updating profile via:", updateUrl, "payload:", payload);
 
-      // Update local state
+      const result = await apiClient.request(updateUrl, {
+        method: "PUT",
+        body: payload,
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update profile");
+      }
+
+      // Update local state and re-fetch profile so displayed email/phone stay in sync
       setUserData(prev => ({
         ...prev,
-        name: editData.name,
         mobile: editData.mobile,
         email: editData.email,
-        address: editData.address,
       }));
-
+      setEditData(prev => ({
+        ...prev,
+        mobile: editData.mobile,
+        email: editData.email,
+      }));
       setIsEditing(false);
-      Alert.alert("Success", "Profile updated successfully!");
+      Alert.alert("Success", "Profile updated successfully.");
     } catch (error) {
       console.error('Error saving profile:', error);
       Alert.alert("Error", "Failed to save profile. Please try again.");
@@ -228,18 +311,6 @@ const ProfileScreenMain = ({ navigation }) => {
     );
   };
 
-  if (isLoading) {
-    return (
-      <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
-        <StatusBar style="light" />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-          <Text style={styles.loadingText}>Loading profile...</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
@@ -296,10 +367,18 @@ const ProfileScreenMain = ({ navigation }) => {
         </Pressable>
       </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
       <ScrollView
+        ref={scrollViewRef}
         style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isEditing && { paddingBottom: 0 }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Profile Photo Section */}
         <View style={styles.profilePhotoSection}>
@@ -336,29 +415,51 @@ const ProfileScreenMain = ({ navigation }) => {
             <View style={styles.accountInfoContent}>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Consumer ID</Text>
-                <Text style={styles.infoValue}>{userData.consumerId || "GMR2024567890"}</Text>
+                {isLoading ? (
+                  <SkeletonField width="55%" height={14} />
+                ) : (
+                  <Text style={styles.infoValue}>{safeDisplay(userData.consumerId)}</Text>
+                )}
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Meter Number</Text>
-                <Text style={styles.infoValue}>{userData.meterNumber}</Text>
+                {isLoading ? (
+                  <SkeletonField width="50%" height={14} />
+                ) : (
+                  <Text style={styles.infoValue}>{safeDisplay(userData.meterNumber)}</Text>
+                )}
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Connection Type</Text>
-                <Text style={styles.infoValue}>{userData.connectionType}</Text>
+                {isLoading ? (
+                  <SkeletonField width="45%" height={14} />
+                ) : (
+                  <Text style={styles.infoValue}>{safeDisplay(userData.connectionType)}</Text>
+                )}
               </View>
             </View>
           </View>
 
           {/* Editable Fields */}
           <View style={styles.fieldsContainer}>
-            {/* Full Name - not editable */}
+            {/* Full Name - not editable (direct from API) */}
             <View style={styles.fieldWrapper}>
-              <Text style={styles.fieldValue}>{userData.name || "Full Name"}</Text>
+              {isLoading ? (
+                <View style={styles.skeletonFieldInner}>
+                  <SkeletonField width="65%" height={14} />
+                </View>
+              ) : (
+                <Text style={styles.fieldValue}>{safeDisplay(userData.name)}</Text>
+              )}
             </View>
 
             {/* Mobile Number */}
             <View style={styles.fieldWrapper}>
-              {isEditing ? (
+              {isLoading ? (
+                <View style={styles.skeletonFieldInner}>
+                  <SkeletonField width="55%" height={14} />
+                </View>
+              ) : isEditing ? (
                 <TextInput
                   style={styles.input}
                   value={editData.mobile}
@@ -366,15 +467,20 @@ const ProfileScreenMain = ({ navigation }) => {
                   placeholder="Mobile Number"
                   placeholderTextColor="#9CA3AF"
                   keyboardType="phone-pad"
+                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)}
                 />
               ) : (
-                <Text style={styles.fieldValue}>{userData.mobile || "Mobile Number"}</Text>
+                <Text style={styles.fieldValue}>{safeDisplay(userData.mobile)}</Text>
               )}
             </View>
 
             {/* Email */}
             <View style={styles.fieldWrapper}>
-              {isEditing ? (
+              {isLoading ? (
+                <View style={styles.skeletonFieldInner}>
+                  <SkeletonField width="70%" height={14} />
+                </View>
+              ) : isEditing ? (
                 <TextInput
                   style={styles.input}
                   value={editData.email}
@@ -383,25 +489,22 @@ const ProfileScreenMain = ({ navigation }) => {
                   placeholderTextColor="#9CA3AF"
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)}
                 />
               ) : (
-                <Text style={styles.fieldValue}>{userData.email || "Email"}</Text>
+                <Text style={styles.fieldValue}>{safeDisplay(userData.email)}</Text>
               )}
             </View>
 
-            {/* Address */}
+            {/* Address (read-only, not editable) */}
             <View style={styles.fieldWrapper}>
-              {isEditing ? (
-                <TextInput
-                  style={[styles.input, styles.addressInput]}
-                  value={editData.address}
-                  onChangeText={(text) => setEditData(prev => ({ ...prev, address: text }))}
-                  placeholder="Address"
-                  placeholderTextColor="#9CA3AF"
-                  multiline
-                />
+              {isLoading ? (
+                <View style={[styles.skeletonFieldInner, { flexDirection: "column", gap: 6 }]}>
+                  <SkeletonField width="90%" height={14} />
+                  <SkeletonField width="75%" height={14} />
+                </View>
               ) : (
-                <Text style={styles.fieldValue}>{userData.address || "Address"}</Text>
+                <Text style={styles.fieldValue}>{safeDisplay(userData.address)}</Text>
               )}
             </View>
           </View>
@@ -432,9 +535,10 @@ const ProfileScreenMain = ({ navigation }) => {
               </View>
             ) : (
               <TouchableOpacity
-                style={styles.editProfileButton}
+                style={[styles.editProfileButton, isLoading && styles.editButtonDisabled]}
                 onPress={handleEditPress}
                 activeOpacity={0.8}
+                disabled={isLoading}
               >
                 <Text style={styles.editProfileButtonText}>Edit Profile</Text>
               </TouchableOpacity>
@@ -442,6 +546,7 @@ const ProfileScreenMain = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -452,17 +557,6 @@ const styles = StyleSheet.create({
   Container: {
     flex: 1,
     backgroundColor: "#EEF8F0",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    color: COLORS.secondaryColor,
-    fontSize: 14,
-    fontFamily: 'Manrope-Medium',
-    marginTop: 12,
   },
   TopMenu: {
     flexDirection: "row",
@@ -631,6 +725,13 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: "center",
   },
+  skeletonFieldInner: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  editButtonDisabled: {
+    opacity: 0.6,
+  },
   fieldValue: {
     fontSize: 14,
     fontFamily: "Manrope-Regular",
@@ -665,6 +766,20 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-SemiBold",
     color: "#FFFFFF",
   },
+  detailsButton: {
+    marginTop: 8,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: COLORS.secondaryColor,
+    paddingVertical: 12,
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  detailsButtonText: {
+    fontSize: 14,
+    fontFamily: "Manrope-SemiBold",
+    color: COLORS.secondaryColor,
+  },
   editButtonsRow: {
     flexDirection: "row",
     gap: 12,
@@ -692,6 +807,55 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 16,
+    fontFamily: "Manrope-SemiBold",
+    color: "#FFFFFF",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  modalContainer: {
+    width: "100%",
+    maxWidth: 400,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontFamily: "Manrope-SemiBold",
+    marginBottom: 12,
+    color: "#111827",
+  },
+  modalRow: {
+    marginBottom: 8,
+  },
+  modalLabel: {
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    color: "#6B7280",
+    marginBottom: 2,
+  },
+  modalValue: {
+    fontSize: 14,
+    fontFamily: "Manrope-SemiBold",
+    color: "#111827",
+  },
+  modalAddress: {
+    lineHeight: 18,
+  },
+  modalCloseButton: {
+    marginTop: 16,
+    backgroundColor: COLORS.secondaryColor,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  modalCloseButtonText: {
+    fontSize: 14,
     fontFamily: "Manrope-SemiBold",
     color: "#FFFFFF",
   },

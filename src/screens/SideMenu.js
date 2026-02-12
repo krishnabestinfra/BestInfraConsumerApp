@@ -1,5 +1,6 @@
-import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
-import React, { useState, useCallback, useEffect, useContext } from "react";
+import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View, Animated } from "react-native";
+import React, { useState, useCallback, useEffect, useContext, useRef } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import Menu from "../../assets/icons/barsWhite.svg";
@@ -19,12 +20,42 @@ import { logoutUser, getUser } from "../utils/storage";
 import CrossIcon from "../../assets/icons/crossWhite.svg";
 import { getTenantSubdomain } from "../config/apiConfig";
 
+// Skeleton placeholder for loading state
+const SkeletonField = ({ width = "70%", height = 14, style }) => {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.6, duration: 600, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.3, duration: 600, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [opacity]);
+  return (
+    <Animated.View
+      style={[
+        {
+          width,
+          height,
+          backgroundColor: "rgba(255, 255, 255, 0.35)",
+          borderRadius: 4,
+          opacity,
+        },
+        style,
+      ]}
+    />
+  );
+};
+
 const SideMenu = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
   const s14 = getScaledFontSize(14);
   const s11 = getScaledFontSize(11);
   const { activeItem, setActiveItem } = useContext(TabContext);
   const [userData, setUserData] = useState(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
   // Determine current tenant (client) for branding (GMR vs NTPL)
   const tenantSubdomain = getTenantSubdomain ? getTenantSubdomain() : "gmr";
@@ -33,18 +64,25 @@ const SideMenu = ({ navigation }) => {
       ? require("../../assets/images/ntpl.png")
       : require("../../assets/images/gmr.png");
 
-  // Fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const user = await getUser();
-        setUserData(user);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      }
-    };
-    fetchUserData();
-  }, []);
+  // Fetch user data when menu opens (refreshes on each open)
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+      const fetchUserData = async () => {
+        try {
+          setIsUserLoading(true);
+          const user = await getUser();
+          if (isMounted) setUserData(user);
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        } finally {
+          if (isMounted) setIsUserLoading(false);
+        }
+      };
+      fetchUserData();
+      return () => { isMounted = false; };
+    }, [])
+  );
 
   const handleMenuPress = (item) => {
     setActiveItem(item); 
@@ -127,8 +165,17 @@ const SideMenu = ({ navigation }) => {
             />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={[styles.profileName, { fontSize: s14 }]}>{userData?.name || "Rakesh Kumar"}</Text>
-            <Text style={[styles.profileId, { fontSize: s11 }]}>ID: {userData?.identifier || "GMR-2024-001234"}</Text>
+            {isUserLoading ? (
+              <>
+                <SkeletonField width="70%" height={s14} style={{ marginBottom: 6 }} />
+                <SkeletonField width="50%" height={s11} />
+              </>
+            ) : (
+              <>
+                <Text style={[styles.profileName, { fontSize: s14 }]}>{userData?.name || "-"}</Text>
+                <Text style={[styles.profileId, { fontSize: s11 }]}>ID: {userData?.identifier || "-"}</Text>
+              </>
+            )}
           </View>
         </View>
       </Pressable>
