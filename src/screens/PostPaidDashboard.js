@@ -38,6 +38,7 @@ import DropdownIcon from "../../assets/icons/dropDown.svg";
 import CalendarIcon from "../../assets/icons/CalendarBlue.svg";
 import PiggybankIcon from "../../assets/icons/piggybank.svg";
 import CalendarDatePicker from "../components/global/CalendarDatePicker";
+import { formatFrontendDateTime, formatFrontendDate } from "../utils/dateUtils";
 
 const FALLBACK_ALERT_ROWS = [
   {
@@ -142,6 +143,10 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const [consumerData, setConsumerData] = useState(null);
   const { isLoading, setLoading } = useLoading('consumerData', true);
 
+  // Report API data when user picks a date range (consumers/.../report?reportType=daily-consumption)
+  const [pickedRangeReportData, setPickedRangeReportData] = useState(null);
+  const [pickedRangeReportLoading, setPickedRangeReportLoading] = useState(false);
+
   // Bottom sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
@@ -150,6 +155,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
   useFocusEffect(
     useCallback(() => {
       setPickedDateRange(null);
+      setPickedRangeReportData(null);
     }, [])
   );
 
@@ -230,6 +236,244 @@ const PostPaidDashboard = ({ navigation, route }) => {
     fetchConsumerData();
   }, [fetchConsumerData]);
 
+  // Format Date to YYYY-MM-DD for report API
+  const toYYYYMMDD = useCallback((d) => {
+    if (!d || !(d instanceof Date) || isNaN(d.getTime())) return null;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }, []);
+
+  // Normalize report API response to chartData.daily shape (seriesData[0].data, xAxisData)
+  const normalizeReportToChartData = useCallback((response) => {
+    if (!response) return null;
+    const raw = response.data ?? response;
+    if (!raw) return null;
+
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const formatLabel = (d) => {
+      const parsed = new Date(d);
+      if (!isNaN(parsed.getTime())) {
+        return `${String(parsed.getDate()).padStart(2, "0")} ${monthNames[parsed.getMonth()]} ${parsed.getFullYear()}`;
+      }
+      return String(d);
+    };
+
+    // Shape: API returns { consumption: [ { date, consumption } ], dateRange: { startDate, endDate } }
+    if (Array.isArray(raw.consumption) && raw.consumption.length > 0) {
+      const items = raw.consumption;
+      const dates = [];
+      const values = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item && typeof item === "object") {
+          const dateVal = item.date ?? item.dateTime ?? item.day ?? item.label;
+          const numVal = Number(item.consumption ?? item.value ?? item.kwh ?? item.usage ?? 0) || 0;
+          if (dateVal != null) {
+            dates.push(dateVal);
+            values.push(numVal);
+          }
+        }
+      }
+      if (dates.length > 0) {
+        const xAxisData = dates.map(formatLabel);
+        return {
+          chartData: {
+            daily: {
+              seriesData: [{ data: values }],
+              xAxisData,
+            },
+          },
+        };
+      }
+      // Fallback: consumption is array of numbers, use dateRange to build labels
+      if (raw.dateRange?.startDate && raw.dateRange?.endDate) {
+        const start = new Date(raw.dateRange.startDate);
+        const end = new Date(raw.dateRange.endDate);
+        const values = items.map((v) => (typeof v === "object" ? Number(v?.consumption ?? v?.value ?? v?.kwh ?? 0) || 0 : Number(v) || 0));
+        const xAxisData = [];
+        const d = new Date(start);
+        for (let i = 0; i < values.length; i++) {
+          xAxisData.push(formatLabel(d));
+          d.setDate(d.getDate() + 1);
+        }
+        return {
+          chartData: {
+            daily: {
+              seriesData: [{ data: values }],
+              xAxisData,
+            },
+          },
+        };
+      }
+    }
+
+    // Shape 1: { data: [ { date, consumption } ] }
+    if (Array.isArray(raw.data)) {
+      const dates = raw.data.map((r) => r.date || r.dateTime || r.day);
+      const values = raw.data.map((r) => Number(r.consumption ?? r.value ?? r.kwh ?? 0) || 0);
+      const xAxisData = dates.map((d) => {
+        const parsed = new Date(d);
+        if (!isNaN(parsed.getTime())) {
+          return `${String(parsed.getDate()).padStart(2, "0")} ${monthNames[parsed.getMonth()]} ${parsed.getFullYear()}`;
+        }
+        return String(d);
+      });
+      return {
+        chartData: {
+          daily: {
+            seriesData: [{ data: values }],
+            xAxisData,
+          },
+        },
+      };
+    }
+    // Shape 2: { dates: [], consumption: [] } (consumption as array of numbers)
+    if (Array.isArray(raw.dates) && Array.isArray(raw.consumption)) {
+      const xAxisData = raw.dates.map((d) => {
+        const parsed = new Date(d);
+        if (!isNaN(parsed.getTime())) {
+          return `${String(parsed.getDate()).padStart(2, "0")} ${monthNames[parsed.getMonth()]} ${parsed.getFullYear()}`;
+        }
+        return String(d);
+      });
+      const values = raw.consumption.map((v) => Number(v) || 0);
+      return {
+        chartData: {
+          daily: {
+            seriesData: [{ data: values }],
+            xAxisData,
+          },
+        },
+      };
+    }
+    // Shape 3: already chart-like { chartData: { daily: { seriesData, xAxisData } } } or { xAxisData, seriesData }
+    if (raw.chartData?.daily?.seriesData?.[0]?.data && raw.chartData.daily.xAxisData) {
+      return { chartData: raw.chartData };
+    }
+    if (raw.seriesData?.[0]?.data && raw.xAxisData) {
+      return {
+        chartData: {
+          daily: {
+            seriesData: raw.seriesData,
+            xAxisData: raw.xAxisData,
+          },
+        },
+      };
+    }
+    return null;
+  }, []);
+
+  // When user picks a date range, fetch daily-consumption report and use it for the bar chart
+  useEffect(() => {
+    if (!pickedDateRange?.startDate || !pickedDateRange?.endDate) {
+      setPickedRangeReportData(null);
+      return;
+    }
+    const startStr = toYYYYMMDD(pickedDateRange.startDate);
+    const endStr = toYYYYMMDD(pickedDateRange.endDate);
+    if (!startStr || !endStr) return;
+
+    let cancelled = false;
+    const fetchReport = async () => {
+      const user = await getUser();
+      const identifier =
+        consumerData?.uniqueIdentificationNo ||
+        consumerData?.consumerNumber ||
+        consumerData?.consumerId ||
+        user?.identifier;
+      if (!identifier) {
+        if (__DEV__) console.log("PostPaidDashboard: No consumer identifier for report");
+        return;
+      }
+      setPickedRangeReportLoading(true);
+      setPickedRangeReportData(null);
+      try {
+        const result = await apiClient.getConsumerReport(
+          identifier,
+          startStr,
+          endStr,
+          "daily-consumption"
+        );
+        if (cancelled) return;
+        if (result?.success && result?.data) {
+          const normalized = normalizeReportToChartData(result.data);
+          if (normalized) setPickedRangeReportData(normalized);
+        }
+      } catch (e) {
+        if (!cancelled && __DEV__) console.warn("PostPaidDashboard: report fetch failed", e);
+      } finally {
+        if (!cancelled) setPickedRangeReportLoading(false);
+      }
+    };
+    fetchReport();
+    return () => { cancelled = true; };
+  }, [pickedDateRange, toYYYYMMDD, normalizeReportToChartData, consumerData?.uniqueIdentificationNo, consumerData?.consumerNumber, consumerData?.consumerId]);
+
+  // When a date range is picked and report is loaded, use report data for chart/table; otherwise use main consumer data
+  const effectiveDataForChartBase = useMemo(() => {
+    if (pickedDateRange && pickedRangeReportData?.chartData) {
+      return { ...consumerData, chartData: pickedRangeReportData.chartData };
+    }
+    return consumerData;
+  }, [consumerData, pickedDateRange, pickedRangeReportData]);
+
+  // Derive chartData.monthly from daily when API doesn't provide it, so 90D and 1Y work
+  const effectiveDataForChart = useMemo(() => {
+    const base = effectiveDataForChartBase;
+    const chartData = base?.chartData;
+    if (!chartData?.daily?.seriesData?.[0]?.data?.length || !chartData.daily.xAxisData?.length) {
+      return base;
+    }
+    if (chartData.monthly?.seriesData?.[0]?.data?.length) {
+      return base;
+    }
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const dailyData = chartData.daily.seriesData[0].data;
+    const dailyLabels = chartData.daily.xAxisData;
+    const parseDailyLabel = (label) => {
+      if (!label || typeof label !== "string") return null;
+      const d = new Date(label);
+      if (!isNaN(d.getTime())) return d;
+      const match = String(label).trim().match(/(\d{1,2})\s+(\w+)\s+(\d{4})/i);
+      if (match) {
+        const monthIdx = monthNames.findIndex((m) => m.toLowerCase() === match[2].substring(0, 3).toLowerCase());
+        if (monthIdx !== -1) return new Date(parseInt(match[3], 10), monthIdx, parseInt(match[1], 10));
+      }
+      const m2 = String(label).trim().match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (m2) return new Date(parseInt(m2[1], 10), parseInt(m2[2], 10) - 1, parseInt(m2[3], 10));
+      return null;
+    };
+    const isCumulative = dailyData.every((v, i) => i === 0 || v >= dailyData[i - 1]);
+    const dailyConsumptions = isCumulative
+      ? dailyData.map((v, i) => (i === 0 ? v || 0 : (v || 0) - (dailyData[i - 1] || 0)))
+      : [...dailyData];
+    const monthMap = {};
+    for (let i = 0; i < dailyLabels.length; i++) {
+      const d = parseDailyLabel(dailyLabels[i]);
+      if (!d) continue;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (!monthMap[key]) monthMap[key] = { sum: 0, label: `${monthNames[d.getMonth()]} ${d.getFullYear()}` };
+      monthMap[key].sum += dailyConsumptions[i] || 0;
+    }
+    const sortedKeys = Object.keys(monthMap).sort();
+    const monthlyConsumptions = sortedKeys.map((k) => monthMap[k].sum);
+    const monthlyLabels = sortedKeys.map((k) => monthMap[k].label);
+    let run = 0;
+    const monthlyCumulative = sortedKeys.map((k) => { run += monthMap[k].sum; return run; });
+    return {
+      ...base,
+      chartData: {
+        ...chartData,
+        monthly: {
+          seriesData: [{ data: monthlyCumulative }],
+          xAxisData: monthlyLabels,
+        },
+      },
+    };
+  }, [effectiveDataForChartBase]);
+
   const loadTableData = useCallback(() => {
     setIsTableLoading(true);
     try {
@@ -258,6 +502,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
   // --------- DASHBOARD SUMMARY STATS (Average, Peak, This/Last Month, Savings) ----------
   const averageDailyKwh = useMemo(() => {
     if (!consumerData) return 284; // fallback to existing UI value
+    if (typeof consumerData.monthlyAverage === "number") {
+      return consumerData.monthlyAverage;
+    }
     if (consumerData.dashboardStats?.averageDailyKwh != null) {
       return consumerData.dashboardStats.averageDailyKwh;
     }
@@ -269,6 +516,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
 
   const peakUsageKwh = useMemo(() => {
     if (!consumerData) return 329;
+    if (typeof consumerData.peakUsage?.consumption === "number") {
+      return consumerData.peakUsage.consumption;
+    }
     if (consumerData.dashboardStats?.peakUsageKwh != null) {
       return consumerData.dashboardStats.peakUsageKwh;
     }
@@ -278,8 +528,32 @@ const PostPaidDashboard = ({ navigation, route }) => {
     return 329;
   }, [consumerData]);
 
+  // Derive this month / last month from same chart data used in graphs (API chartData.monthly)
+  const chartMonthlyComparison = useMemo(() => {
+    if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) return null;
+    const data = consumerData.chartData.monthly.seriesData[0].data;
+    if (data.length < 1) return null;
+    const isCumulative = data.every((value, index) => index === 0 || value >= data[index - 1]);
+    let monthlyConsumptions;
+    if (isCumulative) {
+      monthlyConsumptions = [];
+      for (let i = 0; i < data.length; i++) {
+        if (i === 0) monthlyConsumptions.push(data[i] || 0);
+        else monthlyConsumptions.push((data[i] || 0) - (data[i - 1] || 0));
+      }
+    } else {
+      monthlyConsumptions = data;
+    }
+    const thisMonth = monthlyConsumptions[monthlyConsumptions.length - 1] ?? null;
+    const lastMonth = monthlyConsumptions.length >= 2 ? (monthlyConsumptions[monthlyConsumptions.length - 2] ?? null) : null;
+    return { thisMonth, lastMonth };
+  }, [consumerData]);
+
   const thisMonthKwh = useMemo(() => {
     if (!consumerData) return 2060;
+    if (chartMonthlyComparison?.thisMonth != null) {
+      return chartMonthlyComparison.thisMonth;
+    }
     if (consumerData.dashboardStats?.thisMonthKwh != null) {
       return consumerData.dashboardStats.thisMonthKwh;
     }
@@ -287,10 +561,13 @@ const PostPaidDashboard = ({ navigation, route }) => {
       return consumerData.thisMonthKwh;
     }
     return 2060;
-  }, [consumerData]);
+  }, [consumerData, chartMonthlyComparison]);
 
   const lastMonthKwh = useMemo(() => {
     if (!consumerData) return 2340;
+    if (chartMonthlyComparison?.lastMonth != null) {
+      return chartMonthlyComparison.lastMonth;
+    }
     if (consumerData.dashboardStats?.lastMonthKwh != null) {
       return consumerData.dashboardStats.lastMonthKwh;
     }
@@ -298,7 +575,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
       return consumerData.lastMonthKwh;
     }
     return 2340;
-  }, [consumerData]);
+  }, [consumerData, chartMonthlyComparison]);
 
   const savingsKwh = useMemo(() => {
     if (consumerData?.dashboardStats?.savingsKwh != null) {
@@ -360,22 +637,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
   }, []);
 
   const formatEventDateTime = useCallback((value) => {
-    if (!value) {
-      return "--";
-    }
-
-    const parsedDate = new Date(value);
-    if (Number.isNaN(parsedDate.getTime())) {
-      return value;
-    }
-
-    return parsedDate.toLocaleString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
+    if (value === null || value === undefined) return "--";
+    const formatted = formatFrontendDateTime(value);
+    return formatted || value;
   }, []);
 
   const formatDuration = useCallback((durationValue) => {
@@ -428,29 +692,18 @@ const PostPaidDashboard = ({ navigation, route }) => {
       const match = str.match(/^(\d+)(?:st|nd|rd|th)?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)/i);
       if (match) {
         const [, dayNum, monthStr, year, hour, min] = match;
-        const day = String(parseInt(dayNum, 10)).padStart(2, "0");
         const monthIndex = monthNames.findIndex((m) => m.toLowerCase() === monthStr.toLowerCase());
         if (monthIndex === -1) return dateString;
-        const month = monthNames[monthIndex];
         const hourNum = parseInt(hour, 10);
         const minNum = parseInt(min, 10);
-        const ampm = (match[7] || "AM").toUpperCase();
-        const time = `${hourNum}:${String(minNum).padStart(2, "0")} ${ampm}`;
-        return `${day} ${month} ${year}, ${time}`;
+        const isPm = (match[7] || "AM").toUpperCase() === "PM";
+        const hour24 = (hourNum % 12) + (isPm ? 12 : 0);
+        const d = new Date(parseInt(year, 10), monthIndex, parseInt(dayNum, 10), hour24, minNum);
+        return formatFrontendDateTime(d) || dateString;
       }
       const normalized = str.replace(/(\d+)(st|nd|rd|th)\b/gi, "$1");
       const d = new Date(normalized);
-      if (!isNaN(d.getTime())) {
-        const day = String(d.getDate()).padStart(2, "0");
-        const month = monthNames[d.getMonth()];
-        const year = d.getFullYear();
-        const hours = d.getHours();
-        const mins = d.getMinutes();
-        const ampm = hours >= 12 ? "PM" : "AM";
-        const hour12 = hours % 12 || 12;
-        const time = `${hour12}:${String(mins).padStart(2, "0")} ${ampm}`;
-        return `${day} ${month} ${year}, ${time}`;
-      }
+      if (!isNaN(d.getTime())) return formatFrontendDateTime(d);
       return dateString;
     } catch (error) {
       return dateString;
@@ -559,13 +812,17 @@ const PostPaidDashboard = ({ navigation, route }) => {
     }
   }, []);
 
-  // Transform chart data into table format, respecting selectedView + timePeriod + pickedDateRange
-  const getConsumptionTableData = useCallback(() => {
-    if (!consumerData?.chartData) return [];
+  // Effective view for chart/table: same as ConsumerGroupedBarChart — 90D/1Y use monthly, 7D/30D use daily
+  const effectiveViewForTable = timePeriod === "90D" || timePeriod === "1Y" ? "monthly" : "daily";
 
-    const chartType = selectedView === "daily" 
-      ? consumerData.chartData.daily 
-      : consumerData.chartData.monthly;
+  // Transform chart data into table format, respecting toggle (timePeriod) + pickedDateRange — aligned with graph
+  const getConsumptionTableData = useCallback(() => {
+    const dataSource = effectiveDataForChart ?? consumerData;
+    if (!dataSource?.chartData) return [];
+
+    const chartType = effectiveViewForTable === "daily"
+      ? dataSource.chartData.daily
+      : dataSource.chartData.monthly;
 
     if (!chartType?.seriesData?.[0]?.data || !chartType?.xAxisData) {
       return [];
@@ -594,12 +851,12 @@ const PostPaidDashboard = ({ navigation, route }) => {
     }
 
     let visibleData, visibleConsumptions, visibleLabels, startIndex;
+    const isDaily = effectiveViewForTable === "daily";
 
     // When user picked a date range, filter table to that range (same logic as chart)
     if (pickedDateRange?.startDate && pickedDateRange?.endDate) {
       const rangeStart = new Date(pickedDateRange.startDate.getFullYear(), pickedDateRange.startDate.getMonth(), pickedDateRange.startDate.getDate());
       const rangeEnd = new Date(pickedDateRange.endDate.getFullYear(), pickedDateRange.endDate.getMonth(), pickedDateRange.endDate.getDate());
-      const isDaily = selectedView === "daily";
       const indices = [];
       for (let i = 0; i < labels.length; i++) {
         const labelDate = parseLabelToDateForTable(labels[i], isDaily);
@@ -621,15 +878,12 @@ const PostPaidDashboard = ({ navigation, route }) => {
     }
 
     if (!visibleLabels) {
-      // Default: time-period slicing
+      // Default: time-period slicing — same as ConsumerGroupedBarChart (7D→7 daily, 30D→30 daily, 90D→3 monthly, 1Y→12 monthly)
       let sliceCount;
-      if (selectedView === "daily") {
-        if (timePeriod === "7D") sliceCount = 7;
-        else if (timePeriod === "30D") sliceCount = 30;
-        else if (timePeriod === "90D") sliceCount = 90;
-        else sliceCount = data.length;
+      if (effectiveViewForTable === "daily") {
+        sliceCount = timePeriod === "7D" ? 7 : timePeriod === "30D" ? 30 : data.length;
       } else {
-        sliceCount = data.length;
+        sliceCount = timePeriod === "1Y" ? 12 : timePeriod === "90D" ? 3 : data.length;
       }
       startIndex = Math.max(0, data.length - sliceCount);
       visibleData = data.slice(startIndex);
@@ -644,7 +898,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
       consumption: visibleConsumptions[index] || 0,
       cumulative: visibleData[index] || 0,
     })).reverse();
-  }, [consumerData, selectedView, timePeriod, pickedDateRange, parseLabelToDateForTable]);
+  }, [consumerData, effectiveDataForChart, effectiveViewForTable, timePeriod, pickedDateRange, parseLabelToDateForTable]);
 
   // Memoize table data so it isn't recomputed on every render
   const consumptionTableData = useMemo(
@@ -1043,7 +1297,14 @@ const PostPaidDashboard = ({ navigation, route }) => {
               <Text style={[styles.dueText, darkOverlay.dueText]}>
                 Due Amount: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
               </Text>
-              <Text style={[styles.dateText, darkOverlay.dateText]}>Due on 15 Feb 2026</Text>
+              <Text style={[styles.dateText, darkOverlay.dateText]}>
+                Due on {!consumerData?.dueDate || String(consumerData.dueDate).trim() === "N/A"
+                  ? "N/A"
+                  : (() => {
+                      const d = new Date(consumerData.dueDate);
+                      return isNaN(d.getTime()) ? String(consumerData.dueDate) : formatFrontendDate(d);
+                    })()}
+              </Text>
             </View>
             <View style={[styles.greenBox, darkOverlay.greenBox]}>
               <View style={styles.payInfoContainer}>
@@ -1244,38 +1505,45 @@ const PostPaidDashboard = ({ navigation, route }) => {
               </View>
 
               <View style={styles.timePeriodRow}>
-                {TIME_PERIODS.map((period) => (
-                  <TouchableOpacity
-                    key={period}
-                    style={[
-                      styles.timePeriodButton,
-                      darkOverlay.timePeriodButton,
-                      timePeriod === period && [styles.timePeriodButtonActive, darkOverlay.timePeriodButtonActive]
-                    ]}
-                    onPress={() => setTimePeriod(period)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[
-                      styles.timePeriodButtonText,
-                      darkOverlay.timePeriodButtonText,
-                      timePeriod === period && [styles.timePeriodButtonTextActive, darkOverlay.timePeriodButtonTextActive]
-                    ]}>
-                      {period}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                {TIME_PERIODS.map((period) => {
+                  const isActive = !pickedDateRange && timePeriod === period;
+                  return (
+                    <TouchableOpacity
+                      key={period}
+                      style={[
+                        styles.timePeriodButton,
+                        darkOverlay.timePeriodButton,
+                        isActive && [styles.timePeriodButtonActive, darkOverlay.timePeriodButtonActive]
+                      ]}
+                      onPress={() => {
+                        setPickedDateRange(null);
+                        setPickedRangeReportData(null);
+                        setTimePeriod(period);
+                      }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[
+                        styles.timePeriodButtonText,
+                        darkOverlay.timePeriodButtonText,
+                        isActive && [styles.timePeriodButtonTextActive, darkOverlay.timePeriodButtonTextActive]
+                      ]}>
+                        {period}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               {/* Chart or Table View - full width of graphsContainer so chart aligns with header/buttons above */}
               {displayMode === "chart" ? (
                 <View style={{ width: "100%", alignItems: "stretch", marginTop: 15 }}>
-                  {isLoading ? (
+                  {isLoading || (pickedDateRange && pickedRangeReportLoading) ? (
                     <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={selectedView === "daily" ? 10 : 12} />
                   ) : (
                     <ConsumerGroupedBarChart
                       viewType={selectedView}
                       timePeriod={timePeriod}
-                      data={consumerData}
+                      data={effectiveDataForChart}
                       loading={isLoading}
                       onBarPress={handleBarPress}
                       pickedDateRange={pickedDateRange}
@@ -1284,20 +1552,20 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 </View>
               ) : (
                 <View style={{ marginTop: 10 }}>
-                  {isLoading ? (
+                  {isLoading || (pickedDateRange && pickedRangeReportLoading) ? (
                     <SkeletonLoader variant="table" style={{ marginVertical: 20 }} lines={5} columns={3} />
                   ) : (
                     <Table
                       data={consumptionTableData}
                       loading={isLoading}
-                      emptyMessage={`No ${selectedView} consumption data available`}
+                      emptyMessage={`No ${effectiveViewForTable} consumption data available`}
                       showSerial={true}
                       showPriority={false}
                       containerStyle={styles.consumptionTable}
                       columns={[
                         { 
                           key: 'period', 
-                          title: selectedView === "daily" ? 'Date' : 'Month', 
+                          title: effectiveViewForTable === "daily" ? 'Date' : 'Month', 
                           flex: 1.5,
                           align: 'left'
                         },
@@ -2117,13 +2385,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   usageStatsCardValueBlue: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: "Manrope-Bold",
     color: colors.color_brand_blue,
     lineHeight: 28,
   },
   usageStatsCardValueRed: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: "Manrope-Bold",
     color: colors.color_danger,
     lineHeight: 28,

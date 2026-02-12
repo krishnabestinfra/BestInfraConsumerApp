@@ -289,10 +289,9 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
   const barColor = isDark ? themeColors.brandBlue : '#163b7c';
   const labelColor = isDark ? themeColors.textSecondary : '#333';
   const barCount = chartData.labels.length;
-  const showEveryNthLabel = barCount === 30 ? 1 : (barCount >= 20 ? (barCount <= 60 ? 10 : 15) : 1);
   const giftedData = chartData.labels.map((label, index) => ({
     value: chartData.blue[index] || 0,
-    label: showEveryNthLabel > 1 && index % showEveryNthLabel !== 0 ? '' : label,
+    label,
     frontColor: barColor,
     labelTextStyle: {
       color: labelColor,
@@ -317,9 +316,19 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
   const manyBars = displayedBars >= 12;
   const threeBarsOnly = displayedBars === 3; 
   const twelveBarsOnly = displayedBars === 12; 
-  const thirtyBarsOnly = displayedBars === 30; 
+  const pickedRangeWithManyBars = pickedDateRange && displayedBars > 7;
+  const thirtyDaysScrollable = timePeriod === "30D" && displayedBars > 7;
+  const oneYearScrollable = timePeriod === "1Y" && twelveBarsOnly;
+  const use7DStyleScroll = thirtyDaysScrollable || pickedRangeWithManyBars || oneYearScrollable;
 
-  const edgeSpacing = (threeBarsOnly || twelveBarsOnly || thirtyBarsOnly) ? 20 : 2;
+  // 7D uses edgeSpacing 2, spacing 8; bar width = (container - 4 - 6*8) / 7
+  const spacing7D = 8;
+  const edgeSpacing7D = 2;
+  const barWidth7D = displayedBars >= 7
+    ? Math.min(40, Math.max(18, Math.floor((chartContainerWidth - edgeSpacing7D * 2 - (7 - 1) * spacing7D) / 7)))
+    : 35;
+
+  const edgeSpacing = (threeBarsOnly || twelveBarsOnly) ? 20 : (use7DStyleScroll ? edgeSpacing7D : 2);
 
   let spacing, minSpacing, minBarWidth, maxBarWidth;
   if (threeBarsOnly) {
@@ -327,11 +336,11 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     minSpacing = 16;
     minBarWidth = 24;
     maxBarWidth = 999;
-  } else if (thirtyBarsOnly) {
-    spacing = 8;
-    minSpacing = 6;
-    minBarWidth = 24;
-    maxBarWidth = 32;
+  } else if (use7DStyleScroll) {
+    spacing = spacing7D;
+    minSpacing = 8;
+    minBarWidth = 18;
+    maxBarWidth = 40;
   } else {
     spacing = manyBars ? 4 : 8;
     minSpacing = manyBars ? 2 : 8;
@@ -346,8 +355,8 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     let availableForBars = chartContainerWidth - (edgeSpacing * 2) - (spacing * gaps);
     barWidth = Math.floor(availableForBars / displayedBars);
 
-    if (thirtyBarsOnly) {
-      barWidth = 26;
+    if (use7DStyleScroll) {
+      barWidth = barWidth7D;
     } else if (!threeBarsOnly && barWidth < minBarWidth && gaps > 0) {
       spacing = Math.max(
         minSpacing,
@@ -360,16 +369,24 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
     barWidth = Math.min(maxBarWidth, Math.max(minBarWidth, barWidth));
   }
 
-  const scrollableChartWidth = thirtyBarsOnly
-    ? displayedBars * barWidth + Math.max(0, displayedBars - 1) * spacing + (edgeSpacing * 2)
+  // When scrollable: minimal gap at start, extra gap at end; include in chart width so last bar not cut off
+  const scrollableEndGap = 16;
+  const scrollableInitialSpacing = 0; // no gap at start when scrollable
+  const scrollableChartWidth = use7DStyleScroll
+    ? displayedBars * barWidth + Math.max(0, displayedBars - 1) * spacing
     : chartContainerWidth;
-  const chartWidth = thirtyBarsOnly ? scrollableChartWidth : chartContainerWidth;
+  const scrollableTotalWidth = use7DStyleScroll
+    ? scrollableChartWidth + scrollableInitialSpacing + (edgeSpacing7D + scrollableEndGap)
+    : chartContainerWidth;
+  const chartWidth = use7DStyleScroll ? scrollableTotalWidth : chartContainerWidth;
+  const chartInitialSpacing = use7DStyleScroll ? scrollableInitialSpacing : edgeSpacing;
+  const chartEndSpacing = use7DStyleScroll ? edgeSpacing7D + scrollableEndGap : edgeSpacing;
 
   const xAxisLabelWidth = threeBarsOnly || twelveBarsOnly
     ? Math.max(62, barWidth + spacing)
-    : (thirtyBarsOnly ? Math.max(38, barWidth + spacing) : (manyBars ? Math.max(12, barWidth + spacing) : Math.max(40, barWidth + spacing)));
-  const xAxisFontSize = manyBars ? 8 : 12;
-  const isScrollable = timePeriod === "30D" && thirtyBarsOnly;
+    : (use7DStyleScroll ? Math.max(40, barWidth + spacing) : (manyBars ? Math.max(12, barWidth + spacing) : Math.max(40, barWidth + spacing)));
+  const xAxisFontSize = manyBars && !use7DStyleScroll ? 8 : 12;
+  const isScrollable = thirtyDaysScrollable || pickedRangeWithManyBars || oneYearScrollable;
 
   if (loading) {
   return (
@@ -393,8 +410,8 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
       rulesType="none"
       barBorderRadius={4}
       spacing={spacing}
-      initialSpacing={edgeSpacing}
-      endSpacing={edgeSpacing}
+      initialSpacing={chartInitialSpacing}
+      endSpacing={chartEndSpacing}
       showGradient={false}
       showReferenceLine1={false}
       showReferenceLine2={false}
@@ -464,7 +481,9 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
             horizontal
             showsHorizontalScrollIndicator={true}
             style={{ width: '100%', overflow: 'hidden' }}
-            contentContainerStyle={{ minWidth: chartWidth }}
+            contentContainerStyle={{
+              minWidth: chartWidth,
+            }}
           >
             {renderChart()}
           </ScrollView>

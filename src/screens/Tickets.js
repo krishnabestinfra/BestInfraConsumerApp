@@ -148,9 +148,12 @@ const Tickets = ({ navigation }) => {
         Alert.alert("Error", "Please sign in to create a ticket.");
         return false;
       }
+      console.log('🎫 Creating ticket for consumer:', user.identifier, 'data:', ticketData);
       const result = await createTicket(user.identifier, ticketData);
+      console.log('🎫 Create ticket result (Tickets screen):', result?.success, result);
       const isSuccess = result?.success === true || result?.status === "success" || (result?.data && !result?.error);
       if (isSuccess) {
+        console.log('🎫 Ticket created successfully');
         const raw = result.data || result;
         const ticket = raw.ticket || raw.data || raw;
         const ticketNumber = ticket.ticketNumber ?? ticket.ticket_number ?? ticket.id ?? ticket.number ?? ticket.ticketId ?? raw.ticketNumber ?? raw.ticketId ?? raw.id;
@@ -160,11 +163,12 @@ const Tickets = ({ navigation }) => {
         handleCloseBottomSheet();
         return true;
       } else {
+        console.log('🎫 Create ticket failed:', result?.message || result?.error);
         Alert.alert("Error", result?.message || result?.error || "Failed to create ticket.");
         return false;
       }
     } catch (error) {
-      console.error("Create ticket error:", error);
+      console.error("🎫 Create ticket error:", error);
       Alert.alert("Error", error.message || "Failed to create ticket.");
       return false;
     }
