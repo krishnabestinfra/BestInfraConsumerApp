@@ -21,6 +21,7 @@ import { getUser } from "../utils/storage";
 import { authService } from "../services/authService";
 import { SkeletonLoader } from '../utils/loadingManager';
 import { isDemoUser, getDemoLsDataForDate } from "../constants/demoData";
+import { formatFrontendDateTime } from "../utils/dateUtils";
 
 // Pagination is handled by Table component (5 rows per page)
 
@@ -231,28 +232,14 @@ const ConsumerDataTable = ({ navigation, route }) => {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'N/A';
     try {
-      // Parse timestamp like "21st Nov 2025 12:15:00 AM"
       const date = new Date(timestamp);
       if (isNaN(date.getTime())) {
-        // If parsing fails, try to remove seconds from string format
-        if (typeof timestamp === 'string') {
-          return timestamp.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1');
-        }
-        return timestamp; // Return as-is if can't parse
+        if (typeof timestamp === 'string') return timestamp.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1');
+        return timestamp;
       }
-      // Compact format: "DD MMM HH:MM AM/PM" (no seconds)
-      return date.toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
+      return formatFrontendDateTime(date);
     } catch {
-      // Fallback: try to remove seconds from string
-      if (typeof timestamp === 'string') {
-        return timestamp.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1');
-      }
+      if (typeof timestamp === 'string') return timestamp.replace(/(\d{1,2}:\d{2}):\d{2}/g, '$1');
       return timestamp;
     }
   };

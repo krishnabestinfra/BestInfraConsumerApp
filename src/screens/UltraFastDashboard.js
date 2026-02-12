@@ -28,6 +28,7 @@ import Meter from "../../assets/icons/meterWhite.svg";
 import LastCommunicationIcon from "../../assets/icons/signal.svg";
 import UltraFastScreen from "../components/UltraFastScreen";
 import { useUltraFastData } from "../hooks/useUltraFastData";
+import { formatFrontendDateTime } from "../utils/dateUtils";
 
 const UltraFastDashboard = React.memo(({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
@@ -114,15 +115,8 @@ const UltraFastDashboard = React.memo(({ navigation, route }) => {
 
   const formatDateTime = useCallback((dateString) => {
     try {
-      const date = new Date(dateString);
-      return date.toLocaleString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
+      const formatted = formatFrontendDateTime(dateString);
+      return formatted || dateString;
     } catch (error) {
       return dateString;
     }

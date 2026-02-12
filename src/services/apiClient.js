@@ -396,6 +396,21 @@ class ApiClient {
   }
 
   /**
+   * Get consumer report (daily/monthly consumption or payment history)
+   * @param {string} identifier - Consumer UID, consumer number, or other identifier
+   * @param {string} startDate - YYYY-MM-DD
+   * @param {string} endDate - YYYY-MM-DD
+   * @param {string} reportType - 'daily-consumption' | 'monthly-consumption' | 'payment-history'
+   */
+  async getConsumerReport(identifier, startDate, endDate, reportType) {
+    const endpoint = API_ENDPOINTS.consumers.report(identifier, startDate, endDate, reportType);
+    return this.request(endpoint, {
+      timeout: 20000,
+      retries: 1,
+    });
+  }
+
+  /**
    * Get consumer list
    */
   async getConsumerList() {
