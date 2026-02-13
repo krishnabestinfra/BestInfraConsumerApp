@@ -10,15 +10,18 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../constants/constants';
 import { authService } from './authService';
 import { getUser } from '../utils/storage';
 import { isDemoUser } from '../constants/demoData';
+import { fetchNotifications } from './apiService';
 
-// Configure notification behavior
+// Configure notification behavior: show in banner and in system tray (like other apps)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
@@ -27,6 +30,127 @@ Notifications.setNotificationHandler({
 // Notification listeners
 let notificationReceivedListener = null;
 let notificationResponseListener = null;
+
+// Listeners for in-app BI (NexusOne) test notification card only
+let testCardListeners = [];
+
+// BI/NexusOne notification copy (same for in-app card and system notification)
+const TEST_NOTIFICATION_TITLE = 'NexusOne';
+const TEST_NOTIFICATION_BODY = 'This is a test notification from Best Infra.';
+
+/**
+ * Subscribe to show the in-app BI notification card (NexusOne style).
+ * Used by PushNotificationHandler. Payload: { title, body?, message?, data? }.
+ * @returns {() => void} Unsubscribe function
+ */
+export const addTestNotificationCardListener = (callback) => {
+  testCardListeners.push(callback);
+  return () => {
+    testCardListeners = testCardListeners.filter((l) => l !== callback);
+  };
+};
+
+/**
+ * Show the in-app BI notification card with the given payload.
+ * Payload: { title, body?, message?, data? }. Used for test and for PUSH-channel API notifications.
+ */
+export const showNotificationCard = (payload) => {
+  testCardListeners.forEach((cb) => cb(payload));
+};
+
+/**
+ * Show the BI (NexusOne) in-app notification card only — no system/Expo notification.
+ * Call this from Settings "Test push notification" so the user sees the app's card.
+ */
+export const showTestNotificationCard = () => {
+  showNotificationCard({
+    title: TEST_NOTIFICATION_TITLE,
+    body: TEST_NOTIFICATION_BODY,
+    data: { test: true },
+  });
+};
+
+// Storage key for IDs of PUSH-channel notifications we've already shown (from API poll)
+const PUSH_CHANNEL_SHOWN_IDS_KEY = '@push_channel_shown_ids';
+const MAX_STORED_SHOWN_IDS = 200;
+
+// Alert preferences (control which push notification types to show) - from Alerts screen
+const ALERT_PREFERENCES_KEY = '@alert_preferences';
+const DEFAULT_ALERT_PREFERENCES = {
+  billDueReminders: true,
+  paymentConfirmations: true,
+  billAmountAlerts: true,
+  tamperAlerts: true,
+  emailNotifications: true,
+};
+
+/** API notification type -> Alerts screen toggle key */
+const NOTIFICATION_TYPE_TO_PREF = {
+  PAYMENT_SUCCESS: 'paymentConfirmations',
+  BILL_OVERDUE: 'billDueReminders',
+  BILL_DUE_REMINDER: 'billDueReminders',
+  TICKET_STATUS_UPDATE: 'ticketUpdates',
+  TAMPER: 'tamperAlerts',
+  TAMPER_ALERT: 'tamperAlerts',
+  BILL_AMOUNT: 'billAmountAlerts',
+};
+
+/**
+ * Get saved alert preferences (for push notification filtering).
+ * @returns {Promise<{ billDueReminders, paymentConfirmations, billAmountAlerts, tamperAlerts, emailNotifications, ticketUpdates? }>}
+ */
+export const getAlertPreferences = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(ALERT_PREFERENCES_KEY);
+    if (!raw) return { ...DEFAULT_ALERT_PREFERENCES, ticketUpdates: true };
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_ALERT_PREFERENCES, ticketUpdates: true, ...parsed };
+  } catch {
+    return { ...DEFAULT_ALERT_PREFERENCES, ticketUpdates: true };
+  }
+};
+
+/**
+ * Save alert preferences (call from Alerts screen on Save).
+ * @param {Object} prefs - Same shape as getAlertPreferences
+ */
+export const setAlertPreferences = async (prefs) => {
+  try {
+    await AsyncStorage.setItem(ALERT_PREFERENCES_KEY, JSON.stringify(prefs));
+  } catch (e) {
+    if (__DEV__) console.warn('Could not save alert preferences:', e?.message);
+  }
+};
+
+/**
+ * Whether the user has enabled push for this notification type (from Alerts toggles).
+ */
+const isPushEnabledForType = (type, prefs) => {
+  const key = NOTIFICATION_TYPE_TO_PREF[type];
+  if (!key) return true;
+  return prefs[key] !== false;
+};
+
+const getShownPushNotificationIds = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(PUSH_CHANNEL_SHOWN_IDS_KEY);
+    const ids = raw ? JSON.parse(raw) : [];
+    return Array.isArray(ids) ? ids.map(String) : [];
+  } catch {
+    return [];
+  }
+};
+
+const addShownPushNotificationIds = async (newIds) => {
+  try {
+    const existing = await getShownPushNotificationIds();
+    const combined = [...new Set([...existing, ...newIds.map(String)])];
+    const capped = combined.slice(-MAX_STORED_SHOWN_IDS);
+    await AsyncStorage.setItem(PUSH_CHANNEL_SHOWN_IDS_KEY, JSON.stringify(capped));
+  } catch (e) {
+    if (__DEV__) console.warn('Could not save shown push notification ids:', e?.message);
+  }
+};
 
 /**
  * Get push notification token for this device
@@ -269,20 +393,124 @@ export const getLastNotificationResponse = async () => {
   }
 };
 
+const DEFAULT_CHANNEL_ID = 'nexusone-default';
+
 /**
- * Schedule a local notification (for testing)
+ * Ensure Android notification channel exists (so notification shows in tray and status bar)
+ */
+const ensureNotificationChannel = async () => {
+  if (Platform.OS !== 'android') return;
+  try {
+    await Notifications.setNotificationChannelAsync(DEFAULT_CHANNEL_ID, {
+      name: 'NexusOne Notifications',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#1f255e',
+    });
+  } catch (e) {
+    console.warn('Could not set notification channel:', e?.message);
+  }
+};
+
+/**
+ * Schedule a system notification for testing (shows in pull bar in 2 seconds).
+ * Uses NexusOne/BI title and body. App name & icon in pull bar = "NexusOne" only in a
+ * development build; in Expo Go the system shows "Expo Go".
  */
 export const scheduleTestNotification = async () => {
   try {
+    await ensureNotificationChannel();
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Test Notification",
-        body: "This is a test push notification from NexusOne",
+        title: TEST_NOTIFICATION_TITLE,
+        body: TEST_NOTIFICATION_BODY,
         data: { test: true },
+        ...(Platform.OS === 'android' && { channelId: DEFAULT_CHANNEL_ID }),
       },
-      trigger: { seconds: 2 },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 2,
+      },
     });
   } catch (error) {
     console.error('❌ Error scheduling test notification:', error);
+    throw error;
   }
+};
+
+/**
+ * Fetch notifications from API, filter those with meta.channels including "PUSH",
+ * and show any new ones as in-app card + system notification (pull bar).
+ * Call on app foreground and on an interval when app is open.
+ */
+export const checkAndShowPushChannelNotifications = async () => {
+  try {
+    const user = await getUser();
+    const uid = user?.identifier || user?.consumerNumber || user?.uid;
+    if (!uid) return;
+    if (isDemoUser(uid)) return;
+
+    const result = await fetchNotifications(uid, 1, 30);
+    if (!result.success || !result.data?.notifications?.length) return;
+
+    const notifications = result.data.notifications;
+    const pushChannel = notifications.filter(
+      (n) => n.meta && Array.isArray(n.meta.channels) && n.meta.channels.includes('PUSH')
+    );
+    if (pushChannel.length === 0) return;
+
+    const shownIds = await getShownPushNotificationIds();
+    const newOnes = pushChannel.filter((n) => !shownIds.includes(String(n.id)));
+    if (newOnes.length === 0) return;
+
+    const sorted = [...newOnes].sort(
+      (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)
+    );
+    const latest = sorted[0];
+
+    const prefs = await getAlertPreferences();
+    if (!isPushEnabledForType(latest.type, prefs)) {
+      await addShownPushNotificationIds(newOnes.map((n) => n.id));
+      if (__DEV__) console.log('📬 Push skipped (alert off):', latest.type);
+      return;
+    }
+
+    await ensureNotificationChannel();
+    const content = {
+      title: latest.title || 'Notification',
+      body: latest.message || '',
+      data: {
+        type: latest.type,
+        notificationId: String(latest.id),
+        redirect_url: latest.redirect_url || '',
+      },
+      ...(Platform.OS === 'android' && { channelId: DEFAULT_CHANNEL_ID }),
+    };
+
+    await Notifications.scheduleNotificationAsync({
+      content,
+      trigger: null,
+    });
+    showNotificationCard({
+      title: latest.title || 'Notification',
+      body: latest.message || '',
+      data: content.data,
+    });
+    await addShownPushNotificationIds(newOnes.map((n) => n.id));
+    if (__DEV__) {
+      console.log('📬 Shown PUSH-channel notification:', latest.id, latest.type);
+    }
+  } catch (e) {
+    if (__DEV__) console.warn('checkAndShowPushChannelNotifications:', e?.message);
+  }
+};
+
+/**
+ * Test push notification: show BI in-app card now + schedule system notification in 2s.
+ * When app is in background/closed, the notification appears in the pull bar with this
+ * title/body. To see "NexusOne" (not "Expo Go") in the pull bar, use a development build.
+ */
+export const sendTestPushNotification = () => {
+  showTestNotificationCard();
+  scheduleTestNotification().catch((e) => console.warn('Schedule test failed:', e?.message));
 };

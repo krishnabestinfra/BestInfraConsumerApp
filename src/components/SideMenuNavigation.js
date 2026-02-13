@@ -23,6 +23,7 @@ import { logoutUser } from "../utils/storage";
 import { TabContext } from "../context/TabContext";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigationState } from "@react-navigation/native";
+import { getAlertPreferences, setAlertPreferences } from "../services/pushNotificationService";
 
 const SideMenuNavigation = ({ navigation }) => {
   const { activeItem, setActiveItem } = useContext(TabContext);
@@ -58,7 +59,6 @@ const SideMenuNavigation = ({ navigation }) => {
     state?.routes[state?.index]?.name
   );
 
-  // Sync activeItem with current route on mount and route changes
   useEffect(() => {
     if (currentRoute) {
       if (currentRoute === "PostPaidDashboard" || currentRoute === "Dashboard") {
@@ -117,15 +117,29 @@ const SideMenuNavigation = ({ navigation }) => {
     setShowAlertsModal(true);
   };
 
-  const handleSaveAlertSettings = () => {
-    console.log('Saving alert settings:', {
-      usageThreshold,
+  useEffect(() => {
+    if (!showAlertsModal) return;
+    let mounted = true;
+    getAlertPreferences().then((prefs) => {
+      if (!mounted) return;
+      setBillDueReminders(prefs.billDueReminders !== false);
+      setPaymentConfirmations(prefs.paymentConfirmations !== false);
+      setBillAmountAlerts(prefs.billAmountAlerts !== false);
+      setTamperAlerts(prefs.tamperAlerts !== false);
+      setEmailNotifications(prefs.emailNotifications !== false);
+    });
+    return () => { mounted = false; };
+  }, [showAlertsModal]);
+
+  const handleSaveAlertSettings = async () => {
+    const prefs = {
       billDueReminders,
       paymentConfirmations,
       billAmountAlerts,
       tamperAlerts,
-      emailNotifications
-    });
+      emailNotifications,
+    };
+    await setAlertPreferences(prefs);
     setShowAlertsModal(false);
   };
 
