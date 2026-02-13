@@ -340,13 +340,16 @@ export const fetchBillingHistory = async (uid) => {
 
 /**
  * Fetch ticket statistics with caching
+ * @param {string} uid - Consumer identifier
+ * @param {boolean} forceRefresh - If true, bypass cache and fetch fresh data (e.g. after creating a ticket)
  */
-export const fetchTicketStats = async (uid) => {
+export const fetchTicketStats = async (uid, forceRefresh = false) => {
   try {
     return await cacheManager.getData(
       'ticket_stats',
       API_ENDPOINTS.tickets.stats(uid),
-      uid
+      uid,
+      forceRefresh
     );
   } catch (error) {
     console.error("Error fetching ticket stats:", error);
@@ -356,13 +359,16 @@ export const fetchTicketStats = async (uid) => {
 
 /**
  * Fetch tickets table data with caching
+ * @param {string} uid - Consumer identifier
+ * @param {boolean} forceRefresh - If true, bypass cache and fetch fresh data (e.g. after creating a ticket)
  */
-export const fetchTicketsTable = async (uid) => {
+export const fetchTicketsTable = async (uid, forceRefresh = false) => {
   try {
     return await cacheManager.getData(
       'ticket_table',
       API_ENDPOINTS.tickets.table(uid),
-      uid
+      uid,
+      forceRefresh
     );
   } catch (error) {
     console.error("Error fetching tickets table:", error);
