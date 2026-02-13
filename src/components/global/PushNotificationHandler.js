@@ -5,6 +5,7 @@ import * as Notifications from 'expo-notifications';
 import PushNotificationCard from './PushNotificationCard';
 import { useNotifications } from '../../context/NotificationsContext';
 import { useApp } from '../../context/AppContext';
+import { addTestNotificationCardListener } from '../../services/pushNotificationService';
 
 /**
  * PushNotificationHandler Component
@@ -112,6 +113,24 @@ const PushNotificationHandler = () => {
     return 'Hi!';
   };
 
+  // Show BI (NexusOne) in-app card when test is requested from Settings
+  const handleTestCardPayload = useCallback((payload) => {
+    const title = payload.title || 'Hi!';
+    const message = payload.body || payload.message || '';
+    setCurrentNotification({
+      id: 'test',
+      title: getGreeting(title),
+      message,
+      data: payload.data || {},
+    });
+    setIsVisible(true);
+    setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(() => setCurrentNotification(null), 300);
+    }, 5000);
+    refreshNotifications();
+  }, [refreshNotifications]);
+
   // Set up notification listeners
   useEffect(() => {
     // Listener for notifications received while app is in foreground
@@ -123,6 +142,9 @@ const PushNotificationHandler = () => {
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(
       handleNotificationTapped
     );
+
+    // Listener for test button: show BI (NexusOne) in-app card only, no system notification
+    const unsubTestCard = addTestNotificationCardListener(handleTestCardPayload);
 
     // Check if app was opened from a notification
     Notifications.getLastNotificationResponseAsync()
@@ -138,8 +160,9 @@ const PushNotificationHandler = () => {
     return () => {
       receivedSubscription.remove();
       responseSubscription.remove();
+      unsubTestCard();
     };
-  }, [handleNotificationReceived, handleNotificationTapped]);
+  }, [handleNotificationReceived, handleNotificationTapped, handleTestCardPayload]);
 
   // Handle card press
   const handleCardPress = useCallback(() => {

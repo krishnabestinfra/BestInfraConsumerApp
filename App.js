@@ -1,4 +1,4 @@
-import { StyleSheet, View, ActivityIndicator, BackHandler, ToastAndroid, Platform } from "react-native";
+import { StyleSheet, View, ActivityIndicator, BackHandler, ToastAndroid, Platform, AppState } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useState, useEffect, useRef } from "react";
@@ -8,7 +8,7 @@ import Toast from 'react-native-toast-message';
 import Logo from "./src/components/global/Logo";
 import { COLORS } from "./src/constants/colors";
 import PushNotificationHandler from "./src/components/global/PushNotificationHandler";
-import { initializePushNotifications } from "./src/services/pushNotificationService";
+import { initializePushNotifications, checkAndShowPushChannelNotifications } from "./src/services/pushNotificationService";
 
 import SplashScreen from "./src/splashScreen/SplashScreen";
 import OnBoarding from "./src/screens/OnBoarding";
@@ -106,6 +106,20 @@ export default function App() {
     };
     
     initPushNotifications();
+  }, []);
+
+  // Poll for PUSH-channel notifications from API (backend sends data only; we show as push)
+  useEffect(() => {
+    const runCheck = () => checkAndShowPushChannelNotifications().catch(() => {});
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') runCheck();
+    });
+    const interval = setInterval(runCheck, 2 * 60 * 1000);
+    runCheck();
+    return () => {
+      subscription?.remove?.();
+      clearInterval(interval);
+    };
   }, []);
 
   // Global Back Button Handler

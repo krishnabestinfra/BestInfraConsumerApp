@@ -75,12 +75,7 @@ const parseDueDate = (value) => {
   return null;
 };
 
-/**
- * Returns due days text from a single due date value (from latest invoice).
- * - If current date > due date: "X days Overdue" (or "1 day Overdue")
- * - If current date is on or before due date: "X days left" (or "Due today" / "1 day left")
- * Count is calculated here; no API returns the day count.
- */
+
 const getDueDaysText = (dueDateValue) => {
   const due = parseDueDate(dueDateValue);
   if (!due) return "—";
