@@ -61,8 +61,7 @@ const Tickets = ({ navigation }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdTicket, setCreatedTicket] = useState(null);
 
-  // Fetch data function (uses demo data if logged in with demo credentials)
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefreshTickets = false) => {
     try {
       setIsLoading(true);
       setStatsLoading(true);
@@ -95,14 +94,14 @@ const Tickets = ({ navigation }) => {
           setConsumerData(result.data);
         }
         
-        // Fetch ticket statistics
-        const statsResult = await fetchTicketStats(user.identifier);
+        // Fetch ticket statistics (force refresh after creating a ticket so new ticket appears)
+        const statsResult = await fetchTicketStats(user.identifier, forceRefreshTickets);
         if (statsResult.success) {
           setTicketStats(statsResult.data);
         }
         
-        // Fetch tickets table data
-        const tableResult = await fetchTicketsTable(user.identifier);
+        // Fetch tickets table data (force refresh after creating a ticket so new ticket appears)
+        const tableResult = await fetchTicketsTable(user.identifier, forceRefreshTickets);
         if (tableResult.success) {
           setTableData(tableResult.data || []);
         } else {
@@ -148,8 +147,10 @@ const Tickets = ({ navigation }) => {
         Alert.alert("Error", "Please sign in to create a ticket.");
         return false;
       }
-      console.log('🎫 Creating ticket for consumer:', user.identifier, 'data:', ticketData);
-      const result = await createTicket(user.identifier, ticketData);
+      // Use consumerNumber from consumers API (e.g. CON-1002 from /consumers/BI25GMRA0001)
+      const consumerNumber = consumerData?.consumerNumber || user?.consumerNumber || user.identifier;
+      console.log('🎫 Creating ticket for consumer:', consumerNumber, 'data:', ticketData);
+      const result = await createTicket(consumerNumber, ticketData);
       console.log('🎫 Create ticket result (Tickets screen):', result?.success, result);
       const isSuccess = result?.success === true || result?.status === "success" || (result?.data && !result?.error);
       if (isSuccess) {
@@ -158,7 +159,8 @@ const Tickets = ({ navigation }) => {
         const ticket = raw.ticket || raw.data || raw;
         const ticketNumber = ticket.ticketNumber ?? ticket.ticket_number ?? ticket.id ?? ticket.number ?? ticket.ticketId ?? raw.ticketNumber ?? raw.ticketId ?? raw.id;
         setCreatedTicket({ ...ticket, ticketNumber: ticketNumber ?? ticket.ticketNumber });
-        fetchData();
+        // Force refresh ticket list and stats so the new ticket appears without manual reload
+        fetchData(true);
         pendingSuccessModalRef.current = true;
         handleCloseBottomSheet();
         return true;
@@ -172,7 +174,7 @@ const Tickets = ({ navigation }) => {
       Alert.alert("Error", error.message || "Failed to create ticket.");
       return false;
     }
-  }, []);
+  }, [consumerData?.consumerNumber]);
 
   const handleCloseSuccessModal = useCallback(() => {
     setShowSuccessModal(false);
