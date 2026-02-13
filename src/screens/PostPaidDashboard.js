@@ -2156,7 +2156,7 @@ const styles = StyleSheet.create({
   paynowboxContainer: {
     flexDirection: "column",
     alignItems: "flex-end",
-    gap: 5,
+    gap: 12,
   },
   dueText: {
     color: COLORS.secondaryFontColor,
@@ -2167,8 +2167,6 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-Medium",
-    textAlign: "center",
-    // width: "100%",
   },
   dateText: {
     color: COLORS.secondaryFontColor,
@@ -2206,7 +2204,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-Medium",
-    marginBottom: 10,
+    // marginBottom: 10,
   },
   paynowbox: {
     backgroundColor: COLORS.secondaryFontColor,

@@ -17,6 +17,9 @@ import { TabContext } from "../context/TabContext";
 import SideMenuNavigation from "../components/SideMenuNavigation";
 import Logo from "../components/global/Logo";
 import { logoutUser, getUser } from "../utils/storage";
+import { apiClient } from "../services/apiClient";
+import { API, API_ENDPOINTS } from "../constants/constants";
+import { authService } from "../services/authService";
 import CrossIcon from "../../assets/icons/crossWhite.svg";
 import { getTenantSubdomain } from "../config/apiConfig";
 
@@ -54,7 +57,7 @@ const SideMenu = ({ navigation }) => {
   const s14 = getScaledFontSize(14);
   const s11 = getScaledFontSize(11);
   const { activeItem, setActiveItem } = useContext(TabContext);
-  const [userData, setUserData] = useState(null);
+  const [profileData, setProfileData] = useState({ name: "", consumerId: "" });
   const [isUserLoading, setIsUserLoading] = useState(true);
 
   // Determine current tenant (client) for branding (GMR vs NTPL)
@@ -64,22 +67,71 @@ const SideMenu = ({ navigation }) => {
       ? require("../../assets/images/ntpl.png")
       : require("../../assets/images/gmr.png");
 
-  // Fetch user data when menu opens (refreshes on each open)
+  // Fetch profile data from same APIs as ProfileScreenMain (consumers + auth profile)
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
-      const fetchUserData = async () => {
+      const fetchProfileData = async () => {
         try {
           setIsUserLoading(true);
           const user = await getUser();
-          if (isMounted) setUserData(user);
+          if (!user?.identifier) {
+            if (isMounted) setProfileData({ name: "-", consumerId: "-" });
+            return;
+          }
+
+          // 1) Fetch consumer data - same as ProfileScreenMain
+          const consumerEndpoint = API_ENDPOINTS.consumers.get(user.identifier);
+          const consumerResult = await apiClient.request(consumerEndpoint, { method: "GET" });
+
+          let name = "";
+          let consumerId = user.identifier;
+
+          if (consumerResult.success && consumerResult.data) {
+            const cd = consumerResult.data;
+            name = cd.name || cd.consumerName || "";
+            consumerId = cd.uniqueIdentificationNo || user.identifier || user.consumerNumber;
+          }
+
+          // 2) Auth profile for name fallback if consumer API has no name (optional)
+          if (!name) {
+            try {
+              const token = await authService.getValidAccessToken();
+              const profileUrl = `${API.AUTH_URL}/profile?token=${token}`;
+              const profileResult = await apiClient.request(profileUrl, { method: "GET" });
+              if (profileResult.success && profileResult.data?.user?.name) {
+                name = profileResult.data.user.name;
+              }
+            } catch (_) {}
+          }
+
+          // Fallback to stored user name
+          if (!name && user.name) {
+            name = user.name;
+          }
+          if (!name) name = "Consumer";
+
+          if (isMounted) {
+            setProfileData({
+              name,
+              consumerId: consumerId || user.identifier || "-",
+            });
+          }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error('Error fetching profile for SideMenu:', error);
+          if (isMounted) {
+            getUser().then((u) => {
+              setProfileData({
+                name: u?.name || "Consumer",
+                consumerId: u?.consumerNumber || u?.identifier || "-",
+              });
+            });
+          }
         } finally {
           if (isMounted) setIsUserLoading(false);
         }
       };
-      fetchUserData();
+      fetchProfileData();
       return () => { isMounted = false; };
     }, [])
   );
@@ -172,8 +224,12 @@ const SideMenu = ({ navigation }) => {
               </>
             ) : (
               <>
-                <Text style={[styles.profileName, { fontSize: s14 }]}>{userData?.name || "-"}</Text>
-                <Text style={[styles.profileId, { fontSize: s11 }]}>ID: {userData?.identifier || "-"}</Text>
+                <Text style={[styles.profileName, { fontSize: s14 }]}>
+                  {profileData.name}
+                </Text>
+                <Text style={[styles.profileId, { fontSize: s11 }]}>
+                  ID: {profileData.consumerId}
+                </Text>
               </>
             )}
           </View>
@@ -330,10 +386,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     height: "85%",
     left: 25,
-    top: 80,
+    top: 60,
     backgroundColor: "#eef8f0",
     borderTopLeftRadius: 30,
-    borderBottomLeftRadius: 20,
+    borderBottomLeftRadius: 30,
     elevation: 10,
     opacity: 0.3,
   },

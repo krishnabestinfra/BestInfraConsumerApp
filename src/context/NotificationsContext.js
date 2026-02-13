@@ -352,14 +352,15 @@ export const NotificationsProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, [state.consumerUid, fetchNotificationsData]);
 
-  // Initialize with current user
+  // Initialize with current user (consumerNumber or identifier - auth may store either)
   useEffect(() => {
     const initializeNotifications = async () => {
       try {
         const user = await getUser();
-        
-        if (user?.identifier) {
-          setConsumerUid(user.identifier);
+        const consumerId = user?.consumerNumber || user?.identifier || user?.uid;
+
+        if (consumerId) {
+          setConsumerUid(consumerId);
         }
       } catch (error) {
         // Silently handle initialization errors
