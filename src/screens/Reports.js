@@ -1,5 +1,7 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Modal, Alert } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Modal, Alert, ActivityIndicator, Share } from "react-native";
 import React, { useState } from "react";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import BottomNavigation from "../components/global/BottomNavigation";
@@ -14,11 +16,14 @@ import DropDownIcon from "../../assets/icons/dropdownArrow.svg";
 import ShareIcon from "../../assets/icons/share.svg";
 import DatePicker from "../components/global/DatePicker";
 import DocumentIcon from "../../assets/icons/document.svg";
+import { getUser } from "../utils/storage";
+import { apiClient } from "../services/apiClient";
+import * as XLSX from "xlsx";
 
 
 const Reports = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
-  const [filterType, setFilterType] = useState("Monthly Consumption");
+  const [filterType, setFilterType] = useState("Daily Consumption");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
@@ -27,6 +32,8 @@ const Reports = ({ navigation }) => {
     { id: 2, name: "Dec 2025 Consumption.pdf" },
     { id: 3, name: "Nov 2025 Consumption.pdf" },
   ]);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState(null);
 
   const formatDate = (date) => {
     if (!date) return "";
@@ -36,21 +43,264 @@ const Reports = ({ navigation }) => {
     return `${day}-${month}-${year}`;
   };
 
-  const handleGetReport = () => {
+  const toYYYYMMDD = (date) => {
+    if (!date) return "";
+    const y = date.getFullYear();
+    const m = (date.getMonth() + 1).toString().padStart(2, "0");
+    const d = date.getDate().toString().padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const reportTypeToApi = {
+    "Daily Consumption": "daily-consumption",
+    "Monthly Consumption": "monthly-consumption",
+    "Payment History": "payment-history",
+  };
+
+  const reportTypes = ["Daily Consumption", "Monthly Consumption", "Payment History"];
+
+  const handleGetReport = async () => {
     if (!startDate || !endDate) {
       Alert.alert("Error", "Please select both start and end dates");
       return;
     }
-    // TODO: Implement report generation logic
-    Alert.alert("Success", "Report generated successfully");
+    const user = await getUser();
+    const identifier = user?.identifier;
+    if (!identifier) {
+      Alert.alert("Error", "Please sign in to generate reports");
+      return;
+    }
+    const startStr = toYYYYMMDD(startDate);
+    const endStr = toYYYYMMDD(endDate);
+    const reportType = reportTypeToApi[filterType] ?? "daily-consumption";
+
+    setReportError(null);
+    setReportLoading(true);
+    try {
+      const result = await apiClient.getConsumerReport(identifier, startStr, endStr, reportType);
+      if (result?.success && result?.data != null) {
+        const reportLabel = filterType.replace(/\s+/g, " ");
+        const reportName = `${reportLabel} (${formatDate(startDate)} - ${formatDate(endDate)}).pdf`;
+        setRecentReports((prev) => [
+          { id: Date.now(), name: reportName, data: result.data, reportType: filterType },
+          ...prev,
+        ].slice(0, 10));
+        Alert.alert("Success", "Report generated successfully");
+      } else {
+        const msg = result?.message || "Failed to load report";
+        setReportError(msg);
+        Alert.alert("Report failed", msg);
+      }
+    } catch (err) {
+      const msg = err?.message || "Something went wrong";
+      setReportError(msg);
+      Alert.alert("Error", msg);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
-  const handleShareReport = (report) => {
-    // TODO: Implement share functionality
-    Alert.alert("Share", `Sharing ${report.name}`);
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  const labelToMonthYYYYMM = (label, fallbackYear) => {
+    if (!label) return "";
+    const s = String(label).trim();
+    if (/^\d{4}-\d{2}$/.test(s)) return s;
+    const year = fallbackYear ?? new Date().getFullYear();
+    const i = monthNames.findIndex((m) => s.startsWith(m) || s.toLowerCase().startsWith(m.toLowerCase()));
+    if (i !== -1) return `${year}-${String(i + 1).padStart(2, "0")}`;
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return s;
   };
 
-  const reportTypes = ["Monthly Consumption", "Yearly Consumption", "Payment History", "Usage Analysis"];
+  const isMonthlyShape = (arr) => Array.isArray(arr) && arr.length > 0 && typeof arr[0] === "object" && arr[0] != null && ("month" in arr[0] || "monthly" in arr[0]);
+
+  const getReportSheetData = (report) => {
+    const raw = report?.data;
+    const rawType = report?.reportType || (report?.name?.toLowerCase().includes("payment") ? "Payment" : report?.name?.toLowerCase().includes("monthly") ? "Monthly" : "Daily");
+    const type = rawType?.toLowerCase().includes("monthly") ? "Monthly" : rawType?.toLowerCase().includes("payment") ? "Payment" : "Daily";
+    if (!raw) return null;
+
+    if (type === "Monthly") {
+      let months = [];
+      let values = [];
+      const dataArray = Array.isArray(raw) ? raw : raw?.data;
+      if (isMonthlyShape(dataArray)) {
+        for (const r of dataArray) {
+          const m = r.month ?? r.monthly ?? r.date ?? r.label ?? "";
+          months.push(typeof m === "string" && /^\d{4}-\d{2}$/.test(m) ? m : labelToMonthYYYYMM(m));
+          values.push(Number(r.consumption ?? r.value ?? r.kwh ?? 0) || 0);
+        }
+      } else if (raw?.chartData?.monthly?.xAxisData?.length && raw.chartData.monthly.seriesData?.[0]?.data?.length) {
+        const chart = raw.chartData.monthly;
+        const data = chart.seriesData[0].data;
+        const isCumulative = data.length > 1 && data.every((v, i) => i === 0 || v >= data[i - 1]);
+        const consumptions = isCumulative ? data.map((v, i) => (i === 0 ? v : (v || 0) - (data[i - 1] || 0))) : data;
+        const year = raw.dateRange?.startDate ? new Date(raw.dateRange.startDate).getFullYear() : new Date().getFullYear();
+        months = chart.xAxisData.map((l) => labelToMonthYYYYMM(l, year));
+        values = consumptions;
+      } else if (Array.isArray(raw.consumption) && raw.consumption.length > 0) {
+        for (const item of raw.consumption) {
+          const d = item.date ?? item.dateTime ?? item.month ?? item.label;
+          months.push(labelToMonthYYYYMM(d));
+          values.push(Number(item.consumption ?? item.value ?? item.kwh ?? 0) || 0);
+        }
+      } else if (Array.isArray(raw.data) && !isMonthlyShape(raw.data)) {
+        for (const r of raw.data) {
+          months.push(labelToMonthYYYYMM(r.date ?? r.dateTime ?? r.month ?? r.label));
+          values.push(Number(r.consumption ?? r.value ?? r.kwh ?? 0) || 0);
+        }
+      } else if (Array.isArray(raw.dates) && Array.isArray(raw.consumption)) {
+        months = raw.dates.map((d) => labelToMonthYYYYMM(d));
+        values = raw.consumption.map((v) => Number(v) || 0);
+      }
+      if (months.length > 0) return [["Month", "Consumption"], ...months.map((m, i) => [m, values[i] ?? 0])];
+    }
+
+    if (type === "Daily") {
+      let dates = [];
+      let values = [];
+      const chart = raw.chartData?.daily;
+      if (chart?.xAxisData?.length && chart?.seriesData?.[0]?.data?.length) {
+        dates = chart.xAxisData;
+        values = chart.seriesData[0].data;
+      } else if (Array.isArray(raw.consumption) && raw.consumption.length > 0 && !isMonthlyShape(raw.consumption)) {
+        for (const item of raw.consumption) {
+          dates.push(item.date ?? item.dateTime ?? item.day ?? item.label ?? "");
+          values.push(Number(item.consumption ?? item.value ?? item.kwh ?? 0) || 0);
+        }
+      } else if (Array.isArray(raw.data) && !isMonthlyShape(raw.data)) {
+        dates = raw.data.map((r) => r.date ?? r.dateTime ?? r.day ?? r.label ?? "");
+        values = raw.data.map((r) => Number(r.consumption ?? r.value ?? r.kwh ?? 0) || 0);
+      } else if (Array.isArray(raw) && !isMonthlyShape(raw)) {
+        dates = raw.map((r) => r.date ?? r.dateTime ?? r.day ?? r.label ?? "");
+        values = raw.map((r) => Number(r.consumption ?? r.value ?? r.kwh ?? 0) || 0);
+      } else if (Array.isArray(raw.dates) && Array.isArray(raw.consumption)) {
+        dates = raw.dates;
+        values = raw.consumption.map((v) => Number(v) || 0);
+      }
+      if (dates.length > 0) return [["Date", "Consumption"], ...dates.map((d, i) => [d, values[i] ?? 0])];
+    }
+
+    if (type === "Payment") {
+      const arr = Array.isArray(raw.data) ? raw.data : Array.isArray(raw.payments) ? raw.payments : [];
+      if (arr.length > 0) {
+        const first = arr[0];
+        const keys = typeof first === "object" && first !== null ? Object.keys(first) : [];
+        const headers = keys.length ? keys : ["Date", "Amount", "Description"];
+        const rows = keys.length ? arr.map((r) => headers.map((h) => r[h] ?? "")) : arr.map((r) => (typeof r === "object" ? Object.values(r) : [r]));
+        return [headers, ...rows];
+      }
+      return [["Date", "Amount", "Description"]];
+    }
+
+    const arr = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+    if (arr.length > 0 && typeof arr[0] === "object" && arr[0] != null) {
+      const keys = Object.keys(arr[0]);
+      const useMonthlyHeaders = isMonthlyShape(arr) || type === "Monthly" || (keys.length === 2 && (keys.includes("month") || keys.includes("consumption")));
+      const headers = useMonthlyHeaders ? ["Month", "Consumption"] : keys.length ? keys : ["Date", "Consumption"];
+      const rows = useMonthlyHeaders ? arr.map((r) => [r.month ?? r.monthly ?? r.date ?? "", r.consumption ?? r.value ?? r.kwh ?? ""]) : arr.map((r) => headers.map((h) => (r[h] != null ? r[h] : "")));
+      return [headers, ...rows];
+    }
+    return null;
+  };
+
+  const buildReportAsCsv = (report) => {
+    const sheetData = getReportSheetData(report);
+    if (!sheetData || sheetData.length === 0) return null;
+    const escape = (v) => (v == null ? "" : String(v).replace(/"/g, '""'));
+    const row = (arr) => arr.map((c) => `"${escape(c)}"`).join(",");
+    return sheetData.map((r) => row(r)).join("\n");
+  };
+
+  const buildReportAsXlsx = (report) => {
+    const sheetData = getReportSheetData(report);
+    if (!sheetData || sheetData.length === 0) return null;
+    try {
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Report");
+      return XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const buildReportShareContent = (report) => {
+    const header = [
+      "Best Infra – Consumer Report",
+      "────────────────────────────",
+      `Report: ${report.name}`,
+      `Generated: ${new Date().toLocaleString()}`,
+      "",
+    ].join("\n");
+    if (!report.data) return header + "Generate this report using the date range and \"Get Report\" on the Reports screen.";
+    if (typeof report.data === "string") return header + report.data;
+    if (Array.isArray(report.data)) {
+      const lines = report.data.map((row, i) => (typeof row === "object" ? JSON.stringify(row) : String(row)));
+      return header + lines.join("\n");
+    }
+    return header + JSON.stringify(report.data, null, 2);
+  };
+
+  const handleShareReport = async (report) => {
+    try {
+      const safeName = (report.name || "Report").replace(/[^a-zA-Z0-9._\-\s]/g, "_").replace(/\s+/g, "_").slice(0, 80);
+      const xlsxBase64 = buildReportAsXlsx(report);
+      if (xlsxBase64) {
+        const fileName = `BestInfra_${safeName}.xlsx`;
+        const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+        await FileSystem.writeAsStringAsync(fileUri, xlsxBase64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            dialogTitle: "Share Report (Excel)",
+          });
+        } else {
+          const csv = buildReportAsCsv(report);
+          await Share.share({ message: csv || "No data", title: report.name || "Report" });
+        }
+        return;
+      }
+      let csv = buildReportAsCsv(report);
+      const hasData = report?.data != null;
+      if (hasData && !csv && typeof report.data === "object") {
+        const sheetData = getReportSheetData(report);
+        if (sheetData?.length) {
+          const escape = (v) => (v == null ? "" : String(v).replace(/"/g, '""'));
+          const row = (arr) => arr.map((c) => `"${escape(c)}"`).join(",");
+          csv = sheetData.map((r) => row(r)).join("\n");
+        }
+      }
+      const useCsv = !!csv;
+      const ext = useCsv ? "csv" : "txt";
+      const fileName = `BestInfra_${safeName}.${ext}`;
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+      const content = useCsv ? "\uFEFF" + csv : buildReportShareContent(report);
+
+      await FileSystem.writeAsStringAsync(fileUri, content, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: useCsv ? "text/csv" : "text/plain",
+          dialogTitle: useCsv ? "Share Report" : "Share Report",
+        });
+      } else {
+        await Share.share({
+          message: content,
+          title: report.name || "Report",
+        });
+      }
+    } catch (err) {
+      const msg = err?.message || "Sharing failed";
+      Alert.alert("Share failed", msg);
+    }
+  };
 
   return (
     <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
@@ -175,13 +425,20 @@ const Reports = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Get Report Button */}
+          {reportError ? (
+            <Text style={styles.reportErrorText}>{reportError}</Text>
+          ) : null}
           <TouchableOpacity
-            style={styles.getReportButton}
+            style={[styles.getReportButton, reportLoading && styles.getReportButtonDisabled]}
             onPress={handleGetReport}
             activeOpacity={0.7}
+            disabled={reportLoading}
           >
-            <Text style={styles.getReportButtonText}>Get Report</Text>
+            {reportLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.getReportButtonText}>Get Report</Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -340,6 +597,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
+  },
+  getReportButtonDisabled: {
+    opacity: 0.7,
+  },
+  reportErrorText: {
+    fontSize: 12,
+    fontFamily: "Manrope-Regular",
+    color: "#DC2626",
+    marginTop: 4,
   },
   getReportButtonText: {
     fontSize: 16,
