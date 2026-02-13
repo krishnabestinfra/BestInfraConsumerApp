@@ -670,6 +670,11 @@ const PostPaidDashboard = ({ navigation, route }) => {
     return diff > 0 ? diff : 0;
   }, [consumerData, lastMonthKwh, thisMonthKwh]);
 
+  /** Signed difference: positive = used more this period, negative = saved */
+  const comparisonDiffKwh = useMemo(() => {
+    return thisMonthKwh - lastMonthKwh;
+  }, [thisMonthKwh, lastMonthKwh]);
+
   const comparisonBarFillPercent = useMemo(() => {
     const total = thisMonthKwh + lastMonthKwh;
     if (total <= 0) return 50; // equal split when both zero
@@ -1345,6 +1350,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     progressBar: { backgroundColor: themeColors.progressBarTrack },
     progressBarFill: { backgroundColor: themeColors.accent },
     savingsMessage: { color: themeColors.savingsText },
+    moreUsageMessage: { color: themeColors.danger },
     tableTitle: { color: themeColors.textPrimary },
     tableContainer: {},
     meterSiText: { color: themeColors.textPrimary },
@@ -1771,10 +1777,25 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     </View>
                   </View>
                   <View style={styles.savingsMessageRow}>
-                    <PiggybankIcon width={16} height={16} fill={isDark ? themeColors.accent : COLORS.secondaryColor} style={styles.savingsMessageIcon} />
-                    <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>
-                      You saved {(savingsKwh ?? 0).toLocaleString("en-IN")} kWh
-                    </Text>
+                    {comparisonDiffKwh < 0 ? (
+                      <>
+                        <PiggybankIcon width={16} height={16} fill={isDark ? themeColors.accent : COLORS.secondaryColor} style={styles.savingsMessageIcon} />
+                        <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>
+                          You saved {(savingsKwh ?? 0).toLocaleString("en-IN")} kWh
+                        </Text>
+                      </>
+                    ) : comparisonDiffKwh > 0 ? (
+                      <>
+                        <PiggybankIcon width={16} height={16} fill={themeColors.danger} style={styles.savingsMessageIcon} />
+                        <Text style={[styles.savingsMessage, styles.moreUsageMessage, darkOverlay.moreUsageMessage]}>
+                          You used {(comparisonDiffKwh ?? 0).toLocaleString("en-IN")} kWh more
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>
+                        Same as last month
+                      </Text>
+                    )}
                   </View>
                 </>
               )}
@@ -2608,5 +2629,8 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-Medium",
     color: "#6B9E78",
     textAlign: "center",
+  },
+  moreUsageMessage: {
+    color: "#E53935",
   },
 });

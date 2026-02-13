@@ -64,7 +64,7 @@ const TicketDetails = ({ navigation, route }) => {
   // Normalized priority used across header and details
   const priority = (ticketData?.priority || category || "High") ?? "High";
 
-  // Sample timeline data - replace with actual data from API
+
   const timelineData = ticketData?.timeline || [
     {
       id: 1,
