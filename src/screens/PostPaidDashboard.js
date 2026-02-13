@@ -1391,7 +1391,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 Due Amount: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
               </Text>
               <Text style={[styles.dateText, darkOverlay.dateText]}>
-                Due on {(() => {
+                Due on {isLoading ? "Loading..." : (() => {
                   const dueDateValue = latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData);
                   const d = parseDueDate(dueDateValue);
                   return d ? formatFrontendDate(d) : "N/A";
@@ -1417,7 +1417,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   <Text style={[styles.paynowText, darkOverlay.paynowText]}>Pay Now</Text>
                 </Pressable>
                 <Text style={[styles.dueDaysText, darkOverlay.dueDaysText]}>
-                  {getDueDaysText(latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData))}
+                  {isLoading ? "Loading..." : getDueDaysText(latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData))}
                 </Text>
               </View>
             </View>
@@ -2627,7 +2627,7 @@ const styles = StyleSheet.create({
   savingsMessage: {
     fontSize: 11,
     fontFamily: "Manrope-Medium",
-    color: "#6B9E78",
+    color: colors.color_secondary,
     textAlign: "center",
   },
   moreUsageMessage: {

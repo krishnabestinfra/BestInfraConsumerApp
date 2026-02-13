@@ -15,7 +15,7 @@ import User from '../../assets/icons/user.svg';
 import EyeFill from '../../assets/icons/eyeFill.svg';
 import EyeBlank from '../../assets/icons/eyeBlank.svg';
 import ErrorIcon from '../../assets/icons/Erroricon.svg';
-// Zod schema for login validation
+
 const loginSchema = z.object({
   identifier: z
     .string()
@@ -50,25 +50,16 @@ const LoginForm = ({
   const [showPassword, setShowPassword] = useState(false);
   const [hasAnyInput, setHasAnyInput] = useState(false);
 
-  // Demo credentials available for testing:
-  // Username: demo, test, admin, user, or BI25GMRA001-BI25GMRA020
-  // Password: demo123, test123, admin123, user123, or demo123 respectively
-
-  // Check if any input is entered
   useEffect(() => {
     const hasIdentifier = email && email.trim().length > 0;
     const hasPassword = password && password.trim().length > 0;
-    // Button should only activate when BOTH UID and password are entered
     setHasAnyInput(hasIdentifier && hasPassword);
   }, [email, password]);
 
   const handleInputChange = (field, value) => {
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }));
     }
-
-    // Clear any global login error when the user changes input
     if (loginError) {
       setLoginError("");
     }
@@ -90,7 +81,7 @@ const LoginForm = ({
       } else if (field === 'password') {
         loginSchema.shape.password.parse(value);
       }
-      return null; // No error
+      return null;
     } catch (error) {
       if (error instanceof z.ZodError) {
         return error.errors[0].message;
@@ -122,15 +113,11 @@ const LoginForm = ({
   };
 
   const handleLoginWithValidation = async () => {
-    // Mark all fields as touched
     setTouched({ identifier: true, password: true });
-    
-    // Validate entire form using Zod
     const formData = { identifier: email, password };
-    
+
     try {
       loginSchema.parse(formData);
-      // Validation passed, proceed with login
       await handleLogin();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -316,7 +303,6 @@ const styles = StyleSheet.create({
   },
   orSection: {
     marginTop: 24,
-    // paddingVertical: 50,
   },
   straightLine: {
     width: "40%",
