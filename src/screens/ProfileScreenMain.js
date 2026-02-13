@@ -313,7 +313,7 @@ const ProfileScreenMain = ({ navigation }) => {
 
   return (
     <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       {/* Header */}
       <View style={styles.TopMenu}>
@@ -359,11 +359,6 @@ const ProfileScreenMain = ({ navigation }) => {
               <BackArrowIcon width={18} height={18} fill="#202d59" />
             )}
           </View>
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount}</Text>
-            </View>
-          )}
         </Pressable>
       </View>
 

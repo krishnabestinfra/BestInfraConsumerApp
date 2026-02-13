@@ -38,7 +38,7 @@ import DropdownIcon from "../../assets/icons/dropDown.svg";
 import CalendarIcon from "../../assets/icons/CalendarBlue.svg";
 import PiggybankIcon from "../../assets/icons/piggybank.svg";
 import CalendarDatePicker from "../components/global/CalendarDatePicker";
-import { formatFrontendDateTime, formatFrontendDate } from "../utils/dateUtils";
+import { formatFrontendDateTime, formatFrontendDate, formatDueDateDisplay } from "../utils/dateUtils";
 
 const FALLBACK_ALERT_ROWS = [
   {
@@ -1298,12 +1298,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 Due Amount: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
               </Text>
               <Text style={[styles.dateText, darkOverlay.dateText]}>
-                Due on {!consumerData?.dueDate || String(consumerData.dueDate).trim() === "N/A"
-                  ? "N/A"
-                  : (() => {
-                      const d = new Date(consumerData.dueDate);
-                      return isNaN(d.getTime()) ? String(consumerData.dueDate) : formatFrontendDate(d);
-                    })()}
+                Due on {formatDueDateDisplay(consumerData?.dueDate)}
               </Text>
             </View>
             <View style={[styles.greenBox, darkOverlay.greenBox]}>
@@ -2023,7 +2018,7 @@ const styles = StyleSheet.create({
   paynowboxContainer: {
     flexDirection: "column",
     alignItems: "flex-end",
-    gap: 5,
+    gap: 12,
   },
   dueText: {
     color: COLORS.secondaryFontColor,
@@ -2034,8 +2029,6 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-Medium",
-    textAlign: "center",
-    // width: "100%",
   },
   dateText: {
     color: COLORS.secondaryFontColor,
@@ -2073,7 +2066,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryFontColor,
     fontSize: 12,
     fontFamily: "Manrope-Medium",
-    marginBottom: 10,
+    // marginBottom: 10,
   },
   paynowbox: {
     backgroundColor: COLORS.secondaryFontColor,

@@ -74,6 +74,10 @@ const getLastNDaysLabels = (n) => {
 };
 
 // Monthly: 12 months of non‑zero data so 90D (3 months) and 1Y (12 months) are filled
+// SYNC: Last two values (Jan, Feb 2026) must match dashboardStats & DEMO_INVOICES:
+//   - Jan 2026 (lastMonth) = 2340 kWh
+//   - Feb 2026 (thisMonth) = 2060 kWh
+//   - savings = lastMonth - thisMonth = 280 kWh
 const DEMO_MONTHLY_SERIES = [
   1750, // Mar 2025
   1820, // Apr
@@ -85,8 +89,8 @@ const DEMO_MONTHLY_SERIES = [
   2185, // Oct
   2250, // Nov
   2310, // Dec
-  2380, // Jan 2026
-  2450, // Feb 2026
+  2340, // Jan 2026 (lastMonth - matches DEMO_INVOICES[1].unitsConsumed)
+  2060, // Feb 2026 (thisMonth - matches DEMO_INVOICES[0].unitsConsumed & dashboardStats)
 ];
 const DEMO_MONTHLY_LABELS = [
   "Mar 2025",
@@ -141,10 +145,12 @@ export const getDemoDashboardConsumerData = (identifier) => {
       : 0;
   const peakUsage = dailyValues.length > 0 ? Math.max(...dailyValues) : 0;
 
-  // Keep these in sync with the key demo invoice units
-  const thisMonthKwh = 2060; // Matches DEMO_INVOICES[0].unitsConsumed
-  const lastMonthKwh = 2340; // Matches DEMO_INVOICES[1].unitsConsumed
-  const savingsKwh = Math.max(lastMonthKwh - thisMonthKwh, 0);
+  // SYNC: thisMonthKwh, lastMonthKwh, savingsKwh must align with:
+  // - DEMO_MONTHLY_SERIES last two values (chart derives thisMonth/lastMonth from chart)
+  // - DEMO_INVOICES[0].unitsConsumed (current bill), DEMO_INVOICES[1].unitsConsumed (previous)
+  const thisMonthKwh = 2060; // Feb 2026 - matches DEMO_INVOICES[0].unitsConsumed & DEMO_MONTHLY_SERIES last
+  const lastMonthKwh = 2340; // Jan 2026 - matches DEMO_INVOICES[1].unitsConsumed & DEMO_MONTHLY_SERIES second-to-last
+  const savingsKwh = Math.max(lastMonthKwh - thisMonthKwh, 0); // 280 kWh
 
   // Generate daily labels for the last 30 days ending today.
   // 7D and 30D views slice from this array, so:

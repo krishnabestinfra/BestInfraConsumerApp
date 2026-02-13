@@ -266,7 +266,7 @@ const SideMenuNavigation = ({ navigation }) => {
           style={styles.logoutButton}
           textStyle={[styles.logoutText, { fontSize: scaled.menu }]}
         >
-          <LogoutIcon width={18} height={18} style={styles.logoutIcon} />
+          <LogoutIcon width={15} height={15} style={styles.logoutIcon} />
         </Button>
 
         <View style={styles.flex}>
@@ -480,7 +480,7 @@ export default SideMenuNavigation;
 const styles = StyleSheet.create({
   Topmenubar: {},
   Bottommenubar: {
-    paddingBottom: 30,
+    paddingBottom: 50,
   },
   flex: {
     flexDirection: "row",

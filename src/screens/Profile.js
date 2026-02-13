@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -24,6 +24,25 @@ import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import { useApp } from "../context/AppContext";
 import { useNotifications } from "../context/NotificationsContext";
+import { getUser } from "../utils/storage";
+
+/**
+ * Resolve the logged-in consumer ID from all possible sources.
+ * Covers: identifier, consumerNumber, uid (auth may store any of these).
+ */
+const getLoggedInConsumerId = (user, consumerData, routeUid) => {
+  return (
+    routeUid ||
+    user?.consumerNumber ||
+    user?.identifier ||
+    user?.uid ||
+    consumerData?.consumerNumber ||
+    consumerData?.identifier ||
+    consumerData?.uniqueIdentificationNo ||
+    consumerData?.uid ||
+    null
+  );
+};
 
 const Profile = ({ navigation, route }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
@@ -41,8 +60,21 @@ const Profile = ({ navigation, route }) => {
     console.log('AppProvider not available, using fallback values');
   }
 
-  // Get consumer UID from route params or consumer data with fallback
-  const consumerUid = route?.params?.uid || consumerData?.uid || user?.identifier || 'BI25GMRA0001';
+  const [storedUser, setStoredUser] = useState(null);
+
+  // When AppContext user is null (e.g. before load), fetch from storage
+  useEffect(() => {
+    if (!user) {
+      getUser().then((u) => {
+        if (u) setStoredUser(u);
+      });
+    } else {
+      setStoredUser(null);
+    }
+  }, [user]);
+
+  const effectiveUser = user || storedUser;
+  const consumerUid = getLoggedInConsumerId(effectiveUser, consumerData, route?.params?.uid) || '—';
 
   // Get notification data from global context
   const { 
@@ -55,9 +87,9 @@ const Profile = ({ navigation, route }) => {
     consumerUid: currentConsumerUid
   } = useNotifications();
 
-  // Update consumer UID in context when it changes
+  // Update consumer UID in context when it changes (only when we have a valid ID, not placeholder)
   useEffect(() => {
-    if (consumerUid && consumerUid !== currentConsumerUid) {
+    if (consumerUid && consumerUid !== '—' && consumerUid !== currentConsumerUid) {
       console.log(`🔄 Profile: Switching to consumer ${consumerUid}`);
       setConsumerUid(consumerUid);
     }
