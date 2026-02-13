@@ -8,21 +8,58 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ChevronRight from "../../assets/icons/rightArrow.svg";
+import { apiClient } from "../services/apiClient";
 import ChatIcon from "../../assets/icons/chatIcon.svg";
 import TimelineCheckBlue from "../../assets/icons/timeLineCheckBlue.svg";
 import TimelineCheckGreen from "../../assets/icons/timeLineCheckGreen.svg";
 import DashboardHeader from "../components/global/DashboardHeader";
 import BottomNavigation from "../components/global/BottomNavigation";
+import { formatFrontendDateTime } from "../utils/dateUtils";
 
 const DARK_CARD_BG = "#1A1F2E";
 
 const TicketDetails = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
 
-  // Get ticket data from navigation params
-  const { ticketId, ticketData, category, status } = route?.params || {};
+  // Get ticket data from navigation params (support both raw API shape { data } and unwrapped ticket)
+  const params = route?.params || {};
+  const rawTicketData = params.ticketData;
+  const paramsTicket = rawTicketData?.data ?? rawTicketData;
+  const { ticketId, category, status } = params;
+
+  // Fetch full ticket from API when we have an id (GET /gmr/api/tickets/:id)
+  const [fetchedTicket, setFetchedTicket] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const apiId = paramsTicket?.id ?? ticketId;
+
+  useEffect(() => {
+    if (!apiId) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    apiClient
+      .getTicketDetails(apiId)
+      .then((res) => {
+        if (cancelled) return;
+        if (res?.success && res?.data) {
+          setFetchedTicket(res.data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedTicket(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [apiId]);
+
+  // Use API data when available, else fall back to params
+  const ticketData = fetchedTicket ?? paramsTicket;
 
   // Normalized priority used across header and details
   const priority = (ticketData?.priority || category || "High") ?? "High";
@@ -88,6 +125,13 @@ const TicketDetails = ({ navigation, route }) => {
       >
         <DashboardHeader navigation={navigation} showBalance={false} showProfileSection={false} />
 
+        {loading && !ticketData ? (
+          <View style={styles.loadingWrap}>
+            <Text style={[styles.loadingText, isDark && { color: themeColors.textSecondary }]}>
+              Loading ticket…
+            </Text>
+          </View>
+        ) : (
         <View style={styles.scrollBody}>
           {/* Ticket Details Section */}
           <View style={styles.sectionHeader}>
@@ -132,7 +176,7 @@ const TicketDetails = ({ navigation, route }) => {
                   Created On
                 </Text>
                 <Text style={[styles.detailValue, isDark && { color: themeColors.textPrimary }]}>
-                  {ticketData?.createdOn || "08/17/2025, 04:04 PM"}
+                  {formatFrontendDateTime(ticketData?.createdAt) || "—"}
                 </Text>
               </View>
               <View style={styles.detailItem}>
@@ -140,7 +184,7 @@ const TicketDetails = ({ navigation, route }) => {
                   Last Updated
                 </Text>
                 <Text style={[styles.detailValue, isDark && { color: themeColors.textPrimary }]}>
-                  {ticketData?.lastUpdated || ticketData?.updatedOn || "17/08/2025, 04:04 PM"}
+                  {formatFrontendDateTime(ticketData?.updatedAt || ticketData?.updatedOn) || "—"}
                 </Text>
               </View>
               <View style={styles.detailItem}>
@@ -210,6 +254,7 @@ const TicketDetails = ({ navigation, route }) => {
             <ChevronRight width={24} height={24} />
           </TouchableOpacity>
         </View>
+        )}
       </ScrollView>
 
       {/* Bottom Navigation */}
@@ -230,6 +275,15 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 180, 
+  },
+  loadingWrap: {
+    padding: 24,
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: "Manrope-Regular",
+    color: "#6B7280",
   },
   scrollBody: {
     paddingHorizontal: 30,
