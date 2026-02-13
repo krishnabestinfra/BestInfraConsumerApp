@@ -89,17 +89,18 @@ export default function TermsOfServicesScreen({ navigation }) {
     <View style={[styles.container, isDark && { backgroundColor: themeColors?.screen ?? '#121212' }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
+      <DashboardHeader
+        navigation={navigation}
+        rightIcon="back"
+        showProfileSection={false}
+        showRings={false}
+      />
+
       <ScrollView
         style={[styles.scroll, isDark && { backgroundColor: themeColors?.screen ?? '#121212' }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <DashboardHeader
-          navigation={navigation}
-          rightIcon="back"
-          showProfileSection={false}
-          showRings={false}
-        />
         <View style={[
           styles.card,
           isDark && {
