@@ -31,14 +31,90 @@ import { useFocusEffect } from "@react-navigation/native";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
 import { useLoading, SkeletonLoader } from '../utils/loadingManager';
 import { apiClient } from '../services/apiClient';
-import { isDemoUser, getDemoDashboardConsumerData } from "../constants/demoData";
+import { isDemoUser, getDemoDashboardConsumerData, DEMO_INVOICES } from "../constants/demoData";
+import { fetchBillingHistory } from "../services/apiService";
 import ComparisonIconBlack from "../../assets/icons/comparisonBlack.svg";
 import ComparisonIconWhite from "../../assets/icons/comparisonWhite.svg";
 import DropdownIcon from "../../assets/icons/dropDown.svg";
 import CalendarIcon from "../../assets/icons/CalendarBlue.svg";
 import PiggybankIcon from "../../assets/icons/piggybank.svg";
 import CalendarDatePicker from "../components/global/CalendarDatePicker";
-import { formatFrontendDateTime, formatFrontendDate, formatDueDateDisplay } from "../utils/dateUtils";
+import { formatFrontendDateTime, formatFrontendDate } from "../utils/dateUtils";
+
+/** Resolve due date from consumer object (API may use dueDate, due_date, paymentDueDate, etc.) */
+const getConsumerDueDate = (consumerData) => {
+  if (!consumerData || typeof consumerData !== "object") return null;
+  return (
+    consumerData.dueDate ??
+    consumerData.paymentDueDate ??
+    consumerData.due_date ??
+    consumerData.payment_due_date ??
+    consumerData.outstandingDueDate ??
+    consumerData.lastBillDueDate ??
+    consumerData.billDueDate ??
+    null
+  );
+};
+
+/** Parse a date value that may be ISO, DD/MM/YYYY, or DD-MM-YYYY. Returns Date or null. */
+const parseDueDate = (value) => {
+  if (!value || String(value).trim() === "" || String(value).trim().toLowerCase() === "n/a") return null;
+  let due = new Date(value);
+  if (!Number.isNaN(due.getTime())) return due;
+  const str = String(value).trim();
+  const parts = str.split(/[/\-]/);
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    if (!Number.isNaN(day) && !Number.isNaN(month) && !Number.isNaN(year)) {
+      due = new Date(year, month, day);
+      if (!Number.isNaN(due.getTime())) return due;
+    }
+  }
+  return null;
+};
+
+/**
+ * Returns due days text from a single due date value (from latest invoice).
+ * - If current date > due date: "X days Overdue" (or "1 day Overdue")
+ * - If current date is on or before due date: "X days left" (or "Due today" / "1 day left")
+ * Count is calculated here; no API returns the day count.
+ */
+const getDueDaysText = (dueDateValue) => {
+  const due = parseDueDate(dueDateValue);
+  if (!due) return "—";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  due.setHours(0, 0, 0, 0);
+  const diffMs = due.getTime() - today.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays < 0) {
+    const daysOverdue = Math.abs(diffDays);
+    return daysOverdue === 1 ? "1 day Overdue" : `${daysOverdue} days Overdue`;
+  }
+  if (diffDays === 0) return "Due today";
+  return diffDays === 1 ? "1 day left" : `${diffDays} days left`;
+};
+
+/** Get issue and due date from billing list (latest invoice = most recent by issue date). */
+const getLatestInvoiceDates = (billingData) => {
+  if (!billingData) return { issueDate: null, dueDate: null };
+  const list = Array.isArray(billingData)
+    ? billingData
+    : billingData?.items ?? billingData?.records ?? billingData?.rows ?? billingData?.bills ?? billingData?.data ?? [billingData];
+  if (!list.length) return { issueDate: null, dueDate: null };
+  const sorted = [...list].sort((a, b) => {
+    const tA = new Date(a.fromDate || a.createdAt || a.billDate || 0).getTime();
+    const tB = new Date(b.fromDate || b.createdAt || b.billDate || 0).getTime();
+    return tB - tA;
+  });
+  const inv = sorted[0];
+  return {
+    issueDate: inv.fromDate ?? inv.billDate ?? inv.createdAt ?? null,
+    dueDate: inv.dueDate ?? null,
+  };
+};
 
 const FALLBACK_ALERT_ROWS = [
   {
@@ -126,26 +202,6 @@ const USAGE_CARD_LABELS = {
   "1Y": { title: "This Year's Usage:", comparisonLabel: "vs. Last Year." },
 };
 
-/**
- * Calculate days between today and due date; return display text.
- * @param {string|Date} dueDate - Due date from consumer/invoice data
- * @returns {string} e.g. "10 days left", "Due today", "Overdue by 3 days", or "N/A"
- */
-const getDueDaysText = (dueDate) => {
-  if (!dueDate || String(dueDate).trim() === "" || String(dueDate).trim() === "N/A") return "N/A";
-  const due = new Date(dueDate);
-  if (Number.isNaN(due.getTime())) return "N/A";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  due.setHours(0, 0, 0, 0);
-  const diffMs = due.getTime() - today.getTime();
-  const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
-  if (diffDays > 0) return diffDays === 1 ? "1 day left" : `${diffDays} days left`;
-  if (diffDays === 0) return "Due today";
-  const overdue = Math.abs(diffDays);
-  return overdue === 1 ? "Overdue by 1 day" : `Overdue by ${overdue} days`;
-};
-
 const PostPaidDashboard = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
   const [selectedView] = useState("daily"); // Always daily; date is chosen via Pick a Date
@@ -162,6 +218,8 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const [isTableLoading, setIsTableLoading] = useState(true);
   const [consumerData, setConsumerData] = useState(null);
   const { isLoading, setLoading } = useLoading('consumerData', true);
+  /** Latest invoice's issue and due date (from billing history) for due-days calculation */
+  const [latestInvoiceDates, setLatestInvoiceDates] = useState({ issueDate: null, dueDate: null });
 
   // Report API data when user picks a date range (consumers/.../report?reportType=daily-consumption)
   const [pickedRangeReportData, setPickedRangeReportData] = useState(null);
@@ -197,6 +255,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
       if (isDemoUser(user.identifier)) {
         const demoData = getDemoDashboardConsumerData(user.identifier);
         setConsumerData(demoData);
+        setLatestInvoiceDates(getLatestInvoiceDates(DEMO_INVOICES));
         console.log("📊 Using demo dashboard data for:", user.identifier);
         setLoading(false);
         return;
@@ -210,6 +269,13 @@ const PostPaidDashboard = ({ navigation, route }) => {
       if (result.success) {
         setConsumerData(result.data);
         console.log("📊 Consumer Data Set:", result.data);
+        // Use latest invoice's issue/due dates for due-days count (no API for day count)
+        const billingResult = await fetchBillingHistory(user.identifier);
+        if (billingResult.success && billingResult.data) {
+          setLatestInvoiceDates(getLatestInvoiceDates(billingResult.data));
+        } else {
+          setLatestInvoiceDates({ issueDate: null, dueDate: null });
+        }
       } else {
         throw new Error(result.error);
       }
@@ -247,6 +313,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
         };
         
         setConsumerData(fallbackData);
+        setLatestInvoiceDates({ issueDate: null, dueDate: null });
       } finally {
         setLoading(false);
       }
@@ -1323,7 +1390,11 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 Due Amount: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
               </Text>
               <Text style={[styles.dateText, darkOverlay.dateText]}>
-                Due on {formatDueDateDisplay(consumerData?.dueDate)}
+                Due on {(() => {
+                  const dueDateValue = latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData);
+                  const d = parseDueDate(dueDateValue);
+                  return d ? formatFrontendDate(d) : "N/A";
+                })()}
               </Text>
             </View>
             <View style={[styles.greenBox, darkOverlay.greenBox]}>
@@ -1345,7 +1416,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   <Text style={[styles.paynowText, darkOverlay.paynowText]}>Pay Now</Text>
                 </Pressable>
                 <Text style={[styles.dueDaysText, darkOverlay.dueDaysText]}>
-                  {isLoading ? "..." : getDueDaysText(consumerData?.dueDate)}
+                  {getDueDaysText(latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData))}
                 </Text>
               </View>
             </View>
