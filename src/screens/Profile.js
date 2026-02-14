@@ -84,10 +84,16 @@ const Profile = ({ navigation, route }) => {
     markAsRead, 
     refreshNotifications,
     setConsumerUid,
-    consumerUid: currentConsumerUid
+    consumerUid: currentConsumerUid,
+    consumerNotifications = {}
   } = useNotifications();
 
-  // Update consumer UID in context when it changes (only when we have a valid ID, not placeholder)
+  const hasLoadedCurrentConsumer = currentConsumerUid && !!consumerNotifications[currentConsumerUid]?.lastFetchTime;
+  const consumerNotReady = consumerUid === '—' || consumerUid !== currentConsumerUid;
+  const showLoading =
+    notifications.length === 0 &&
+    (isLoading || !hasLoadedCurrentConsumer || consumerNotReady);
+
   useEffect(() => {
     if (consumerUid && consumerUid !== '—' && consumerUid !== currentConsumerUid) {
       console.log(`🔄 Profile: Switching to consumer ${consumerUid}`);
@@ -98,7 +104,7 @@ const Profile = ({ navigation, route }) => {
   // Display all notifications
   const displayNotifications = notifications;
 
-  // Get appropriate icon based on notification type
+
   const getNotificationIcon = (type) => {
     switch (type?.toLowerCase()) {
       case 'payment':
@@ -116,7 +122,7 @@ const Profile = ({ navigation, route }) => {
     }
   };
 
-  // Get notification variant based on type
+
   const getNotificationVariant = (type) => {
     switch (type?.toLowerCase()) {
       case 'warning':
@@ -143,7 +149,6 @@ const Profile = ({ navigation, route }) => {
     
     if (notification.redirect_url) {
       console.log('Redirect URL:', notification.redirect_url);
-      // Handle navigation to redirect URL if needed
     }
   };
 
@@ -171,8 +176,7 @@ const Profile = ({ navigation, route }) => {
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          // Only show RefreshControl when there are notifications (refreshing existing data)
-          // Hide it during initial load to avoid duplicate loaders
+
           displayNotifications.length > 0 ? (
             <RefreshControl
               refreshing={isLoading}
@@ -183,7 +187,7 @@ const Profile = ({ navigation, route }) => {
           ) : undefined
         }
       >
-        {isLoading && displayNotifications.length === 0 ? (
+        {showLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={COLORS.secondaryFontColor} />
             <Text style={[styles.loadingText, { fontSize: s14 }]}>Loading notifications...</Text>
@@ -206,18 +210,26 @@ const Profile = ({ navigation, route }) => {
             <Text style={[styles.emptySubText, { fontSize: s12 }]}>for {consumerUid}</Text>
           </View>
         ) : (
-          displayNotifications.map((notification) => (
-            <NotificationCard
-              key={notification.id}
-              title={notification.title}
-              message={notification.message}
-              sentAt={notification.meta?.sentAt || notification.created_at}
-              icon={getNotificationIcon(notification.type)}
-              variant={getNotificationVariant(notification.type)}
-              isRead={notification.is_read}
-              onPress={() => handleNotificationPress(notification)}
-            />
-          ))
+          <>
+            {error ? (
+              <View style={styles.refreshErrorBanner}>
+                <Text style={[styles.refreshErrorText, { fontSize: s12 }]}>{error}</Text>
+                <Text style={[styles.refreshErrorHint, { fontSize: s12 }]}>Pull down to try again.</Text>
+              </View>
+            ) : null}
+            {displayNotifications.map((notification) => (
+              <NotificationCard
+                key={notification.id}
+                title={notification.title}
+                message={notification.message}
+                sentAt={notification.meta?.sentAt || notification.created_at}
+                icon={getNotificationIcon(notification.type)}
+                variant={getNotificationVariant(notification.type)}
+                isRead={notification.is_read}
+                onPress={() => handleNotificationPress(notification)}
+              />
+            ))}
+          </>
         )}
       </ScrollView>
     </View>
@@ -335,5 +347,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Manrope-SemiBold',
     textAlign: 'center',
+  },
+  refreshErrorBanner: {
+    backgroundColor: 'rgba(255, 193, 7, 0.2)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+  },
+  refreshErrorText: {
+    color: COLORS.secondaryFontColor,
+    fontFamily: 'Manrope-Medium',
+  },
+  refreshErrorHint: {
+    color: COLORS.secondaryFontColor,
+    fontFamily: 'Manrope-Regular',
+    opacity: 0.8,
+    marginTop: 4,
   },
 });

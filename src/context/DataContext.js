@@ -31,19 +31,22 @@ export const DataProvider = ({ children }) => {
           // Load cached data immediately
           if (userData.identifier) {
             const cachedResult = await getCachedConsumerData(userData.identifier);
-            if (cachedResult.success) {
+            if (cachedResult.success && cachedResult.data) {
               setConsumerData(cachedResult.data);
               setIsDataLoaded(true);
             }
             
             // Background sync for fresh data
             backgroundSyncConsumerData(userData.identifier).then((result) => {
-              if (result.success) {
+              if (result.success && result.data) {
                 setConsumerData(result.data);
                 setLastDataFetch(Date.now());
+                setIsDataLoaded(true);
               }
             }).catch(error => {
               console.error('Background sync failed:', error);
+              // Still mark loaded so UI can show empty/retry instead of loading forever
+              setIsDataLoaded(true);
             });
           }
         }
