@@ -39,77 +39,8 @@ import DropdownIcon from "../../assets/icons/dropDown.svg";
 import CalendarIcon from "../../assets/icons/CalendarBlue.svg";
 import PiggybankIcon from "../../assets/icons/piggybank.svg";
 import CalendarDatePicker from "../components/global/CalendarDatePicker";
-import { formatFrontendDateTime, formatFrontendDate } from "../utils/dateUtils";
-
-/** Resolve due date from consumer object (API may use dueDate, due_date, paymentDueDate, etc.) */
-const getConsumerDueDate = (consumerData) => {
-  if (!consumerData || typeof consumerData !== "object") return null;
-  return (
-    consumerData.dueDate ??
-    consumerData.paymentDueDate ??
-    consumerData.due_date ??
-    consumerData.payment_due_date ??
-    consumerData.outstandingDueDate ??
-    consumerData.lastBillDueDate ??
-    consumerData.billDueDate ??
-    null
-  );
-};
-
-/** Parse a date value that may be ISO, DD/MM/YYYY, or DD-MM-YYYY. Returns Date or null. */
-const parseDueDate = (value) => {
-  if (!value || String(value).trim() === "" || String(value).trim().toLowerCase() === "n/a") return null;
-  let due = new Date(value);
-  if (!Number.isNaN(due.getTime())) return due;
-  const str = String(value).trim();
-  const parts = str.split(/[/\-]/);
-  if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    if (!Number.isNaN(day) && !Number.isNaN(month) && !Number.isNaN(year)) {
-      due = new Date(year, month, day);
-      if (!Number.isNaN(due.getTime())) return due;
-    }
-  }
-  return null;
-};
-
-
-const getDueDaysText = (dueDateValue) => {
-  const due = parseDueDate(dueDateValue);
-  if (!due) return "—";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  due.setHours(0, 0, 0, 0);
-  const diffMs = due.getTime() - today.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays < 0) {
-    const daysOverdue = Math.abs(diffDays);
-    return daysOverdue === 1 ? "1 day Overdue" : `${daysOverdue} days Overdue`;
-  }
-  if (diffDays === 0) return "Due today";
-  return diffDays === 1 ? "1 day left" : `${diffDays} days left`;
-};
-
-/** Get issue and due date from billing list (latest invoice = most recent by issue date). */
-const getLatestInvoiceDates = (billingData) => {
-  if (!billingData) return { issueDate: null, dueDate: null };
-  const list = Array.isArray(billingData)
-    ? billingData
-    : billingData?.items ?? billingData?.records ?? billingData?.rows ?? billingData?.bills ?? billingData?.data ?? [billingData];
-  if (!list.length) return { issueDate: null, dueDate: null };
-  const sorted = [...list].sort((a, b) => {
-    const tA = new Date(a.fromDate || a.createdAt || a.billDate || 0).getTime();
-    const tB = new Date(b.fromDate || b.createdAt || b.billDate || 0).getTime();
-    return tB - tA;
-  });
-  const inv = sorted[0];
-  return {
-    issueDate: inv.fromDate ?? inv.billDate ?? inv.createdAt ?? null,
-    dueDate: inv.dueDate ?? null,
-  };
-};
+import { formatFrontendDateTime, formatFrontendDate, parseDueDate, getDueDaysText } from "../utils/dateUtils";
+import { getConsumerDueDate, getLatestInvoiceDates } from "../utils/billingUtils";
 
 const FALLBACK_ALERT_ROWS = [
   {

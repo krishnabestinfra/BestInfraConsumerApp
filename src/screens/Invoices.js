@@ -16,6 +16,8 @@ import { handleViewBill } from "../services/InvoicePDFService";
 import { authService } from "../services/authService";
 import { apiClient } from "../services/apiClient";
 import { isDemoUser, getDemoConsumerCore, DEMO_INVOICES } from "../constants/demoData";
+import { formatFrontendDate } from "../utils/dateUtils";
+import { getInvoiceDateValue } from "../utils/billingUtils";
 import Menu from "../../assets/icons/bars.svg";
 import MenuWhite from "../../assets/icons/menuBarWhite.svg";
 import Notification from "../../assets/icons/notification.svg";
@@ -119,17 +121,7 @@ const SkeletonInvoiceCard = ({ isDark, themeColors }) => {
   );
 };
 
-const formatDateDisplay = (dateString) => {
-  if (!dateString) return 'N/A';
-  const parsedDate = new Date(dateString);
-  if (Number.isNaN(parsedDate.getTime())) {
-    return 'N/A';
-  }
-  const day = parsedDate.getDate();
-  const month = parsedDate.toLocaleDateString('en-US', { month: 'short' });
-  const year = parsedDate.getFullYear();
-  return `${day} ${month} ${year}`;
-};
+const formatDateDisplay = (dateString) => formatFrontendDate(dateString) || 'N/A';
 
 const formatBillingMonth = (month, year) => {
   if (!month || !year) return 'N/A';
@@ -170,12 +162,6 @@ const normalizeBillingData = (data) => {
   if (Array.isArray(data.bills)) return data.bills;
   if (Array.isArray(data.data)) return data.data;
   return [data];
-};
-
-const getInvoiceDateValue = (invoice) => {
-  if (!invoice) return 0;
-  const time = new Date(invoice.fromDate || invoice.createdAt || 0).getTime();
-  return Number.isNaN(time) ? 0 : time;
 };
 
 const mapInvoiceForPDF = (invoice) => {

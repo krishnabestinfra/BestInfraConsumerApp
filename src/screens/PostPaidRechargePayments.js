@@ -28,12 +28,10 @@ import {
   handlePaymentError, 
   formatAmount 
 } from "../services/paymentService";
+import { getConsumerDueDate } from "../utils/billingUtils";
+import { parseDueDate } from "../utils/dateUtils";
 
-// ============================================================================
-// TESTING MODE CONFIGURATION
-// ============================================================================
-// Set to true for testing Razorpay integration with ₹1 only
-// Set to false for production (will charge full outstanding amount)
+
 const IS_TESTING_MODE = true; // Change to false when ready for production
 const TEST_PAYMENT_AMOUNT = 100; // ₹1 in paise (100 paise = 1 rupee)
 // ============================================================================
@@ -59,72 +57,15 @@ const PostPaidRechargePayments = ({ navigation }) => {
 
   // Check if the outstanding amount is overdue (due date has passed)
   const isOverdue = useMemo(() => {
-    if (!consumerData) {
-      return false;
-    }
-    
-    // Check for due date in various possible field names
-    const dueDate = consumerData.dueDate || 
-                    consumerData.paymentDueDate || 
-                    consumerData.due_date || 
-                    consumerData.payment_due_date ||
-                    consumerData.outstandingDueDate ||
-                    consumerData.lastBillDueDate ||
-                    consumerData.billDueDate;
-    
-    if (!dueDate) {
-      console.log('📅 No due date found in consumerData. Available fields:', Object.keys(consumerData || {}));
-      return false;
-    }
-    
-    try {
-      // Parse the due date - handle various formats
-      let due = new Date(dueDate);
-      
-      // If date is invalid, try parsing as DD/MM/YYYY or DD-MM-YYYY
-      if (isNaN(due.getTime())) {
-        // Try parsing formats like "DD/MM/YYYY" or "DD-MM-YYYY"
-        const dateStr = String(dueDate).trim();
-        const parts = dateStr.split(/[\/\-]/);
-        if (parts.length === 3) {
-          // Assume DD/MM/YYYY format
-          const day = parseInt(parts[0], 10);
-          const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-          const year = parseInt(parts[2], 10);
-          due = new Date(year, month, day);
-        } else {
-          // Try ISO format or other standard formats
-          due = new Date(dateStr);
-        }
-      }
-      
-      // Check if date is still invalid
-      if (isNaN(due.getTime())) {
-        console.warn('⚠️ Invalid due date format:', dueDate);
-        return false;
-      }
-      
-      // Get today's date and reset time to compare only dates
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      due.setHours(0, 0, 0, 0);
-      
-      const isPastDue = due < today;
-      
-      // Debug logging
-      if (isPastDue) {
-        console.log('🔴 Amount is OVERDUE. Due date:', due.toLocaleDateString(), 'Today:', today.toLocaleDateString());
-      } else {
-        console.log('✅ Amount is NOT overdue. Due date:', due.toLocaleDateString(), 'Today:', today.toLocaleDateString());
-      }
-      
-      // Return true if due date has passed (is in the past)
-      // If due date is today or in the future, return false (normal color)
-      return isPastDue;
-    } catch (error) {
-      console.error('❌ Error parsing due date:', error, 'Date value:', dueDate);
-      return false;
-    }
+    if (!consumerData) return false;
+    const dueDate = getConsumerDueDate(consumerData);
+    if (!dueDate) return false;
+    const due = parseDueDate(dueDate);
+    if (!due) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
+    return due < today;
   }, [consumerData]);
 
   // Get the payment amount based on selected option
