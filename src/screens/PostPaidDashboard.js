@@ -114,9 +114,7 @@ const StatusBlinkingDot = ({ status }) => {
   );
 };
 
-// import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-// Dynamic API URL will be set based on authenticated user
 
 const VIEW_OPTIONS = ["Chart", "Table"];
 const TIME_PERIODS = ["7D", "30D", "90D", "1Y"];
@@ -147,7 +145,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
   /** Latest invoice's issue and due date (from billing history) for due-days calculation */
   const [latestInvoiceDates, setLatestInvoiceDates] = useState({ issueDate: null, dueDate: null });
 
-  // Report API data when user picks a date range (consumers/.../report?reportType=daily-consumption)
   const [pickedRangeReportData, setPickedRangeReportData] = useState(null);
   const [pickedRangeReportLoading, setPickedRangeReportLoading] = useState(false);
 
@@ -155,7 +152,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
 
-  // Reset picked date to default "Pick a Date" when screen loads or gains focus (e.g. after reload or tab switch)
   useFocusEffect(
     useCallback(() => {
       setPickedDateRange(null);
@@ -541,7 +537,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     return 0;
   }, [consumerData]);
 
-  // Derive this month / last month from same chart data used in graphs (API chartData.monthly)
+
   const chartMonthlyComparison = useMemo(() => {
     if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) return null;
     const data = consumerData.chartData.monthly.seriesData[0].data;

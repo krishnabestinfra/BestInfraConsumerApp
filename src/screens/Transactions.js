@@ -92,7 +92,7 @@ const Transactions = ({ navigation }) => {
             console.log('📦 Consumer data response:', consumerData);
             
             if (consumerData.success && consumerData.data) {
-              // Try different possible locations for payment history
+
               if (Array.isArray(consumerData.data.paymentHistory)) {
                 paymentHistory = consumerData.data.paymentHistory;
               } else if (Array.isArray(consumerData.data.payments)) {
