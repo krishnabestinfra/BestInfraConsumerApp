@@ -204,7 +204,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     } catch (error) {
       console.error("❌ API error:", error);
         
-        // Provide specific error messages based on error type
+
         let errorMessage = "Failed to load Data";
         if (error.message.includes('HTTP 500')) {
           errorMessage = "Server error - please try again later";
@@ -1277,7 +1277,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     progressBar: { backgroundColor: themeColors.progressBarTrack },
     progressBarFill: { backgroundColor: themeColors.accent },
     savingsMessage: { color: themeColors.savingsText },
-    moreUsageMessage: { color: themeColors.danger },
+    moreUsageMessage: { color: themeColors.savingsText },
     tableTitle: { color: themeColors.textPrimary },
     tableContainer: {},
     meterSiText: { color: themeColors.textPrimary },
@@ -1713,7 +1713,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                       </>
                     ) : comparisonDiffKwh > 0 ? (
                       <>
-                        <PiggybankIcon width={16} height={16} fill={themeColors.danger} style={styles.savingsMessageIcon} />
+                        <PiggybankIcon width={16} height={16} fill={themeColors.accent} style={styles.savingsMessageIcon} />
                         <Text style={[styles.savingsMessage, styles.moreUsageMessage, darkOverlay.moreUsageMessage]}>
                           You used {(comparisonDiffKwh ?? 0).toLocaleString("en-IN")} kWh more
                         </Text>
@@ -2558,6 +2558,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   moreUsageMessage: {
-    color: "#E53935",
+    color: colors.color_secondary,
   },
 });
