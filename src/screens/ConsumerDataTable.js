@@ -115,17 +115,17 @@ const ConsumerDataTable = ({ navigation, route }) => {
 
       console.log('   Bearer Token:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND');
 
-      // Build API URL with formatted date and meterId
+
       const apiUrl = API_ENDPOINTS.lsdata.consumption(formattedDate, formattedDate, finalMeterId);
       console.log('   API URL:', apiUrl);
 
-      // Make API request with Bearer token
+
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`, // Bearer token from logged-in user
+          'Authorization': `Bearer ${token}`, 
         },
       });
 
@@ -172,9 +172,7 @@ const ConsumerDataTable = ({ navigation, route }) => {
     fetchLSData();
   }, [fetchLSData]);
 
-  // Pagination is now handled by Table component
 
-  // Compact Header Dropdown Component
   const HeaderDropdown = ({ value, options, onSelect, placeholder }) => {
     const [isOpen, setIsOpen] = useState(false);
 

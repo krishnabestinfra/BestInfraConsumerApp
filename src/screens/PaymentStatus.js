@@ -14,7 +14,7 @@ const PaymentStatus = ({ navigation, route }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch payment details on component mount
+ 
   useEffect(() => {
     const fetchPaymentDetails = async () => {
       try {
@@ -175,7 +175,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   MainContainer: {
-    // marginTop: 60,
     padding: 20,
     gap: 10,
   },
