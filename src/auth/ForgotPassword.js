@@ -181,7 +181,7 @@ const ForgotPassword = ({ navigation }) => {
               title="Send Verification Code"
               onPress={handleForgotPassword}
               variant="primary"
-              size="large"
+              size="medium"
               style={styles.submitButton}
               loading={sending}
               disabled={sending || !identifier.trim() || !validateEmail(identifier.trim())}

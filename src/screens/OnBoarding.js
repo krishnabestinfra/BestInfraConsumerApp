@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Animated,
   Image,
@@ -11,11 +10,12 @@ import { StatusBar } from "expo-status-bar";
 import Arrow from "../../assets/icons/upArrow.svg";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
-import OnBoardingSlides from "../components/OnBoardingSlides";
+import OnBoardingSlides, { SLIDE_COUNT } from "../components/OnBoardingSlides";
 import RippleEffect from "../components/RippleEffect";
 import Button from "../components/global/Button";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
+const ARROW_ANIM_DURATION = 1000;
 
 const OnBoarding = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
@@ -24,33 +24,32 @@ const OnBoarding = ({ navigation }) => {
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    Animated.loop(
+    const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(moveAnim, {
           toValue: -20,
-          duration: 1000,
+          duration: ARROW_ANIM_DURATION,
           useNativeDriver: true,
         }),
         Animated.timing(moveAnim, {
           toValue: 20,
-          duration: 1000,
+          duration: ARROW_ANIM_DURATION,
           useNativeDriver: true,
         }),
       ])
-    ).start();
+    );
+    animation.start();
+    return () => animation.stop();
   }, [moveAnim]);
 
-  // Button slide
-  const handleButtonPress = () => {
+  const handleButtonPress = useCallback(() => {
     const next = activeIndex + 1;
-    if (next < 3) {
-      // Scroll first, let the scroll handler update the index when animation completes
-      // This prevents race conditions between button press and scroll events
+    if (next < SLIDE_COUNT) {
       scrollRef.current?.scrollTo({ x: next * width, animated: true });
     } else {
-      navigation.navigate("Login"); // Navigate only when next index exceeds last slide
+      navigation.navigate("Login");
     }
-  };
+  }, [activeIndex, navigation]);
 
   return (
     <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
@@ -72,7 +71,7 @@ const OnBoarding = ({ navigation }) => {
       <View style={styles.ButtonBox}>
         <Button style={styles.buttonContainer}
           variant="primary"
-          title={activeIndex === 2 ? "Get Started" : "Next"}
+          title={activeIndex === SLIDE_COUNT - 1 ? "Get Started" : "Next"}
           onPress={handleButtonPress}
         />
       </View>
