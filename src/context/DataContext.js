@@ -31,19 +31,22 @@ export const DataProvider = ({ children }) => {
           // Load cached data immediately
           if (userData.identifier) {
             const cachedResult = await getCachedConsumerData(userData.identifier);
-            if (cachedResult.success) {
+            if (cachedResult.success && cachedResult.data) {
               setConsumerData(cachedResult.data);
               setIsDataLoaded(true);
             }
             
             // Background sync for fresh data
             backgroundSyncConsumerData(userData.identifier).then((result) => {
-              if (result.success) {
+              if (result.success && result.data) {
                 setConsumerData(result.data);
                 setLastDataFetch(Date.now());
+                setIsDataLoaded(true);
               }
             }).catch(error => {
               console.error('Background sync failed:', error);
+              // Still mark loaded so UI can show empty/retry instead of loading forever
+              setIsDataLoaded(true);
             });
           }
         }
@@ -55,7 +58,7 @@ export const DataProvider = ({ children }) => {
     initializeData();
   }, []);
 
-  // Set loading state for specific data type
+
   const setDataLoading = useCallback((dataType, isLoading) => {
     setDataLoadingStates(prev => ({
       ...prev,
@@ -63,10 +66,10 @@ export const DataProvider = ({ children }) => {
     }));
   }, []);
 
-  // Check if data is stale (older than 5 minutes)
+
   const isDataStale = useCallback(() => {
     if (!lastDataFetch) return true;
-    return (Date.now() - lastDataFetch) > 300000; // 5 minutes
+    return (Date.now() - lastDataFetch) > 300000; 
   }, [lastDataFetch]);
 
   // Refresh data if needed
@@ -89,12 +92,12 @@ export const DataProvider = ({ children }) => {
     }
   }, [user, isDataStale]);
 
-  // Get loading state for specific data type
+
   const getDataLoading = useCallback((dataType) => {
     return dataLoadingStates[dataType] || false;
   }, [dataLoadingStates]);
 
-  // Update consumer data
+
   const updateConsumerData = useCallback((newData) => {
     setConsumerData(newData);
     setLastDataFetch(Date.now());

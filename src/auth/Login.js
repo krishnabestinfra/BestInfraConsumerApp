@@ -26,9 +26,7 @@ import MobileLogin from "./MobileLogin";
 
 const screenHeight = Dimensions.get("window").height;
 
-// Blue/gradient behind the logo – same in light and dark theme (brand).
 const LOGIN_HEADER_GRADIENT = ["#55b56c", "#2a6f65", "#1f3d6d", "#163b7c"];
-// Logo circle gradient – same in light and dark theme (brand blue-to-green).
 const LOGO_CIRCLE_GRADIENT = ["#163b7c", "#1f3d6d", "#2a6f65", "#55b56c"];
 
 const Login = ({ navigation }) => {
@@ -42,29 +40,24 @@ const Login = ({ navigation }) => {
   const [loginError, setLoginError] = useState("");
 
   const handleLogin = async () => {
-    // Clear any previous error message when starting a new login attempt
     setLoginError("");
     setIsLoading(true);
-    
+
     try {
-      // Validate input
       if (!identifier.trim() || !password.trim()) {
         setLoginError("Invalid credentials. Please check your email/phone and password.");
         return;
       }
 
-      // Infer tenant (client) from identifier pattern (GMR vs NTPL)
       const upperId = identifier.trim().toUpperCase();
       if (upperId.startsWith("BI25GMRA")) {
         setTenantSubdomain("gmr");
       } else if (upperId.startsWith("BI26NTPA")) {
         setTenantSubdomain("ntpl");
       } else {
-        // Default to GMR if pattern is unknown
         setTenantSubdomain("gmr");
       }
 
-      // DEMO MODE: Check for dummy credentials first
       const dummyCredentials = {
         "demo": "demo123",
         "test": "test123", 
@@ -92,11 +85,8 @@ const Login = ({ navigation }) => {
         "BI25GMRA020": "demo123"
       };
 
-      // Check if it's a dummy login
       if (dummyCredentials[identifier.trim()] && password.trim() === dummyCredentials[identifier.trim()]) {
         console.log("🎭 DEMO MODE: Using dummy credentials for", identifier);
-        
-        // Create dummy user data for demo
         const dummyUserData = {
           name: identifier === "demo" ? "Demo User" : 
                 identifier === "test" ? "Test User" :
@@ -111,15 +101,12 @@ const Login = ({ navigation }) => {
           totalOutstanding: 1500.00
         };
 
-        // Store dummy user data
         await storeUser(dummyUserData);
-        // Store demo access token using auth service
         await authService.storeAccessToken("demo-token-" + Date.now());
-        // Store remember me preference
         await authService.setRememberMe(checked);
 
         console.log("✅ DEMO LOGIN SUCCESSFUL:", dummyUserData);
-        
+
         Alert.alert(
           "Demo Login Successful",
           `Welcome ${dummyUserData.name}! You are now logged in with demo credentials.`,
@@ -127,7 +114,6 @@ const Login = ({ navigation }) => {
             {
               text: "Continue",
               onPress: () => {
-                // Reset navigation stack - removes Login from history
                 navigation.reset({
                   index: 0,
                   routes: [{ name: "PostPaidDashboard" }],
@@ -139,48 +125,31 @@ const Login = ({ navigation }) => {
         return;
       }
 
-      // Show loading state
       console.log("🔄 Attempting login for consumer:", identifier);
       console.log("🔍 Login endpoint:", API_ENDPOINTS.auth.login());
       console.log("🔍 Request payload:", {
         identifier: identifier.trim(),
         password: password.trim()
       });
-      
-      // NOTE: If you're getting 401 errors for other consumers, it means they don't have 
-      // valid credentials in the authentication system. Only BI25GMRA017 appears to be configured.
-      // You may need to:
-      // 1. Add other consumers to the authentication database
-      // 2. Use a different authentication endpoint
-      // 3. Configure the API to accept all consumer identifiers with a common password
-      
-      // Optional: Test credentials first (skip if network error - actual login will validate)
-      // This is just a pre-check, not required for login to proceed
+
       try {
         const credentialTest = await testConsumerCredentials(identifier, password);
         console.log("🔍 Credential test result:", credentialTest);
-        
-        // Only fail if we got a clear authentication error (401/403), not network errors
         if (credentialTest.hasValidCredentials === false && 
             credentialTest.status !== 0 && 
             (credentialTest.status === 401 || credentialTest.status === 403)) {
           throw new Error(`Consumer ${identifier} does not have valid credentials in the authentication system. Please contact support to add this consumer to the system.`);
         }
-        // If network error (status 0), continue anyway - actual login will handle it
       } catch (testError) {
-        // If credential test fails with network error, continue to actual login
-        // The actual login call will handle validation properly
         if (testError.message && !testError.message.includes('does not have valid credentials')) {
           console.warn("⚠️ Credential test failed, but proceeding with login:", testError.message);
         } else {
-          // Re-throw if it's a validation error (not network error)
           throw testError;
         }
       }
 
-      // Make API call to login endpoint with timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(API_ENDPOINTS.auth.login(), {
         method: 'POST',
@@ -188,7 +157,6 @@ const Login = ({ navigation }) => {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        // Match the working Postman request exactly: identifier + password
         body: JSON.stringify({
           identifier: identifier.trim(),
           password: password.trim()
@@ -202,7 +170,6 @@ const Login = ({ navigation }) => {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        // Try to get error details from response
         let errorDetails = '';
         try {
           const errorResponse = await response.json();
@@ -217,51 +184,43 @@ const Login = ({ navigation }) => {
       const result = await response.json();
       console.log("✅ Login response:", result);
 
-      // Check if login was successful
       if (result.success && result.data) {
-        // Handle tokens using authService
         const tokens = await authService.handleLoginResponse(response, result);
-        
         if (!tokens.accessToken) {
           throw new Error("No access token received from server");
         }
-        
-        // Extract consumer information using helper function
+
         const consumerInfo = extractConsumerInfo(result, identifier);
-        
         const userData = {
-          name: consumerInfo.name, // Store the actual consumer name
+          name: consumerInfo.name,
           email: consumerInfo.email,
           uid: consumerInfo.identifier,
           identifier: consumerInfo.identifier,
-          consumerName: consumerInfo.name, // Explicitly store consumer name
+          consumerName: consumerInfo.name,
           consumerNumber: consumerInfo.consumerNumber,
           meterSerialNumber: consumerInfo.meterSerialNumber,
-          meterId: consumerInfo.meterId, // Store meterId from login (for consumers 1-19)
+          meterId: consumerInfo.meterId,
           uniqueIdentificationNo: consumerInfo.uniqueIdentificationNo,
-          accessToken: tokens.accessToken // Store access token reference
+          accessToken: tokens.accessToken
         };
-        
+
         await storeUser(userData);
-        // Store remember me preference
         await authService.setRememberMe(checked);
-        
+
         console.log("✅ User data stored successfully:", {
           name: consumerInfo.name,
           identifier: consumerInfo.identifier,
           consumerNumber: consumerInfo.consumerNumber,
-          meterId: consumerInfo.meterId, // Log meterId from login
+          meterId: consumerInfo.meterId,
           meterSerialNumber: consumerInfo.meterSerialNumber
         });
-        
-        // Log meterId specifically for LS data API
+
         if (consumerInfo.meterId) {
           console.log("🔢 MeterId stored for LS data API:", consumerInfo.meterId);
         } else {
           console.warn("⚠️ MeterId not found in login response. LS data API may not work.");
         }
-        
-        // Register push notification token after successful login
+
         try {
           const { getPushToken, registerPushToken } = await import('../services/pushNotificationService');
           const pushToken = await getPushToken();
@@ -271,11 +230,8 @@ const Login = ({ navigation }) => {
           }
         } catch (pushError) {
           console.warn("⚠️ Failed to register push token:", pushError);
-          // Don't block login if push registration fails
         }
-        
-        // Reset navigation stack - removes Login from history
-        // This ensures pressing back on Dashboard will exit the app, not go to Login
+
         navigation.reset({
           index: 0,
           routes: [{ name: "PostPaidDashboard" }],
@@ -293,7 +249,6 @@ const Login = ({ navigation }) => {
       } else if (error.message.includes('Network')) {
         errorMessage = "Network error. Please check your internet connection.";
       } else if (error.message.includes('HTTP 401')) {
-        // Match exact UI copy for invalid credentials
         errorMessage = "Invalid credentials. Please check your email/phone and password.";
       } else if (error.message.includes('HTTP 403')) {
         errorMessage = "Access denied. This consumer may not have permission to access the system.";
@@ -302,8 +257,6 @@ const Login = ({ navigation }) => {
       } else if (error.message.includes('HTTP')) {
         errorMessage = `Server error (${error.message}). Please try again later.`;
       } else if (error.message) {
-        // Map internal validation error about missing credentials in auth system
-        // to the same friendly invalid-credentials text shown in the UI
         if (error.message.includes('does not have valid credentials')) {
           errorMessage = "Invalid credentials. Please check your email/phone and password.";
         } else {
@@ -311,7 +264,6 @@ const Login = ({ navigation }) => {
         }
       }
 
-      // Show inline error message under the inputs instead of an alert
       setLoginError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -372,39 +324,6 @@ const Login = ({ navigation }) => {
               loginError={loginError}
               setLoginError={setLoginError}
             />
-            
-            {/* Demo Credentials Display */}
-            {/* <View style={styles.demoContainer}>
-              <Text style={styles.demoTitle}>🎭 Demo Credentials</Text>
-              <Text style={styles.demoText}>For testing purposes, you can use:</Text>
-              <Text style={styles.demoCredential}>Username: demo | Password: demo123</Text>
-              <Text style={styles.demoCredential}>Username: test | Password: test123</Text>
-              <Text style={styles.demoCredential}>Username: BI25GMRA001 | Password: demo123</Text>
-              <Text style={styles.demoNote}>Or any BI25GMRA001-BI25GMRA020 with password: demo123</Text>
-            </View> */}
-            {/* <EmailLogin
-              email={email}
-              setEmail={setEmail}
-              password={password}
-              setPassword={setPassword}
-              checked={checked}
-              setChecked={setChecked}
-              handleLogin={handleLogin}
-              navigation={navigation}
-              isLoading={isLoading}
-            /> */}
-            {/* <MobileLogin
-              email={email}
-              setEmail={setEmail}
-              password={password}
-              setPassword={setPassword}
-              checked={checked}
-              setChecked={setChecked}
-              handleLogin={handleLogin}
-              navigation={navigation}
-              isLoading={isLoading}
-            /> */}
-
             </View>
           </KeyboardAvoidingView>  
         </View>

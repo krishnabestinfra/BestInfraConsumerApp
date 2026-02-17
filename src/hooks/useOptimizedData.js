@@ -29,7 +29,7 @@ export const useOptimizedData = (dataType = 'consumerData', options = {}) => {
     forceRefreshOnFocus = false
   } = options;
 
-  // Get current loading state
+
   const isLoading = getDataLoading(dataType);
 
   // Memoized data with fallbacks
@@ -44,12 +44,12 @@ export const useOptimizedData = (dataType = 'consumerData', options = {}) => {
 
   // Optimized refresh function
   const refresh = useCallback(async (force = false) => {
-    // Don't refresh during rapid navigation
+ 
     if (isRapidNavigation && !force) {
       return;
     }
 
-    // Don't refresh if already loading
+
     if (isLoading) {
       return;
     }
@@ -64,7 +64,13 @@ export const useOptimizedData = (dataType = 'consumerData', options = {}) => {
     }
   }, [dataType, isLoading, isRapidNavigation, setDataLoading, refreshDataIfNeeded]);
 
-  // Auto-refresh effect
+  useEffect(() => {
+    if (dataType !== 'consumerData') return;
+    if (user?.identifier && data == null && !isLoading) {
+      refresh(true);
+    }
+  }, [dataType, user?.identifier, data, isLoading, refresh]);
+
   useEffect(() => {
     if (!autoRefresh || !isDataLoaded) return;
 
@@ -77,7 +83,7 @@ export const useOptimizedData = (dataType = 'consumerData', options = {}) => {
     return () => clearInterval(interval);
   }, [autoRefresh, isDataLoaded, isNavigating, isRapidNavigation, refresh, refreshInterval]);
 
-  // Return optimized data interface
+  
   return {
     data,
     isLoading,

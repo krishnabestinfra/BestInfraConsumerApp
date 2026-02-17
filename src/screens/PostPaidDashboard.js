@@ -39,77 +39,8 @@ import DropdownIcon from "../../assets/icons/dropDown.svg";
 import CalendarIcon from "../../assets/icons/CalendarBlue.svg";
 import PiggybankIcon from "../../assets/icons/piggybank.svg";
 import CalendarDatePicker from "../components/global/CalendarDatePicker";
-import { formatFrontendDateTime, formatFrontendDate } from "../utils/dateUtils";
-
-/** Resolve due date from consumer object (API may use dueDate, due_date, paymentDueDate, etc.) */
-const getConsumerDueDate = (consumerData) => {
-  if (!consumerData || typeof consumerData !== "object") return null;
-  return (
-    consumerData.dueDate ??
-    consumerData.paymentDueDate ??
-    consumerData.due_date ??
-    consumerData.payment_due_date ??
-    consumerData.outstandingDueDate ??
-    consumerData.lastBillDueDate ??
-    consumerData.billDueDate ??
-    null
-  );
-};
-
-/** Parse a date value that may be ISO, DD/MM/YYYY, or DD-MM-YYYY. Returns Date or null. */
-const parseDueDate = (value) => {
-  if (!value || String(value).trim() === "" || String(value).trim().toLowerCase() === "n/a") return null;
-  let due = new Date(value);
-  if (!Number.isNaN(due.getTime())) return due;
-  const str = String(value).trim();
-  const parts = str.split(/[/\-]/);
-  if (parts.length === 3) {
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const year = parseInt(parts[2], 10);
-    if (!Number.isNaN(day) && !Number.isNaN(month) && !Number.isNaN(year)) {
-      due = new Date(year, month, day);
-      if (!Number.isNaN(due.getTime())) return due;
-    }
-  }
-  return null;
-};
-
-
-const getDueDaysText = (dueDateValue) => {
-  const due = parseDueDate(dueDateValue);
-  if (!due) return "—";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  due.setHours(0, 0, 0, 0);
-  const diffMs = due.getTime() - today.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays < 0) {
-    const daysOverdue = Math.abs(diffDays);
-    return daysOverdue === 1 ? "1 day Overdue" : `${daysOverdue} days Overdue`;
-  }
-  if (diffDays === 0) return "Due today";
-  return diffDays === 1 ? "1 day left" : `${diffDays} days left`;
-};
-
-/** Get issue and due date from billing list (latest invoice = most recent by issue date). */
-const getLatestInvoiceDates = (billingData) => {
-  if (!billingData) return { issueDate: null, dueDate: null };
-  const list = Array.isArray(billingData)
-    ? billingData
-    : billingData?.items ?? billingData?.records ?? billingData?.rows ?? billingData?.bills ?? billingData?.data ?? [billingData];
-  if (!list.length) return { issueDate: null, dueDate: null };
-  const sorted = [...list].sort((a, b) => {
-    const tA = new Date(a.fromDate || a.createdAt || a.billDate || 0).getTime();
-    const tB = new Date(b.fromDate || b.createdAt || b.billDate || 0).getTime();
-    return tB - tA;
-  });
-  const inv = sorted[0];
-  return {
-    issueDate: inv.fromDate ?? inv.billDate ?? inv.createdAt ?? null,
-    dueDate: inv.dueDate ?? null,
-  };
-};
+import { formatFrontendDateTime, formatFrontendDate, parseDueDate, getDueDaysText } from "../utils/dateUtils";
+import { getConsumerDueDate, getLatestInvoiceDates } from "../utils/billingUtils";
 
 const FALLBACK_ALERT_ROWS = [
   {
@@ -183,9 +114,7 @@ const StatusBlinkingDot = ({ status }) => {
   );
 };
 
-// import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-// Dynamic API URL will be set based on authenticated user
 
 const VIEW_OPTIONS = ["Chart", "Table"];
 const TIME_PERIODS = ["7D", "30D", "90D", "1Y"];
@@ -216,7 +145,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
   /** Latest invoice's issue and due date (from billing history) for due-days calculation */
   const [latestInvoiceDates, setLatestInvoiceDates] = useState({ issueDate: null, dueDate: null });
 
-  // Report API data when user picks a date range (consumers/.../report?reportType=daily-consumption)
   const [pickedRangeReportData, setPickedRangeReportData] = useState(null);
   const [pickedRangeReportLoading, setPickedRangeReportLoading] = useState(false);
 
@@ -224,7 +152,6 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
 
-  // Reset picked date to default "Pick a Date" when screen loads or gains focus (e.g. after reload or tab switch)
   useFocusEffect(
     useCallback(() => {
       setPickedDateRange(null);
@@ -277,7 +204,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     } catch (error) {
       console.error("❌ API error:", error);
         
-        // Provide specific error messages based on error type
+
         let errorMessage = "Failed to load Data";
         if (error.message.includes('HTTP 500')) {
           errorMessage = "Server error - please try again later";
@@ -610,7 +537,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     return 0;
   }, [consumerData]);
 
-  // Derive this month / last month from same chart data used in graphs (API chartData.monthly)
+
   const chartMonthlyComparison = useMemo(() => {
     if (!consumerData?.chartData?.monthly?.seriesData?.[0]?.data) return null;
     const data = consumerData.chartData.monthly.seriesData[0].data;
@@ -669,6 +596,11 @@ const PostPaidDashboard = ({ navigation, route }) => {
     const diff = lastMonthKwh - thisMonthKwh;
     return diff > 0 ? diff : 0;
   }, [consumerData, lastMonthKwh, thisMonthKwh]);
+
+  /** Signed difference: positive = used more this period, negative = saved */
+  const comparisonDiffKwh = useMemo(() => {
+    return thisMonthKwh - lastMonthKwh;
+  }, [thisMonthKwh, lastMonthKwh]);
 
   const comparisonBarFillPercent = useMemo(() => {
     const total = thisMonthKwh + lastMonthKwh;
@@ -1345,6 +1277,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     progressBar: { backgroundColor: themeColors.progressBarTrack },
     progressBarFill: { backgroundColor: themeColors.accent },
     savingsMessage: { color: themeColors.savingsText },
+    moreUsageMessage: { color: themeColors.savingsText },
     tableTitle: { color: themeColors.textPrimary },
     tableContainer: {},
     meterSiText: { color: themeColors.textPrimary },
@@ -1385,7 +1318,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                 Due Amount: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
               </Text>
               <Text style={[styles.dateText, darkOverlay.dateText]}>
-                Due on {(() => {
+                Due on {isLoading ? "Loading..." : (() => {
                   const dueDateValue = latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData);
                   const d = parseDueDate(dueDateValue);
                   return d ? formatFrontendDate(d) : "N/A";
@@ -1411,7 +1344,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   <Text style={[styles.paynowText, darkOverlay.paynowText]}>Pay Now</Text>
                 </Pressable>
                 <Text style={[styles.dueDaysText, darkOverlay.dueDaysText]}>
-                  {getDueDaysText(latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData))}
+                  {isLoading ? "Loading..." : getDueDaysText(latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData))}
                 </Text>
               </View>
             </View>
@@ -1771,10 +1704,25 @@ const PostPaidDashboard = ({ navigation, route }) => {
                     </View>
                   </View>
                   <View style={styles.savingsMessageRow}>
-                    <PiggybankIcon width={16} height={16} fill={isDark ? themeColors.accent : COLORS.secondaryColor} style={styles.savingsMessageIcon} />
-                    <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>
-                      You saved {(savingsKwh ?? 0).toLocaleString("en-IN")} kWh
-                    </Text>
+                    {comparisonDiffKwh < 0 ? (
+                      <>
+                        <PiggybankIcon width={16} height={16} fill={isDark ? themeColors.accent : COLORS.secondaryColor} style={styles.savingsMessageIcon} />
+                        <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>
+                          You saved {(savingsKwh ?? 0).toLocaleString("en-IN")} kWh
+                        </Text>
+                      </>
+                    ) : comparisonDiffKwh > 0 ? (
+                      <>
+                        <PiggybankIcon width={16} height={16} fill={themeColors.accent} style={styles.savingsMessageIcon} />
+                        <Text style={[styles.savingsMessage, styles.moreUsageMessage, darkOverlay.moreUsageMessage]}>
+                          You used {(comparisonDiffKwh ?? 0).toLocaleString("en-IN")} kWh more
+                        </Text>
+                      </>
+                    ) : (
+                      <Text style={[styles.savingsMessage, darkOverlay.savingsMessage]}>
+                        Same as last month
+                      </Text>
+                    )}
                   </View>
                 </>
               )}
@@ -2606,7 +2554,10 @@ const styles = StyleSheet.create({
   savingsMessage: {
     fontSize: 11,
     fontFamily: "Manrope-Medium",
-    color: "#6B9E78",
+    color: colors.color_secondary,
     textAlign: "center",
+  },
+  moreUsageMessage: {
+    color: colors.color_secondary,
   },
 });

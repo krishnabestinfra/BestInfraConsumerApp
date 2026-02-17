@@ -6,6 +6,7 @@ import DashboardHeader from "../components/global/DashboardHeader";
 import BottomNavigation from "../components/global/BottomNavigation";
 import { getCachedConsumerData } from "../utils/cacheManager";
 import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../services/apiService";
+import { getBillDateValue } from "../utils/billingUtils";
 import { StatusBar } from "expo-status-bar";
 import { getUser } from "../utils/storage";
 import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
@@ -48,11 +49,9 @@ const Usage = ({ navigation }) => {
         }
         
         // Sort billing data by date (newest first) to ensure correct order
-        const sortedBills = [...billingData].sort((a, b) => {
-          const dateA = new Date(a.bill_date || a.billDate || a.createdAt || a.date || 0);
-          const dateB = new Date(b.bill_date || b.billDate || b.createdAt || b.date || 0);
-          return dateB - dateA; // Newest first
-        });
+        const sortedBills = [...billingData].sort(
+          (a, b) => getBillDateValue(b) - getBillDateValue(a)
+        );
         
         // Get the second item (index 1) as last month's bill (index 0 is current month)
         // If only one bill exists, use it

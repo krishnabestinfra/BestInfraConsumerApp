@@ -21,7 +21,7 @@ import { getUser } from "../utils/storage";
 import { authService } from "../services/authService";
 import { SkeletonLoader } from '../utils/loadingManager';
 import { isDemoUser, getDemoLsDataForDate } from "../constants/demoData";
-import { formatFrontendDateTime } from "../utils/dateUtils";
+import { formatFrontendDateTime, formatFrontendDate } from "../utils/dateUtils";
 
 // Pagination is handled by Table component (5 rows per page)
 
@@ -115,17 +115,17 @@ const ConsumerDataTable = ({ navigation, route }) => {
 
       console.log('   Bearer Token:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND');
 
-      // Build API URL with formatted date and meterId
+
       const apiUrl = API_ENDPOINTS.lsdata.consumption(formattedDate, formattedDate, finalMeterId);
       console.log('   API URL:', apiUrl);
 
-      // Make API request with Bearer token
+
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`, // Bearer token from logged-in user
+          'Authorization': `Bearer ${token}`, 
         },
       });
 
@@ -172,9 +172,7 @@ const ConsumerDataTable = ({ navigation, route }) => {
     fetchLSData();
   }, [fetchLSData]);
 
-  // Pagination is now handled by Table component
 
-  // Compact Header Dropdown Component
   const HeaderDropdown = ({ value, options, onSelect, placeholder }) => {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -361,31 +359,7 @@ const ConsumerDataTable = ({ navigation, route }) => {
             <View style={styles.metadataLeft}>
               {date && (
                 <Text style={styles.metadataText}>
-                  Date: {(() => {
-                    try {
-                      // Parse YYYY-MM-DD format
-                      const dateParts = date.split('-');
-                      if (dateParts.length === 3) {
-                        const year = parseInt(dateParts[0]);
-                        const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
-                        const day = parseInt(dateParts[2]);
-                        const dateObj = new Date(year, month, day);
-                        return dateObj.toLocaleDateString('en-IN', { 
-                          day: '2-digit', 
-                          month: 'short', 
-                          year: 'numeric' 
-                        });
-                      }
-                      // Fallback to direct parsing
-                      return new Date(date).toLocaleDateString('en-IN', { 
-                        day: '2-digit', 
-                        month: 'short', 
-                        year: 'numeric' 
-                      });
-                    } catch (e) {
-                      return date; // Return as-is if parsing fails
-                    }
-                  })()}
+                  Date: {formatFrontendDate(date) || date}
                 </Text>
               )}
             </View>

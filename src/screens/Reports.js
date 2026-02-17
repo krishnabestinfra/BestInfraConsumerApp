@@ -18,6 +18,7 @@ import DatePicker from "../components/global/DatePicker";
 import DocumentIcon from "../../assets/icons/document.svg";
 import { getUser } from "../utils/storage";
 import { apiClient } from "../services/apiClient";
+import { formatDDMMYYYY, formatYYYYMMDD } from "../utils/dateUtils";
 import * as XLSX from "xlsx";
 
 
@@ -34,22 +35,6 @@ const Reports = ({ navigation }) => {
   ]);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState(null);
-
-  const formatDate = (date) => {
-    if (!date) return "";
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
-  };
-
-  const toYYYYMMDD = (date) => {
-    if (!date) return "";
-    const y = date.getFullYear();
-    const m = (date.getMonth() + 1).toString().padStart(2, "0");
-    const d = date.getDate().toString().padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
 
   const reportTypeToApi = {
     "Daily Consumption": "daily-consumption",
@@ -70,8 +55,8 @@ const Reports = ({ navigation }) => {
       Alert.alert("Error", "Please sign in to generate reports");
       return;
     }
-    const startStr = toYYYYMMDD(startDate);
-    const endStr = toYYYYMMDD(endDate);
+    const startStr = formatYYYYMMDD(startDate);
+    const endStr = formatYYYYMMDD(endDate);
     const reportType = reportTypeToApi[filterType] ?? "daily-consumption";
 
     setReportError(null);
@@ -80,7 +65,7 @@ const Reports = ({ navigation }) => {
       const result = await apiClient.getConsumerReport(identifier, startStr, endStr, reportType);
       if (result?.success && result?.data != null) {
         const reportLabel = filterType.replace(/\s+/g, " ");
-        const reportName = `${reportLabel} (${formatDate(startDate)} - ${formatDate(endDate)}).pdf`;
+        const reportName = `${reportLabel} (${formatDDMMYYYY(startDate)} - ${formatDDMMYYYY(endDate)}).pdf`;
         setRecentReports((prev) => [
           { id: Date.now(), name: reportName, data: result.data, reportType: filterType },
           ...prev,

@@ -14,6 +14,7 @@ import Button from "../components/global/Button";
 import DownloadButton from "../components/global/DownloadButton";
 import { getUser, getToken } from "../utils/storage";
 import { API, API_ENDPOINTS } from "../constants/constants";
+import { formatFrontendDate } from "../utils/dateUtils";
 
 
 const Transactions = ({ navigation }) => {
@@ -23,7 +24,6 @@ const Transactions = ({ navigation }) => {
   const [tableData, setTableData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch payment history from API - try multiple endpoints
   const fetchPaymentHistory = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -92,7 +92,7 @@ const Transactions = ({ navigation }) => {
             console.log('📦 Consumer data response:', consumerData);
             
             if (consumerData.success && consumerData.data) {
-              // Try different possible locations for payment history
+
               if (Array.isArray(consumerData.data.paymentHistory)) {
                 paymentHistory = consumerData.data.paymentHistory;
               } else if (Array.isArray(consumerData.data.payments)) {
@@ -120,21 +120,7 @@ const Transactions = ({ navigation }) => {
           const status = payment.status || (amount > 0 ? 'Success' : 'Failed');
           
           // Format date if it's a valid date string
-          let formattedDate = date;
-          if (date !== 'N/A' && date) {
-            try {
-              const dateObj = new Date(date);
-              if (!isNaN(dateObj.getTime())) {
-                formattedDate = dateObj.toLocaleDateString('en-IN', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric'
-                });
-              }
-            } catch (e) {
-              // Keep original date if parsing fails
-            }
-          }
+          const formattedDate = (date !== 'N/A' && date) ? (formatFrontendDate(date) || date) : date;
           
           return {
             id: index + 1,

@@ -39,9 +39,7 @@ export const formatFrontendDateTime = (value) => {
   return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
 };
 
-/**
- * Date only: "11 Feb 2026"
- */
+
 export const formatFrontendDate = (value) => {
   if (!value) return '';
   const date = value instanceof Date ? value : new Date(value);
@@ -52,10 +50,7 @@ export const formatFrontendDate = (value) => {
   return `${day} ${month} ${year}`;
 };
 
-/**
- * Format due date as "9 Feb 2026"
- * Handles: MM/DD/YYYY (month/date/year), YYYY-MM-DD, ISO, DD/MM/YYYY
- */
+
 export const formatDueDateDisplay = (value) => {
   if (!value || String(value).trim() === '' || String(value).trim().toUpperCase() === 'N/A') {
     return 'N/A';
@@ -73,7 +68,7 @@ export const formatDueDateDisplay = (value) => {
     }
   }
 
-  // MM/DD/YYYY or MM-DD-YYYY (month/date/year e.g. 2/9/2026, 02/09/2026)
+
   const mdyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (mdyMatch) {
     const [, m, d, y] = mdyMatch;
@@ -84,11 +79,69 @@ export const formatDueDateDisplay = (value) => {
     }
   }
 
-  // Fallback: try Date parsing
+
   const date = new Date(value);
   if (!isNaN(date.getTime())) {
     return `${date.getDate()} ${MONTH_SHORT_NAMES[date.getMonth()]} ${date.getFullYear()}`;
   }
 
   return str;
+};
+
+
+export const parseDueDate = (value) => {
+  if (!value || String(value).trim() === '' || String(value).trim().toLowerCase() === 'n/a') return null;
+  let due = new Date(value);
+  if (!Number.isNaN(due.getTime())) return due;
+  const str = String(value).trim();
+  const parts = str.split(/[/\-]/);
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    if (!Number.isNaN(day) && !Number.isNaN(month) && !Number.isNaN(year)) {
+      due = new Date(year, month, day);
+      if (!Number.isNaN(due.getTime())) return due;
+    }
+  }
+  return null;
+};
+
+
+export const getDueDaysText = (dueDateValue) => {
+  const due = parseDueDate(dueDateValue);
+  if (!due) return '—';
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  due.setHours(0, 0, 0, 0);
+  const diffMs = due.getTime() - today.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays < 0) {
+    const daysOverdue = Math.abs(diffDays);
+    return daysOverdue === 1 ? '1 day Overdue' : `${daysOverdue} days Overdue`;
+  }
+  if (diffDays === 0) return 'Due today';
+  return diffDays === 1 ? '1 day left' : `${diffDays} days left`;
+};
+
+
+export const formatDDMMYYYY = (value) => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
+
+export const formatYYYYMMDD = (value) => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 };
