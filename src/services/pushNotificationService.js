@@ -4,9 +4,11 @@
  * - Token registration
  * - Notification handling
  * - In-app notification display
+ *
+ * expo-notifications is NOT loaded in Expo Go (SDK 53+ removed remote push there).
+ * Use a development build for full push support.
  */
 
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
@@ -16,16 +18,31 @@ import { authService } from './authService';
 import { getUser } from '../utils/storage';
 import { isDemoUser } from '../constants/demoData';
 import { fetchNotifications } from './apiService';
+import { isRunningInExpoGo } from '../utils/expoGoDetect';
 
-// Configure notification behavior: show in banner and in system tray (like other apps)
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+/** Lazy-load expo-notifications only when NOT in Expo Go (avoids SDK 53 error) */
+const getNotifications = () => {
+  if (isRunningInExpoGo()) return null;
+  try {
+    return require('expo-notifications');
+  } catch {
+    return null;
+  }
+};
+
+/** Configure notification behavior — only when Notifications is available */
+const setupNotificationHandler = () => {
+  const Notifications = getNotifications();
+  if (!Notifications) return;
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+};
 
 // Notification listeners
 let notificationReceivedListener = null;
@@ -152,12 +169,23 @@ const addShownPushNotificationIds = async (newIds) => {
   }
 };
 
+
 /**
  * Get push notification token for this device
  * @returns {Promise<string|null>} Token or null if permission denied
  */
 export const getPushToken = async () => {
   try {
+    // Expo Go: Push notifications (remote) were removed in SDK 53 — use development build
+    if (isRunningInExpoGo()) {
+      return null;
+    }
+
+    const Notifications = getNotifications();
+    if (!Notifications) return null;
+
+    setupNotificationHandler();
+
     // Only works on real devices
     if (!Device.isDevice) {
       console.warn('⚠️ Push notifications only work on physical devices');
@@ -187,8 +215,17 @@ export const getPushToken = async () => {
       return null;
     }
 
-    // Get token - handle different response formats
-    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+    // Get token — skipped in Expo Go (SDK 53+ removed remote push there)
+    let tokenData;
+    try {
+      tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+    } catch (expoGoError) {
+      const msg = String(expoGoError?.message ?? '');
+      if (msg.includes('Expo Go') || msg.includes('SDK 53') || msg.includes('removed')) {
+        return null; // Silently skip — expected in Expo Go
+      }
+      throw expoGoError;
+    }
     
     // Extract token - can be tokenData.data or tokenData directly
     const token = tokenData?.data || tokenData;
@@ -334,7 +371,8 @@ export const initializePushNotifications = async (
     }
 
     // Set up notification listeners
-    if (onNotificationReceived) {
+    const Notifications = getNotifications();
+    if (Notifications && onNotificationReceived) {
       // Remove existing listener if any
       if (notificationReceivedListener) {
         notificationReceivedListener.remove();
@@ -345,7 +383,7 @@ export const initializePushNotifications = async (
       );
     }
 
-    if (onNotificationTapped) {
+    if (Notifications && onNotificationTapped) {
       // Remove existing listener if any
       if (notificationResponseListener) {
         notificationResponseListener.remove();
@@ -385,6 +423,8 @@ export const cleanupPushNotifications = () => {
  */
 export const getLastNotificationResponse = async () => {
   try {
+    const Notifications = getNotifications();
+    if (!Notifications) return null;
     const response = await Notifications.getLastNotificationResponseAsync();
     return response;
   } catch (error) {
@@ -399,8 +439,10 @@ const DEFAULT_CHANNEL_ID = 'nexusone-default';
  * Ensure Android notification channel exists (so notification shows in tray and status bar)
  */
 const ensureNotificationChannel = async () => {
-  if (Platform.OS !== 'android') return;
+  if (Platform.OS !== 'android' || isRunningInExpoGo()) return;
   try {
+    const Notifications = getNotifications();
+    if (!Notifications) return;
     await Notifications.setNotificationChannelAsync(DEFAULT_CHANNEL_ID, {
       name: 'NexusOne Notifications',
       importance: Notifications.AndroidImportance.MAX,
@@ -418,7 +460,12 @@ const ensureNotificationChannel = async () => {
  * development build; in Expo Go the system shows "Expo Go".
  */
 export const scheduleTestNotification = async () => {
+  if (isRunningInExpoGo()) {
+    throw new Error('System notifications require a development build (not Expo Go)');
+  }
   try {
+    const Notifications = getNotifications();
+    if (!Notifications) throw new Error('Push notifications not available');
     await ensureNotificationChannel();
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -475,7 +522,6 @@ export const checkAndShowPushChannelNotifications = async () => {
       return;
     }
 
-    await ensureNotificationChannel();
     const content = {
       title: latest.title || 'Notification',
       body: latest.message || '',
@@ -487,10 +533,16 @@ export const checkAndShowPushChannelNotifications = async () => {
       ...(Platform.OS === 'android' && { channelId: DEFAULT_CHANNEL_ID }),
     };
 
-    await Notifications.scheduleNotificationAsync({
-      content,
-      trigger: null,
-    });
+    if (!isRunningInExpoGo()) {
+      await ensureNotificationChannel();
+      const Notifications = getNotifications();
+      if (Notifications) {
+        await Notifications.scheduleNotificationAsync({
+          content,
+          trigger: null,
+        });
+      }
+    }
     showNotificationCard({
       title: latest.title || 'Notification',
       body: latest.message || '',
@@ -507,10 +559,10 @@ export const checkAndShowPushChannelNotifications = async () => {
 
 /**
  * Test push notification: show BI in-app card now + schedule system notification in 2s.
- * When app is in background/closed, the notification appears in the pull bar with this
- * title/body. To see "NexusOne" (not "Expo Go") in the pull bar, use a development build.
+ * In Expo Go, only the in-app card is shown (system notifications require a dev build).
  */
 export const sendTestPushNotification = () => {
   showTestNotificationCard();
+  if (isRunningInExpoGo()) return;
   scheduleTestNotification().catch((e) => console.warn('Schedule test failed:', e?.message));
 };
