@@ -20,21 +20,8 @@ const { width, height } = Dimensions.get("window");
 const OnBoarding = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
   const moveAnim = useRef(new Animated.Value(20)).current;
-  const [activeIndex, setActiveIndex] = useState(0); 
-  const scrollRef = useRef(null); 
-  
-  
-//   useEffect(() => {
-//   const interval = setInterval(() => {
-//     setActiveIndex(prev => {
-//       const next = (prev + 1) % 3;
-//       scrollRef.current?.scrollTo({ x: next * width, animated: true });
-//       return next;
-//     });
-//   }, 3000);
-
-//   return () => clearInterval(interval);
-// }, []);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     Animated.loop(
@@ -54,44 +41,37 @@ const OnBoarding = ({ navigation }) => {
   }, [moveAnim]);
 
   // Button slide
-
-const handleButtonPress = () => {
-  const next = activeIndex + 1;
-  if (next < 3) {
-    // Scroll first, let the scroll handler update the index when animation completes
-    // This prevents race conditions between button press and scroll events
-    scrollRef.current?.scrollTo({ x: next * width, animated: true });
-  } else {
-    navigation.navigate("Login"); // Navigate only when next index exceeds last slide
-  }
-};
-
-
-
+  const handleButtonPress = () => {
+    const next = activeIndex + 1;
+    if (next < 3) {
+      // Scroll first, let the scroll handler update the index when animation completes
+      // This prevents race conditions between button press and scroll events
+      scrollRef.current?.scrollTo({ x: next * width, animated: true });
+    } else {
+      navigation.navigate("Login"); // Navigate only when next index exceeds last slide
+    }
+  };
 
   return (
     <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style="light" />
-      
       {/* Blue gradient background */}
       <View style={styles.blueBackground} />
-      
       {/* Background Image */}
-      <Image 
-        source={require("../../assets/images/Backgroundimage.png")} 
+      <Image
+        source={require("../../assets/images/Backgroundimage.png")}
         style={styles.backgroundImage}
         resizeMode="cover"
       />
-      
       {/* Overlay for better content visibility */}
       <View style={styles.overlay} />
 
       <RippleEffect />
-      <OnBoardingSlides  scrollRef={scrollRef} onIndexChange={setActiveIndex}  /> 
+      <OnBoardingSlides scrollRef={scrollRef} onIndexChange={setActiveIndex} />
 
       <View style={styles.ButtonBox}>
-        <Button style={styles.buttonContainer} 
-          variant="primary" 
+        <Button style={styles.buttonContainer}
+          variant="primary"
           title={activeIndex === 2 ? "Get Started" : "Next"}
           onPress={handleButtonPress}
         />
@@ -102,16 +82,15 @@ const handleButtonPress = () => {
           <Arrow name="angles-up" size={24} color="#fff" />
         </Animated.View>
       </View>
-    
 
       <View style={styles.loginContainer}>
         <View style={styles.loginContent}>
-          <Button 
-           title="Login" 
-           variant="secondary"
-            size="medium" 
-            style={styles.loginBox} 
-            onPress={()=>navigation.navigate('Login')}
+          <Button
+            title="Login"
+            variant="secondary"
+            size="medium"
+            style={styles.loginBox}
+            onPress={() => navigation.navigate('Login')}
           />
         </View>
       </View>
@@ -147,7 +126,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.1)", 
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
 
   ButtonBox: {
@@ -155,7 +134,7 @@ const styles = StyleSheet.create({
     height: 43,
     alignItems: "center",
     marginTop: 40,
-    zIndex: 1, 
+    zIndex: 1,
   },
   buttonContainer: {
     width: "80%",
@@ -167,14 +146,14 @@ const styles = StyleSheet.create({
     height: "15%",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1, 
+    zIndex: 1,
   },
   loginContainer: {
     width: "100%",
     height: "15%",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1, 
+    zIndex: 1,
   },
   loginContent: {
     backgroundColor: "rgba(0, 0, 0, 0.1)",

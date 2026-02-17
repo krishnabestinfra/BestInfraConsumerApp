@@ -52,7 +52,7 @@ const SplashScreen = () => {
             index: 0,
             routes: [{ name: "OnBoarding" }],
           });
-        }, 1000);
+        }, 5000);
       }
     };
 

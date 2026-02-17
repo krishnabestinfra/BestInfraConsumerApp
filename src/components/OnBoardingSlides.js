@@ -19,7 +19,6 @@ const OnBoardingSlides = ({ scrollRef, onIndexChange}) => {
   const s14 = getScaledFontSize(14);
   const s18 = getScaledFontSize(Platform.OS === "ios" ? 18 : 15);
   const [activeIndex, setActiveIndex] = useState(0); // State for the active slide index
-
   const currentIndex = useRef(0);
   const isScrolling = useRef(false);
   const slides = [0, 1, 2]; // Just placeholders for the static views
@@ -30,32 +29,6 @@ const OnBoardingSlides = ({ scrollRef, onIndexChange}) => {
   }, []);
 
   const animatedValues = useRef(slides.map(() => new Animated.Value(10))).current;
-  // useEffect(() => {
-  //   const interval = setInterval(() => {
-  //     currentIndex.current = (currentIndex.current + 1) % slides.length;
-  //     setActiveIndex(currentIndex.current); // Update active index
-  //     scrollRef.current.scrollTo({
-  //       x: currentIndex.current * width,
-  //       animated: true,
-  //     });
-  //   }, 3000);
-
-  //   return () => clearInterval(interval);
-  // }, []);
-//   useEffect(() => {
-//   const interval = setInterval(() => {
-//     currentIndex.current = (currentIndex.current + 1) % slides.length;
-//     setActiveIndex(currentIndex.current);
-//     onIndexChange?.(currentIndex.current);   
-//     scrollRef.current.scrollTo({
-//       x: currentIndex.current * width,
-//       animated: true,
-//     });
-//   }, 3000);
-
-//   return () => clearInterval(interval);
-// }, []);
-
 
   useEffect(() => {
     animatedValues.forEach((anim, index) => {
@@ -136,7 +109,6 @@ const OnBoardingSlides = ({ scrollRef, onIndexChange}) => {
                 width: animatedValues[index],
                 backgroundColor: index === activeIndex ? "#fff" : "grey",
               }
-              // index === activeIndex ? styles.activeDot : null, // Style active dot
             ]}
           />
         ))}
@@ -146,7 +118,6 @@ const OnBoardingSlides = ({ scrollRef, onIndexChange}) => {
 };
 
 const styles = StyleSheet.create({
-  ////// new sliders \\\\\\
   slide: {
     width,
     justifyContent: "center",
@@ -200,9 +171,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     margin: 5,
   },
-  // activeDot: {
-  //   backgroundColor: "#00e09f", // Active dot color
-  // },
 });
 
 export default OnBoardingSlides;

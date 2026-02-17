@@ -82,5 +82,8 @@
       }
     }
   },
+  "overrides": {
+    "baseline-browser-mapping": "^2.9.0"
+  },
   "private": true
 }
