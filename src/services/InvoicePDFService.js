@@ -11,6 +11,8 @@ import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 import { Asset } from 'expo-asset';
 import { Platform, Alert, Linking } from 'react-native';
+// expo-intent-launcher is Android-only; used to open PDF in system viewer
+const IntentLauncher = Platform.OS === 'android' ? require('expo-intent-launcher') : null;
 
 /**
  * Helper: Calculate due date (30 days from bill date)
@@ -2037,65 +2039,33 @@ export const openFilledPDF = async (billData, options = {}) => {
     console.log('✅ PDF file created:', fileUri);
     
     if (previewOnly) {
-      // Step 5: Preview PDF directly (without share sheet)
+      // Step 5: Open PDF in system viewer (View action) — not the share sheet
       try {
-        // On iOS, Sharing.shareAsync with UIActivityViewController can show preview
-        // On Android, we'll use Intent to open PDF viewer directly
-        if (Platform.OS === 'ios') {
-          // iOS: Use Sharing but it will show preview option first
+        if (Platform.OS === 'android') {
+          // Android: Open in default PDF viewer via VIEW intent with content URI
+          const contentUri = await FileSystem.getContentUriAsync(fileUri);
+          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            data: contentUri,
+            type: 'application/pdf',
+            flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+          });
+          console.log('✅ PDF opened in viewer (Android)');
+        } else {
+          // iOS: Share sheet is the standard way to "view" (user can pick Quick Look / Open in)
           const isSharingAvailable = await Sharing.isAvailableAsync();
           if (isSharingAvailable) {
-            // On iOS, this will show preview/share options, user can choose preview
             await Sharing.shareAsync(fileUri, {
               mimeType: 'application/pdf',
-              dialogTitle: `Invoice - ${billData.billNumber}`,
+              dialogTitle: `View invoice - ${billData.billNumber}`,
               UTI: 'com.adobe.pdf'
             });
-            console.log('✅ PDF opened for preview (iOS)');
+            console.log('✅ PDF opened for viewing (iOS)');
           } else {
             throw new Error('Sharing not available');
           }
-        } else {
-          // Android: Try to open directly with Intent
-          try {
-            // Convert file:// URI to content:// URI for Android
-            const contentUri = fileUri.replace('file://', 'content://');
-            const canOpen = await Linking.canOpenURL(fileUri);
-            
-            if (canOpen) {
-              await Linking.openURL(fileUri);
-              console.log('✅ PDF opened in preview mode (Android)');
-            } else {
-              // Fallback: Use sharing (Android will show preview option)
-              const isSharingAvailable = await Sharing.isAvailableAsync();
-              if (isSharingAvailable) {
-                await Sharing.shareAsync(fileUri, {
-                  mimeType: 'application/pdf',
-                  dialogTitle: `Invoice - ${billData.billNumber}`,
-                  UTI: 'com.adobe.pdf'
-                });
-                console.log('✅ PDF opened via sharing (Android fallback)');
-              } else {
-                throw new Error('Unable to preview PDF');
-              }
-            }
-          } catch (androidError) {
-            // Final fallback for Android
-            const isSharingAvailable = await Sharing.isAvailableAsync();
-            if (isSharingAvailable) {
-              await Sharing.shareAsync(fileUri, {
-                mimeType: 'application/pdf',
-                dialogTitle: `Invoice - ${billData.billNumber}`,
-                UTI: 'com.adobe.pdf'
-              });
-            } else {
-              throw new Error('Unable to preview PDF on this device');
-            }
-          }
         }
       } catch (previewError) {
-        console.warn('Preview failed, trying sharing:', previewError);
-        // Final fallback: Use sharing
+        console.warn('Open in viewer failed, falling back to share:', previewError);
         const isSharingAvailable = await Sharing.isAvailableAsync();
         if (isSharingAvailable) {
           await Sharing.shareAsync(fileUri, {
@@ -2103,7 +2073,7 @@ export const openFilledPDF = async (billData, options = {}) => {
             dialogTitle: `Invoice - ${billData.billNumber}`,
             UTI: 'com.adobe.pdf'
           });
-          console.log('✅ PDF opened via sharing (final fallback)');
+          console.log('✅ PDF opened via sharing (fallback)');
         } else {
           Alert.alert(
             'PDF Generated',
@@ -2149,20 +2119,39 @@ export const openFilledPDF = async (billData, options = {}) => {
 };
 
 /**
+ * Returns the filled PDF as base64 for in-app viewer (no share sheet).
+ * Use this when you want to display the invoice inside the app (e.g. WebView).
+ */
+export const getFilledPDFBase64 = async (payment, consumerData) => {
+  const billData = createBillData(payment, consumerData);
+  const { bytes } = await fillPDFForm(billData);
+  const base64 = btoa(
+    new Uint8Array(bytes).reduce((data, byte) => data + String.fromCharCode(byte), '')
+  );
+  return { base64, billNumber: billData.billNumber };
+};
+
+/**
  * 1️⃣ handleViewBill() - MAIN ENTRY POINT
  * 
- * Triggered when user clicks invoice row
+ * Triggered when user clicks invoice row.
+ * If options.openInAppViewer is true, returns { base64 } for caller to show in WebView; otherwise opens viewer or share.
  */
 export const handleViewBill = async (payment, consumerData, options = {}) => {
   try {
     console.log('📄 Generating invoice PDF for transaction:', payment?.transactionId);
     
-    // Step 1: Create structured bill data
     const billData = createBillData(payment, consumerData);
     
-    // Step 2: Generate and preview PDF (previewOnly: true by default)
-    await openFilledPDF(billData, { previewOnly: true, ...options });
+    if (options.openInAppViewer) {
+      const { bytes } = await fillPDFForm(billData);
+      const base64 = btoa(
+        new Uint8Array(bytes).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      return { success: true, base64, billNumber: billData.billNumber };
+    }
     
+    await openFilledPDF(billData, { previewOnly: true, ...options });
     return { success: true };
   } catch (error) {
     console.error('❌ Error viewing bill:', error);

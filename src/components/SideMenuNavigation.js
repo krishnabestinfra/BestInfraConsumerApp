@@ -28,7 +28,7 @@ import { getAlertPreferences, setAlertPreferences } from "../services/pushNotifi
 
 const SideMenuNavigation = ({ navigation }) => {
   const { activeItem, setActiveItem } = useContext(TabContext);
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const scaled = {
     menu: getScaledFontSize(16),
     version: getScaledFontSize(12),
@@ -55,7 +55,7 @@ const SideMenuNavigation = ({ navigation }) => {
   const [tamperAlerts, setTamperAlerts] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
 
-  // Get current route to sync sidebar highlighting
+
   const currentRoute = useNavigationState(state => 
     state?.routes[state?.index]?.name
   );
@@ -147,7 +147,7 @@ const SideMenuNavigation = ({ navigation }) => {
   return (
     <>
       <View style={styles.Topmenubar}>
-        {/* Dashboard */}
+
         <Pressable
           style={styles.flex}
           onPress={() => {
@@ -296,30 +296,31 @@ const SideMenuNavigation = ({ navigation }) => {
         animationType="fade"
         onRequestClose={() => setShowAlertsModal(false)}
       >
-        <View style={styles.alertsModalOverlay}>
-          <View style={styles.alertsModalCard}>
+        <View style={[styles.alertsModalOverlay, isDark && styles.alertsModalOverlayDark]}>
+          <View style={[styles.alertsModalCard, isDark && { backgroundColor: themeColors.card }]}>
             {/* Header */}
             <View style={styles.alertsModalHeader}>
-              <Text style={[styles.alertsModalTitle, { fontSize: scaled.modalTitle }]}>Alerts</Text>
+              <Text style={[styles.alertsModalTitle, { fontSize: scaled.modalTitle }, isDark && { color: themeColors.textPrimary }]}>Alerts</Text>
               <TouchableOpacity 
                 onPress={() => setShowAlertsModal(false)}
                 style={styles.closeButton}
               >
-                <CrossIcon width={20} height={20} />
+                <CrossIcon width={20} height={20} fill={isDark ? themeColors.textPrimary : "#1F2937"} />
               </TouchableOpacity>
             </View>
 
             {/* Usage Threshold Alert */}
             <View style={styles.thresholdSection}>
-              <Text style={[styles.thresholdLabel, { fontSize: scaled.modalLabel }]}>Usage Threshold Alert</Text>
+              <Text style={[styles.thresholdLabel, { fontSize: scaled.modalLabel }, isDark && { color: themeColors.textSecondary }]}>Usage Threshold Alert</Text>
               <View style={styles.sliderContainer}>
                 {/* Custom track background (unfilled - light grey) */}
-                <View style={styles.sliderTrackBg} />
+                <View style={[styles.sliderTrackBg, isDark && { backgroundColor: themeColors.progressBarTrack }]} />
                 {/* Custom filled track (dark blue) */}
                 <View
                   style={[
                     styles.sliderTrackFilled,
                     { width: `${(usageThreshold / 1000) * 100}%` },
+                    isDark && { backgroundColor: themeColors.brandBlue },
                   ]}
                 />
                 {/* Custom 15x15 thumb - Animated to avoid flicker while dragging */}
@@ -327,6 +328,7 @@ const SideMenuNavigation = ({ navigation }) => {
                   pointerEvents="none"
                   style={[
                     styles.sliderThumb,
+                    isDark && { backgroundColor: themeColors.brandBlue },
                     {
                       left: sliderThumbAnim.interpolate({
                         inputRange: [0, 1000],
@@ -356,40 +358,40 @@ const SideMenuNavigation = ({ navigation }) => {
                 />
               </View>
               <Text style={styles.thresholdValue}>
-                <Text style={[styles.thresholdValueNumber, { fontSize: scaled.modalTitleBig }]}>{Math.round(usageThreshold)}</Text>
-                <Text style={[styles.thresholdValueUnit, { fontSize: scaled.modalTitleMid }]}> kWh</Text>
+                <Text style={[styles.thresholdValueNumber, { fontSize: scaled.modalTitleBig }, isDark && { color: themeColors.brandBlue }]}>{Math.round(usageThreshold)}</Text>
+                <Text style={[styles.thresholdValueUnit, { fontSize: scaled.modalTitleMid }, isDark && { color: themeColors.brandBlue }]}> kWh</Text>
               </Text>
             </View>
 
             {/* Toggle Settings */}
             <View style={styles.toggleSection}>
               {/* Bill Due Reminders */}
-              <View style={styles.toggleRow}>
+              <View style={[styles.toggleRow, isDark && { backgroundColor: themeColors.inputBg }]}>
                 <View style={styles.toggleInfo}>
-                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }]}>Bill Due Reminders</Text>
-                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }]}>3 days before due date</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>Bill Due Reminders</Text>
+                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>3 days before due date</Text>
                 </View>
                 <Switch
                   value={billDueReminders}
                   onValueChange={setBillDueReminders}
-                  trackColor={{ false: "#D1D5DB", true: COLORS.secondaryColor }}
+                  trackColor={{ false: isDark ? "#4A4A4A" : "#D1D5DB", true: COLORS.secondaryColor }}
                   thumbColor={"#FFFFFF"}
-                  ios_backgroundColor="#D1D5DB"
+                  ios_backgroundColor={isDark ? "#4A4A4A" : "#D1D5DB"}
                 />
               </View>
 
               {/* Payment Confirmations */}
-              <View style={styles.toggleRow}>
+              <View style={[styles.toggleRow, isDark && { backgroundColor: themeColors.inputBg }]}>
                 <View style={styles.toggleInfo}>
-                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }]}>Payment Confirmations</Text>
-                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }]}>Instant notification</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>Payment Confirmations</Text>
+                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>Instant notification</Text>
                 </View>
                 <Switch
                   value={paymentConfirmations}
                   onValueChange={setPaymentConfirmations}
-                  trackColor={{ false: "#D1D5DB", true: COLORS.secondaryColor }}
+                  trackColor={{ false: isDark ? "#4A4A4A" : "#D1D5DB", true: COLORS.secondaryColor }}
                   thumbColor={"#FFFFFF"}
-                  ios_backgroundColor="#D1D5DB"
+                  ios_backgroundColor={isDark ? "#4A4A4A" : "#D1D5DB"}
                 />
               </View>
 
@@ -410,32 +412,32 @@ const SideMenuNavigation = ({ navigation }) => {
               */}
 
               {/* Tamper Alerts */}
-              <View style={styles.toggleRow}>
+              <View style={[styles.toggleRow, isDark && { backgroundColor: themeColors.inputBg }]}>
                 <View style={styles.toggleInfo}>
-                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }]}>Tamper Alerts</Text>
-                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }]}>Immediate notification</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>Tamper Alerts</Text>
+                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>Immediate notification</Text>
                 </View>
                 <Switch
                   value={tamperAlerts}
                   onValueChange={setTamperAlerts}
-                  trackColor={{ false: "#D1D5DB", true: COLORS.secondaryColor }}
+                  trackColor={{ false: isDark ? "#4A4A4A" : "#D1D5DB", true: COLORS.secondaryColor }}
                   thumbColor={"#FFFFFF"}
-                  ios_backgroundColor="#D1D5DB"
+                  ios_backgroundColor={isDark ? "#4A4A4A" : "#D1D5DB"}
                 />
               </View>
 
               {/* Email Notifications */}
-              <View style={styles.toggleRow}>
+              <View style={[styles.toggleRow, isDark && { backgroundColor: themeColors.inputBg }]}>
                 <View style={styles.toggleInfo}>
-                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }]}>Email Notifications</Text>
-                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }]}>Receive updates via email</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>Email Notifications</Text>
+                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>Receive updates via email</Text>
                 </View>
                 <Switch
                   value={emailNotifications}
                   onValueChange={setEmailNotifications}
-                  trackColor={{ false: "#D1D5DB", true: COLORS.secondaryColor }}
+                  trackColor={{ false: isDark ? "#4A4A4A" : "#D1D5DB", true: COLORS.secondaryColor }}
                   thumbColor={"#FFFFFF"}
-                  ios_backgroundColor="#D1D5DB"
+                  ios_backgroundColor={isDark ? "#4A4A4A" : "#D1D5DB"}
                 />
               </View>
             </View>
@@ -553,6 +555,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  alertsModalOverlayDark: {
+    backgroundColor: "rgba(0,0,0,0.7)",
   },
   alertsModalCard: {
     width: "90%",
