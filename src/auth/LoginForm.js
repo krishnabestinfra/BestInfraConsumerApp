@@ -139,7 +139,7 @@ const LoginForm = ({
     <View style={[styles.Container, isDark && { backgroundColor: 'transparent' }]}>
       <View style={styles.inputBoxes}>
         <Input
-          placeholder="UID"
+          placeholder="Enter your UID"
           value={email}
           onChangeText={(value) => handleInputChange('identifier', value)}
           onBlur={() => handleBlur('identifier')}
@@ -162,7 +162,7 @@ const LoginForm = ({
         />
         
         <Input
-          placeholder="Password"
+          placeholder="Enter your Password"
           value={password}
           onChangeText={(value) => handleInputChange('password', value)}
           onBlur={() => handleBlur('password')}

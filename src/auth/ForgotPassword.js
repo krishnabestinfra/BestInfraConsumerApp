@@ -19,20 +19,19 @@ import Logo from "../components/global/Logo";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import { API_ENDPOINTS } from "../config/apiConfig";
+import { extractUserId } from "../utils/extractUserId";
 import UserIcon from "../../assets/icons/user.svg";
 
 const screenHeight = Dimensions.get("window").height;
-
-const proceedToResetPassword = (email, navigation) => {
-  navigation.navigate("ResetPassword", { email });
-};
 
 const ForgotPassword = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
   const s24 = getScaledFontSize(24);
   const s14 = getScaledFontSize(14);
   const s13 = getScaledFontSize(13);
+  const s12 = getScaledFontSize(12);
   const sOr = getScaledFontSize(Platform.OS === "ios" ? 14 : 12);
+
   const [identifier, setIdentifier] = useState("");
   const [emailError, setEmailError] = useState("");
   const [sending, setSending] = useState(false);
@@ -92,17 +91,23 @@ const ForgotPassword = ({ navigation }) => {
       });
 
       const data = await response.json().catch(() => ({}));
-      if (__DEV__) {
-        console.log("[ForgotPassword] forgot-password response:", {
-          ok: response.ok,
-          status: response.status,
-          data,
-        });
-      }
+      console.log("[ForgotPassword] Generate OTP response", {
+        ok: response.ok,
+        status: response.status,
+        data,
+      });
 
-      if (response.ok && (data.status === "success" || data.success)) {
-        if (__DEV__) console.log("[ForgotPassword] success, navigating to ResetPassword");
-        proceedToResetPassword(trimmedEmail, navigation);
+      if (response.ok && (data?.status === "success" || data?.success === true)) {
+        const uid = extractUserId(data);
+        const userIdNum = uid != null && !Number.isNaN(Number(uid)) ? Number(uid) : null;
+        if (userIdNum == null) {
+          console.warn("[ForgotPassword] No userId in response. Full response above — backend should return userId when sending OTP.", JSON.stringify(data, null, 2));
+        }
+        console.log("[ForgotPassword] OTP sent, navigating to ResetPassword", { userId: userIdNum, email: trimmedEmail });
+        navigation.replace("ResetPassword", {
+          email: trimmedEmail,
+          userId: userIdNum,
+        });
       } else {
         Alert.alert("Error", data.message || "Unable to send verification code.");
       }
@@ -176,9 +181,8 @@ const ForgotPassword = ({ navigation }) => {
               error={emailError}
               editable={!sending}
             />
-
             <Button
-              title="Send Verification Code"
+              title="Generate OTP"
               onPress={handleForgotPassword}
               variant="primary"
               size="medium"
@@ -195,17 +199,13 @@ const ForgotPassword = ({ navigation }) => {
             </View>
 
             <View style={styles.orSection}>
-            <View style={styles.straightLine} />
-            <View style={styles.orContainer}>
-              <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
-            </View>
-
-            <Pressable
-              style={styles.otpButton}
-              onPress={() => navigation.navigate("OTPLogin")}
-            >
-              <Text style={[styles.otpText, { fontSize: s14 }]}>Get OTP</Text>
-            </Pressable>
+              <View style={styles.straightLine} />
+              <View style={styles.orContainer}>
+                <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
+              </View>
+              <Pressable style={styles.otpButton} onPress={() => navigation.navigate("OTPLogin")}>
+                <Text style={[styles.otpText, { fontSize: s14 }]}>Get OTP</Text>
+              </Pressable>
             </View>
           </View>
         </ScrollView>
@@ -277,11 +277,49 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   submitButton: {
-    marginTop: 12,
     width: "100%",
   },
+  emailSummary: {
+    marginBottom: 8,
+  },
+  emailSummaryLabel: {
+    color: COLORS.primaryFontColor,
+    fontFamily: "Manrope-Regular",
+    marginBottom: 4,
+  },
+  emailSummaryValue: {
+    color: COLORS.primaryFontColor,
+    fontFamily: "Manrope-SemiBold",
+  },
+  changeEmailPress: {
+    marginTop: 6,
+  },
+  changeEmailText: {
+    color: COLORS.secondaryColor,
+    fontFamily: "Manrope-Medium",
+  },
+  otpWrapper: {
+    marginTop: 12,
+    marginBottom: 8,
+    alignItems: "center",
+  },
+  otpErrorText: {
+    color: "#FF4444",
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 8,
+    fontFamily: "Manrope-Medium",
+  },
+  resendWrap: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  resendText: {
+    color: COLORS.secondaryColor,
+    fontFamily: "Manrope-Medium",
+  },
   rememberRow: {
-    marginTop: 24,
+    marginTop: 10,
     alignItems: "center",
   },
   rememberText: {
@@ -304,7 +342,7 @@ const styles = StyleSheet.create({
   straightLine: {
     width: "40%",
     backgroundColor: "#e9eaee",
-    marginTop: 40,
+    marginTop: 30,
     height: 2,
     alignSelf: "center",
   },
@@ -325,7 +363,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   otpButton: {
-    marginTop: 20,
+    marginTop: 10,
     alignItems: "center",
   },
   otpText: {

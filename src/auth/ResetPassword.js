@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -18,12 +18,69 @@ import Button from "../components/global/Button";
 import Input from "../components/global/Input";
 import Logo from "../components/global/Logo";
 import OTPInput from "../components/global/OTPInput";
-import { COLORS } from "../constants/colors";
+import { COLORS, colors } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import { API_ENDPOINTS } from "../config/apiConfig";
+import { extractUserId } from "../utils/extractUserId";
 import UserIcon from "../../assets/icons/user.svg";
+import EyeBlank from "../../assets/icons/eyeBlank.svg";
+import EyeFill from "../../assets/icons/eyeFill.svg";
+import TickIcon from "../../assets/icons/Tick Icon.svg";
+import CrossIcon from "../../assets/icons/Cross Icon.svg";
 
 const screenHeight = Dimensions.get("window").height;
+
+/**
+ * Success screen shown after password is updated — same screen, separate component.
+ * Matches the design: logo, "Password Reset Successfully!", message, Back to Login button.
+ */
+const PasswordResetSuccess = ({ onBackToLogin, isDark, themeColors, getScaledFontSize }) => {
+  const s24 = getScaledFontSize(24);
+  const s14 = getScaledFontSize(14);
+  return (
+    <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
+      <StatusBar style="light" />
+      <LinearGradient
+        colors={["#55b56c", "#2a6f65", "#1f3d6d", "#163b7c"]}
+        start={{ x: 0.5, y: 1.3 }}
+        end={{ x: 0.3, y: 0.5 }}
+        style={styles.topGradient}
+      />
+      <View style={[styles.successContent, isDark && { backgroundColor: themeColors.screen }]}>
+        <View style={styles.imageContainer}>
+          <LinearGradient
+            colors={["#163b7c", "#1f3d6d", "#2a6f65", "#55b56c"]}
+            start={{ x: 0.5, y: 1 }}
+            end={{ x: 1.2, y: 0.2 }}
+            style={styles.gradientBackground}
+          >
+            <Logo variant="white" size="large" />
+          </LinearGradient>
+        </View>
+        <View style={styles.textBlock}>
+          <Text style={[styles.successTitle, { fontSize: s24 }]}>Password Reset Successfully!</Text>
+          <Text style={[styles.successMessage, { fontSize: s14 }]}>
+            Your password has been changed successfully. You can now log in with your new password.
+          </Text>
+        </View>
+        <Button
+          title="Back to Login"
+          onPress={onBackToLogin}
+          variant="primary"
+          size="large"
+          style={styles.successButton}
+        />
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const PASSWORD_RULES = [
+  { key: "minLength", label: "Minimum 8 characters", test: (p) => p.length >= 8 },
+  { key: "number", label: "At least one number", test: (p) => /\d/.test(p) },
+  { key: "special", label: "At least one special character (!@#$%^&*)", test: (p) => /[!@#$%^&*]/.test(p) },
+  { key: "uppercase", label: "At least one uppercase letter", test: (p) => /[A-Z]/.test(p) },
+];
 
 const ResetPassword = () => {
   const route = useRoute();
@@ -34,72 +91,149 @@ const ResetPassword = () => {
   const s13 = getScaledFontSize(13);
   const s12 = getScaledFontSize(12);
   const sOr = getScaledFontSize(Platform.OS === "ios" ? 14 : 12);
-  const { email: initialEmail } = route.params || {};
+  const params = route.params || {};
+  const initialEmail = params.email ?? "";
+  const initialUserId = params.userId ?? params.user_id ?? params.uid ?? null;
+  const submittedRef = useRef(false);
 
   const [email, setEmail] = useState(initialEmail || "");
+  const [userId, setUserId] = useState(() => {
+    if (initialUserId == null) return null;
+    const n = Number(initialUserId);
+    return Number.isNaN(n) ? null : n;
+  });
   const [code, setCode] = useState("");
-  const [otpError, setOtpError] = useState(false);
-  const [verifying, setVerifying] = useState(false);
+  const [otpErrorMessage, setOtpErrorMessage] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [passwordUpdatedSuccess, setPasswordUpdatedSuccess] = useState(false);
+
+  const passwordRulesMet = PASSWORD_RULES.map((rule) => ({ ...rule, met: rule.test(newPassword) }));
+  const allRulesMet = passwordRulesMet.every((r) => r.met);
+  const passwordsDontMatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
 
   useFocusEffect(
     useCallback(() => {
-      const params = route.params || {};
-      if (params.otpError) {
-        setOtpError(true);
-        if (params.code != null && params.code !== undefined) {
-          setCode(String(params.code).slice(0, 6));
-        }
+      const p = route.params || {};
+      if (p.email) setEmail(p.email);
+      const uid = p.userId ?? p.user_id ?? p.uid ?? null;
+      if (uid != null) {
+        const n = Number(uid);
+        if (!Number.isNaN(n)) setUserId(n);
       }
+      return () => { submittedRef.current = false; };
     }, [route.params])
   );
 
+  /**
+   * Reset Password: get userId if needed, then POST update-password. All response/errors logged to console.
+   */
   const handleResetPassword = async () => {
-    if (!code || code.length !== 6) {
-      Alert.alert("Error", "Please enter the 6-digit verification code.");
-      return;
-    }
+    if (submittedRef.current) return;
     const trimmedEmail = email.trim();
+    const otp = String(code).trim().slice(0, 6);
+
+    console.log("[ResetPassword] Reset Password tapped", { email: trimmedEmail, otpLength: otp.length });
+
     if (!trimmedEmail) {
+      console.log("[ResetPassword] Validation error: missing email");
       Alert.alert("Error", "Please enter your email address.");
       return;
     }
-    setVerifying(true);
-    setOtpError(false);
-    const verifyOtpUrl = API_ENDPOINTS.auth.verifyOtp();
-    const requestBody = { email: trimmedEmail, otp: code };
-    if (__DEV__) {
-      console.log("[ResetPassword] verify-otp request:", { url: verifyOtpUrl, body: requestBody });
+    if (!otp || otp.length !== 6) {
+      console.log("[ResetPassword] Validation error: OTP not 6 digits");
+      Alert.alert("Error", "Please enter the 6-digit code from your email.");
+      return;
     }
+    if (!newPassword.trim()) {
+      console.log("[ResetPassword] Validation error: missing new password");
+      Alert.alert("Error", "Please enter a new password.");
+      return;
+    }
+    if (!allRulesMet) {
+      console.log("[ResetPassword] Validation error: password rules not met");
+      Alert.alert("Error", "Password must meet all requirements.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      console.log("[ResetPassword] Validation error: passwords do not match");
+      Alert.alert("Error", "Passwords do not match.");
+      return;
+    }
+
+    submittedRef.current = true;
+    setOtpErrorMessage(null);
+    setSubmitting(true);
+
     try {
-      const response = await fetch(verifyOtpUrl, {
+      if (!userId) {
+        console.log("[ResetPassword] userId missing. User must request OTP from Forgot Password first.");
+        setSubmitting(false);
+        submittedRef.current = false;
+        Alert.alert("Error", "User not identified. Please request OTP again from Forgot Password.");
+        return;
+      }
+
+      const requestBody = {
+        userId: Number(userId),
+        otp,
+        newPassword: newPassword.trim(),
+        confirmPassword: confirmPassword.trim(),
+      };
+      const updateUrl = API_ENDPOINTS.auth.updatePassword();
+      console.log("[ResetPassword] POST update-password. Body:", {
+        url: updateUrl,
+        userId: requestBody.userId,
+        otp: requestBody.otp,
+        newPassword: "***",
+        confirmPassword: "***",
+      });
+
+      const response = await fetch(updateUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify(requestBody),
       });
-      const data = await response.json().catch(() => ({}));
-      if (__DEV__) {
-        console.log("[ResetPassword] verify-otp response:", {
-          ok: response.ok,
-          status: response.status,
-          data,
-        });
+      const data = await response.json().catch((e) => {
+        console.log("[ResetPassword] update-password parse error", e?.message || e);
+        return {};
+      });
+
+      console.log("[ResetPassword] update-password response", {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        data,
+      });
+
+      if (response.ok && (data?.status === "success" || data?.success === true)) {
+        console.log("[ResetPassword] update-password success");
+        setPasswordUpdatedSuccess(true);
+        return;
       }
-      if (response.ok && (data.status === "success" || data.success)) {
-        if (__DEV__) console.log("[ResetPassword] verify-otp success, navigating to SetNewPassword");
-        setOtpError(false);
-        const userId = data.userId ?? data.user?.id ?? data.data?.userId ?? data.data?.id;
-        navigation.navigate("SetNewPassword", { email: trimmedEmail, code, userId });
-      } else {
-        if (__DEV__) console.log("[ResetPassword] verify-otp failed:", data.message || "invalid OTP");
-        setOtpError(true);
-        Alert.alert("Error", data.message || "Invalid verification code. Please try again.");
-      }
+
+      const errMsg = data.message || data.error || data.msg || "Unable to reset password.";
+      const isOtpRelated = /expired|invalid.*otp|otp.*invalid|invalid.*code|code.*expired|verification/i.test(errMsg);
+      console.log("[ResetPassword] update-password error", {
+        errMsg,
+        isOtpRelated,
+        data,
+      });
+      if (isOtpRelated) setOtpErrorMessage(errMsg);
+      Alert.alert("Error", errMsg);
     } catch (err) {
-      if (__DEV__) console.warn("[ResetPassword] verify-otp error:", err?.message ?? err);
-      setOtpError(true);
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      console.log("[ResetPassword] handleResetPassword exception", {
+        message: err?.message,
+        name: err?.name,
+        error: err,
+      });
+      Alert.alert("Error", err?.message || "Something went wrong. Please try again.");
     } finally {
-      setVerifying(false);
+      setSubmitting(false);
+      submittedRef.current = false;
     }
   };
 
@@ -112,14 +246,16 @@ const ResetPassword = () => {
     try {
       const response = await fetch(API_ENDPOINTS.auth.forgotPassword(), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ email: trimmedEmail }),
       });
-      const data = await response.json();
-      if (data.status === "success") {
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && (data?.status === "success" || data?.success === true)) {
+        const uid = extractUserId(data);
+        if (uid != null && !Number.isNaN(Number(uid))) setUserId(Number(uid));
         Alert.alert("Success", "A new verification code has been sent.");
       } else {
-        Alert.alert("Error", data.message || "Unable to resend code.");
+        Alert.alert("Error", data?.message || "Unable to resend code.");
       }
     } catch (err) {
       Alert.alert("Error", "Something went wrong. Please try again.");
@@ -135,6 +271,17 @@ const ResetPassword = () => {
   const handleGetOTP = () => {
     navigation.navigate("ForgotPassword");
   };
+
+  if (passwordUpdatedSuccess) {
+    return (
+      <PasswordResetSuccess
+        onBackToLogin={() => navigation.navigate("Login")}
+        isDark={isDark}
+        themeColors={themeColors}
+        getScaledFontSize={getScaledFontSize}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
@@ -167,11 +314,9 @@ const ResetPassword = () => {
           </View>
 
           <View style={styles.textBlock}>
-            <Text style={[styles.title, { fontSize: s24 }]}>Forgot Password?</Text>
+            <Text style={[styles.title, { fontSize: s24 }]}>Reset Password</Text>
             <Text style={[styles.subtitle, { fontSize: s14 }]}>
-              No worries! Enter your registered email address or phone number,
-              and we&apos;ll send you a verification code to reset your
-              password.
+              Enter your email, the 6-digit code from your email, and your new password. One tap sends the OTP once.
             </Text>
           </View>
 
@@ -180,12 +325,13 @@ const ResetPassword = () => {
               label={null}
               placeholder="Email Address"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(t) => { setEmail(t); setOtpErrorMessage(null); }}
               autoCapitalize="none"
               keyboardType="email-address"
               variant="default"
               size="medium"
               rightIcon={<UserIcon width={18} height={18} />}
+              style={styles.inputContainer}
             />
 
             <OTPInput
@@ -194,16 +340,66 @@ const ResetPassword = () => {
               value={code}
               onChange={(val) => {
                 setCode(val);
-                setOtpError(false);
+                setOtpErrorMessage(null);
               }}
-              error={otpError ? "Invalid OTP. The code doesn't match. Please check your email." : undefined}
+              error={otpErrorMessage || undefined}
               errorStyle={[styles.otpErrorText, { fontSize: s12 }]}
               style={styles.otpWrapper}
             />
 
-            <Pressable onPress={handleResendCode} style={styles.resendWrap}>
+            <Pressable onPress={handleResendCode} disabled={submitting} style={styles.resendWrap}>
               <Text style={[styles.resendText, { fontSize: s12 }]}>Resend Code</Text>
             </Pressable>
+
+            <Input
+              label={null}
+              placeholder="New password"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry={!showNewPassword}
+              autoCapitalize="none"
+              keyboardType="default"
+              variant="default"
+              size="medium"
+              style={styles.inputContainer}
+              hasErrorBorder={passwordsDontMatch}
+              rightIcon={
+                <Pressable onPress={() => setShowNewPassword((v) => !v)}>
+                  <View style={styles.eyeIconContainer}>{showNewPassword ? <EyeFill width={18} height={18} fill={colors.color_text_secondary} /> : <EyeBlank width={18} height={18} fill={colors.color_text_secondary} />}</View>
+                </Pressable>
+              }
+            />
+            {newPassword.length > 0 && !allRulesMet && (
+              <View style={styles.passwordRulesBox}>
+                <Text style={[styles.passwordRulesTitle, { fontSize: s13 }]}>Password must contain:</Text>
+                {passwordRulesMet.map((rule) => (
+                  <View key={rule.key} style={styles.passwordRuleRow}>
+                    <View style={styles.ruleIconWrap}>{rule.met ? <TickIcon width={15} height={15} fill={COLORS.secondaryColor} /> : <CrossIcon width={15} height={15} stroke="#FF4444" />}</View>
+                    <Text style={[styles.passwordRuleText, { fontSize: s12 }]}>{rule.label}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            <Input
+              label={null}
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
+              keyboardType="default"
+              variant="default"
+              size="medium"
+              style={styles.inputContainer}
+              hasErrorBorder={passwordsDontMatch}
+              error={passwordsDontMatch ? "Passwords do not match" : undefined}
+              errorStyle={[styles.passwordMatchErrorText, { fontSize: s12 }]}
+              rightIcon={
+                <Pressable onPress={() => setShowConfirmPassword((v) => !v)}>
+                  <View style={styles.eyeIconContainer}>{showConfirmPassword ? <EyeFill width={18} height={18} fill={colors.color_text_secondary} /> : <EyeBlank width={18} height={18} fill={colors.color_text_secondary} />}</View>
+                </Pressable>
+              }
+            />
 
             <Button
               title="Reset Password"
@@ -211,8 +407,8 @@ const ResetPassword = () => {
               variant="primary"
               size="large"
               style={styles.submitButton}
-              loading={verifying}
-              disabled={verifying}
+              loading={submitting}
+              disabled={submitting}
             />
 
             <View style={styles.rememberRow}>
@@ -281,6 +477,29 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  successContent: {
+    flex: 1,
+    paddingHorizontal: 30,
+    paddingTop: 80,
+    backgroundColor: "#ffffff",
+  },
+  successTitle: {
+    color: COLORS.primaryFontColor,
+    fontFamily: "Manrope-Bold",
+    textAlign: "center",
+    marginTop: 18,
+  },
+  successMessage: {
+    color: COLORS.primaryFontColor,
+    fontFamily: "Manrope-Regular",
+    textAlign: "center",
+    marginTop: 12,
+    paddingHorizontal: 16,
+  },
+  successButton: {
+    marginTop: 32,
+    width: "100%",
+  },
   textBlock: {
     alignItems: "center",
     marginTop: 18,
@@ -300,6 +519,48 @@ const styles = StyleSheet.create({
   formContainer: {
     marginTop: 32,
   },
+  inputContainer: {
+    marginBottom: 15,
+  },
+  passwordMatchErrorText: {
+    color: "#FF4444",
+    fontSize: 12,
+    marginTop: 4,
+    fontFamily: "Manrope-Regular",
+  },
+  passwordRulesBox: {
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: "#f8f8f8",
+  },
+  passwordRulesTitle: {
+    fontFamily: "Manrope-SemiBold",
+    fontSize: 13,
+    color: COLORS.primaryFontColor,
+    marginBottom: 12,
+  },
+  passwordRuleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  ruleIconWrap: {
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  passwordRuleText: {
+    fontFamily: "Manrope-Regular",
+    fontSize: 12,
+    color: COLORS.primaryFontColor,
+    flex: 1,
+  },
+  eyeIconContainer: {
+    padding: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   otpWrapper: {
     marginTop: 12,
     marginBottom: 8,
@@ -315,7 +576,7 @@ const styles = StyleSheet.create({
   },
   resendWrap: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   resendText: {
     color: COLORS.secondaryColor,
