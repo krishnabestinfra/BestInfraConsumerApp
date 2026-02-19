@@ -16,6 +16,9 @@ import { StatusBar } from "expo-status-bar";
 import { useTheme } from "../context/ThemeContext";
 import { COLORS } from "../constants/colors";
 import { API_ENDPOINTS } from "../config/apiConfig";
+import { setTenantSubdomain } from "../config/apiConfig";
+import { storeUser, extractConsumerInfo } from "../utils/storage";
+import { authService } from "../services/authService";
 import Logo from "../components/global/Logo";
 import Button from "../components/global/Button";
 import Input from "../components/global/Input";
@@ -25,6 +28,34 @@ import User from "../../assets/icons/user.svg";
 
 const screenHeight = Dimensions.get("window").height;
 const OTP_RESEND_SECONDS = 30;
+
+// Map identifier prefix to tenant subdomain – works for any consumer in any app
+const IDENTIFIER_PREFIX_TO_TENANT = [
+  { prefix: "BI25GMRA", tenant: "gmr" },
+  { prefix: "BI26NTPA", tenant: "ntpl" },
+];
+const DEFAULT_TENANT = "gmr";
+
+function resolveTenantFromResponse(data) {
+  const raw = data?.data || data;
+  const clients = raw?.clients || data?.clients;
+  if (Array.isArray(clients) && clients.length > 0) {
+    const sub = clients[0].subdomain || clients[0].client;
+    if (sub) return String(sub).toLowerCase();
+  }
+  const sub = raw?.subdomain || raw?.app || data?.subdomain || data?.app;
+  if (sub) return String(sub).toLowerCase();
+  return null;
+}
+
+function resolveTenantFromIdentifier(identifier) {
+  if (!identifier || typeof identifier !== "string") return DEFAULT_TENANT;
+  const upper = identifier.toUpperCase();
+  for (const { prefix, tenant } of IDENTIFIER_PREFIX_TO_TENANT) {
+    if (upper.startsWith(prefix)) return tenant;
+  }
+  return DEFAULT_TENANT;
+}
 
 const OTPLogin = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
@@ -80,24 +111,31 @@ const OTPLogin = ({ navigation }) => {
     setOtp("");
     setIsLoading(true);
     try {
-      const url = API_ENDPOINTS.auth.forgotPassword();
+      const url = API_ENDPOINTS.auth.loginOtp();
       const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ email: trimmedEmail }),
       });
       const data = await response.json().catch(() => ({}));
 
       if (__DEV__) {
-        console.log("[OTPLogin] login-otp response:", { ok: response.ok, status: response.status, data });
+        console.log("[OTPLogin] POST login-otp response:", { ok: response.ok, status: response.status, data });
       }
 
-      if (response.ok && (data.status === "success" || data.success)) {
+      if (response.ok && (data.status === "success" || data.success === true)) {
         setOtpSent(true);
         setResendSeconds(OTP_RESEND_SECONDS);
-        Alert.alert("OTP Sent", `A 6-digit code has been sent to ${trimmedEmail}`);
+        Alert.alert("OTP Sent", `A 6-digit code has been sent to ${trimmedEmail}. Only registered emails receive the OTP.`);
       } else {
-        const message = data.message || data.error || "This email is not registered as a consumer.";
+        const serverMessage = data.message || data.error || "";
+        const isUnregistered =
+          response.status === 400 ||
+          response.status === 404 ||
+          /not registered|unknown email|invalid email|not found/i.test(serverMessage);
+        const message = isUnregistered
+          ? "Only registered email addresses can receive the OTP. Please use the email linked to your account."
+          : serverMessage || "Could not send OTP. Please try again.";
         Alert.alert("Error", message);
       }
     } catch (err) {
@@ -116,9 +154,10 @@ const OTPLogin = ({ navigation }) => {
     if (otpError) setOtpError("");
   };
 
-  const handleOTPComplete = async (value) => {
-    if (!value || value.length !== 6) {
-      setOtpError("Invalid OTP. Please try again.");
+  const performVerifyOtpAndLogin = async (otpValue) => {
+    const code = typeof otpValue === "string" ? otpValue.trim() : "";
+    if (!code || code.length !== 6) {
+      setOtpError("Please enter the 6-digit code.");
       return;
     }
     const trimmedEmail = email.trim();
@@ -126,29 +165,88 @@ const OTPLogin = ({ navigation }) => {
       setOtpError("Please enter your email first.");
       return;
     }
-
     setOtpError("");
     setIsVerifying(true);
     try {
       const url = API_ENDPOINTS.auth.verifyOtp();
       const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmedEmail, otp: value }),
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ email: trimmedEmail, otp: code }),
       });
       const data = await response.json().catch(() => ({}));
 
       if (__DEV__) {
-        console.log("[OTPLogin] verify-otp response:", { ok: response.ok, status: response.status, data });
+        console.log("[OTPLogin] POST verify-otp response:", { ok: response.ok, status: response.status, data });
       }
 
-      if (response.ok && (data.status === "success" || data.success)) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "PostPaidDashboard" }],
-        });
+      if (response.ok && (data.status === "success" || data.success === true)) {
+        try {
+          let accessToken = null;
+          try {
+            const tokens = await authService.handleLoginResponse(response, data);
+            accessToken = tokens?.accessToken;
+          } catch (tokenErr) {
+            if (__DEV__) console.warn("[OTPLogin] Token extraction:", tokenErr?.message);
+            accessToken =
+              data?.data?.accessToken ||
+              data?.data?.gmrAccessToken ||
+              data?.data?.token ||
+              data?.data?.gmrToken ||
+              data?.accessToken ||
+              data?.gmrAccessToken ||
+              data?.token ||
+              null;
+            if (accessToken) {
+              await authService.storeAccessToken(accessToken);
+            }
+          }
+          const consumerInfo = extractConsumerInfo(data, trimmedEmail);
+          const identifier = consumerInfo.identifier || consumerInfo.consumerNumber || trimmedEmail;
+          const tenant =
+            resolveTenantFromResponse(data) || resolveTenantFromIdentifier(identifier);
+          setTenantSubdomain(tenant);
+          if (__DEV__) console.log("[OTPLogin] Tenant for this consumer/app:", tenant);
+          const userData = {
+            name: consumerInfo.name,
+            email: consumerInfo.email || trimmedEmail,
+            uid: consumerInfo.identifier,
+            identifier: consumerInfo.identifier,
+            consumerName: consumerInfo.name,
+            consumerNumber: consumerInfo.consumerNumber,
+            meterSerialNumber: consumerInfo.meterSerialNumber,
+            meterId: consumerInfo.meterId,
+            uniqueIdentificationNo: consumerInfo.uniqueIdentificationNo,
+            accessToken: accessToken || undefined,
+          };
+          await storeUser(userData);
+          await authService.setRememberMe(remember);
+          if (__DEV__) {
+            console.log("[OTPLogin] Stored user (same shape as password login):", {
+              identifier: userData.identifier,
+              consumerNumber: userData.consumerNumber,
+              uid: userData.uid,
+              name: userData.name,
+              meterId: userData.meterId,
+            });
+          }
+          try {
+            const { getPushToken, registerPushToken } = await import("../services/pushNotificationService");
+            const pushToken = await getPushToken();
+            if (pushToken) await registerPushToken(pushToken);
+          } catch (pushErr) {
+            if (__DEV__) console.warn("[OTPLogin] Push register skip:", pushErr?.message);
+          }
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "PostPaidDashboard" }],
+          });
+        } catch (storeErr) {
+          if (__DEV__) console.warn("[OTPLogin] Store user/tokens:", storeErr?.message ?? storeErr);
+          setOtpError("Login succeeded but session setup failed. Please try again.");
+        }
       } else {
-        setOtpError(data.message || "Invalid OTP. Please try again.");
+        setOtpError(data.message || data.error || "Invalid OTP. Please try again.");
       }
     } catch (err) {
       if (__DEV__) console.warn("[OTPLogin] verify-otp error:", err?.message ?? err);
@@ -156,6 +254,14 @@ const OTPLogin = ({ navigation }) => {
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  const handleOTPComplete = (value) => {
+    if (value && value.length === 6) performVerifyOtpAndLogin(value);
+  };
+
+  const handleVerifyOTP = () => {
+    performVerifyOtpAndLogin(otp);
   };
 
   const formatTimer = (sec) => {
@@ -247,15 +353,27 @@ const OTPLogin = ({ navigation }) => {
               </Pressable>
             </View>
 
-            <Button
-              title={isLoading ? "Generating OTP..." : "Generate OTP"}
-              variant="primary"
-              size="medium"
-              style={styles.generateButton}
-              onPress={handleGenerateOTP}
-              loading={isLoading}
-              disabled={isLoading || !email.trim() || !validateEmail(email.trim())}
-            />
+            {!otpSent ? (
+              <Button
+                title={isLoading ? "Generating OTP..." : "Generate OTP"}
+                variant="primary"
+                size="medium"
+                style={styles.generateButton}
+                onPress={handleGenerateOTP}
+                loading={isLoading}
+                disabled={isLoading || !email.trim() || !validateEmail(email.trim())}
+              />
+            ) : (
+              <Button
+                title={isVerifying ? "Verifying..." : "Verify OTP"}
+                variant="primary"
+                size="medium"
+                style={styles.generateButton}
+                onPress={handleVerifyOTP}
+                loading={isVerifying}
+                disabled={isVerifying || otp.length !== 6}
+              />
+            )}
 
             {otpSent && resendSeconds > 0 && (
             <Pressable
@@ -279,8 +397,8 @@ const OTPLogin = ({ navigation }) => {
             {otpSent && resendSeconds === 0 && (
               <Pressable
                 style={styles.resendRow}
-                onPress={() => handleGenerateOTP()}
-                disabled={isLoading || isVerifying}
+                onPress={() => canResend && handleGenerateOTP()}
+                disabled={!canResend}
               >
                 <Text style={[styles.resendText, { fontSize: s14 }]}>Did not receive the code? </Text>
                 <Text
@@ -291,8 +409,8 @@ const OTPLogin = ({ navigation }) => {
                   ]}
                 >
                   Resend OTP
-              </Text>
-            </Pressable>
+                </Text>
+              </Pressable>
             )}
           </View>
         </ScrollView>

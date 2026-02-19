@@ -66,32 +66,54 @@ export const isUserLoggedIn = async () => {
   }
 };
 
-// Helper function to extract consumer name from API response
-export const extractConsumerInfo = (apiResponse, identifier) => {
-  const consumerInfo = apiResponse?.data?.user || apiResponse?.data || apiResponse;
-  
-  // Ensure we never use identifier as name - only use actual names
-  const consumerName = consumerInfo?.name || consumerInfo?.consumerName;
-  
-  // Extract meterId from various possible locations in API response
-  // Check multiple possible field names: meterId, meter.id, meterId, etc.
-  const meterId = consumerInfo?.meterId || 
-                 consumerInfo?.meter?.id || 
-                 consumerInfo?.meter?.meterId ||
-                 consumerInfo?.meterId ||
-                 consumerInfo?.id || // Sometimes meterId might be in id field
-                 null;
-  
+// Helper function to extract consumer info from API response (login or verify-otp)
+// Supports both password-login and OTP-login response shapes so dashboard gets same consumer data
+// OTP/auth response may use data.user.username (consumer UID) and firstName/lastName for name
+export const extractConsumerInfo = (apiResponse, fallbackIdentifier) => {
+  const raw = apiResponse?.data || apiResponse;
+  const consumerInfo =
+    raw?.user ||
+    raw?.consumer ||
+    raw?.data ||
+    raw;
+  const fallback = fallbackIdentifier || consumerInfo?.email || "";
+
+  // Name: support firstName+lastName (OTP/auth user shape) and name/consumerName (consumer shape)
+  const nameFromFirstLast =
+    [consumerInfo?.firstName, consumerInfo?.lastName].filter(Boolean).join(" ").trim() || null;
+  const consumerName =
+    consumerInfo?.name ||
+    consumerInfo?.consumerName ||
+    nameFromFirstLast;
+
+  const meterId =
+    consumerInfo?.meterId ||
+    consumerInfo?.meter?.id ||
+    consumerInfo?.meter?.meterId ||
+    consumerInfo?.meterId ||
+    consumerInfo?.id ||
+    null;
+
+  // Identifier: support username (OTP/auth response) and identifier/uniqueIdentificationNo/consumerNumber
+  const identifier =
+    consumerInfo?.identifier ||
+    consumerInfo?.username ||
+    consumerInfo?.uniqueIdentificationNo ||
+    consumerInfo?.consumerNumber ||
+    raw?.identifier ||
+    raw?.uniqueIdentificationNo ||
+    raw?.consumerNumber ||
+    fallback;
+
   return {
-    name: consumerName || "Consumer", // Fallback to "Consumer" instead of identifier
-    identifier: consumerInfo?.identifier || consumerInfo?.consumerNumber || identifier,
+    name: consumerName || "Consumer",
+    identifier,
     email: consumerInfo?.emailId || consumerInfo?.email || "",
-    consumerNumber: consumerInfo?.consumerNumber || identifier,
+    consumerNumber: consumerInfo?.consumerNumber || consumerInfo?.uniqueIdentificationNo || identifier,
     meterSerialNumber: consumerInfo?.meterSerialNumber,
-    meterId: meterId, // Store meterId from login response
-    uniqueIdentificationNo: consumerInfo?.uniqueIdentificationNo,
+    meterId,
+    uniqueIdentificationNo: consumerInfo?.uniqueIdentificationNo || identifier,
     totalOutstanding: consumerInfo?.totalOutstanding,
-    // Add other relevant fields as needed
   };
 };
 

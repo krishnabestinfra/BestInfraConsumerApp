@@ -144,10 +144,11 @@ export const API_ENDPOINTS = {
     refresh: () => `${API.AUTH_URL}/refresh`,
     resetPassword: () => `${API.RESET_PASSWORD_URL}/reset-password`,
 
-    // These remain tenant app-specific (currently GMR); they are not part of middleware auth spec
-    forgotPassword: () => 'https://api.bestinfra.app/gmr/api/sub-app/auth/login-otp',
-    verifyOtp: () => 'https://api.bestinfra.app/gmr/api/sub-app/auth/verify-otp',
-    updatePassword: () => 'https://api.bestinfra.app/gmr/api/sub-app/auth/update-password',
+    // OTP login: generate OTP (registered email only) and verify OTP
+    loginOtp: () => `${API.AUTH_URL}/login-otp`,
+    verifyOtp: () => `${API.AUTH_URL}/verify-otp`,
+    forgotPassword: () => `${API.AUTH_URL}/login-otp`,
+    updatePassword: () => `${API.AUTH_URL}/update-password`,
   },
   
   tickets: {

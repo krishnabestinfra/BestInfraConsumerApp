@@ -18,6 +18,7 @@ import ActiveAlerts from "../../assets/icons/activeBellWhite.svg";
 import SettingsIcon from "../../assets/icons/settingMenu.svg";
 import ActiveSettings from "../../assets/icons/activeSettings.svg";
 import LogoutIcon from "../../assets/icons/logoutMenu.svg";
+import LogoutButton from "../../assets/icons/signOutRed.svg";
 import CrossIcon from "../../assets/icons/cross.svg";
 import { logoutUser } from "../utils/storage";
 import { TabContext } from "../context/TabContext";
@@ -462,9 +463,14 @@ const SideMenuNavigation = ({ navigation }) => {
       >
         <View style={styles.logoutModalOverlay}>
           <View style={styles.logoutModalCard}>
+          <View style={styles.logoutModalIconWrap}>
+            <View style={styles.logoutModalIconWrap2}>
+              <LogoutButton width={28} height={28} color="#FADCDC" />
+            </View>
+            </View>
             <Text style={[styles.logoutModalTitle, { fontSize: scaled.logoutModalTitle }]}>Logout</Text>
             <Text style={[styles.logoutModalMessage, { fontSize: scaled.modalMessage }]}>
-              Are you sure you want to logout?
+              Are you sure you want to logout from your account?
             </Text>
 
             <View style={styles.logoutModalButtonsRow}>
@@ -680,70 +686,88 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-SemiBold",
     color: "#FFFFFF",
   },
-  // Logout Modal Styles
+  // Logout Modal Styles — exact match to design
   logoutModalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "center",
     alignItems: "center",
   },
   logoutModalCard: {
-    width: "82%",
+    width: "86%",
+    maxWidth: 340,
     backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    borderRadius: 16,
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 28,
+    alignItems: "center",
+    shadowColor: "#1A202C",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 12,
+    gap: 10,
+  },
+  logoutModalIconWrap2: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FEE4E2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoutModalIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 80,
+    backgroundColor: "#FEF3F2",
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoutModalTitle: {
-    fontSize: 20,
     fontFamily: "Manrope-Bold",
-    color: "#000000",
-    marginBottom: 8,
+    color: "#163B7C",
+    textAlign: "center",
+    fontSize: 24,
   },
   logoutModalMessage: {
-    fontSize: 14,
     fontFamily: "Manrope-Regular",
-    color: "#111827",
-    marginBottom: 24,
+    color: "#4A5568",
+    textAlign: "center",
+    lineHeight: 22,
+    fontSize:18,
   },
   logoutModalButtonsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    width: "100%",
+    gap: 20,
   },
   logoutModalCancelButton: {
     flex: 1,
     height: 48,
-    borderRadius: 8,
+    borderRadius: 5,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    marginRight: 8,
+    borderColor: "#E2E8F0",
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
   },
   logoutModalCancelText: {
-    fontSize: 16,
     fontFamily: "Manrope-Medium",
-    color: "#111827",
+    color: "#4A5568",
   },
   logoutModalConfirmButton: {
     flex: 1,
     height: 48,
-    borderRadius: 8,
-    marginLeft: 8,
+    borderRadius: 5,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#EF4444",
+    backgroundColor: "#E53E3E",
   },
   logoutModalConfirmText: {
-    fontSize: 16,
     fontFamily: "Manrope-Medium",
     color: "#FFFFFF",
   },

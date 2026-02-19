@@ -22,6 +22,7 @@ import { API, API_ENDPOINTS } from "../constants/constants";
 import { authService } from "../services/authService";
 import CrossIcon from "../../assets/icons/crossWhite.svg";
 import { getTenantSubdomain } from "../config/apiConfig";
+import PostPaidDashboard from "./PostPaidDashboard";
 
 // Skeleton placeholder for loading state
 const SkeletonField = ({ width = "70%", height = 14, style }) => {
@@ -166,8 +167,8 @@ const SideMenu = ({ navigation }) => {
 
   const renderContent = () => {
     switch (activeItem) {
-      case "Dashboard":
-        return <Dashboard />;
+      case "PostPaidDashboard":
+        return <PostPaidDashboard />;
       case "Usage":
         return <Usage />;
       case "PostPaidRechargePayments":
@@ -177,7 +178,7 @@ const SideMenu = ({ navigation }) => {
       case "Settings":
         return <Settings />;
       default:
-        return <Dashboard />;
+        return <PostPaidDashboard />;
     }
   };
   return (
