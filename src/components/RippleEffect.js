@@ -1,77 +1,66 @@
-import React, { useEffect, useRef } from "react";
-import { View, StyleSheet, Image, Dimensions, Platform } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useMemo } from "react";
+import { View, StyleSheet } from "react-native";
 import BiLogo from "../../assets/icons/LogoWhite.svg";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withRepeat,
   interpolate,
-  runOnJS,
+  Easing,
 } from "react-native-reanimated";
-import { Easing } from "react-native-reanimated";
 
-const { width, height } = Dimensions.get("window");
+const RING_COUNT = 20;
+const RING_DELAY = 800;
+const ANIMATION_DURATION = 5000;
+const TOTAL_DURATION = RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION;
 
-const RING_COUNT = 20; 
-const RING_DELAY = 800; 
-const ANIMATION_DURATION = 5000; 
-
-const Ring = ({ index, progress }) => {
+const Ring = React.memo(({ index, progress }) => {
   const ringStyle = useAnimatedStyle(() => {
     const delay = index * RING_DELAY;
-    const localProgress =
-      Math.max(0, progress.value - delay) / ANIMATION_DURATION;
+    const localProgress = Math.max(0, progress.value - delay) / ANIMATION_DURATION;
     const clamped = Math.min(localProgress, 1);
 
     return {
       opacity: interpolate(clamped, [0, 0.1, 1], [0, 0.6, 0]),
-
-      transform: [
-        {
-          scale: interpolate(clamped, [0, 1], [0.4, 4]),
-        },
-      ],
+      transform: [{ scale: interpolate(clamped, [0, 1], [0.4, 4]) }],
     };
   });
 
   return <Animated.View style={[styles.ring, ringStyle]} />;
-};
+});
+
+Ring.displayName = "Ring";
 
 const RippleEffect = ({ children }) => {
   const progress = useSharedValue(0);
 
-  const loopAnimation = () => {
-    progress.value = 0;
-    progress.value = withTiming(
-      RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
-      {
-        duration: RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
-        easing: Easing.inOut(Easing.ease), // Smooth easing
-      },
-      () => runOnJS(loopAnimation)()
-    );
-  };
-
   useEffect(() => {
-    loopAnimation();
-  }, []);
+    progress.value = withRepeat(
+      withTiming(TOTAL_DURATION, {
+        duration: TOTAL_DURATION,
+        easing: Easing.inOut(Easing.ease),
+      }),
+      -1
+    );
+  }, [progress]);
+
+  const rings = useMemo(
+    () => Array.from({ length: RING_COUNT }, (_, i) => i),
+    []
+  );
+
   return (
     <View style={styles.logoContainer}>
-        {Array.from({ length: RING_COUNT }).map((_, index) => (
-          <Ring key={index} index={index} progress={progress} />
-        ))}
-        {children || <BiLogo width={60} height={60} />}
+      {rings.map((index) => (
+        <Ring key={index} index={index} progress={progress} />
+      ))}
+      {children || <BiLogo width={60} height={60} />}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#1f255e",
-  },
   logoContainer: {
     alignItems: "center",
     justifyContent: "center",

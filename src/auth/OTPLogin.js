@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useTheme } from "../context/ThemeContext";
 import { COLORS } from "../constants/colors";
+import { API_ENDPOINTS } from "../config/apiConfig";
 import Logo from "../components/global/Logo";
 import Button from "../components/global/Button";
 import Input from "../components/global/Input";
@@ -37,6 +38,7 @@ const OTPLogin = ({ navigation }) => {
   const [otpError, setOtpError] = useState("");
   const [remember, setRemember] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [otpSent, setOtpSent] = useState(false);
 
@@ -62,14 +64,13 @@ const OTPLogin = ({ navigation }) => {
     }
   };
 
-  const handleGenerateOTP = () => {
-    // Validate email first
-    if (!email.trim()) {
+  const handleGenerateOTP = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
       setEmailError("Please enter your email address");
       return;
     }
-    
-    if (!validateEmail(email.trim())) {
+    if (!validateEmail(trimmedEmail)) {
       setEmailError("Please enter a valid email address");
       return;
     }
@@ -78,16 +79,36 @@ const OTPLogin = ({ navigation }) => {
     setOtpError("");
     setOtp("");
     setIsLoading(true);
-    // Simulate API call to send OTP
-    setTimeout(() => {
-      setIsLoading(false);
-      setOtpSent(true);
-      setResendSeconds(OTP_RESEND_SECONDS);
+    try {
+      const url = API_ENDPOINTS.auth.forgotPassword();
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (__DEV__) {
+        console.log("[OTPLogin] login-otp response:", { ok: response.ok, status: response.status, data });
+      }
+
+      if (response.ok && (data.status === "success" || data.success)) {
+        setOtpSent(true);
+        setResendSeconds(OTP_RESEND_SECONDS);
+        Alert.alert("OTP Sent", `A 6-digit code has been sent to ${trimmedEmail}`);
+      } else {
+        const message = data.message || data.error || "This email is not registered as a consumer.";
+        Alert.alert("Error", message);
+      }
+    } catch (err) {
+      if (__DEV__) console.warn("[OTPLogin] login-otp error:", err?.message ?? err);
       Alert.alert(
-        "OTP Sent",
-        `A 6-digit code has been sent to ${email.trim()}`
+        "Error",
+        err?.message ? `Something went wrong: ${err.message}` : "Something went wrong. Please try again."
       );
-    }, 800);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleOTPChange = (value) => {
@@ -95,17 +116,45 @@ const OTPLogin = ({ navigation }) => {
     if (otpError) setOtpError("");
   };
 
-  const handleOTPComplete = (value) => {
-    // Demo: accept 123456 or any 6 digits for testing
-    if (value === "123456" || value.length === 6) {
-      setOtpError("");
-      // Navigate to dashboard on success (same as Login flow)
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "PostPaidDashboard" }],
-      });
-    } else {
+  const handleOTPComplete = async (value) => {
+    if (!value || value.length !== 6) {
       setOtpError("Invalid OTP. Please try again.");
+      return;
+    }
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setOtpError("Please enter your email first.");
+      return;
+    }
+
+    setOtpError("");
+    setIsVerifying(true);
+    try {
+      const url = API_ENDPOINTS.auth.verifyOtp();
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail, otp: value }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (__DEV__) {
+        console.log("[OTPLogin] verify-otp response:", { ok: response.ok, status: response.status, data });
+      }
+
+      if (response.ok && (data.status === "success" || data.success)) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "PostPaidDashboard" }],
+        });
+      } else {
+        setOtpError(data.message || "Invalid OTP. Please try again.");
+      }
+    } catch (err) {
+      if (__DEV__) console.warn("[OTPLogin] verify-otp error:", err?.message ?? err);
+      setOtpError("Something went wrong. Please try again.");
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -115,7 +164,7 @@ const OTPLogin = ({ navigation }) => {
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   };
 
-  const canResend = resendSeconds <= 0 && !isLoading;
+  const canResend = resendSeconds <= 0 && !isLoading && !isVerifying;
 
   return (
     <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
@@ -177,7 +226,7 @@ const OTPLogin = ({ navigation }) => {
                 onChange={handleOTPChange}
                 onComplete={handleOTPComplete}
                 error={otpError}
-                disabled={isLoading}
+                disabled={isLoading || isVerifying}
                 style={styles.otpInputWrapper}
               />
             </View>
@@ -201,7 +250,7 @@ const OTPLogin = ({ navigation }) => {
             <Button
               title={isLoading ? "Generating OTP..." : "Generate OTP"}
               variant="primary"
-              size="large"
+              size="medium"
               style={styles.generateButton}
               onPress={handleGenerateOTP}
               loading={isLoading}
@@ -231,7 +280,7 @@ const OTPLogin = ({ navigation }) => {
               <Pressable
                 style={styles.resendRow}
                 onPress={() => handleGenerateOTP()}
-                disabled={isLoading}
+                disabled={isLoading || isVerifying}
               >
                 <Text style={[styles.resendText, { fontSize: s14 }]}>Did not receive the code? </Text>
                 <Text

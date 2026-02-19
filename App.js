@@ -9,6 +9,7 @@ import Logo from "./src/components/global/Logo";
 import { COLORS } from "./src/constants/colors";
 import PushNotificationHandler from "./src/components/global/PushNotificationHandler";
 import { initializePushNotifications, checkAndShowPushChannelNotifications } from "./src/services/pushNotificationService";
+import { isRunningInExpoGo } from "./src/utils/expoGoDetect";
 
 import SplashScreen from "./src/splashScreen/SplashScreen";
 import OnBoarding from "./src/screens/OnBoarding";
@@ -94,10 +95,10 @@ export default function App() {
     // Check for app updates after fonts are loaded
     checkForAppUpdates();
     
-    // Initialize push notifications
+    // Initialize push notifications (skipped in Expo Go — SDK 53 removed remote push there)
     const initPushNotifications = async () => {
+      if (isRunningInExpoGo()) return;
       try {
-        // Initialize push notifications (token registration happens after login)
         await initializePushNotifications();
         console.log('✅ Push notifications initialized');
       } catch (error) {

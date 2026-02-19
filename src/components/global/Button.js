@@ -3,11 +3,14 @@ import { Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 
+const SIZE_OPTIONS = ['small', 'medium', 'large'];
+const VARIANT_OPTIONS = ['primary', 'secondary', 'outline', 'ghost', 'primary-outline'];
+
 const Button = React.memo(({
   title,
   onPress,
-  variant = 'primary', // 'primary', 'secondary', 'outline', 'ghost' ,'primary-outline', 'disabled'
-  size = 'medium', // 'small', 'medium', 'large'
+  variant = 'primary',
+  size = 'medium',
   disabled = false,
   loading = false,
   style,
@@ -19,13 +22,20 @@ const Button = React.memo(({
   const s12 = getScaledFontSize(12);
   const s14 = getScaledFontSize(14);
   const s16 = getScaledFontSize(16);
+  const safeSize = SIZE_OPTIONS.includes(size) ? size : 'medium';
+  const safeVariant = VARIANT_OPTIONS.includes(variant) ? variant : 'primary';
+
   const getButtonStyle = useMemo(() => {
-    const baseStyle = [styles.button, styles[size]];
+    const baseStyle = [styles.button, styles[safeSize]];
     
-    switch (variant) {
+    switch (safeVariant) {
       case 'primary':
         baseStyle.push(styles.primary);
         if (isDark) baseStyle.push({ backgroundColor: themeColors.accent });
+        break;
+      case 'primary-outline':
+        baseStyle.push(styles.outline);
+        if (isDark) baseStyle.push({ backgroundColor: 'transparent', borderColor: themeColors.accent });
         break;
       case 'secondary':
         baseStyle.push(styles.secondary);
@@ -42,9 +52,8 @@ const Button = React.memo(({
         if (isDark) baseStyle.push({ backgroundColor: themeColors.accent });
     }
 
-    // Disabled state styling
     if (disabled) {
-      if (isDark && variant === 'primary') {
+      if (isDark && safeVariant === 'primary') {
         baseStyle.push({ backgroundColor: '#1F2E34', borderColor: '#1F2E34' });
       } else {
         baseStyle.push(styles.disabled);
@@ -52,13 +61,13 @@ const Button = React.memo(({
     }
 
     return baseStyle;
-  }, [variant, size, disabled, isDark, themeColors.accent]);
+  }, [safeVariant, safeSize, disabled, isDark, themeColors.accent]);
 
   const getTextStyle = useMemo(() => {
-    const fontSize = size === 'small' ? s12 : size === 'large' ? s16 : s14;
-    const baseTextStyle = [styles.text, styles[`${size}Text`], { fontSize }];
-    
-    switch (variant) {
+    const fontSize = safeSize === 'small' ? s12 : safeSize === 'large' ? s16 : s14;
+    const baseTextStyle = [styles.text, styles[`${safeSize}Text`], { fontSize }];
+
+    switch (safeVariant) {
       case 'primary':
         baseTextStyle.push(styles.primaryText);
         if (isDark) baseTextStyle.push({ color: themeColors.textOnPrimary });
@@ -67,6 +76,7 @@ const Button = React.memo(({
         baseTextStyle.push(styles.secondaryText);
         break;
       case 'outline':
+      case 'primary-outline':
         baseTextStyle.push(styles.outlineText);
         if (isDark) baseTextStyle.push({ color: themeColors.accent });
         break;
@@ -79,12 +89,10 @@ const Button = React.memo(({
         if (isDark) baseTextStyle.push({ color: themeColors.textOnPrimary });
     }
 
-    if (disabled) {
-      baseTextStyle.push(styles.disabledText);
-    }
+    if (disabled) baseTextStyle.push(styles.disabledText);
 
     return baseTextStyle;
-  }, [variant, size, disabled, isDark, themeColors.textOnPrimary, themeColors.accent, s12, s14, s16]);
+  }, [safeVariant, safeSize, disabled, isDark, themeColors.textOnPrimary, themeColors.accent, s12, s14, s16]);
 
   const handlePress = useCallback(() => {
     if (!disabled && !loading && onPress) {
@@ -101,7 +109,7 @@ const Button = React.memo(({
     >
       {loading ? (
         <ActivityIndicator 
-          color={variant === 'primary' || variant === 'secondary' ? themeColors.textOnPrimary : themeColors.accent} 
+          color={safeVariant === 'primary' || safeVariant === 'secondary' ? themeColors.textOnPrimary : themeColors.accent} 
           size="small" 
         />
       ) : (

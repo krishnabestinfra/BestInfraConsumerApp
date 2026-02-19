@@ -272,7 +272,7 @@ const Login = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style="light" />
       <View style={styles.loginScreenContent}>
         <LinearGradient
           colors={LOGIN_HEADER_GRADIENT}

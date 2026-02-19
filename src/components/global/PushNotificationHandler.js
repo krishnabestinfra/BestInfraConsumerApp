@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import * as Notifications from 'expo-notifications';
 import PushNotificationCard from './PushNotificationCard';
 import { useNotifications } from '../../context/NotificationsContext';
 import { useApp } from '../../context/AppContext';
 import { addTestNotificationCardListener } from '../../services/pushNotificationService';
+import { isRunningInExpoGo } from '../../utils/expoGoDetect';
 
 /**
  * PushNotificationHandler Component
@@ -131,35 +131,35 @@ const PushNotificationHandler = () => {
     refreshNotifications();
   }, [refreshNotifications]);
 
-  // Set up notification listeners
+  // Set up notification listeners (skip expo-notifications in Expo Go — SDK 53 removed push there)
   useEffect(() => {
-    // Listener for notifications received while app is in foreground
-    const receivedSubscription = Notifications.addNotificationReceivedListener(
-      handleNotificationReceived
-    );
+    let receivedSubscription = null;
+    let responseSubscription = null;
 
-    // Listener for when user taps on notification
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(
-      handleNotificationTapped
-    );
+    if (!isRunningInExpoGo()) {
+      try {
+        const Notifications = require('expo-notifications');
+        receivedSubscription = Notifications.addNotificationReceivedListener(
+          handleNotificationReceived
+        );
+        responseSubscription = Notifications.addNotificationResponseReceivedListener(
+          handleNotificationTapped
+        );
+        Notifications.getLastNotificationResponseAsync()
+          .then((response) => {
+            if (response) handleNotificationTapped(response);
+          })
+          .catch((err) => __DEV__ && console.warn('getLastNotificationResponse:', err?.message));
+      } catch (e) {
+        if (__DEV__) console.warn('Push listeners not available:', e?.message);
+      }
+    }
 
-    // Listener for test button: show BI (NexusOne) in-app card only, no system notification
     const unsubTestCard = addTestNotificationCardListener(handleTestCardPayload);
 
-    // Check if app was opened from a notification
-    Notifications.getLastNotificationResponseAsync()
-      .then((response) => {
-        if (response) {
-          handleNotificationTapped(response);
-        }
-      })
-      .catch((error) => {
-        console.error('Error getting last notification response:', error);
-      });
-
     return () => {
-      receivedSubscription.remove();
-      responseSubscription.remove();
+      receivedSubscription?.remove?.();
+      responseSubscription?.remove?.();
       unsubTestCard();
     };
   }, [handleNotificationReceived, handleNotificationTapped, handleTestCardPayload]);
