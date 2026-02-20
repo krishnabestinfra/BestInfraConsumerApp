@@ -29,51 +29,7 @@ import TickIcon from "../../assets/icons/Tick Icon.svg";
 import CrossIcon from "../../assets/icons/Cross Icon.svg";
 
 const screenHeight = Dimensions.get("window").height;
-
-/**
- * Success screen shown after password is updated — same screen, separate component.
- * Matches the design: logo, "Password Reset Successfully!", message, Back to Login button.
- */
-const PasswordResetSuccess = ({ onBackToLogin, isDark, themeColors, getScaledFontSize }) => {
-  const s24 = getScaledFontSize(24);
-  const s14 = getScaledFontSize(14);
-  return (
-    <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
-      <StatusBar style="light" />
-      <LinearGradient
-        colors={["#55b56c", "#2a6f65", "#1f3d6d", "#163b7c"]}
-        start={{ x: 0.5, y: 1.3 }}
-        end={{ x: 0.3, y: 0.5 }}
-        style={styles.topGradient}
-      />
-      <View style={[styles.successContent, isDark && { backgroundColor: themeColors.screen }]}>
-        <View style={styles.imageContainer}>
-          <LinearGradient
-            colors={["#163b7c", "#1f3d6d", "#2a6f65", "#55b56c"]}
-            start={{ x: 0.5, y: 1 }}
-            end={{ x: 1.2, y: 0.2 }}
-            style={styles.gradientBackground}
-          >
-            <Logo variant="white" size="large" />
-          </LinearGradient>
-        </View>
-        <View style={styles.textBlock}>
-          <Text style={[styles.successTitle, { fontSize: s24 }]}>Password Reset Successfully!</Text>
-          <Text style={[styles.successMessage, { fontSize: s14 }]}>
-            Your password has been changed successfully. You can now log in with your new password.
-          </Text>
-        </View>
-        <Button
-          title="Back to Login"
-          onPress={onBackToLogin}
-          variant="primary"
-          size="large"
-          style={styles.successButton}
-        />
-      </View>
-    </SafeAreaView>
-  );
-};
+const LOGO_CIRCLE_SIZE = 120;
 
 const PASSWORD_RULES = [
   { key: "minLength", label: "Minimum 8 characters", test: (p) => p.length >= 8 },
@@ -109,11 +65,33 @@ const ResetPassword = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [passwordUpdatedSuccess, setPasswordUpdatedSuccess] = useState(false);
+  const [step, setStep] = useState("otp");
 
   const passwordRulesMet = PASSWORD_RULES.map((rule) => ({ ...rule, met: rule.test(newPassword) }));
   const allRulesMet = passwordRulesMet.every((r) => r.met);
   const passwordsDontMatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
+
+  const handleContinueFromOtp = () => {
+    const trimmedEmail = email.trim();
+    const otp = String(code).trim().slice(0, 6);
+    if (!trimmedEmail) {
+      Alert.alert("Error", "Please enter your email address.");
+      return;
+    }
+    if (!otp || otp.length !== 6) {
+      Alert.alert("Error", "Please enter the 6-digit code from your email.");
+      return;
+    }
+    if (!userId) {
+      Alert.alert("Error", "User not identified. Please request OTP again from Forgot Password.");
+      return;
+    }
+    setStep("newPassword");
+  };
+
+  const handleBackToNewPasswordStep = () => {
+    setStep("otp");
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -178,6 +156,7 @@ const ResetPassword = () => {
       }
 
       const requestBody = {
+        email: trimmedEmail,
         userId: Number(userId),
         otp,
         newPassword: newPassword.trim(),
@@ -186,6 +165,7 @@ const ResetPassword = () => {
       const updateUrl = API_ENDPOINTS.auth.updatePassword();
       console.log("[ResetPassword] POST update-password. Body:", {
         url: updateUrl,
+        email: requestBody.email,
         userId: requestBody.userId,
         otp: requestBody.otp,
         newPassword: "***",
@@ -210,19 +190,13 @@ const ResetPassword = () => {
       });
 
       if (response.ok && (data?.status === "success" || data?.success === true)) {
-        console.log("[ResetPassword] update-password success");
-        setPasswordUpdatedSuccess(true);
+        if (__DEV__) console.log("[ResetPassword] update-password success");
+        setStep("success");
         return;
       }
 
       const errMsg = data.message || data.error || data.msg || "Unable to reset password.";
-      const isOtpRelated = /expired|invalid.*otp|otp.*invalid|invalid.*code|code.*expired|verification/i.test(errMsg);
-      console.log("[ResetPassword] update-password error", {
-        errMsg,
-        isOtpRelated,
-        data,
-      });
-      if (isOtpRelated) setOtpErrorMessage(errMsg);
+      if (__DEV__) console.log("[ResetPassword] update-password error", { errMsg, data });
       Alert.alert("Error", errMsg);
     } catch (err) {
       console.log("[ResetPassword] handleResetPassword exception", {
@@ -272,16 +246,159 @@ const ResetPassword = () => {
     navigation.navigate("ForgotPassword");
   };
 
-  if (passwordUpdatedSuccess) {
-    return (
-      <PasswordResetSuccess
-        onBackToLogin={() => navigation.navigate("Login")}
-        isDark={isDark}
-        themeColors={themeColors}
-        getScaledFontSize={getScaledFontSize}
+  const renderStepSuccess = () => (
+    <>
+      <View style={styles.successTextBlock}>
+        <Text style={[styles.successTitle, { fontSize: s24 }]}>Password Reset Successfully!</Text>
+        <Text style={[styles.successMessage, { fontSize: s14 }]}>
+          Your password has been changed successfully. You can now log in with your new password.
+        </Text>
+      </View>
+      <Button
+        title="Back to Login"
+        onPress={handleBackToLogin}
+        variant="primary"
+        size="large"
+        style={styles.successButton}
       />
-    );
-  }
+    </>
+  );
+
+  const renderStepOtp = () => (
+    <>
+      <View style={styles.textBlock}>
+      <Text style={[styles.title, { fontSize: s24 }]}>Forgot Password?</Text>
+            <Text style={[styles.subtitle, { fontSize: s14 }]}>
+              No worries! Enter your registered email address,
+              and we&apos;ll send you a verification code to reset your
+              password.
+            </Text>
+      </View>
+      <View style={styles.formContainer}>
+        <Input
+          label={null}
+          placeholder="Email Address"
+          value={email}
+          onChangeText={(t) => { setEmail(t); setOtpErrorMessage(null); }}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          variant="default"
+          size="medium"
+          rightIcon={<UserIcon width={18} height={18} />}
+          style={styles.inputContainer}
+        />
+        <OTPInput
+          length={6}
+          label={null}
+          value={code}
+          onChange={(val) => { setCode(val); setOtpErrorMessage(null); }}
+          error={otpErrorMessage || undefined}
+          errorStyle={[styles.otpErrorText, { fontSize: s12 }]}
+          style={styles.otpWrapper}
+        />
+        <Pressable onPress={handleResendCode} disabled={submitting} style={styles.resendWrap}>
+          <Text style={[styles.resendText, { fontSize: s12 }]}>Resend Code</Text>
+        </Pressable>
+        <Button
+          title="Reset Password"
+          onPress={handleContinueFromOtp}
+          variant="primary"
+          size="large"
+          style={styles.submitButton}
+          disabled={submitting}
+        />
+        <View style={styles.rememberRow}>
+          <Text style={[styles.rememberText, { fontSize: s13 }]}>Remember your password?</Text>
+          <Pressable onPress={handleBackToLogin} style={styles.backToLoginButton}>
+            <Text style={[styles.backToLoginText, { fontSize: s13 }]}>Back to Login</Text>
+          </Pressable>
+        </View>
+        <View style={styles.orSection}>
+          <View style={styles.straightLine} />
+          <View style={styles.orContainer}>
+            <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
+          </View>
+          <Pressable style={styles.otpButton} onPress={handleGetOTP}>
+            <Text style={[styles.otpText, { fontSize: s14 }]}>Get OTP</Text>
+          </Pressable>
+        </View>
+      </View>
+    </>
+  );
+
+  const renderStepNewPassword = () => (
+    <>
+      <View style={styles.textBlock}>
+        <Text style={[styles.title, { fontSize: s24 }]}>Create New Password</Text>
+        <Text style={[styles.subtitle, { fontSize: s14 }]}>
+          Enter your new password and confirm it.
+        </Text>
+      </View>
+      <View style={styles.formContainer}>
+        <Input
+          label={null}
+          placeholder="New password"
+          value={newPassword}
+          onChangeText={setNewPassword}
+          secureTextEntry={!showNewPassword}
+          autoCapitalize="none"
+          keyboardType="default"
+          variant="default"
+          size="medium"
+          style={styles.inputContainer}
+          hasErrorBorder={passwordsDontMatch}
+          rightIcon={
+            <Pressable onPress={() => setShowNewPassword((v) => !v)}>
+              <View style={styles.eyeIconContainer}>{showNewPassword ? <EyeFill width={18} height={18} fill={colors.color_text_secondary} /> : <EyeBlank width={18} height={18} fill={colors.color_text_secondary} />}</View>
+            </Pressable>
+          }
+        />
+        {newPassword.length > 0 && !allRulesMet && (
+          <View style={styles.passwordRulesBox}>
+            <Text style={[styles.passwordRulesTitle, { fontSize: s13 }]}>Password must contain:</Text>
+            {passwordRulesMet.map((rule) => (
+              <View key={rule.key} style={styles.passwordRuleRow}>
+                <View style={styles.ruleIconWrap}>{rule.met ? <TickIcon width={15} height={15} fill={COLORS.secondaryColor} /> : <CrossIcon width={15} height={15} stroke="#FF4444" />}</View>
+                <Text style={[styles.passwordRuleText, { fontSize: s12 }]}>{rule.label}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+        <Input
+          label={null}
+          placeholder="Confirm new password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry={!showConfirmPassword}
+          autoCapitalize="none"
+          keyboardType="default"
+          variant="default"
+          size="medium"
+          style={styles.inputContainer}
+          hasErrorBorder={passwordsDontMatch}
+          error={passwordsDontMatch ? "Passwords do not match" : undefined}
+          errorStyle={[styles.passwordMatchErrorText, { fontSize: s12 }]}
+          rightIcon={
+            <Pressable onPress={() => setShowConfirmPassword((v) => !v)}>
+              <View style={styles.eyeIconContainer}>{showConfirmPassword ? <EyeFill width={18} height={18} fill={colors.color_text_secondary} /> : <EyeBlank width={18} height={18} fill={colors.color_text_secondary} />}</View>
+            </Pressable>
+          }
+        />
+        <Button
+          title="Reset Password"
+          onPress={handleResetPassword}
+          variant="primary"
+          size="large"
+          style={styles.submitButton}
+          loading={submitting}
+          disabled={submitting}
+        />
+        <Pressable onPress={handleBackToNewPasswordStep} style={styles.backToStepLink}>
+          <Text style={[styles.backToLoginText, { fontSize: s13 }]}>Back to email & code</Text>
+        </Pressable>
+      </View>
+    </>
+  );
 
   return (
     <SafeAreaView style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
@@ -313,121 +430,11 @@ const ResetPassword = () => {
             </LinearGradient>
           </View>
 
-          <View style={styles.textBlock}>
-            <Text style={[styles.title, { fontSize: s24 }]}>Reset Password</Text>
-            <Text style={[styles.subtitle, { fontSize: s14 }]}>
-              Enter your email, the 6-digit code from your email, and your new password. One tap sends the OTP once.
-            </Text>
-          </View>
-
-          <View style={styles.formContainer}>
-            <Input
-              label={null}
-              placeholder="Email Address"
-              value={email}
-              onChangeText={(t) => { setEmail(t); setOtpErrorMessage(null); }}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              variant="default"
-              size="medium"
-              rightIcon={<UserIcon width={18} height={18} />}
-              style={styles.inputContainer}
-            />
-
-            <OTPInput
-              length={6}
-              label={null}
-              value={code}
-              onChange={(val) => {
-                setCode(val);
-                setOtpErrorMessage(null);
-              }}
-              error={otpErrorMessage || undefined}
-              errorStyle={[styles.otpErrorText, { fontSize: s12 }]}
-              style={styles.otpWrapper}
-            />
-
-            <Pressable onPress={handleResendCode} disabled={submitting} style={styles.resendWrap}>
-              <Text style={[styles.resendText, { fontSize: s12 }]}>Resend Code</Text>
-            </Pressable>
-
-            <Input
-              label={null}
-              placeholder="New password"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry={!showNewPassword}
-              autoCapitalize="none"
-              keyboardType="default"
-              variant="default"
-              size="medium"
-              style={styles.inputContainer}
-              hasErrorBorder={passwordsDontMatch}
-              rightIcon={
-                <Pressable onPress={() => setShowNewPassword((v) => !v)}>
-                  <View style={styles.eyeIconContainer}>{showNewPassword ? <EyeFill width={18} height={18} fill={colors.color_text_secondary} /> : <EyeBlank width={18} height={18} fill={colors.color_text_secondary} />}</View>
-                </Pressable>
-              }
-            />
-            {newPassword.length > 0 && !allRulesMet && (
-              <View style={styles.passwordRulesBox}>
-                <Text style={[styles.passwordRulesTitle, { fontSize: s13 }]}>Password must contain:</Text>
-                {passwordRulesMet.map((rule) => (
-                  <View key={rule.key} style={styles.passwordRuleRow}>
-                    <View style={styles.ruleIconWrap}>{rule.met ? <TickIcon width={15} height={15} fill={COLORS.secondaryColor} /> : <CrossIcon width={15} height={15} stroke="#FF4444" />}</View>
-                    <Text style={[styles.passwordRuleText, { fontSize: s12 }]}>{rule.label}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-            <Input
-              label={null}
-              placeholder="Confirm new password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              keyboardType="default"
-              variant="default"
-              size="medium"
-              style={styles.inputContainer}
-              hasErrorBorder={passwordsDontMatch}
-              error={passwordsDontMatch ? "Passwords do not match" : undefined}
-              errorStyle={[styles.passwordMatchErrorText, { fontSize: s12 }]}
-              rightIcon={
-                <Pressable onPress={() => setShowConfirmPassword((v) => !v)}>
-                  <View style={styles.eyeIconContainer}>{showConfirmPassword ? <EyeFill width={18} height={18} fill={colors.color_text_secondary} /> : <EyeBlank width={18} height={18} fill={colors.color_text_secondary} />}</View>
-                </Pressable>
-              }
-            />
-
-            <Button
-              title="Reset Password"
-              onPress={handleResetPassword}
-              variant="primary"
-              size="large"
-              style={styles.submitButton}
-              loading={submitting}
-              disabled={submitting}
-            />
-
-            <View style={styles.rememberRow}>
-              <Text style={[styles.rememberText, { fontSize: s13 }]}>Remember your password?</Text>
-              <Pressable onPress={handleBackToLogin} style={styles.backToLoginButton}>
-                <Text style={[styles.backToLoginText, { fontSize: s13 }]}>Back to Login</Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.orSection}>
-              <View style={styles.straightLine} />
-              <View style={styles.orContainer}>
-                <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
-              </View>
-              <Pressable style={styles.otpButton} onPress={handleGetOTP}>
-                <Text style={[styles.otpText, { fontSize: s14 }]}>Get OTP</Text>
-              </Pressable>
-            </View>
-          </View>
+          {step === "otp"
+            ? renderStepOtp()
+            : step === "newPassword"
+              ? renderStepNewPassword()
+              : renderStepSuccess()}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -448,6 +455,30 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+  },
+  successImageContainer: {
+    alignItems: "center",
+    width: "100%",
+    zIndex: 10,
+  },
+  successGradientBackground: {
+    width: LOGO_CIRCLE_SIZE,
+    height: LOGO_CIRCLE_SIZE,
+    borderRadius: LOGO_CIRCLE_SIZE / 2,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1f255e",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   subContainer: {
     padding: 30,
@@ -479,22 +510,26 @@ const styles = StyleSheet.create({
   },
   successContent: {
     flex: 1,
-    paddingHorizontal: 30,
-    paddingTop: 80,
+    paddingHorizontal: 28,
+    paddingTop: 0,
     backgroundColor: "#ffffff",
+  },
+  successTextBlock: {
+    alignItems: "center",
+    marginTop: 24,
+    paddingHorizontal: 8,
   },
   successTitle: {
     color: COLORS.primaryFontColor,
     fontFamily: "Manrope-Bold",
     textAlign: "center",
-    marginTop: 18,
   },
   successMessage: {
-    color: COLORS.primaryFontColor,
+    color: colors.color_text_secondary,
     fontFamily: "Manrope-Regular",
     textAlign: "center",
     marginTop: 12,
-    paddingHorizontal: 16,
+    lineHeight: 22,
   },
   successButton: {
     marginTop: 32,
@@ -599,6 +634,10 @@ const styles = StyleSheet.create({
   backToLoginButton: {
     marginTop: 4,
   },
+  backToStepLink: {
+    marginTop: 20,
+    alignItems: "center",
+  },
   backToLoginText: {
     color: COLORS.secondaryColor,
     fontSize: 13,
@@ -616,7 +655,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   orContainer: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#F8F8F8",
     width: 32,
     height: 32,
     borderRadius: 16,
