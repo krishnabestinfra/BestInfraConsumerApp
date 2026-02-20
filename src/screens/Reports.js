@@ -28,11 +28,7 @@ const Reports = ({ navigation }) => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
-  const [recentReports, setRecentReports] = useState([
-    { id: 1, name: "Jan 2026 Consumption.pdf" },
-    { id: 2, name: "Dec 2025 Consumption.pdf" },
-    { id: 3, name: "Nov 2025 Consumption.pdf" },
-  ]);
+  const [recentReports, setRecentReports] = useState([]);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState(null);
 
