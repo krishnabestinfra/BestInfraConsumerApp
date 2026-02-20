@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated } from "react-native";
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated, Modal } from "react-native";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../constants/colors";
@@ -13,6 +13,7 @@ import {
 import DashboardHeader from "../components/global/DashboardHeader";
 import BottomNavigation from "../components/global/BottomNavigation";
 import { handleViewBill } from "../services/InvoicePDFService";
+import { WebView } from "react-native-webview";
 import { authService } from "../services/authService";
 import { apiClient } from "../services/apiClient";
 import { isDemoUser, getDemoConsumerCore, DEMO_INVOICES } from "../constants/demoData";
@@ -363,6 +364,61 @@ const transformInvoicesToCards = (invoices) => {
     }));
 };
 
+// HTML that uses PDF.js to render base64 PDF in WebView (works on Android and iOS)
+const getPDFViewerHTML = (base64) => {
+  const escaped = base64.replace(/'/g, "\\'").replace(/</g, "\\u003c");
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #525659; padding: 8px; min-height: 100vh; }
+    .page { margin: 0 auto 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); background: white; }
+    canvas { display: block; width: 100% !important; height: auto !important; }
+    #loading { color: #fff; text-align: center; padding: 24px; font-family: sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="loading">Loading PDF...</div>
+  <div id="pages"></div>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    var pdfBase64 = '${escaped}';
+    var raw = atob(pdfBase64);
+    var n = raw.length;
+    var arr = new Uint8Array(n);
+    for (var i = 0; i < n; i++) arr[i] = raw.charCodeAt(i);
+    pdfjsLib.getDocument({ data: arr }).promise.then(function(pdf) {
+      document.getElementById('loading').style.display = 'none';
+      var container = document.getElementById('pages');
+      for (var p = 1; p <= pdf.numPages; p++) {
+        (function(pageNum) {
+          var div = document.createElement('div');
+          div.className = 'page';
+          var canvas = document.createElement('canvas');
+          div.appendChild(canvas);
+          container.appendChild(div);
+          pdf.getPage(pageNum).then(function(page) {
+            var scale = 1.5;
+            var viewport = page.getViewport({ scale: scale });
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport });
+          });
+        })(p);
+      }
+    }).catch(function(err) {
+      document.getElementById('loading').textContent = 'Failed to load PDF: ' + err.message;
+    });
+  </script>
+</body>
+</html>
+`;
+};
+
 const Invoices = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
   const [invoiceCards, setInvoiceCards] = useState([]);
@@ -373,6 +429,8 @@ const Invoices = ({ navigation }) => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [pendingStatusFilter, setPendingStatusFilter] = useState("all");
+  const [pdfViewerBase64, setPdfViewerBase64] = useState(null);
+  const [pdfViewerBillNumber, setPdfViewerBillNumber] = useState("");
 
   // Fetch invoices and consumer data (or demo data if using demo credentials)
   const fetchInvoices = useCallback(async () => {
@@ -492,74 +550,48 @@ const Invoices = ({ navigation }) => {
     setFilteredInvoiceCards(sorted);
   }, [statusFilter, invoiceCards]);
 
-  // Handle invoice view/pay/share
+  // Fetch invoice data from API for a given invoice card (shared by View and Share)
+  const fetchInvoiceData = useCallback(async (invoiceCard) => {
+    const billNumber = invoiceCard.invoiceId;
+    if (!billNumber) {
+      throw new Error('Bill number is required');
+    }
+    const token = await authService.getValidAccessToken();
+    if (!token) {
+      throw new Error('No access token available. Please login again.');
+    }
+    const invoiceUrl = API_ENDPOINTS.billing.invoice(billNumber);
+    const response = await fetch(invoiceUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+      throw new Error(errorMessage);
+    }
+    const result = await response.json();
+    if (result.status !== 'success' || !result.data) {
+      throw new Error('Invalid invoice data received from API');
+    }
+    return result.data;
+  }, []);
+
+  // Handle invoice View — opens PDF in-app viewer (no share sheet)
   const handleViewInvoice = useCallback(async (invoiceCard) => {
     try {
       setIsGeneratingPDF(true);
-      console.log('📄 Fetching invoice data for bill number:', invoiceCard.invoiceId);
-      
-      const billNumber = invoiceCard.invoiceId;
-      if (!billNumber) {
-        throw new Error('Bill number is required');
-      }
-
-      // Fetch detailed invoice data from API for this specific consumer and bill
-      const token = await authService.getValidAccessToken();
-      if (!token) {
-        throw new Error('No access token available. Please login again.');
-      }
-
-      const invoiceUrl = API_ENDPOINTS.billing.invoice(billNumber);
-      console.log('🔄 Fetching invoice from:', invoiceUrl);
-      
-      const response = await fetch(invoiceUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage);
-      }
-
-      const result = await response.json();
-      console.log('✅ Invoice data received for consumer:', consumerData?.uniqueIdentificationNo || consumerData?.identifier);
-
-      if (result.status === 'success' && result.data) {
-        // Use the API response data directly - it contains all consumer-specific invoice data
-        const invoiceData = result.data;
-        console.log('📋 Invoice data for consumer:', {
-          consumer_uid: invoiceData.consumer_uid,
-          bill_no: invoiceData.bill_no,
-          customer_name: invoiceData.customer_name,
-          customer_email: invoiceData.customer_email,
-          customer_contact: invoiceData.customer_contact,
-        });
-        
-        // CRITICAL: Log LAST MONTH section fields from API
-        console.log('🔍 LAST MONTH Section - API Response Fields:');
-        console.log('  final_reading:', invoiceData.final_reading);
-        console.log('  consumption:', invoiceData.consumption);
-        console.log('  prev_reading:', invoiceData.prev_reading);
-        console.log('  last_month_label:', invoiceData.last_month_label);
-        console.log('  last_month_amount:', invoiceData.last_month_amount);
-        console.log('  All API keys:', Object.keys(invoiceData).filter(k => 
-          k.includes('reading') || k.includes('consumption') || k.includes('final') || k.includes('prev')
-        ));
-        
-        // Generate and view PDF with consumer-specific invoice data
-        const pdfResult = await handleViewBill(invoiceData, consumerData);
-        
-        if (!pdfResult.success) {
-          console.error('Failed to generate invoice PDF');
-        }
-      } else {
-        throw new Error('Invalid invoice data received from API');
+      const invoiceData = await fetchInvoiceData(invoiceCard);
+      const pdfResult = await handleViewBill(invoiceData, consumerData, { openInAppViewer: true });
+      if (pdfResult.success && pdfResult.base64) {
+        setPdfViewerBillNumber(pdfResult.billNumber || invoiceCard.invoiceId || "Invoice");
+        setPdfViewerBase64(pdfResult.base64);
+      } else if (!pdfResult.success) {
+        console.error('Failed to generate invoice PDF');
       }
     } catch (error) {
       console.error('Error fetching/opening invoice:', error);
@@ -571,7 +603,7 @@ const Invoices = ({ navigation }) => {
     } finally {
       setIsGeneratingPDF(false);
     }
-  }, [consumerData]);
+  }, [consumerData, fetchInvoiceData]);
 
   const handlePayNow = (invoiceCard) => {
     navigation.navigate('PostPaidRechargePayments', {
@@ -579,10 +611,26 @@ const Invoices = ({ navigation }) => {
     });
   };
 
-  const handleShare = (invoiceCard) => {
-    // TODO: Implement share functionality
-    Alert.alert('Share', 'Share functionality will be implemented');
-  };
+  // Handle invoice Share — opens share sheet (not viewer)
+  const handleShare = useCallback(async (invoiceCard) => {
+    try {
+      setIsGeneratingPDF(true);
+      const invoiceData = await fetchInvoiceData(invoiceCard);
+      const pdfResult = await handleViewBill(invoiceData, consumerData, { previewOnly: false });
+      if (!pdfResult.success) {
+        console.error('Failed to generate invoice PDF for sharing');
+      }
+    } catch (error) {
+      console.error('Error fetching/sharing invoice:', error);
+      Alert.alert(
+        'Error',
+        `Failed to share invoice. Please try again.\n\n${error.message}`,
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  }, [consumerData, fetchInvoiceData]);
 
   const handleFilterPress = () => {
     setPendingStatusFilter(statusFilter);
@@ -811,6 +859,40 @@ const Invoices = ({ navigation }) => {
           </View>
         </View>
       )}
+
+      {/* In-app PDF Viewer Modal — View opens here (no share sheet) */}
+      <Modal
+        visible={!!pdfViewerBase64}
+        animationType="slide"
+        onRequestClose={() => setPdfViewerBase64(null)}
+      >
+        <View style={[styles.pdfViewerContainer, isDark && { backgroundColor: "#1A1F2E" }]}>
+          <View style={styles.pdfViewerHeader}>
+            <Text style={[styles.pdfViewerTitle, isDark && { color: "#FFF" }]} numberOfLines={1}>
+              {pdfViewerBillNumber || "Invoice"}
+            </Text>
+            <TouchableOpacity
+              style={styles.pdfViewerCloseBtn}
+              onPress={() => setPdfViewerBase64(null)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.pdfViewerCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+          {pdfViewerBase64 && (
+            <WebView
+              style={styles.pdfViewerWebView}
+              originWhitelist={["*"]}
+              source={{
+                html: getPDFViewerHTML(pdfViewerBase64),
+              }}
+              scalesPageToFit
+              javaScriptEnabled
+              domStorageEnabled
+            />
+          )}
+        </View>
+      </Modal>
 
       {/* Filter Modal Overlay */}
       {isFilterModalVisible && (
@@ -1200,6 +1282,42 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Manrope-Medium",
     color: COLORS.primaryFontColor,
+  },
+  pdfViewerContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  pdfViewerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 56,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  pdfViewerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontFamily: "Manrope-SemiBold",
+    color: "#111",
+    marginRight: 12,
+  },
+  pdfViewerCloseBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.primaryColor,
+    borderRadius: 8,
+  },
+  pdfViewerCloseText: {
+    fontSize: 15,
+    fontFamily: "Manrope-SemiBold",
+    color: "#fff",
+  },
+  pdfViewerWebView: {
+    flex: 1,
+    backgroundColor: "#525659",
   },
   skeletonBox: {
     borderRadius: 4,
