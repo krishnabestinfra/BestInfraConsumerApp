@@ -297,7 +297,7 @@ const SideMenuNavigation = ({ navigation }) => {
         onRequestClose={() => setShowAlertsModal(false)}
       >
         <View style={[styles.alertsModalOverlay, isDark && styles.alertsModalOverlayDark]}>
-          <View style={[styles.alertsModalCard, isDark && { backgroundColor: themeColors.card }]}>
+          <View style={[styles.alertsModalCard, isDark && { backgroundColor: "#1A1F2E" }]}>
             {/* Header */}
             <View style={styles.alertsModalHeader}>
               <Text style={[styles.alertsModalTitle, { fontSize: scaled.modalTitle }, isDark && { color: themeColors.textPrimary }]}>Alerts</Text>
@@ -363,7 +363,7 @@ const SideMenuNavigation = ({ navigation }) => {
             {/* Toggle Settings */}
             <View style={styles.toggleSection}>
               {/* Bill Due Reminders */}
-              <View style={[styles.toggleRow, isDark && { backgroundColor: themeColors.inputBg }]}>
+              <View style={[styles.toggleRow, isDark && { backgroundColor: "#1F2E34" }]}>
                 <View style={styles.toggleInfo}>
                   <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>Bill Due Reminders</Text>
                   <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>3 days before due date</Text>
@@ -378,7 +378,7 @@ const SideMenuNavigation = ({ navigation }) => {
               </View>
 
               {/* Payment Confirmations */}
-              <View style={[styles.toggleRow, isDark && { backgroundColor: themeColors.inputBg }]}>
+              <View style={[styles.toggleRow, isDark && { backgroundColor: "#1F2E34" }]}>
                 <View style={styles.toggleInfo}>
                   <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>Payment Confirmations</Text>
                   <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>Instant notification</Text>
@@ -409,7 +409,7 @@ const SideMenuNavigation = ({ navigation }) => {
               */}
 
               {/* Tamper Alerts */}
-              <View style={[styles.toggleRow, isDark && { backgroundColor: themeColors.inputBg }]}>
+              <View style={[styles.toggleRow, isDark && { backgroundColor: "#1F2E34" }]}>
                 <View style={styles.toggleInfo}>
                   <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>Tamper Alerts</Text>
                   <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>Immediate notification</Text>
@@ -424,7 +424,7 @@ const SideMenuNavigation = ({ navigation }) => {
               </View>
 
               {/* Email Notifications */}
-              <View style={[styles.toggleRow, isDark && { backgroundColor: themeColors.inputBg }]}>
+              <View style={[styles.toggleRow, isDark && { backgroundColor: "#1F2E34" }]}>
                 <View style={styles.toggleInfo}>
                   <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>Email Notifications</Text>
                   <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>Receive updates via email</Text>
@@ -458,25 +458,25 @@ const SideMenuNavigation = ({ navigation }) => {
         animationType="fade"
         onRequestClose={handleCancelLogout}
       >
-        <View style={styles.logoutModalOverlay}>
-          <View style={styles.logoutModalCard}>
+        <View style={[styles.logoutModalOverlay, isDark && styles.logoutModalOverlayDark]}>
+          <View style={[styles.logoutModalCard, isDark && { backgroundColor: themeColors.card }]}>
           <View style={styles.logoutModalIconWrap}>
             <View style={styles.logoutModalIconWrap2}>
               <LogoutButton width={28} height={28} color="#FADCDC" />
             </View>
             </View>
-            <Text style={[styles.logoutModalTitle, { fontSize: scaled.logoutModalTitle }]}>Logout</Text>
-            <Text style={[styles.logoutModalMessage, { fontSize: scaled.modalMessage }]}>
+            <Text style={[styles.logoutModalTitle, { fontSize: scaled.logoutModalTitle }, isDark && { color: themeColors.textPrimary }]}>Logout</Text>
+            <Text style={[styles.logoutModalMessage, { fontSize: scaled.modalMessage }, isDark && { color: themeColors.textSecondary }]}>
               Are you sure you want to logout from your account?
             </Text>
 
             <View style={styles.logoutModalButtonsRow}>
               <TouchableOpacity
-                style={styles.logoutModalCancelButton}
+                style={[styles.logoutModalCancelButton, isDark && { backgroundColor: themeColors.card, borderColor: themeColors.cardBorder }]}
                 activeOpacity={0.8}
                 onPress={handleCancelLogout}
               >
-                <Text style={[styles.logoutModalCancelText, { fontSize: scaled.modalButton }]}>Cancel</Text>
+                <Text style={[styles.logoutModalCancelText, { fontSize: scaled.modalButton }, isDark && { color: themeColors.textPrimary }]}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -689,6 +689,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "center",
     alignItems: "center",
+  },
+  logoutModalOverlayDark: {
+    backgroundColor: "rgba(0,0,0,0.7)",
   },
   logoutModalCard: {
     width: "86%",

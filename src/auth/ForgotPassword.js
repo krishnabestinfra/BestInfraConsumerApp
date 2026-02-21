@@ -142,7 +142,7 @@ const ForgotPassword = ({ navigation }) => {
         style={{ flex: 1 }}
       >
         <ScrollView
-          style={[styles.subContainer, isDark && { backgroundColor: themeColors.screen }]}
+          style={[styles.subContainer, isDark && { backgroundColor: "transparent" }]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.imageContainer}>
@@ -157,8 +157,8 @@ const ForgotPassword = ({ navigation }) => {
           </View>
 
           <View style={styles.textBlock}>
-            <Text style={[styles.title, { fontSize: s24 }]}>Forgot Password?</Text>
-            <Text style={[styles.subtitle, { fontSize: s14 }]}>
+            <Text style={[styles.title, { fontSize: s24 }, isDark && { color: themeColors.textPrimary }]}>Forgot Password?</Text>
+            <Text style={[styles.subtitle, { fontSize: s14 }, isDark && { color: themeColors.textSecondary }]}>
               No worries! Enter your registered email address,
               and we&apos;ll send you a verification code to reset your
               password.
@@ -190,19 +190,19 @@ const ForgotPassword = ({ navigation }) => {
             />
 
             <View style={styles.rememberRow}>
-              <Text style={[styles.rememberText, { fontSize: s13 }]}>Remember your password?</Text>
+              <Text style={[styles.rememberText, { fontSize: s13 }, isDark && { color: themeColors.textPrimary }]}>Remember your password?</Text>
               <Pressable onPress={handleBackToLogin} style={styles.backToLoginButton}>
-                <Text style={[styles.backToLoginText, { fontSize: s13 }]}>Back to Login</Text>
+                <Text style={[styles.backToLoginText, { fontSize: s13 }, isDark && { color: themeColors.accent }]}>Back to Login</Text>
               </Pressable>
             </View>
 
             <View style={styles.orSection}>
-              <View style={styles.straightLine} />
-              <View style={styles.orContainer}>
-                <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
+              <View style={[styles.straightLine, isDark && { backgroundColor: themeColors.cardBorder }]} />
+              <View style={[styles.orContainer, isDark && { backgroundColor: themeColors.card }]}>
+                <Text style={[styles.orText, { fontSize: sOr }, isDark && { color: themeColors.textPrimary }]}>OR</Text>
               </View>
               <Pressable style={styles.otpButton} onPress={() => navigation.navigate("OTPLogin")}>
-                <Text style={[styles.otpText, { fontSize: s14 }]}>Get OTP</Text>
+                <Text style={[styles.otpText, { fontSize: s14 }, isDark && { color: themeColors.textPrimary }]}>Get OTP</Text>
               </Pressable>
             </View>
           </View>
