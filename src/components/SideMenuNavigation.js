@@ -285,7 +285,7 @@ const SideMenuNavigation = ({ navigation }) => {
         </Button>
 
         <View style={styles.flex}>
-          <Text style={[styles.versionText, { fontSize: scaled.version }]}>Version 1.0.26</Text>
+          <Text style={[styles.versionText, { fontSize: scaled.version }]}>Version 2.0.1</Text>
         </View>
       </View>
 
