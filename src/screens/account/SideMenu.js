@@ -7,7 +7,7 @@ import Menu from "../../../assets/icons/barsWhite.svg";
 import Notification from "../../../assets/icons/notification.svg";
 import BiLogo from "../../../assets/icons/LogoWhite.svg";
 import Usage from "../usage/Usage";
-import PostPaidRechargePayments from "../dashboard/PostPaidRechargePayments";
+import PostPaidRechargePayments from "../recharge/PostPaidRechargePayments";
 import Transactions from "../invoices/Transactions";
 import Tickets from "../tickets/Tickets";
 import Settings from "./Settings";

@@ -35,7 +35,7 @@ import GuestLogin from "./src/auth/GuestLogin";
 import TicketDetails from "./src/screens/tickets/TicketDetails";
 import ChatSupport from "./src/screens/tickets/ChatSupport";
 import PostPaidDashboard from "./src/screens/dashboard/PostPaidDashboard";
-import PostPaidRechargePayments from "./src/screens/dashboard/PostPaidRechargePayments";
+import PostPaidRechargePayments from "./src/screens/recharge/PostPaidRechargePayments";
 import PaymentStatus from "./src/screens/recharge/PaymentStatus";
 import LsDataTable from "./src/screens/dashboard/LsDataTable";
 import Invoices from "./src/screens/invoices/Invoices";
