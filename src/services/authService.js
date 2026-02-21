@@ -9,11 +9,13 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getItem as secureGet, setItem as secureSet, removeItem as secureRemove, multiRemove as secureMultiRemove } from '../utils/secureStorage';
 import { API_ENDPOINTS } from '../constants/constants';
+import { apiClient } from './apiClient';
 import { setTenantSubdomain } from '../config/apiConfig';
 import { isDemoUser } from '../constants/demoData';
 
-// Token storage keys
+// Token storage keys (sensitive → stored via secureStorage when available)
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const TOKEN_EXPIRY_KEY = 'token_expiry';
@@ -43,14 +45,13 @@ class AuthService {
   }
 
   /**
-   * Store access token and its expiry time
+   * Store access token and its expiry time (secure storage when available)
    */
   async storeAccessToken(token) {
     try {
-      await AsyncStorage.setItem(ACCESS_TOKEN_KEY, token);
-      // Calculate expiry time (15 minutes from now)
+      await secureSet(ACCESS_TOKEN_KEY, token);
       const expiryTime = Date.now() + ACCESS_TOKEN_EXPIRY;
-      await AsyncStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+      await secureSet(TOKEN_EXPIRY_KEY, expiryTime.toString());
       console.log('✅ Access token stored, expires at:', new Date(expiryTime).toISOString());
     } catch (error) {
       console.error('❌ Error storing access token:', error);
@@ -63,7 +64,7 @@ class AuthService {
    */
   async getAccessToken() {
     try {
-      return await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
+      return await secureGet(ACCESS_TOKEN_KEY);
     } catch (error) {
       console.error('❌ Error getting access token:', error);
       return null;
@@ -71,11 +72,11 @@ class AuthService {
   }
 
   /**
-   * Store refresh token securely
+   * Store refresh token (secure storage when available)
    */
   async storeRefreshToken(token) {
     try {
-      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, token);
+      await secureSet(REFRESH_TOKEN_KEY, token);
       console.log('✅ Refresh token stored securely');
     } catch (error) {
       console.error('❌ Error storing refresh token:', error);
@@ -88,7 +89,7 @@ class AuthService {
    */
   async getRefreshToken() {
     try {
-      return await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+      return await secureGet(REFRESH_TOKEN_KEY);
     } catch (error) {
       console.error('❌ Error getting refresh token:', error);
       return null;
@@ -100,7 +101,7 @@ class AuthService {
    */
   async isAccessTokenExpired() {
     try {
-      const expiryTime = await AsyncStorage.getItem(TOKEN_EXPIRY_KEY);
+      const expiryTime = await secureGet(TOKEN_EXPIRY_KEY);
       if (!expiryTime) return true;
       
       const expiry = parseInt(expiryTime, 10);
@@ -151,20 +152,30 @@ class AuthService {
   }
 
   /**
-   * Refresh access token using refresh token
+   * Refresh access token using refresh token.
+   * Prevents concurrent refresh; 20s hard timeout so a stuck refresh doesn't block forever.
    */
   async refreshAccessToken() {
-    // Prevent concurrent refresh requests
     if (this.refreshPromise) {
-      console.log('🔄 Token refresh already in progress, waiting...');
+      if (__DEV__ && !this._waitingLogged) {
+        this._waitingLogged = true;
+        console.log('🔄 Token refresh already in progress, waiting...');
+      }
       return this.refreshPromise;
     }
 
-    this.refreshPromise = this._performTokenRefresh();
-    
+    this._waitingLogged = false;
+    const REFRESH_MAX_WAIT_MS = 20000;
+    const refreshWithTimeout = Promise.race([
+      this._performTokenRefresh(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Token refresh timed out')), REFRESH_MAX_WAIT_MS)
+      ),
+    ]);
+    this.refreshPromise = refreshWithTimeout;
+
     try {
-      const result = await this.refreshPromise;
-      return result;
+      return await this.refreshPromise;
     } finally {
       this.refreshPromise = null;
     }
@@ -196,81 +207,57 @@ class AuthService {
         requestBody.client = clientSubdomain;
       }
       
-      // Add timeout to prevent hanging
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
       try {
         const refreshUrl = API_ENDPOINTS.auth.refresh();
         console.log('🔄 Attempting token refresh at:', refreshUrl);
-        
-        const response = await fetch(refreshUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          // Note: In React Native, cookies (including httpOnly) are automatically sent
-          // by the underlying network layer if they were set by the server
-          body: Object.keys(requestBody).length > 0 ? JSON.stringify(requestBody) : undefined,
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const errorMessage = errorData.message || `HTTP ${response.status}`;
-          
-          // Handle different error scenarios
-          if (response.status === 404) {
-            // Endpoint doesn't exist - silently handle, don't show errors
-            // User can continue with existing token until it expires
-            // Don't log errors, just return failure silently
+        const result = await apiClient.request(refreshUrl, {
+          method: 'POST',
+          body: Object.keys(requestBody).length > 0 ? requestBody : undefined,
+          skipAuth: true,
+          timeout: 15000,
+          showLogs: false,
+          _skip401Refresh: true, // do not trigger refresh again if refresh endpoint returns 401
+        });
+
+        if (!result.success) {
+          if (result.status === 404) {
+            // Backend has no refresh endpoint – clear tokens so we don't keep using an expired token
+            await this.clearTokens();
             return {
               success: false,
               error: 'refresh_endpoint_not_found',
-              silent: true
+              silent: false
             };
           }
-          
-          // If refresh fails with auth errors, clear tokens and require re-login
-          if (response.status === 401 || response.status === 403) {
+          if (result.status === 401 || result.status === 403) {
             console.error('❌ Refresh token invalid or expired');
             await this.clearTokens();
             throw new Error('Session expired. Please login again.');
           }
-          
-          // For other errors (500, 503, etc.), don't clear tokens as they might be temporary
-          console.error(`❌ Token refresh failed with status ${response.status}:`, errorMessage);
-          throw new Error(`Token refresh failed: ${errorMessage}`);
+          if (result.isTimeout) {
+            throw new Error('Token refresh timeout - please check your connection');
+          }
+          throw new Error(result.error || `Token refresh failed: HTTP ${result.status}`);
         }
 
-      const result = await response.json();
-      
-      // Extract new tokens from response
-      // Support multiple naming conventions:
-      // - Generic: accessToken, token
-      // - GMR-specific: gmrToken
-      // - NTPL-specific: ntplToken
-      const newAccessToken = result.data?.accessToken || 
-                            result.data?.gmrToken ||
-                            result.data?.ntplToken ||
-                            result.accessToken || 
-                            result.gmrToken ||
-                            result.ntplToken ||
-                            result.data?.token;
-      // Support multiple naming conventions for refresh token:
-      // - Generic: refreshToken
-      // - GMR-specific: gmrRefreshToken
-      // - NTPL-specific: ntplRefreshToken
-      const newRefreshToken = result.data?.refreshToken || 
-                             result.data?.gmrRefreshToken ||
-                             result.data?.ntplRefreshToken ||
-                             result.refreshToken || 
-                             result.gmrRefreshToken ||
-                             result.ntplRefreshToken ||
-                             this.extractRefreshTokenFromResponse(response) || refreshToken;
+        const parsed = result.rawBody ?? result.data ?? result;
+        const responseLike = { headers: { get: (name) => result.headers && result.headers[name?.toLowerCase()] } };
+
+      const newAccessToken = parsed.data?.accessToken ||
+                            parsed.data?.gmrToken ||
+                            parsed.data?.ntplToken ||
+                            parsed.accessToken ||
+                            parsed.gmrToken ||
+                            parsed.ntplToken ||
+                            parsed.data?.token;
+      const newRefreshToken = parsed.data?.refreshToken ||
+                             parsed.data?.gmrRefreshToken ||
+                             parsed.data?.ntplRefreshToken ||
+                             parsed.refreshToken ||
+                             parsed.gmrRefreshToken ||
+                             parsed.ntplRefreshToken ||
+                             this.extractRefreshTokenFromResponse(responseLike) || refreshToken;
 
       if (!newAccessToken) {
         return {
@@ -294,38 +281,25 @@ class AuthService {
         refreshToken: newRefreshToken
       };
       } catch (fetchError) {
-        clearTimeout(timeoutId);
-        
-        // Handle network errors - don't clear tokens for network issues
-        if (fetchError.name === 'AbortError') {
-          console.warn('⚠️ Token refresh timeout - keeping existing tokens');
-          throw new Error('Token refresh timeout - please check your connection');
-        }
-        
         if (fetchError.message && (
-          fetchError.message.includes('Network request failed') ||
-          fetchError.message.includes('NetworkError') ||
+          fetchError.message.includes('Network') ||
+          fetchError.message.includes('timeout') ||
           fetchError.message.includes('Failed to fetch')
         )) {
-          console.warn('⚠️ Network error during token refresh - keeping existing tokens');
-          throw new Error('Network error - cannot refresh token. Please check your internet connection.');
+          console.warn('⚠️ Network/timeout during token refresh - keeping existing tokens');
         }
-        
-        // Check if it's a 404 or route not found error
         if (fetchError.message && (
           fetchError.message.includes('Route not found') ||
           fetchError.message.includes('404') ||
           fetchError.message.includes('not found')
         )) {
-          // Silently handle 404 - return failure without throwing error
+          await this.clearTokens();
           return {
             success: false,
             error: 'refresh_endpoint_not_found',
-            silent: true
+            silent: false
           };
         }
-        
-        // Re-throw other errors
         throw fetchError;
       }
     } catch (error) {
@@ -389,11 +363,16 @@ class AuthService {
         try {
           const refreshResult = await this.refreshAccessToken();
           
-          // Check if refresh was successful
-          if (refreshResult && refreshResult.success === false && refreshResult.silent === true) {
-            // Silent failure (404 endpoint not found) - use existing token
-            const existingToken = await this.getAccessToken();
-            return existingToken; // Return existing token silently
+          // Refresh failed (e.g. 404 endpoint not found) – don't reuse expired token
+          if (refreshResult && refreshResult.success === false) {
+            if (refreshResult.error === 'refresh_endpoint_not_found') {
+              return null; // Tokens already cleared; user must re-login
+            }
+            if (refreshResult.silent === true) {
+              const existingToken = await this.getAccessToken();
+              return existingToken;
+            }
+            return null;
           }
         } catch (refreshError) {
           // Check if it's a silent failure
@@ -617,30 +596,21 @@ class AuthService {
             requestBody.client = clientSubdomain;
           }
           
-          const response = await fetch(API_ENDPOINTS.auth.logout(), {
+          const result = await apiClient.request(API_ENDPOINTS.auth.logout(), {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              // Include access token in header for server validation
-              ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
-            },
-            // Note: If refreshToken is in httpOnly cookie, it will be sent automatically
-            body: Object.keys(requestBody).length > 0 ? JSON.stringify(requestBody) : undefined,
+            body: Object.keys(requestBody).length > 0 ? requestBody : undefined,
+            timeout: 15000,
           });
 
-          if (response.ok) {
-            const responseData = await response.json().catch(() => ({}));
+          if (result.success) {
+            const responseData = result.rawBody ?? result.data ?? result;
             console.log('✅ Logout successful on server - refresh token revoked');
-            console.log('   Server response:', responseData.message || 'Tokens revoked');
+            console.log('   Server response:', responseData?.message || 'Tokens revoked');
           } else {
-            const errorData = await response.json().catch(() => ({}));
-            const errorMessage = errorData.message || `HTTP ${response.status}`;
-            console.warn(`⚠️ Server logout returned ${response.status}: ${errorMessage}`);
-            // Continue with local logout even if server call fails
+            console.warn(`⚠️ Server logout returned ${result.status}: ${result.error || 'Unknown'}`);
           }
         } catch (error) {
-          console.warn('⚠️ Error calling logout endpoint:', error.message);
+          console.warn('⚠️ Error calling logout endpoint:', error?.message || error);
           // Continue with local logout even if server call fails
           // This ensures user can still logout even if server is unreachable
         }
@@ -702,11 +672,11 @@ class AuthService {
   }
 
   /**
-   * Clear all tokens
+   * Clear all tokens (from secure storage and AsyncStorage)
    */
   async clearTokens() {
     try {
-      await AsyncStorage.multiRemove([
+      await secureMultiRemove([
         ACCESS_TOKEN_KEY,
         REFRESH_TOKEN_KEY,
         TOKEN_EXPIRY_KEY

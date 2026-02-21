@@ -738,7 +738,8 @@ const loadPDFTemplate = async () => {
           // Try Invoice2.pdf first
           try {
             const bundlePath = Asset.fromModule(require('../../assets/Invoice2.pdf')).uri;
-            const response = await fetch(bundlePath);
+            const { apiClient } = await import('./apiClient');
+            const response = await apiClient.fetchLocal(bundlePath);
             const arrayBuffer = await response.arrayBuffer();
             const bytes = new Uint8Array(arrayBuffer);
             
@@ -747,7 +748,8 @@ const loadPDFTemplate = async () => {
           } catch (invoice2Error) {
             // Fallback to Invoice.pdf
             const bundlePath = Asset.fromModule(require('../../assets/Invoice.pdf')).uri;
-            const response = await fetch(bundlePath);
+            const { apiClient } = await import('./apiClient');
+            const response = await apiClient.fetchLocal(bundlePath);
             const arrayBuffer = await response.arrayBuffer();
             const bytes = new Uint8Array(arrayBuffer);
             

@@ -20,6 +20,7 @@ import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import { API_ENDPOINTS } from "../config/apiConfig";
 import { extractUserId } from "../utils/extractUserId";
+import { apiClient } from "../services/apiClient";
 import UserIcon from "../../assets/icons/user.svg";
 
 const screenHeight = Dimensions.get("window").height;
@@ -84,20 +85,19 @@ const ForgotPassword = ({ navigation }) => {
 
     setSending(true);
     try {
-      const response = await fetch(url, {
+      const result = await apiClient.request(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body,
+        skipAuth: true,
       });
-
-      const data = await response.json().catch(() => ({}));
+      const data = result.rawBody ?? result.data ?? result;
       console.log("[ForgotPassword] Generate OTP response", {
-        ok: response.ok,
-        status: response.status,
+        ok: result.success,
+        status: result.status,
         data,
       });
 
-      if (response.ok && (data?.status === "success" || data?.success === true)) {
+      if (result.success && (data?.status === "success" || data?.success === true)) {
         const uid = extractUserId(data);
         const userIdNum = uid != null && !Number.isNaN(Number(uid)) ? Number(uid) : null;
         if (userIdNum == null) {
@@ -109,14 +109,12 @@ const ForgotPassword = ({ navigation }) => {
           userId: userIdNum,
         });
       } else {
-        Alert.alert("Error", data.message || "Unable to send verification code.");
+        Alert.alert("Error", result.error || data?.message || "Unable to send verification code.");
       }
     } catch (err) {
       if (__DEV__) console.warn("[ForgotPassword] forgot-password error:", err?.message ?? err);
-      Alert.alert(
-        "Error",
-        err?.message ? `Something went wrong: ${err.message}` : "Something went wrong. Please try again."
-      );
+      const msg = err?.message?.includes("timeout") ? "Request timed out. Please try again." : (err?.message ? `Something went wrong: ${err.message}` : "Something went wrong. Please try again.");
+      Alert.alert("Error", msg);
     } finally {
       setSending(false);
     }

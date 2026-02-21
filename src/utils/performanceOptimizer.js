@@ -168,19 +168,15 @@ export const optimizeAssets = {
  * Network optimization
  */
 export const networkOptimizer = {
-  // Check network speed
+  // Check network speed via centralized apiClient (health endpoint)
   checkNetworkSpeed: async () => {
     const startTime = performance.now();
-    
     try {
-      await fetch('https://api.bestinfra.app/gmr/api/health', {
-        method: 'HEAD',
-        cache: 'no-cache'
-      });
-      
+      const { API_ENDPOINTS } = await import('../config/apiConfig');
+      const { apiClient } = await import('../services/apiClient');
+      await apiClient.request(API_ENDPOINTS.health(), { method: 'GET', showLogs: false });
       const endTime = performance.now();
       const speed = endTime - startTime;
-      
       if (speed < 500) return 'fast';
       if (speed < 1500) return 'medium';
       return 'slow';

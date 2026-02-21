@@ -45,7 +45,9 @@ import Reports from "./src/screens/Reports";
 import TermsOfServicesScreen from "./src/screens/TermsOfServicesScreen";
 import PrivacyPolicyScreen from "./src/screens/PrivacyPolicyScreen";
 import Toastify from 'react-native-toast-message';
-
+import ErrorBoundary from "./src/components/global/ErrorBoundary";
+import { initializeMonitoring } from "./src/config/monitoring";
+import { reportColdStart } from "./src/utils/performanceMonitor";
 
 const Stack = createNativeStackNavigator();
 
@@ -65,6 +67,7 @@ export default function App() {
       "Manrope-ExtraLight": require("./assets/fonts/Manrope-ExtraLight.ttf"),
     });
     setFontsLoaded(true);
+    reportColdStart();
   };
 
   const showToast = (message) => {
@@ -90,6 +93,7 @@ export default function App() {
   };
 
   useEffect(() => {
+    initializeMonitoring();
     loadFonts();
     // Check for app updates after fonts are loaded
     checkForAppUpdates();
@@ -199,13 +203,14 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      <AppProvider>
-        <DataProvider>
-        <NavigationProvider>
-          <NotificationsProvider>
-            <TabProvider>
-              <NavigationContainer ref={navigationRef} linking={linking}> 
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AppProvider>
+          <DataProvider>
+          <NavigationProvider>
+            <NotificationsProvider>
+              <TabProvider>
+                <NavigationContainer ref={navigationRef} linking={linking}> 
             <Stack.Navigator
               initialRouteName="Splash"
               screenOptions={{ headerShown: false }}
@@ -349,12 +354,13 @@ export default function App() {
              <Toastify />
              <PushNotificationHandler />
               </NavigationContainer>
-            </TabProvider>
-          </NotificationsProvider>
-        </NavigationProvider>
-        </DataProvider>
-      </AppProvider>
-    </ThemeProvider>
+              </TabProvider>
+            </NotificationsProvider>
+          </NavigationProvider>
+          </DataProvider>
+        </AppProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

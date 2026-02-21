@@ -19,6 +19,7 @@ import { testConsumerCredentials } from "../services/apiService";
 import { API, API_ENDPOINTS } from "../constants/constants";
 import { setTenantSubdomain } from "../config/apiConfig";
 import { authService } from "../services/authService";
+import { apiClient } from "../services/apiClient";
 import Button from "../components/global/Button";
 import Logo from "../components/global/Logo";
 import EmailLogin from "./EmailLogin";
@@ -148,49 +149,35 @@ const Login = ({ navigation }) => {
         }
       }
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const response = await fetch(API_ENDPOINTS.auth.login(), {
+      const result = await apiClient.request(API_ENDPOINTS.auth.login(), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
+        body: {
           identifier: identifier.trim(),
-          password: password.trim()
-        }),
-        signal: controller.signal
+          password: password.trim(),
+        },
+        skipAuth: true,
+        showLogs: !!__DEV__,
       });
 
-      console.log("🔍 API Response Status:", response.status);
-      console.log("🔍 API Response Headers:", response.headers);
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        let errorDetails = '';
-        try {
-          const errorResponse = await response.json();
-          errorDetails = errorResponse.message || errorResponse.error || '';
-          console.log("❌ API Error Response:", errorResponse);
-        } catch (e) {
-          console.log("❌ Could not parse error response");
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`);
+      if (!result.success) {
+        throw new Error(result.error || `HTTP ${result.status || 0}`);
       }
 
-      const result = await response.json();
-      console.log("✅ Login response:", result);
+      const rawBody = result.rawBody ?? result.data ?? result;
+      const responseLike = {
+        headers: {
+          get: (name) => result.headers && result.headers[name?.toLowerCase()],
+        },
+      };
+      console.log("✅ Login response:", rawBody);
 
-      if (result.success && result.data) {
-        const tokens = await authService.handleLoginResponse(response, result);
+      if (rawBody.success && rawBody.data) {
+        const tokens = await authService.handleLoginResponse(responseLike, rawBody);
         if (!tokens.accessToken) {
           throw new Error("No access token received from server");
         }
 
-        const consumerInfo = extractConsumerInfo(result, identifier);
+        const consumerInfo = extractConsumerInfo(rawBody, identifier);
         const userData = {
           name: consumerInfo.name,
           email: consumerInfo.email,
@@ -237,24 +224,24 @@ const Login = ({ navigation }) => {
           routes: [{ name: "PostPaidDashboard" }],
         });
       } else {
-        throw new Error(result.message || "Invalid response from server");
+        throw new Error(rawBody.message || "Invalid response from server");
       }
     } catch (error) {
       console.error("❌ Login error:", error);
       
       let errorMessage = "An unexpected error occurred. Please try again.";
       
-      if (error.name === 'AbortError') {
+      if (error.name === 'AbortError' || (error.message && error.message.includes('timeout'))) {
         errorMessage = "Request timed out. Please check your connection and try again.";
-      } else if (error.message.includes('Network')) {
+      } else if (error.message && error.message.includes('Network')) {
         errorMessage = "Network error. Please check your internet connection.";
-      } else if (error.message.includes('HTTP 401')) {
+      } else if (error.message && error.message.includes('HTTP 401')) {
         errorMessage = "Invalid credentials. Please check your email/phone and password.";
-      } else if (error.message.includes('HTTP 403')) {
+      } else if (error.message && error.message.includes('HTTP 403')) {
         errorMessage = "Access denied. This consumer may not have permission to access the system.";
-      } else if (error.message.includes('HTTP 404')) {
+      } else if (error.message && error.message.includes('HTTP 404')) {
         errorMessage = "Consumer not found. Please verify your identifier is correct.";
-      } else if (error.message.includes('HTTP')) {
+      } else if (error.message && error.message.includes('HTTP')) {
         errorMessage = `Server error (${error.message}). Please try again later.`;
       } else if (error.message) {
         if (error.message.includes('does not have valid credentials')) {

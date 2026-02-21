@@ -117,38 +117,29 @@ export const extractConsumerInfo = (apiResponse, fallbackIdentifier) => {
   };
 };
 
-// Helper function to test consumer authentication
+// Helper function to test consumer authentication (uses centralized apiClient)
 export const testConsumerAuth = async (identifier, password, apiUrl) => {
   try {
+    const { apiClient } = await import('../services/apiClient');
     console.log(`🧪 Testing authentication for consumer: ${identifier}`);
-    
-    const response = await fetch(API_ENDPOINTS.auth.login(), {
+    const result = await apiClient.request(API_ENDPOINTS.auth.login(), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        // Match working backend contract: identifier + password
-        identifier: identifier.trim(),
-        password: password.trim()
-      })
+      body: { identifier: identifier.trim(), password: password.trim() },
+      skipAuth: true,
     });
-
-    const result = await response.json();
-    
+    const data = result.rawBody ?? result.data ?? result;
     return {
-      success: response.ok && result.success,
-      status: response.status,
-      data: result,
-      error: response.ok ? null : result.message || `HTTP ${response.status}`
+      success: result.success && (data?.success === true || data?.status === 'success'),
+      status: result.status || 0,
+      data,
+      error: result.success ? null : (result.error || data?.message || `HTTP ${result.status}`),
     };
   } catch (error) {
     return {
       success: false,
       status: 0,
       data: null,
-      error: error.message
+      error: error?.message || String(error),
     };
   }
 };

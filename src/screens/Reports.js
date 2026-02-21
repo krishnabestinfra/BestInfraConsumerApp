@@ -289,7 +289,7 @@ const Reports = ({ navigation }) => {
 
   return (
     <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
-      <StatusBar style={isDark ? "light" : "dark"} />
+      <StatusBar style={isDark ? "dark" : "dark"} />
       
       {/* Header */}
       <View style={styles.header}>

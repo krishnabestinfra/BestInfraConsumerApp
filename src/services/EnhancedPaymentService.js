@@ -5,8 +5,10 @@
  * Provides proper backend integration, verification, and error handling
  */
 
+import { getRazorpayKeyId } from '../config/config';
 import { API, API_ENDPOINTS } from '../constants/constants';
-import { getToken, getUser } from '../utils/storage';
+import { getUser } from '../utils/storage';
+import { apiClient } from './apiClient';
 
 /**
  * 1. CREATE PAYMENT ORDER (Backend Integration)
@@ -14,19 +16,11 @@ import { getToken, getUser } from '../utils/storage';
 export const createPaymentOrder = async (paymentData) => {
   try {
     const user = await getUser();
-    const token = await getToken();
-    
-    if (!user?.identifier || !token) {
-      throw new Error('User authentication required');
-    }
-
-    // Validate payment data
-    if (!paymentData.amount || paymentData.amount < 100) {
-      throw new Error('Minimum payment amount is ₹1');
-    }
+    if (!user?.identifier) throw new Error('User authentication required');
+    if (!paymentData.amount || paymentData.amount < 100) throw new Error('Minimum payment amount is ₹1');
 
     const orderPayload = {
-      amount: paymentData.amount, // Amount in paise
+      amount: paymentData.amount,
       currency: paymentData.currency || 'INR',
       receipt: `receipt_${Date.now()}_${user.identifier}`,
       notes: {
@@ -37,64 +31,32 @@ export const createPaymentOrder = async (paymentData) => {
         source: 'react_native_app'
       }
     };
-
     console.log('🔄 Creating payment order:', orderPayload);
 
-    const response = await fetch(API_ENDPOINTS.payment.createLink(), {
+    const result = await apiClient.request(API_ENDPOINTS.payment.createLink(), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        ...orderPayload,
-        consumerId: user.identifier,
-        consumerName: user.name || user.consumerName,
-      }),
+      body: { ...orderPayload, consumerId: user.identifier, consumerName: user.name || user.consumerName },
     });
 
-    if (!response.ok) {
-      // If backend route doesn't exist, fall back to test mode
-      if (response.status === 404 || response.status === 500) {
-        if (__DEV__) {
-          console.log('ℹ️ Backend payment route not available, using fallback mode');
-        }
+    if (!result.success) {
+      if (result.status === 404 || result.status === 500) {
+        if (__DEV__) console.log('ℹ️ Backend payment route not available, using fallback mode');
         return createFallbackPaymentOrder(paymentData);
       }
-      
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(result.error || `HTTP ${result.status}`);
     }
-
-    const result = await response.json();
-    
-    if (!result.success || !result.data) {
-      throw new Error(result.message || 'Failed to create payment order');
-    }
-
-    console.log('✅ Payment order created:', result.data);
-    return {
-      success: true,
-      data: result.data
-    };
-
+    const data = result.rawBody ?? result.data ?? result;
+    if (!data?.success && !data?.data) throw new Error(data?.message || 'Failed to create payment order');
+    const orderData = data.data ?? data;
+    console.log('✅ Payment order created:', orderData);
+    return { success: true, data: orderData };
   } catch (error) {
     console.error('❌ Error creating payment order:', error);
-    
-    // If it's a network error or route not found, use fallback
-    if (error.message.includes('Route not found') || error.message.includes('Network')) {
-      if (__DEV__) {
-        console.log('ℹ️ Using fallback payment order due to:', error.message);
-      }
+    if (error?.message?.includes('Route not found') || error?.message?.includes('Network') || error?.message?.includes('timeout')) {
+      if (__DEV__) console.log('ℹ️ Using fallback payment order due to:', error.message);
       return createFallbackPaymentOrder(paymentData);
     }
-    
-    return {
-      success: false,
-      error: error.message,
-      code: error.code || 'ORDER_CREATION_FAILED'
-    };
+    return { success: false, error: error?.message || String(error), code: error?.code || 'ORDER_CREATION_FAILED' };
   }
 };
 
@@ -108,7 +70,7 @@ const createFallbackPaymentOrder = (paymentData) => {
     }
     
     // Use environment variable or fallback to test key
-    const testKeyId = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_1DP5mmOlF5G5ag';
+    const testKeyId = getRazorpayKeyId() || 'rzp_test_1DP5mmOlF5G5ag';
     
     const fallbackOrderData = {
       key_id: testKeyId,
@@ -150,11 +112,9 @@ const createFallbackPaymentOrder = (paymentData) => {
  */
 export const verifyPayment = async (paymentResponse, billId) => {
   try {
-    const token = await getToken();
-    
-    if (!token) {
-      throw new Error('User authentication required');
-    }
+    const { authService } = await import('./authService');
+    const token = await authService.getValidAccessToken();
+    if (!token) throw new Error('User authentication required');
 
     // Validate payment response
     if (!paymentResponse.razorpay_payment_id || !paymentResponse.razorpay_order_id || !paymentResponse.razorpay_signature) {
@@ -170,62 +130,45 @@ export const verifyPayment = async (paymentResponse, billId) => {
 
     console.log('🔄 Verifying payment:', verificationPayload);
 
-    const response = await fetch(API_ENDPOINTS.payment.verify(), {
+    const result = await apiClient.request(API_ENDPOINTS.payment.verify(), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(verificationPayload),
+      body: verificationPayload,
     });
 
-    if (!response.ok) {
-      // If backend route doesn't exist, use fallback verification
-      if (response.status === 404 || response.status === 500) {
-        if (__DEV__) {
-          console.log('ℹ️ Backend verification route not available, using fallback verification');
-        }
+    if (!result.success) {
+      if (result.status === 404 || result.status === 500) {
+        if (__DEV__) console.log('ℹ️ Backend verification route not available, using fallback verification');
         return createFallbackVerification(paymentResponse, billId);
       }
-      
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(result.error || `HTTP ${result.status}`);
     }
+    const res = result.rawBody ?? result.data ?? result;
+    if (!res?.success && !res?.data) throw new Error(res?.message || 'Payment verification failed');
+    const resultData = res.data ?? res;
 
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.message || 'Payment verification failed');
-    }
-
-    // Ensure the response has all required fields for PaymentStatus screen
     const verificationData = {
-      // Core payment data
-      bill_id: result.data.bill_id || billId,
-      payment_id: result.data.payment_id || paymentResponse.razorpay_payment_id,
-      order_id: result.data.order_id || paymentResponse.razorpay_order_id,
-      transaction_id: result.data.transaction_id || result.data.payment_id || paymentResponse.razorpay_payment_id,
+      bill_id: resultData.bill_id || billId,
+      payment_id: resultData.payment_id || paymentResponse.razorpay_payment_id,
+      order_id: resultData.order_id || paymentResponse.razorpay_order_id,
+      transaction_id: resultData.transaction_id || resultData.payment_id || paymentResponse.razorpay_payment_id,
       razorpay_payment_id: paymentResponse.razorpay_payment_id,
       razorpay_order_id: paymentResponse.razorpay_order_id,
       razorpay_signature: paymentResponse.razorpay_signature,
-      
-      // Status and timing
-      status: result.data.status || 'success',
-      payment_status: result.data.payment_status || 'completed',
-      verified_at: result.data.verified_at || new Date().toISOString(),
-      created_at: result.data.created_at || new Date().toISOString(),
-      payment_date: result.data.payment_date || new Date().toISOString(),
+      status: resultData.status || 'success',
+      payment_status: resultData.payment_status || 'completed',
+      verified_at: resultData.verified_at || new Date().toISOString(),
+      created_at: resultData.created_at || new Date().toISOString(),
+      payment_date: resultData.payment_date || new Date().toISOString(),
       
       // Amount and currency
-      amount: result.data.amount || 0,
-      total_amount: result.data.total_amount || result.data.amount || 0,
-      currency: result.data.currency || 'INR',
+      amount: resultData.amount || 0,
+      total_amount: resultData.total_amount || resultData.amount || 0,
+      currency: resultData.currency || 'INR',
       
       // Additional metadata
       source: 'react_native_app',
-      payment_method: result.data.payment_method || 'upi',
-      notes: result.data.notes || {}
+      payment_method: resultData.payment_method || 'upi',
+      notes: resultData.notes || {}
     };
 
     console.log('✅ Payment verified:', verificationData);
@@ -334,7 +277,7 @@ export const processCompletePayment = async (paymentData, navigation, setShowPay
 
     // Step 2: Prepare Razorpay Options
     const razorpayOptions = {
-      key: orderResult.data.key_id || process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
+      key: orderResult.data.key_id || getRazorpayKeyId(),
       amount: orderResult.data.amount,
       currency: orderResult.data.currency,
       // Only include order_id if it exists (for backend orders)

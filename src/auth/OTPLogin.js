@@ -19,6 +19,7 @@ import { API_ENDPOINTS } from "../config/apiConfig";
 import { setTenantSubdomain } from "../config/apiConfig";
 import { storeUser, extractConsumerInfo } from "../utils/storage";
 import { authService } from "../services/authService";
+import { apiClient } from "../services/apiClient";
 import Logo from "../components/global/Logo";
 import Button from "../components/global/Button";
 import Input from "../components/global/Input";
@@ -112,26 +113,26 @@ const OTPLogin = ({ navigation }) => {
     setIsLoading(true);
     try {
       const url = API_ENDPOINTS.auth.loginOtp();
-      const response = await fetch(url, {
+      const result = await apiClient.request(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ email: trimmedEmail }),
+        body: { email: trimmedEmail },
+        skipAuth: true,
       });
-      const data = await response.json().catch(() => ({}));
+      const data = result.rawBody ?? result.data ?? result;
 
       if (__DEV__) {
-        console.log("[OTPLogin] POST login-otp response:", { ok: response.ok, status: response.status, data });
+        console.log("[OTPLogin] POST login-otp response:", { ok: result.success, status: result.status, data });
       }
 
-      if (response.ok && (data.status === "success" || data.success === true)) {
+      if (result.success && (data.status === "success" || data.success === true)) {
         setOtpSent(true);
         setResendSeconds(OTP_RESEND_SECONDS);
         Alert.alert("OTP Sent", `A 6-digit code has been sent to ${trimmedEmail}. Only registered emails receive the OTP.`);
       } else {
-        const serverMessage = data.message || data.error || "";
+        const serverMessage = result.error || data?.message || data?.error || "";
         const isUnregistered =
-          response.status === 400 ||
-          response.status === 404 ||
+          result.status === 400 ||
+          result.status === 404 ||
           /not registered|unknown email|invalid email|not found/i.test(serverMessage);
         const message = isUnregistered
           ? "Only registered email addresses can receive the OTP. Please use the email linked to your account."
@@ -140,10 +141,8 @@ const OTPLogin = ({ navigation }) => {
       }
     } catch (err) {
       if (__DEV__) console.warn("[OTPLogin] login-otp error:", err?.message ?? err);
-      Alert.alert(
-        "Error",
-        err?.message ? `Something went wrong: ${err.message}` : "Something went wrong. Please try again."
-      );
+      const msg = err?.message?.includes("timeout") ? "Request timed out. Please try again." : (err?.message ? `Something went wrong: ${err.message}` : "Something went wrong. Please try again.");
+      Alert.alert("Error", msg);
     } finally {
       setIsLoading(false);
     }
@@ -169,22 +168,23 @@ const OTPLogin = ({ navigation }) => {
     setIsVerifying(true);
     try {
       const url = API_ENDPOINTS.auth.verifyOtp();
-      const response = await fetch(url, {
+      const result = await apiClient.request(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ email: trimmedEmail, otp: code }),
+        body: { email: trimmedEmail, otp: code },
+        skipAuth: true,
       });
-      const data = await response.json().catch(() => ({}));
+      const data = result.rawBody ?? result.data ?? result;
 
       if (__DEV__) {
-        console.log("[OTPLogin] POST verify-otp response:", { ok: response.ok, status: response.status, data });
+        console.log("[OTPLogin] POST verify-otp response:", { ok: result.success, status: result.status, data });
       }
 
-      if (response.ok && (data.status === "success" || data.success === true)) {
+      if (result.success && (data.status === "success" || data.success === true)) {
         try {
           let accessToken = null;
+          const responseLike = { headers: { get: (name) => result.headers && result.headers[name?.toLowerCase()] } };
           try {
-            const tokens = await authService.handleLoginResponse(response, data);
+            const tokens = await authService.handleLoginResponse(responseLike, data);
             accessToken = tokens?.accessToken;
           } catch (tokenErr) {
             if (__DEV__) console.warn("[OTPLogin] Token extraction:", tokenErr?.message);

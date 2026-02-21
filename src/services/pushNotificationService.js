@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_ENDPOINTS } from '../constants/constants';
 import { authService } from './authService';
 import { getUser } from '../utils/storage';
+import { apiClient } from './apiClient';
 import { isDemoUser } from '../constants/demoData';
 import { fetchNotifications } from './apiService';
 import { isRunningInExpoGo } from '../utils/expoGoDetect';
@@ -310,33 +311,21 @@ export const registerPushToken = async (token) => {
       console.log(`   Request body:`, { ...requestBody, pushToken: token.substring(0, 30) + '...' });
     }
     
-    const response = await fetch(endpoint, {
+    const result = await apiClient.request(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(requestBody),
+      body: requestBody,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('❌ Failed to register push token:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorData
-      });
-      return { 
-        success: false, 
-        message: errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`,
-        status: response.status
+    if (!result.success) {
+      console.error('❌ Failed to register push token:', { status: result.status, error: result.error });
+      return {
+        success: false,
+        message: result.error || `HTTP ${result.status}`,
+        status: result.status,
       };
     }
-
-    const result = await response.json();
     console.log('✅ Push token registered successfully');
-    return { success: true, data: result };
+    return { success: true, data: result.data ?? result.rawBody ?? result };
   } catch (error) {
     console.error('❌ Error registering push token:', error);
     return { success: false, message: error.message };

@@ -556,29 +556,12 @@ const Invoices = ({ navigation }) => {
     if (!billNumber) {
       throw new Error('Bill number is required');
     }
-    const token = await authService.getValidAccessToken();
-    if (!token) {
-      throw new Error('No access token available. Please login again.');
-    }
     const invoiceUrl = API_ENDPOINTS.billing.invoice(billNumber);
-    const response = await fetch(invoiceUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
-      throw new Error(errorMessage);
-    }
-    const result = await response.json();
-    if (result.status !== 'success' || !result.data) {
-      throw new Error('Invalid invoice data received from API');
-    }
-    return result.data;
+    const result = await apiClient.request(invoiceUrl, { method: 'GET' });
+    if (!result.success) throw new Error(result.error || `HTTP ${result.status}`);
+    const data = result.rawBody ?? result.data ?? result;
+    if (data?.status !== 'success' && !data?.data) throw new Error('Invalid invoice data received from API');
+    return data.data ?? data;
   }, []);
 
   // Handle invoice View — opens PDF in-app viewer (no share sheet)

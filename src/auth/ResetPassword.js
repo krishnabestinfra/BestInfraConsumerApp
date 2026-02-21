@@ -21,6 +21,7 @@ import OTPInput from "../components/global/OTPInput";
 import { COLORS, colors } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import { API_ENDPOINTS } from "../config/apiConfig";
+import { apiClient } from "../services/apiClient";
 import { extractUserId } from "../utils/extractUserId";
 import UserIcon from "../../assets/icons/user.svg";
 import EyeBlank from "../../assets/icons/eyeBlank.svg";
@@ -172,30 +173,25 @@ const ResetPassword = () => {
         confirmPassword: "***",
       });
 
-      const response = await fetch(updateUrl, {
+      const result = await apiClient.request(updateUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(requestBody),
+        body: requestBody,
+        skipAuth: true,
       });
-      const data = await response.json().catch((e) => {
-        console.log("[ResetPassword] update-password parse error", e?.message || e);
-        return {};
-      });
-
+      const data = result.rawBody ?? result.data ?? result;
       console.log("[ResetPassword] update-password response", {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText,
+        ok: result.success,
+        status: result.status,
         data,
       });
 
-      if (response.ok && (data?.status === "success" || data?.success === true)) {
+      if (result.success && (data?.status === "success" || data?.success === true)) {
         if (__DEV__) console.log("[ResetPassword] update-password success");
         setStep("success");
         return;
       }
 
-      const errMsg = data.message || data.error || data.msg || "Unable to reset password.";
+      const errMsg = result.error || data?.message || data?.error || data?.msg || "Unable to reset password.";
       if (__DEV__) console.log("[ResetPassword] update-password error", { errMsg, data });
       Alert.alert("Error", errMsg);
     } catch (err) {
@@ -218,21 +214,21 @@ const ResetPassword = () => {
       return;
     }
     try {
-      const response = await fetch(API_ENDPOINTS.auth.forgotPassword(), {
+      const result = await apiClient.request(API_ENDPOINTS.auth.forgotPassword(), {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ email: trimmedEmail }),
+        body: { email: trimmedEmail },
+        skipAuth: true,
       });
-      const data = await response.json().catch(() => ({}));
-      if (response.ok && (data?.status === "success" || data?.success === true)) {
+      const data = result.rawBody ?? result.data ?? result;
+      if (result.success && (data?.status === "success" || data?.success === true)) {
         const uid = extractUserId(data);
         if (uid != null && !Number.isNaN(Number(uid))) setUserId(Number(uid));
         Alert.alert("Success", "A new verification code has been sent.");
       } else {
-        Alert.alert("Error", data?.message || "Unable to resend code.");
+        Alert.alert("Error", result.error || data?.message || "Unable to resend code.");
       }
     } catch (err) {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      Alert.alert("Error", err?.message?.includes("timeout") ? "Request timed out. Please try again." : "Something went wrong. Please try again.");
     }
   };
 

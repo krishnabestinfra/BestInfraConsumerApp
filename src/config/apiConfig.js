@@ -1,19 +1,16 @@
 /**
  * Centralized API Configuration
- * 
- * Manages all API endpoints for both development and production environments
- * Provides easy switching between local and hosted APIs
+ * Production only. Base URLs from config; tenant subdomain applied at runtime.
  */
 
-import { ENVIRONMENT_CONFIG, getCurrentEnvironment } from './environment';
+import { API_CONFIG, API_BASE_URL, getDefaultApiHost } from './config';
+import { getCurrentEnvironment } from './environment';
 
-// Get current environment configuration
 const currentEnv = getCurrentEnvironment();
 
 // -----------------------------
 // Tenant (subdomain) handling
 // -----------------------------
-// Default tenant for hosted APIs – will be overridden after login using middleware response
 let currentTenantSubdomain = 'gmr';
 
 export const setTenantSubdomain = (subdomain) => {
@@ -28,66 +25,25 @@ export const setTenantSubdomain = (subdomain) => {
 
 export const getTenantSubdomain = () => currentTenantSubdomain;
 
-// Helper: extract host from configured API base URL
-// e.g. 'https://api.bestinfra.app/gmr/api' -> 'https://api.bestinfra.app'
 const getApiHost = () => {
-  const baseUrl = currentEnv.apiBaseUrl || ENVIRONMENT_CONFIG.production.apiBaseUrl;
+  const baseUrl = currentEnv.apiBaseUrl || API_BASE_URL;
   try {
     const url = new URL(baseUrl);
     return `${url.protocol}//${url.host}`;
   } catch (e) {
-    // Fallback to known host
-    return 'https://api.bestinfra.app';
+    return getDefaultApiHost();
   }
 };
 
 const API_HOST = getApiHost();
 
-// Build tenant-specific base URLs (for hosted / production mode)
-const getTenantBaseUrl = () => {
-  if (currentEnv.name === 'development') {
-    // In development we keep using direct local URL
-    return currentEnv.apiBaseUrl;
-  }
-  return `${API_HOST}/${currentTenantSubdomain}/api`;
-};
+const getTenantBaseUrl = () => `${API_HOST}/${currentTenantSubdomain}/api`;
+const getTenantTicketsBaseUrl = () => `${API_HOST}/${currentTenantSubdomain}/api`;
+const getTenantHealthUrl = () => `${API_HOST}/${currentTenantSubdomain}/api/health`;
+const getTenantPaymentUrl = () => `${API_HOST}/${currentTenantSubdomain}/api/payment`;
+const getTenantAuthUrl = () => `${API_HOST}/${currentTenantSubdomain}/api/sub-app/auth`;
 
-const getTenantTicketsBaseUrl = () => {
-  if (currentEnv.name === 'development') {
-    return currentEnv.ticketsBaseUrl;
-  }
-  // Tickets also live under tenant API
-  return `${API_HOST}/${currentTenantSubdomain}/api`;
-};
-
-const getTenantHealthUrl = () => {
-  if (currentEnv.name === 'development') {
-    return currentEnv.healthUrl;
-  }
-  return `${API_HOST}/${currentTenantSubdomain}/api/health`;
-};
-
-const getTenantPaymentUrl = () => {
-  if (currentEnv.name === 'development') {
-    return currentEnv.paymentUrl;
-  }
-  return `${API_HOST}/${currentTenantSubdomain}/api/payment`;
-};
-
-// Tenant-specific auth base URL (sub-app auth)
-const getTenantAuthUrl = () => {
-  if (currentEnv.name === 'development') {
-    return currentEnv.authBaseUrl;
-  }
-  return `${API_HOST}/${currentTenantSubdomain}/api/sub-app/auth`;
-};
-
-// Middleware base URL for authentication (common for all clients)
-// NOTE: Currently, the live backend exposes working auth at the tenant sub-app
-// route (e.g. https://api.bestinfra.app/gmr/api/sub-app/auth/login), not at
-// /middleware/auth/login. We keep this value for future use, but login/refresh/
-// logout are wired to AUTH_URL to match the working backend.
-const MIDDLEWARE_BASE_URL = currentEnv.middlewareBaseUrl || 'https://api.bestinfra.app/middleware';
+const MIDDLEWARE_BASE_URL = API_CONFIG.middlewareBaseUrl;
 
 // Current API configuration (exposed as dynamic getters so tenant can change at runtime)
 export const API = {

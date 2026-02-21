@@ -14,7 +14,8 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API, API_ENDPOINTS } from '../constants/constants';
-import { getToken, getUser } from './storage';
+import { getUser } from './storage';
+import { apiClient } from '../services/apiClient';
 import { isDemoUser, getDemoDashboardConsumerData } from '../constants/demoData';
 
 // Cache configuration
@@ -140,44 +141,20 @@ class UnifiedCacheManager {
         };
       }
 
-      const token = await getToken();
-      
       console.log('🔄 Fetching fresh data from API:');
       console.log(`   Endpoint: ${endpoint}`);
       console.log(`   Consumer: ${effectiveIdentifier}`);
-      console.log(`   Token present: ${!!token}`);
-      
-      const response = await fetch(endpoint, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
 
-      console.log(`   Response status: ${response.status}`);
-      console.log(`   Response headers:`, Object.fromEntries(response.headers.entries()));
+      const result = await apiClient.request(endpoint, { method: 'GET' });
+      console.log(`   Response status: ${result.status}`);
 
-      if (!response.ok) {
-        // Try to get error details from response
-        let errorDetails = '';
-        try {
-          const errorResponse = await response.json();
-          errorDetails = errorResponse.message || errorResponse.error || '';
-          console.log('❌ API Error Response:', errorResponse);
-        } catch (e) {
-          console.log('❌ Could not parse error response');
-        }
-        
-        const errorMessage = `HTTP ${response.status}: ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`;
-        console.error('❌ API Error:', errorMessage);
-        throw new Error(errorMessage);
+      if (!result.success) {
+        console.error('❌ API Error:', result.error);
+        throw new Error(result.error || `HTTP ${result.status}`);
       }
-
-      const result = await response.json();
-      console.log('✅ API Response received:', result);
-      
-      const data = result.data || result;
+      const resultData = result.data ?? result.rawBody ?? result;
+      const data = resultData?.data ?? resultData;
+      console.log('✅ API Response received');
       
       return {
         success: true,

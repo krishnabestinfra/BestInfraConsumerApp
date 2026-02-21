@@ -5,10 +5,31 @@
  * No native dependencies, works perfectly with Expo managed projects
  */
 
+import { getRazorpayKeyId, getRazorpaySecretKey } from '../config/config';
 import { API, API_ENDPOINTS } from '../constants/constants';
-import { getToken, getUser } from '../utils/storage';
+import { getUser } from '../utils/storage';
+import { apiClient } from './apiClient';
+import { authService } from './authService';
 
 const BASE_URL = API.BASE_URL;
+
+/** Single exception: external Razorpay API (key/secret auth). All other network calls use apiClient. */
+const requestRazorpayApi = async (url, options = {}) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    const text = await response.text();
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error('Invalid response from Razorpay'); }
+    if (!response.ok) throw new Error(data.error?.description || data.error?.message || `HTTP ${response.status}`);
+    return data;
+  } catch (e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
+};
 
 /**
  * Generate order_id - ALWAYS creates an order_id for payment flow
@@ -86,8 +107,7 @@ const base64Encode = (str) => {
 export const createPaymentOrder = async (paymentData) => {
   try {
     const user = await getUser();
-    const token = await getToken();
-    
+    const token = await authService.getValidAccessToken();
     if (!user || !user.identifier) {
       throw new Error('User authentication required');
     }
@@ -97,20 +117,20 @@ export const createPaymentOrder = async (paymentData) => {
     }
 
     // Check if Razorpay secret key is configured (REQUIRED for creating real orders with automatic capture)
-    const razorpaySecret = process.env.EXPO_PUBLIC_RAZORPAY_SECRET_KEY;
-    const razorpayKeyId = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID;
+    const razorpaySecret = getRazorpaySecretKey();
+    const razorpayKeyId = getRazorpayKeyId();
     
     if (!razorpayKeyId) {
-      console.error('❌ CRITICAL: Razorpay Key ID (EXPO_PUBLIC_RAZORPAY_KEY_ID) is missing!');
-      console.error('❌ Please add EXPO_PUBLIC_RAZORPAY_KEY_ID to your .env file');
+      console.error('❌ CRITICAL: Razorpay Key ID is missing!');
+      console.error('❌ Configure razorpayKeyId in app.config.js extra (e.g. from .env at build time).');
       console.error('❌ Get it from: https://dashboard.razorpay.com/app/keys');
-      throw new Error('Razorpay Key ID is required. Please configure EXPO_PUBLIC_RAZORPAY_KEY_ID in your .env file.');
+      throw new Error('Razorpay Key ID is required. Configure razorpayKeyId in app.config.js extra.');
     }
     
     if (!razorpaySecret) {
-      console.error('❌ CRITICAL: Razorpay secret key (EXPO_PUBLIC_RAZORPAY_SECRET_KEY) is missing!');
+      console.error('❌ CRITICAL: Razorpay secret key is missing!');
       console.error('❌ Without secret key, orders cannot be created and payments cannot be automatically captured.');
-      console.error('❌ Please add EXPO_PUBLIC_RAZORPAY_SECRET_KEY to your .env file');
+      console.error('❌ Configure razorpaySecretKey in app.config.js extra (e.g. from .env at build time).');
       console.error('❌ Get it from: https://dashboard.razorpay.com/app/keys');
     } else {
       console.log('✅ Razorpay secret key found - will create REAL Razorpay orders for automatic capture');
@@ -179,47 +199,19 @@ export const createPaymentOrder = async (paymentData) => {
     for (const endpoint of paymentEndpoints) {
       try {
         console.log(`🔄 Trying payment endpoint: ${endpoint}`);
-        
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(orderPayload),
-        });
-
-        const responseText = await response.text();
-        let result;
-        
-        try {
-          result = JSON.parse(responseText);
-        } catch (parseError) {
-          // If it's a 404, the response might not be JSON
-          if (response.status === 404) {
-            console.warn(`⚠️ Endpoint ${endpoint} returned 404, trying next...`);
-            lastError = new Error(`Route not found: ${endpoint}`);
-            continue; // Try next endpoint
-          }
-          console.error('❌ Failed to parse response:', responseText);
-          if (response.status === 400) {
-            // 400 error - log the error message
-            console.warn(`⚠️ Endpoint ${endpoint} returned 400: ${responseText}`);
-            lastError = new Error(responseText || 'Bad request - Bill ID and amount are required');
-            continue; // Try next endpoint or fallback
-          }
-          throw new Error(`Invalid response from server: ${response.status}`);
+        const apiResult = await apiClient.request(endpoint, { method: 'POST', body: orderPayload, showLogs: false });
+        if (!apiResult.success && (apiResult.status === 404 || apiResult.status === 400)) {
+          console.warn(`⚠️ Endpoint ${endpoint} returned ${apiResult.status}, trying next...`);
+          lastError = new Error(apiResult.error || `HTTP ${apiResult.status}`);
+          continue;
         }
+        const result = apiResult.rawBody ?? apiResult.data ?? {};
+        const responseOk = apiResult.success;
 
-      // Check if response is successful (200-299 status codes)
-      // Even if result.success is false, the response might still contain order_id
-      if (response.ok) {
-        // DEBUG: Log full response structure
+      if (responseOk) {
         console.log('📦 Full backend response:', JSON.stringify(result, null, 2));
-        console.log('📦 Response status:', response.status);
+        console.log('📦 Response status:', apiResult.status);
         console.log('📦 Response success flag:', result.success);
-        console.log('📦 Response text length:', responseText?.length);
         
         // Try to extract order data from various possible structures
         let orderData = null;
@@ -400,8 +392,8 @@ export const createPaymentOrder = async (paymentData) => {
               billId: billId, // Also include camelCase for compatibility
               amount: paymentData.amount,
               currency: currency,
-              key_id: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
-              key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
+              key_id: getRazorpayKeyId(),
+              key: getRazorpayKeyId(),
               description: paymentData.description || 'Energy Bill Payment',
               consumer_name: paymentData.consumer_name || user.name || user.consumerName || 'Customer',
               email: paymentData.email || user.email || 'customer@bestinfra.com',
@@ -466,8 +458,8 @@ export const createPaymentOrder = async (paymentData) => {
               order_id: realOrderId,
               id: realOrderId,
               currency: currency,
-              key_id: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
-              key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
+              key_id: getRazorpayKeyId(),
+              key: getRazorpayKeyId(),
               description: paymentData.description || 'Energy Bill Payment',
               consumer_name: paymentData.consumer_name || user.name || user.consumerName || 'Customer',
               email: paymentData.email || user.email || 'customer@bestinfra.com',
@@ -528,9 +520,9 @@ export const createPaymentOrder = async (paymentData) => {
     // CRITICAL: If secret key is missing, we cannot create orders - throw clear error
     if (!razorpaySecret) {
       console.error('❌ Cannot create Razorpay order: Secret key is missing');
-      console.error('❌ Please configure EXPO_PUBLIC_RAZORPAY_SECRET_KEY in your .env file');
+      console.error('❌ Configure razorpaySecretKey in app.config.js extra (e.g. from .env at build time).');
       console.error('❌ Get it from: https://dashboard.razorpay.com/app/keys');
-      throw new Error('Razorpay secret key is required to create payment orders. Please configure EXPO_PUBLIC_RAZORPAY_SECRET_KEY in your .env file. Get it from: https://dashboard.razorpay.com/app/keys');
+      throw new Error('Razorpay secret key is required. Configure razorpaySecretKey in app.config.js extra. Get it from: https://dashboard.razorpay.com/app/keys');
     }
     
     // Create REAL Razorpay order via API (this will create order_id for automatic capture)
@@ -563,7 +555,7 @@ export const createPaymentOrder = async (paymentData) => {
     // If direct order creation fails, throw error (secret key was checked, so this shouldn't happen)
     console.error('❌ Failed to create Razorpay order via API');
     console.error('❌ Response:', directOrderResult);
-    throw new Error('Failed to create payment order. All endpoints failed and Razorpay API order creation failed. Please ensure Razorpay secret key (EXPO_PUBLIC_RAZORPAY_SECRET_KEY) is configured correctly in your environment variables.');
+    throw new Error('Failed to create payment order. All endpoints failed and Razorpay API order creation failed. Please ensure Razorpay secret key is configured in app.config.js extra.');
 
   } catch (error) {
     console.error('❌ Error creating payment order:', error);
@@ -581,24 +573,21 @@ export const createPaymentOrder = async (paymentData) => {
  */
 const createDirectPaymentOrder = async (paymentData, orderPayload) => {
   try {
-    // Use Razorpay credentials from environment
-    const razorpayKeyId = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID;
-    const razorpaySecret = process.env.EXPO_PUBLIC_RAZORPAY_SECRET_KEY;
+    const razorpayKeyId = getRazorpayKeyId();
+    const razorpaySecret = getRazorpaySecretKey();
     
     if (!razorpayKeyId) {
-      console.error('❌ CRITICAL: Razorpay Key ID (EXPO_PUBLIC_RAZORPAY_KEY_ID) is missing!');
-      console.error('❌ Please add EXPO_PUBLIC_RAZORPAY_KEY_ID to your .env file');
+      console.error('❌ CRITICAL: Razorpay Key ID is missing!');
+      console.error('❌ Configure razorpayKeyId in app.config.js extra (e.g. from .env at build time).');
       console.error('❌ Get it from: https://dashboard.razorpay.com/app/keys');
-      throw new Error('Razorpay Key ID is required. Please configure EXPO_PUBLIC_RAZORPAY_KEY_ID in your .env file.');
+      throw new Error('Razorpay Key ID is required. Configure razorpayKeyId in app.config.js extra.');
     }
     
     if (!razorpaySecret) {
-      // Secret key is REQUIRED for creating Razorpay orders
-      // Without it, we cannot create order_id and payments cannot be automatically captured
       console.error('❌ Razorpay secret key is REQUIRED to create payment orders');
-      console.error('❌ Please configure EXPO_PUBLIC_RAZORPAY_SECRET_KEY in your .env file');
+      console.error('❌ Configure razorpaySecretKey in app.config.js extra (e.g. from .env at build time).');
       console.error('❌ Get it from: https://dashboard.razorpay.com/app/keys');
-      throw new Error('Razorpay secret key is required to create payment orders. Please configure EXPO_PUBLIC_RAZORPAY_SECRET_KEY in your .env file.');
+      throw new Error('Razorpay secret key is required. Configure razorpaySecretKey in app.config.js extra.');
     }
 
     // Create Razorpay order using their API directly
@@ -629,11 +618,8 @@ const createDirectPaymentOrder = async (paymentData, orderPayload) => {
       payment_capture: razorpayOrderData.payment_capture
     });
 
-    // Create Basic Auth header (key_id:secret_key encoded in base64)
     const credentials = base64Encode(`${razorpayKeyId}:${razorpaySecret}`);
-    
-    // Call Razorpay Orders API
-    const response = await fetch('https://api.razorpay.com/v1/orders', {
+    const razorpayOrder = await requestRazorpayApi('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -642,17 +628,7 @@ const createDirectPaymentOrder = async (paymentData, orderPayload) => {
       body: JSON.stringify(razorpayOrderData),
     });
 
-    const responseText = await response.text();
-    let razorpayOrder;
-    
-    try {
-      razorpayOrder = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('❌ Failed to parse Razorpay order response:', responseText);
-      throw new Error('Invalid response from Razorpay API');
-    }
-
-    if (response.ok && razorpayOrder.id) {
+    if (razorpayOrder.id) {
       // Successfully created REAL Razorpay order
       const orderData = {
         id: razorpayOrder.id,
@@ -692,20 +668,8 @@ const createDirectPaymentOrder = async (paymentData, orderPayload) => {
         warning: 'Order created directly via Razorpay API (backend route unavailable)'
       };
     } else {
-      // Razorpay API error
-      const errorMessage = razorpayOrder.error?.description || 
-                           razorpayOrder.error?.message || 
-                           razorpayOrder.message || 
-                           'Unknown error';
-      
-      console.error('❌ Razorpay order creation failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorMessage,
-        fullResponse: razorpayOrder
-      });
-      
-      // Throw error instead of using fake order_id
+      const errorMessage = razorpayOrder.error?.description || razorpayOrder.error?.message || razorpayOrder.message || 'Unknown error';
+      console.error('❌ Razorpay order creation failed:', { error: errorMessage, fullResponse: razorpayOrder });
       throw new Error(`Failed to create Razorpay order: ${errorMessage}. Please check your Razorpay credentials.`);
     }
   } catch (error) {
@@ -783,9 +747,8 @@ const createDirectPaymentWithoutOrder = (paymentData, orderPayload, razorpayKeyI
  */
 export const verifyPayment = async (paymentResponse) => {
   try {
-    const token = await getToken();
+    const token = await authService.getValidAccessToken();
     const user = await getUser();
-    
     if (!token) {
       throw new Error('Authentication token required for payment verification');
     }
@@ -953,62 +916,38 @@ export const verifyPayment = async (paymentResponse) => {
           amount: verificationPayload.amount,
           consumer_id: verificationPayload.consumer_id
         });
-        
-        response = await fetch(endpoint, {
+
+        const apiResult = await apiClient.request(endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(verificationPayload),
+          body: verificationPayload,
+          showLogs: false,
         });
+        response = { ok: apiResult.success, status: apiResult.status };
+        result = apiResult.rawBody ?? apiResult.data ?? {};
 
-        responseText = await response.text();
-        
-        try {
-          result = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('❌ Failed to parse verification response:', responseText);
-          if (endpoint !== verifyEndpoints[verifyEndpoints.length - 1]) {
-            lastError = new Error(`Invalid JSON response: ${response.status}`);
-            continue; // Try next endpoint
-          }
-          throw new Error(`Invalid response from server: ${response.status}`);
-        }
-
-        console.log(`📥 Verification response status: ${response.status}`, {
+        console.log(`📥 Verification response status: ${apiResult.status}`, {
           success: result.success,
           hasData: !!(result.data),
           message: result.message || 'No message'
         });
 
-        if (response.ok && result.success) {
+        if (apiResult.success && result.success) {
           console.log('✅ Payment verification endpoint responded successfully');
-          break; // Success, exit loop
-        } else if (response.status === 404 && endpoint !== verifyEndpoints[verifyEndpoints.length - 1]) {
+          break;
+        } else if (apiResult.status === 404 && endpoint !== verifyEndpoints[verifyEndpoints.length - 1]) {
           console.warn(`⚠️ Endpoint ${endpoint} returned 404, trying next...`);
-          lastError = new Error(`Route not found: ${endpoint}`);
-          continue; // Try next endpoint
+          lastError = new Error(apiResult.error || `Route not found: ${endpoint}`);
+          continue;
         } else {
-          // Log the error but continue to try next endpoint
-          lastError = new Error(result.message || `HTTP ${response.status}: Payment verification failed`);
-          console.error('❌ Verification endpoint error:', {
-            status: response.status,
-            message: result.message || 'Unknown error',
-            error: result.error
-          });
-          if (endpoint !== verifyEndpoints[verifyEndpoints.length - 1]) {
-            continue; // Try next endpoint
-          }
-          break; // Error, exit loop
+          lastError = new Error(result.message || apiResult.error || `HTTP ${apiResult.status}: Payment verification failed`);
+          console.error('❌ Verification endpoint error:', { status: apiResult.status, message: result.message || 'Unknown error', error: result.error });
+          if (endpoint !== verifyEndpoints[verifyEndpoints.length - 1]) continue;
+          break;
         }
       } catch (fetchError) {
-        console.error(`❌ Error with verification endpoint ${endpoint}:`, fetchError.message);
+        console.error(`❌ Error with verification endpoint ${endpoint}:`, fetchError?.message);
         lastError = fetchError;
-        if (endpoint !== verifyEndpoints[verifyEndpoints.length - 1]) {
-          continue; // Try next endpoint
-        }
+        if (endpoint !== verifyEndpoints[verifyEndpoints.length - 1]) continue;
         throw fetchError;
       }
     }
@@ -1322,41 +1261,15 @@ const createFallbackVerification = (paymentResponse, verificationPayload) => {
  */
 export const getPaymentStatus = async (billId) => {
   try {
-    // First try backend
-    const token = await getToken();
-    
-    if (token) {
-      try {
-        const response = await fetch(`${BASE_URL}/payment/status/${billId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          return {
-            success: true,
-            data: result.data || result,
-          };
-        }
-      } catch (backendError) {
-        console.log('Backend status route not available, using test mode');
-      }
+    const result = await apiClient.request(`${BASE_URL}/payment/status/${billId}`, { method: 'GET', showLogs: false });
+    if (result.success) {
+      const data = result.rawBody ?? result.data ?? result;
+      return { success: true, data: data?.data ?? data };
     }
-
-    // Fallback to test status
     return getTestPaymentStatus(billId);
-
   } catch (error) {
-    console.error('❌ Error fetching payment status:', error);
-    return {
-      success: false,
-      message: error.message,
-    };
+    console.log('Backend status route not available, using test mode');
+    return getTestPaymentStatus(billId);
   }
 };
 
@@ -1446,7 +1359,7 @@ export const processRazorpayPayment = async (paymentData, navigation, setShowPay
     if (isManualCapture) {
       console.warn('⚠️ Payment proceeding in manual capture mode (no order_id)');
       console.warn('⚠️ Payment will need to be manually captured after completion');
-      console.warn('⚠️ To enable automatic capture, configure EXPO_PUBLIC_RAZORPAY_SECRET_KEY');
+      console.warn('⚠️ To enable automatic capture, configure razorpaySecretKey in app.config.js extra.');
     } else {
       console.log('✅ Order ID validated:', {
         order_id: extractedOrderId,
@@ -1542,7 +1455,7 @@ export const processRazorpayPayment = async (paymentData, navigation, setShowPay
        // Manual capture mode - payment will proceed without order_id
        console.warn('⚠️ Payment proceeding in manual capture mode (no order_id)');
        console.warn('⚠️ Payment will need to be manually captured after completion');
-       console.warn('⚠️ To enable automatic capture, configure EXPO_PUBLIC_RAZORPAY_SECRET_KEY');
+       console.warn('⚠️ To enable automatic capture, configure razorpaySecretKey in app.config.js extra.');
      } else {
        console.log('✅ Razorpay options validated - order_id is present:', {
          order_id: razorpayOptions.order_id,

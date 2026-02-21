@@ -1,25 +1,45 @@
 /**
- * Centralized API Client
- * 
- * Provides a unified interface for all API calls with:
- * - Automatic token management
- * - Consistent error handling
- * - Request/response logging
- * - Retry logic
- * - Timeout handling
+ * Centralized API Client (single networking gateway)
+ *
+ * Responsibility: All backend HTTP goes through this client. No direct fetch for API in screens.
+ *
+ * Flow:
+ * - request() → cache/pending check → _makeRequest()
+ * - _makeRequest(): attach token, fetch; on 2xx optionally validate with Zod (apiSchemaMap);
+ *   on 401 enter refresh lock + queue, then retry or session expired; on 4xx/5xx normalized error.
+ * - Slow requests (>1500ms) reported via reportApiLatency(); no sensitive payloads logged.
+ *
+ * Decisions:
+ * - Token refresh: one-at-a-time (isRefreshing), queue replay on success, clear + session-expired on failure.
+ * - Refresh endpoint itself is never retried; max one retry per original request (_retry flag).
+ * - Validation: only for endpoints in apiSchemaMap (auth, tickets, payment, consumers); schema.safeParse;
+ *   on failure return normalized error so corrupted data never reaches screens.
  */
 
-import { getToken, getUser } from '../utils/storage';
+import { getUser } from '../utils/storage';
 import { API_ENDPOINTS } from '../constants/constants';
 import { authService } from './authService';
 import { getTenantSubdomain } from '../config/apiConfig';
+import * as tokenService from './tokenService';
+import { triggerSessionExpired } from '../utils/sessionExpiredHandler';
+import { getSchemaForEndpoint } from '../schemas/apiSchemaMap';
+import { reportApiLatency } from '../utils/performanceMonitor';
+
+const REQUIRES_REAUTH_RESPONSE = {
+  success: false,
+  error: 'Session expired - please login again',
+  status: 401,
+  requiresReauth: true,
+};
 
 class ApiClient {
   constructor() {
-    this.baseTimeout = 15000; // 15 seconds default timeout (increased from 10s)
-    this.maxRetries = 1; // Reduced retries for speed
-    this.requestCache = new Map(); // In-memory request cache
-    this.pendingRequests = new Map(); // Prevent duplicate requests
+    this.baseTimeout = 15000;
+    this.maxRetries = 1;
+    this.requestCache = new Map();
+    this.pendingRequests = new Map();
+    this.isRefreshing = false;
+    this._requestQueue = [];
   }
 
   /**
@@ -70,18 +90,19 @@ class ApiClient {
    * Make the actual HTTP request
    */
   async _makeRequest(endpoint, options = {}) {
+    const requestStartTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
     const {
       method = 'GET',
       headers = {},
       body = null,
       timeout = this.baseTimeout,
       retries = this.maxRetries,
-      showLogs = true
+      showLogs = true,
+      skipAuth = false,
     } = options;
 
     try {
-      // Get valid authentication token (will refresh if expired)
-      const token = await authService.getValidAccessToken();
+      const token = skipAuth ? null : await authService.getValidAccessToken();
       const user = await getUser();
 
       if (showLogs) {
@@ -93,11 +114,9 @@ class ApiClient {
         }
       }
 
-      // Create abort controller for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      // Prepare request headers
       const tenantSubdomain = getTenantSubdomain ? getTenantSubdomain() : null;
       const requestHeaders = {
         'Content-Type': 'application/json',
@@ -128,19 +147,51 @@ class ApiClient {
         return await this.handleErrorResponse(response, endpoint, retries, options);
       }
 
-      // Parse successful response
-      const result = await response.json();
-      
-      if (showLogs) {
-        console.log('✅ API Response received:', result);
+      const parsed = await response.json();
+      const headersObj = Object.fromEntries(response.headers.entries());
+
+      try {
+        const schema = getSchemaForEndpoint(endpoint);
+        if (schema && typeof schema.safeParse === 'function') {
+          const toValidate = parsed.data !== undefined ? parsed : { data: parsed };
+          const result = schema.safeParse(toValidate);
+          if (!result.success) {
+            if (__DEV__) {
+              console.warn('[API Schema] Validation failed:', endpoint, result.error?.issues ?? result.error);
+            }
+            return {
+              success: false,
+              error: 'Invalid response format - please try again',
+              status: response.status,
+              schemaValidationFailed: true,
+            };
+          }
+        }
+      } catch (validationError) {
+        if (__DEV__) {
+          console.warn('[API Schema] Validation skipped (error):', validationError?.message ?? validationError);
+        }
+        // Proceed with response unchanged so API flow is never broken
       }
 
-      return {
+      if (showLogs) {
+        console.log('✅ API Response received:', parsed);
+      }
+
+      const responsePayload = {
         success: true,
-        data: result.data || result,
+        data: parsed.data ?? parsed,
+        rawBody: parsed,
         status: response.status,
-        headers: Object.fromEntries(response.headers.entries())
+        headers: headersObj,
       };
+
+      const durationMs = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - requestStartTime;
+      if (durationMs > 1500) {
+        reportApiLatency(endpoint, durationMs, method);
+      }
+
+      return responsePayload;
 
     } catch (error) {
       console.error(`❌ API Request failed: ${method} ${endpoint}`, error);
@@ -174,183 +225,98 @@ class ApiClient {
   }
 
   /**
-   * Handle error responses with retry logic
+   * Handle error responses. 401: refresh with lock + queue; max 1 retry per request; no retry for refresh endpoint.
    */
   async handleErrorResponse(response, endpoint, retries, originalOptions) {
     let errorDetails = '';
-    
     try {
       const errorResponse = await response.json();
       errorDetails = errorResponse.message || errorResponse.error || '';
-      console.log('❌ API Error Response:', errorResponse);
-    } catch (e) {
-      console.log('❌ Could not parse error response');
-    }
+      if (__DEV__) console.log('API Error Response', response.status, errorDetails);
+    } catch (e) {}
 
     const errorMessage = `HTTP ${response.status}: ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`;
-    console.error('❌ API Error:', errorMessage);
+    const isTokenExpired = response.status === 401 ||
+      (typeof errorDetails === 'string' && (
+        errorDetails.toLowerCase().includes('token_expired') ||
+        errorDetails.toLowerCase().includes('token expired') ||
+        errorDetails.toLowerCase().includes('invalid token') ||
+        errorDetails.toLowerCase().includes('unauthorized')
+      ));
 
-    // Check for token expiration errors (401 status or specific error messages)
-    const isTokenExpired = response.status === 401 || 
-                          errorDetails.toLowerCase().includes('token_expired') ||
-                          errorDetails.toLowerCase().includes('token expired') ||
-                          errorDetails.toLowerCase().includes('invalid token') ||
-                          errorDetails.toLowerCase().includes('unauthorized');
-
-    // Handle specific error cases
     if (isTokenExpired) {
-      // Token expired or invalid - try to refresh
-      console.log('🔄 Access token expired or invalid, attempting refresh...');
-      console.log(`   Error details: ${errorDetails || '401 Unauthorized'}`);
-      
+      const refreshEndpoint = API_ENDPOINTS.auth?.refresh?.() ?? '';
+      const isRefreshRequest = originalOptions._skip401Refresh === true || (refreshEndpoint && endpoint === refreshEndpoint);
+
+      if (originalOptions._retry === true) {
+        return REQUIRES_REAUTH_RESPONSE;
+      }
+      if (isRefreshRequest) {
+        return REQUIRES_REAUTH_RESPONSE;
+      }
+
+      if (this.isRefreshing) {
+        return new Promise((resolve, reject) => {
+          this._requestQueue.push({ resolve, reject, endpoint, options: { ...originalOptions } });
+        });
+      }
+
+      this.isRefreshing = true;
       try {
-        // Attempt to refresh the token
-        const refreshResult = await authService.refreshAccessToken();
-        
-        // Check if refresh was successful or silent failure
-        if (refreshResult && refreshResult.success === false && refreshResult.silent === true) {
-          // Silent failure (404) - use existing token
-          const existingToken = await authService.getAccessToken();
+        const refreshResult = await tokenService.refreshAccessToken();
+        const success = refreshResult && refreshResult.success === true;
+        const silentFail = refreshResult && refreshResult.success === false && refreshResult.silent === true;
+
+        if (silentFail) {
+          const existingToken = await tokenService.getAccessToken();
           if (existingToken) {
-            // Retry with existing token
-            const retryResponse = await fetch(endpoint, {
-              method: originalOptions.method || 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${existingToken}`,
-                ...originalOptions.headers,
-              },
-              body: originalOptions.body ? JSON.stringify(originalOptions.body) : null,
-            });
-            
-            if (retryResponse.ok) {
-              const retryResult = await retryResponse.json();
-              return {
-                success: true,
-                data: retryResult.data || retryResult,
-                status: retryResponse.status,
-              };
-            }
+            const retryResult = await this._makeRequest(endpoint, { ...originalOptions, _retry: true });
+            this.isRefreshing = false;
+            this._requestQueue = [];
+            return retryResult;
           }
-          // If existing token doesn't work, return auth error
-          return {
-            success: false,
-            error: 'Authentication failed - please login again',
-            status: 401,
-            requiresReauth: true
-          };
         }
-        
-        // Get the new token
-        const newToken = await authService.getAccessToken();
-        
-        if (newToken) {
-          // Retry the original request with new token
-          console.log('✅ Token refreshed, retrying original request...');
-          
-          // Extract original request parameters
-          const {
-            method = 'GET',
-            headers: originalHeaders = {},
-            body: originalBody = null,
-            timeout = this.baseTimeout,
-          } = originalOptions;
-          
-          // Prepare headers with new token
-          const retryHeaders = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Authorization': `Bearer ${newToken}`,
-            ...originalHeaders,
-          };
-          
-          // Create abort controller for timeout
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), timeout);
-          
-          // Retry the request
-          const retryResponse = await fetch(endpoint, {
-            method,
-            headers: retryHeaders,
-            body: originalBody ? JSON.stringify(originalBody) : null,
-            signal: controller.signal,
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (retryResponse.ok) {
-            const retryResult = await retryResponse.json();
-            console.log('✅ Request succeeded after token refresh');
-            return {
-              success: true,
-              data: retryResult.data || retryResult,
-              status: retryResponse.status,
-              headers: Object.fromEntries(retryResponse.headers.entries()),
-              wasRefreshed: true
-            };
-          } else {
-            // If retry still fails, token refresh might have failed
-            console.error('❌ Request failed even after token refresh');
-            return {
-              success: false,
-              error: 'Authentication failed - please login again',
-              status: 401,
-              requiresReauth: true
-            };
+
+        if (success) {
+          const currentResult = await this._makeRequest(endpoint, { ...originalOptions, _retry: true });
+          const queue = this._requestQueue.slice();
+          this._requestQueue = [];
+          this.isRefreshing = false;
+          for (const item of queue) {
+            this._makeRequest(item.endpoint, { ...item.options, _retry: true })
+              .then(item.resolve)
+              .catch((err) => item.reject(err));
           }
-        } else {
-          // No new token available
-          console.error('❌ No new token after refresh');
-          return {
-            success: false,
-            error: 'Authentication failed - please login again',
-            status: 401,
-            requiresReauth: true
-          };
+          return currentResult;
         }
+
+        await tokenService.clearTokens();
+        triggerSessionExpired();
+        const reauth = REQUIRES_REAUTH_RESPONSE;
+        for (const item of this._requestQueue) {
+          item.resolve(reauth);
+        }
+        this._requestQueue = [];
+        this.isRefreshing = false;
+        return reauth;
       } catch (refreshError) {
-        // Check if it's a silent failure
         if (refreshError && typeof refreshError === 'object' && refreshError.silent === true) {
-          // Silent failure - try with existing token
-          const existingToken = await authService.getAccessToken();
+          const existingToken = await tokenService.getAccessToken();
           if (existingToken) {
-            try {
-              const retryResponse = await fetch(endpoint, {
-                method: originalOptions.method || 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json',
-                  'Authorization': `Bearer ${existingToken}`,
-                  ...originalOptions.headers,
-                },
-                body: originalOptions.body ? JSON.stringify(originalOptions.body) : null,
-              });
-              
-              if (retryResponse.ok) {
-                const retryResult = await retryResponse.json();
-                return {
-                  success: true,
-                  data: retryResult.data || retryResult,
-                  status: retryResponse.status,
-                };
-              }
-            } catch (e) {
-              // Silent failure
-            }
+            const retryResult = await this._makeRequest(endpoint, { ...originalOptions, _retry: true });
+            this.isRefreshing = false;
+            this._requestQueue = [];
+            return retryResult;
           }
-        } else {
-          // Only log non-silent errors
-          console.error('❌ Token refresh failed:', refreshError);
         }
-        
-        return {
-          success: false,
-          error: 'Session expired - please login again',
-          status: 401,
-          requiresReauth: true
-        };
+        await tokenService.clearTokens();
+        triggerSessionExpired();
+        for (const item of this._requestQueue) {
+          item.resolve(REQUIRES_REAUTH_RESPONSE);
+        }
+        this._requestQueue = [];
+        this.isRefreshing = false;
+        return REQUIRES_REAUTH_RESPONSE;
       }
     }
 
@@ -516,6 +482,23 @@ class ApiClient {
   async healthCheck() {
     const endpoint = API_ENDPOINTS.health();
     return this.request(endpoint);
+  }
+
+  /**
+   * Fetch local/bundle asset (single exception: no auth, no JSON).
+   * Use only for file:// or bundle URIs. All API traffic must use request().
+   */
+  async fetchLocal(uri) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(uri, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (e) {
+      clearTimeout(timeoutId);
+      throw e;
+    }
   }
 }
 

@@ -9,8 +9,9 @@
  * - Instant fallbacks
  */
 
-import { getToken, getUser } from '../utils/storage';
+import { getUser } from '../utils/storage';
 import { API_ENDPOINTS } from '../constants/constants';
+import { apiClient } from './apiClient';
 
 class UltraFastApiClient {
   constructor() {
@@ -82,60 +83,33 @@ class UltraFastApiClient {
   }
 
   /**
-   * Make the actual HTTP request
+   * Make the actual HTTP request via centralized apiClient (single gateway).
    */
   async _makeRequest(endpoint, options) {
     const { method, headers, body, timeout, priority } = options;
-    
     try {
-      const token = await getToken();
-      const user = await getUser();
-
-      // Create abort controller for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-      // Prepare request headers
-      const requestHeaders = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-        ...headers,
-      };
-
-      // Add priority header for server optimization
-      if (priority === 'high') {
-        requestHeaders['X-Priority'] = 'high';
-      }
-
-      const requestOptions = {
-        method,
-        headers: requestHeaders,
-        signal: controller.signal,
-        ...(body && { body: JSON.stringify(body) }),
-      };
-
+      const extraHeaders = { ...headers };
+      if (priority === 'high') extraHeaders['X-Priority'] = 'high';
       console.log(`🚀 UltraFast: ${method} ${endpoint} (${priority})`);
-
       const startTime = Date.now();
-      const response = await fetch(endpoint, requestOptions);
+      const result = await apiClient.request(endpoint, {
+        method,
+        body,
+        timeout: timeout || 10000,
+        headers: extraHeaders,
+        showLogs: false,
+      });
       const endTime = Date.now();
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (!result.success) {
+        console.error(`❌ UltraFast: ${endpoint} failed:`, result.error);
+        return { success: false, error: result.error || `HTTP ${result.status}` };
       }
-
-      const data = await response.json();
-      const result = { success: true, data: data.data || data };
-
+      const data = result.data ?? result.rawBody ?? result;
       console.log(`✅ UltraFast: ${endpoint} completed in ${endTime - startTime}ms`);
-
-      return result;
+      return { success: true, data: data?.data ?? data };
     } catch (error) {
-      console.error(`❌ UltraFast: ${endpoint} failed:`, error.message);
-      return { success: false, error: error.message };
+      console.error(`❌ UltraFast: ${endpoint} failed:`, error?.message);
+      return { success: false, error: error?.message || String(error) };
     }
   }
 

@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { API_ENDPOINTS } from '../constants/constants';
-import { getToken } from '../utils/storage';
+import { apiClient } from '../services/apiClient';
 import { isDemoUser, getDemoConsumerDetails } from "../constants/demoData";
 import CloseIcon from "../../assets/icons/cross.svg";
 import { SkeletonLoader } from '../utils/loadingManager';
@@ -57,31 +57,17 @@ const ConsumerDetailsBottomSheet = ({
         return;
       }
 
-      const token = await getToken();
       const API_URL = API_ENDPOINTS.consumers.get(consumerUid);
-      
       console.log('🔄 Fetching consumer details from:', API_URL);
 
-      const response = await fetch(API_URL, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const result = await apiClient.request(API_URL, { method: 'GET' });
+      if (!result.success) {
+        throw new Error(result.error || `HTTP error! status: ${result.status}`);
       }
-
-      const result = await response.json();
-      console.log('✅ Consumer details response:', result);
-
-      // Handle nested data structure
-      const data = result.data || result;
-      setConsumerData(data);
+      const data = result.data ?? result.rawBody;
+      const resolved = data?.data ?? data;
+      console.log('✅ Consumer details response:', resolved);
+      setConsumerData(resolved);
 
     } catch (err) {
       console.error('❌ Error fetching consumer details:', err);

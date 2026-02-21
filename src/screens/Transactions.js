@@ -12,8 +12,9 @@ import DatePicker from "../components/global/DatePicker";
 import Table from "../components/global/Table";
 import Button from "../components/global/Button";
 import DownloadButton from "../components/global/DownloadButton";
-import { getUser, getToken } from "../utils/storage";
+import { getUser } from "../utils/storage";
 import { API, API_ENDPOINTS } from "../constants/constants";
+import { apiClient } from "../services/apiClient";
 import { formatFrontendDate } from "../utils/dateUtils";
 
 
@@ -28,8 +29,7 @@ const Transactions = ({ navigation }) => {
     try {
       setIsLoading(true);
       const user = await getUser();
-      const token = await getToken();
-      
+
       if (!user || !user.identifier) {
         setTableData([]);
         setIsLoading(false);
@@ -37,27 +37,15 @@ const Transactions = ({ navigation }) => {
       }
 
       let paymentHistory = [];
-      
-      // Try payment history endpoint first
+
       try {
         const paymentHistoryUrl = API_ENDPOINTS.payment.history(user.identifier);
         console.log('🔄 Fetching payment history from:', paymentHistoryUrl);
-        
-        const paymentResponse = await fetch(paymentHistoryUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            ...(token && { 'Authorization': `Bearer ${token}` }),
-          },
-        });
-        
-        if (paymentResponse.ok) {
-          const paymentData = await paymentResponse.json();
+        const paymentResult = await apiClient.request(paymentHistoryUrl, { method: 'GET' });
+        if (paymentResult.success) {
+          const paymentData = paymentResult.data ?? paymentResult.rawBody ?? paymentResult;
           console.log('📦 Payment history response:', paymentData);
-          
-          // Handle different response structures
-          if (paymentData.success && paymentData.data) {
+          if (paymentData?.success && paymentData?.data) {
             if (Array.isArray(paymentData.data)) {
               paymentHistory = paymentData.data;
             } else if (Array.isArray(paymentData.data.payments)) {
@@ -74,25 +62,14 @@ const Transactions = ({ navigation }) => {
       } catch (paymentError) {
         console.warn('⚠️ Payment history endpoint failed, trying consumer endpoint:', paymentError);
       }
-      
-      // Fallback: Try consumer endpoint for payment history
+
       if (paymentHistory.length === 0) {
         try {
-          const consumerResponse = await fetch(API_ENDPOINTS.consumers.get(user.identifier), {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              ...(token && { 'Authorization': `Bearer ${token}` }),
-            },
-          });
-          
-          if (consumerResponse.ok) {
-            const consumerData = await consumerResponse.json();
+          const consumerResult = await apiClient.request(API_ENDPOINTS.consumers.get(user.identifier), { method: 'GET' });
+          if (consumerResult.success) {
+            const consumerData = consumerResult.data ?? consumerResult.rawBody ?? consumerResult;
             console.log('📦 Consumer data response:', consumerData);
-            
-            if (consumerData.success && consumerData.data) {
-
+            if (consumerData?.success && consumerData?.data) {
               if (Array.isArray(consumerData.data.paymentHistory)) {
                 paymentHistory = consumerData.data.paymentHistory;
               } else if (Array.isArray(consumerData.data.payments)) {

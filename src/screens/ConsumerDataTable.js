@@ -19,6 +19,7 @@ import DropdownIcon from "../../assets/icons/dropDown.svg";
 import { API_ENDPOINTS } from "../constants/constants";
 import { getUser } from "../utils/storage";
 import { authService } from "../services/authService";
+import { apiClient } from "../services/apiClient";
 import { SkeletonLoader } from '../utils/loadingManager';
 import { isDemoUser, getDemoLsDataForDate } from "../constants/demoData";
 import { formatFrontendDateTime, formatFrontendDate } from "../utils/dateUtils";
@@ -107,12 +108,11 @@ const ConsumerDataTable = ({ navigation, route }) => {
         return;
       }
 
-      // Get access token (will auto-refresh if expired)
+      // Ensure user has a valid token (same token is injected by apiClient.request below)
       const token = await authService.getValidAccessToken();
       if (!token) {
         throw new Error('No access token available. Please login again.');
       }
-
       console.log('   Bearer Token:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND');
 
 
@@ -120,39 +120,36 @@ const ConsumerDataTable = ({ navigation, route }) => {
       console.log('   API URL:', apiUrl);
 
 
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`, 
-        },
-      });
+      // apiClient injects Bearer token automatically; 15s timeout applied
+      const result = await apiClient.request(apiUrl, { method: 'GET' });
+      console.log('   Response status:', result.status);
 
-      console.log('   Response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.message || errorData.error || `HTTP ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage);
+      if (!result.success) {
+        throw new Error(result.error || `HTTP ${result.status}`);
       }
+      // Prefer rawBody for full API shape { success, data, metadata }; apiClient may set result.data = parsed.data (array)
+      const fullResponse = result.rawBody ?? result;
+      const dataArray = Array.isArray(fullResponse?.data)
+        ? fullResponse.data
+        : Array.isArray(result.data)
+          ? result.data
+          : null;
+      const responseMetadata = fullResponse?.metadata ?? result.rawBody?.metadata ?? null;
 
-      const result = await response.json();
       console.log('✅ LS Data received:', {
-        success: result.success,
-        totalRecords: result.metadata?.totalRecords,
-        dataInterval: result.metadata?.dataInterval,
-        meterId: result.metadata?.meterId
+        success: fullResponse?.success ?? result.success,
+        totalRecords: responseMetadata?.totalRecords,
+        dataInterval: responseMetadata?.dataInterval,
+        meterId: responseMetadata?.meterId
       });
 
-      if (result.success && result.data && Array.isArray(result.data)) {
-        setLsData(result.data);
-        setMetadata(result.metadata);
-        
+      if (dataArray) {
+        setLsData(dataArray);
+        setMetadata(responseMetadata ?? null);
         console.log('✅ LS Data loaded successfully');
-        console.log('   Total records:', result.data.length);
-        console.log('   Meter ID:', result.metadata?.meterId);
-        console.log('   Data interval:', result.metadata?.dataInterval);
+        console.log('   Total records:', dataArray.length);
+        console.log('   Meter ID:', responseMetadata?.meterId);
+        console.log('   Data interval:', responseMetadata?.dataInterval);
       } else {
         throw new Error('Invalid response format or no data received');
       }
@@ -165,7 +162,7 @@ const ConsumerDataTable = ({ navigation, route }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [date, meterId]);
+  }, [date, meterId, consumerData]);
 
   // Fetch data on mount
   useEffect(() => {

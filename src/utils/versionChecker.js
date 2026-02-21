@@ -1,36 +1,26 @@
 import { Alert, Linking, Platform } from 'react-native';
 import * as Application from 'expo-application';
+import { apiClient } from '../services/apiClient';
+import { API_ENDPOINTS } from '../config/apiConfig';
 
 /**
- * Advanced version checking with backend API
- * This is an example of how to implement version checking with your backend
- */
-
-/**
- * Check for binary updates using your backend API
- * Replace the API endpoint with your actual backend
+ * Check for binary updates via centralized apiClient.
+ * Uses API_ENDPOINTS.app.version() when set; otherwise placeholder URL (no-op until configured).
  */
 export const checkForBinaryUpdateWithAPI = async () => {
   try {
     const currentVersion = Application.nativeApplicationVersion;
     const packageName = Application.applicationId;
     const platform = Platform.OS;
-    
-    // Call your backend API to get the latest version
-    const response = await fetch('https://your-api.com/api/version-check', {
+    const url = API_ENDPOINTS.version ? API_ENDPOINTS.version() : 'https://your-api.com/api/version-check';
+    const result = await apiClient.request(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        currentVersion,
-        packageName,
-        platform,
-      }),
+      body: { currentVersion, packageName, platform },
+      skipAuth: true,
+      showLogs: false,
     });
-    
-    const data = await response.json();
-    
+    if (!result.success) return;
+    const data = result.rawBody ?? result.data ?? result;
     if (data.hasUpdate && data.forceUpdate) {
       // Force update - show alert that can't be dismissed
       showForceUpdateAlert(packageName, data.updateMessage);

@@ -14,7 +14,6 @@
 
 import { Platform } from 'react-native';
 import { API, API_ENDPOINTS, ENV_INFO } from '../constants/constants';
-import { getToken } from '../utils/storage';
 import { cacheManager } from '../utils/cacheManager';
 import { apiClient } from './apiClient';
 import { authService } from './authService';
@@ -24,122 +23,30 @@ const BASE_URL = API.BASE_URL;
 const TICKETS_BASE_URL = API.TICKETS_URL;
 
 /**
- * Make authenticated API request with automatic token refresh
- * This function now handles 401 errors and token refresh automatically
- * 
- * @deprecated Consider using apiClient.request() directly for better consistency
- * This function is kept for backward compatibility
+ * Make authenticated API request via centralized apiClient.
+ * Single networking gateway: timeout, token, error normalization.
  */
 const makeRequest = async (url, options = {}) => {
   try {
-    // Get valid access token (will auto-refresh if expired)
-    const token = await authService.getValidAccessToken();
-    
-    const response = await fetch(url, {
+    const result = await apiClient.request(url, {
       method: options.method || 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-        ...options.headers,
-      },
-      ...options,
+      body: options.body,
+      headers: options.headers,
+      showLogs: false,
     });
-
-    // Handle 401 errors with token refresh
-    if (response.status === 401) {
-      console.log('🔄 401 error detected in makeRequest, attempting token refresh...');
-      
-      try {
-        // Try to refresh the token
-        const refreshResult = await authService.refreshAccessToken();
-        
-        // Check if refresh was successful or silent failure
-        let newToken = null;
-        if (refreshResult && refreshResult.success === false && refreshResult.silent === true) {
-          // Silent failure (404) - use existing token
-          newToken = await authService.getAccessToken();
-        } else {
-          // Get new token
-          newToken = await authService.getAccessToken();
-        }
-        
-        if (newToken) {
-          // Retry the request with token
-          const retryResponse = await fetch(url, {
-            method: options.method || 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'Authorization': `Bearer ${newToken}`,
-              ...options.headers,
-            },
-            ...options,
-          });
-          
-          if (retryResponse.ok) {
-            const retryData = await retryResponse.json();
-            return { success: true, data: retryData.data || retryData };
-          } else {
-            // If retry still fails, return error
-            const errorData = await retryResponse.json().catch(() => ({}));
-            return { 
-              success: false, 
-              message: errorData.message || `HTTP error! status: ${retryResponse.status}`,
-              status: retryResponse.status,
-              requiresReauth: true
-            };
-          }
-        }
-      } catch (refreshError) {
-        // Check if it's a silent failure
-        if (refreshError && typeof refreshError === 'object' && refreshError.silent === true) {
-          // Silent failure - try with existing token
-          const existingToken = await authService.getAccessToken();
-          if (existingToken) {
-            try {
-              const retryResponse = await fetch(url, {
-                method: options.method || 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json',
-                  'Authorization': `Bearer ${existingToken}`,
-                  ...options.headers,
-                },
-                ...options,
-              });
-              
-              if (retryResponse.ok) {
-                const retryData = await retryResponse.json();
-                return { success: true, data: retryData.data || retryData };
-              }
-            } catch (e) {
-              // Silent failure
-            }
-          }
-        } else {
-          // Only log non-silent errors
-          console.error('❌ Token refresh failed in makeRequest:', refreshError);
-        }
-        
-        return { 
-          success: false, 
-          message: 'Session expired. Please login again.',
-          requiresReauth: true
-        };
-      }
+    if (!result.success) {
+      return {
+        success: false,
+        message: result.error || `HTTP ${result.status}`,
+        status: result.status,
+        requiresReauth: result.status === 401 || result.status === 403,
+      };
     }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return { success: true, data: data.data || data };
+    const data = result.data ?? result.rawBody ?? result;
+    return { success: true, data: data?.data ?? data };
   } catch (error) {
-    console.error(`API Error (${url}):`, error);
-    return { success: false, message: error.message };
+    console.error(`API Error (${url}):`, error?.message || error);
+    return { success: false, message: error?.message || String(error) };
   }
 };
 
@@ -149,36 +56,26 @@ const makeRequest = async (url, options = {}) => {
 export const testConsumerCredentials = async (identifier, password) => {
   try {
     console.log(`🧪 Testing credentials for consumer: ${identifier}`);
-    
-    const response = await fetch(API_ENDPOINTS.auth.login(), {
+    const result = await apiClient.request(API_ENDPOINTS.auth.login(), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      // Match working backend contract: identifier + password
-      body: JSON.stringify({
-        identifier: identifier.trim(),
-        password: password.trim()
-      })
+      body: { identifier: identifier.trim(), password: password.trim() },
+      skipAuth: true,
     });
-
-    const result = await response.json();
-    
+    const data = result.rawBody ?? result.data ?? result;
     return {
-      success: response.ok && result.success,
-      status: response.status,
-      data: result,
-      error: response.ok ? null : result.message || `HTTP ${response.status}`,
-      hasValidCredentials: response.ok && result.success
+      success: result.success && (data?.success === true || data?.status === 'success'),
+      status: result.status || 0,
+      data,
+      error: result.success ? null : (result.error || data?.message || `HTTP ${result.status}`),
+      hasValidCredentials: result.success && (data?.success === true || data?.status === 'success'),
     };
   } catch (error) {
     return {
       success: false,
       status: 0,
       data: null,
-      error: error.message,
-      hasValidCredentials: false
+      error: error?.message || String(error),
+      hasValidCredentials: false,
     };
   }
 };
@@ -497,100 +394,39 @@ export const fetchNotifications = async (uid, page = 1, limit = 10) => {
       };
     }
 
-    // Use the correct API endpoint with page and limit
     const url = API_ENDPOINTS.notifications.list(page, limit);
-    
-    console.log('🔄 Fetching notifications:', {
-      url,
-      page,
-      limit,
-      tokenPresent: !!token
-    });
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    console.log('🔄 Fetching notifications:', { url, page, limit, tokenPresent: !!token });
 
-    console.log('📬 Notifications API response status:', response.status);
+    const result = await apiClient.request(url, { method: 'GET', showLogs: false });
+    console.log('📬 Notifications API response status:', result.status);
 
-    // Handle specific HTTP status codes gracefully
-    if (response.status === 401) {
+    if (result.status === 401) {
       console.warn('⚠️ 401 Unauthorized - token may be invalid or expired');
-      // Don't throw error - return empty notifications gracefully
-      // The auth service will handle token refresh/clearing if needed
-      return { 
-        success: true, 
-        data: { notifications: [] },
-        status: 401,
-        message: 'Authentication required. Notifications unavailable.'
-      };
+      return { success: true, data: { notifications: [], pagination: {} }, status: 401, message: 'Authentication required. Notifications unavailable.' };
     }
-    
-    if (response.status === 403) {
+    if (result.status === 403) {
       console.warn('⚠️ 403 Forbidden - notifications not available');
-      return { 
-        success: true, 
-        data: { notifications: [] },
-        status: 403,
-        message: 'Notifications not available for this consumer'
-      };
+      return { success: true, data: { notifications: [], pagination: {} }, status: 403, message: 'Notifications not available for this consumer' };
     }
-
-    if (response.status === 404) {
+    if (result.status === 404) {
       console.warn('⚠️ 404 Not Found - notifications endpoint not found');
-      return { 
-        success: true, 
-        data: { notifications: [] },
-        status: 404,
-        message: 'Notifications endpoint not found'
-      };
+      return { success: true, data: { notifications: [], pagination: {} }, status: 404, message: 'Notifications endpoint not found' };
+    }
+    if (!result.success) {
+      console.error('❌ Notifications API error:', result.status, result.error);
+      return { success: false, data: { notifications: [], pagination: {} }, message: result.error || `HTTP ${result.status}` };
     }
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('❌ Notifications API error:', response.status, errorText);
-      throw new Error(`HTTP error! status: ${response.status}`);
+    const data = result.rawBody ?? result.data ?? result;
+    console.log('✅ Notifications API response:', { success: data?.success, notificationsCount: data?.data?.notifications?.length || 0, total: data?.data?.pagination?.total || 0 });
+    if (data?.success && data?.data) {
+      const notifications = data.data.notifications || [];
+      return { success: true, data: { notifications, pagination: data.data.pagination || {} } };
     }
-
-    const result = await response.json();
-    console.log('✅ Notifications API response:', {
-      success: result.success,
-      notificationsCount: result.data?.notifications?.length || 0,
-      total: result.data?.pagination?.total || 0
-    });
-
-    // Handle response structure: { success: true, data: { notifications: [], pagination: {} } }
-    if (result.success && result.data) {
-      const notifications = result.data.notifications || [];
-      return { 
-        success: true, 
-        data: {
-          notifications: notifications,
-          pagination: result.data.pagination || {}
-        }
-      };
-    }
-
-    // Fallback for different response structures
-    return { 
-      success: true, 
-      data: { 
-        notifications: result.notifications || result.data || [],
-        pagination: result.pagination || {}
-      }
-    };
+    return { success: true, data: { notifications: data?.notifications || data?.data || [], pagination: data?.pagination || {} } };
   } catch (error) {
     console.error('❌ Error fetching notifications:', error);
-    return { 
-      success: false,
-      data: { notifications: [] },
-      message: error.message 
-    };
+    return { success: false, data: { notifications: [], pagination: {} }, message: error?.message || String(error) };
   }
 };
 
@@ -600,36 +436,19 @@ export const fetchNotifications = async (uid, page = 1, limit = 10) => {
  */
 export const markNotificationAsRead = async (notificationId) => {
   try {
-    // Get valid access token (will auto-refresh if expired)
     const token = await authService.getValidAccessToken();
-    if (!token) {
-      return { 
-        success: false, 
-        message: 'No access token available. Please login again.' 
-      };
-    }
+    if (!token) return { success: false, message: 'No access token available. Please login again.' };
 
     const url = API_ENDPOINTS.notifications.markRead(notificationId);
-    
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const result = await apiClient.request(url, { method: 'PUT', showLogs: false });
+    if (!result.success) throw new Error(result.error || `HTTP ${result.status}`);
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = result.rawBody ?? result.data ?? result;
     console.log(`✅ Marked notification ${notificationId} as read`);
     return { success: true, data };
   } catch (error) {
     console.error("❌ Error marking notification as read:", error);
-    return { success: false, message: error.message };
+    return { success: false, message: error?.message || String(error) };
   }
 };
 
@@ -639,36 +458,19 @@ export const markNotificationAsRead = async (notificationId) => {
  */
 export const markAllNotificationsAsRead = async (uid) => {
   try {
-    // Get valid access token (will auto-refresh if expired)
     const token = await authService.getValidAccessToken();
-    if (!token) {
-      return { 
-        success: false, 
-        message: 'No access token available. Please login again.' 
-      };
-    }
+    if (!token) return { success: false, message: 'No access token available. Please login again.' };
 
     const url = API_ENDPOINTS.notifications.markAllRead(uid);
-    
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    const result = await apiClient.request(url, { method: 'PUT', showLogs: false });
+    if (!result.success) throw new Error(result.error || `HTTP ${result.status}`);
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = result.rawBody ?? result.data ?? result;
     console.log(`✅ Marked all notifications as read for UID: ${uid}`);
     return { success: true, data };
   } catch (error) {
     console.error("❌ Error marking all notifications as read:", error);
-    return { success: false, message: error.message };
+    return { success: false, message: error?.message || String(error) };
   }
 };
 
@@ -718,73 +520,38 @@ export const fetchPaymentTransactions = async (consumerId = null) => {
       }
     }
 
-    // Fetch consumer data which contains payment history
     const url = API_ENDPOINTS.consumers.get(uid);
-    
-    console.log('🔄 Fetching payment transactions:', {
-      url,
-      consumerId: uid,
-      tokenPresent: !!token
-    });
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    console.log('🔄 Fetching payment transactions:', { url, consumerId: uid, tokenPresent: !!token });
 
-    console.log('💳 Payment transactions API response status:', response.status);
+    const result = await apiClient.request(url, { method: 'GET', showLogs: false });
+    console.log('💳 Payment transactions API response status:', result.status);
 
-    // Handle specific HTTP status codes gracefully
-    if (response.status === 401) {
+    if (result.status === 401) {
       console.warn('⚠️ 401 Unauthorized - token may be invalid or expired');
-      return { 
-        success: true, 
-        data: [],
-        status: 401,
-        message: 'Authentication required. Transactions unavailable.'
-      };
+      return { success: true, data: [], status: 401, message: 'Authentication required. Transactions unavailable.' };
     }
-    
-    if (response.status === 403) {
+    if (result.status === 403) {
       console.warn('⚠️ 403 Forbidden - transactions not available');
-      return { 
-        success: true, 
-        data: [],
-        status: 403,
-        message: 'Transactions not available for this consumer'
-      };
+      return { success: true, data: [], status: 403, message: 'Transactions not available for this consumer' };
     }
-
-    if (response.status === 404) {
+    if (result.status === 404) {
       console.warn('⚠️ 404 Not Found - consumer endpoint not found');
-      return { 
-        success: true, 
-        data: [],
-        status: 404,
-        message: 'Consumer endpoint not found'
-      };
+      return { success: true, data: [], status: 404, message: 'Consumer endpoint not found' };
+    }
+    if (!result.success) {
+      console.error('❌ Payment transactions API error:', result.status, result.error);
+      return { success: false, data: [], message: result.error || `HTTP ${result.status}` };
     }
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      console.error('❌ Payment transactions API error:', response.status, errorText);
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
+    const resultData = result.rawBody ?? result.data ?? result;
     console.log('✅ Payment transactions API response:', {
-      success: result.success,
-      hasData: !!(result.data && result.data.paymentHistory),
-      paymentHistoryCount: result.data?.paymentHistory?.length || 0
+      success: resultData.success,
+      hasData: !!(resultData.data && resultData.data.paymentHistory),
+      paymentHistoryCount: resultData.data?.paymentHistory?.length || 0
     });
 
-    // Extract payment history from consumer data
-    if (result.success && result.data && result.data.paymentHistory) {
-      const paymentHistory = result.data.paymentHistory || [];
+    if (resultData.success && resultData.data && resultData.data.paymentHistory) {
+      const paymentHistory = resultData.data.paymentHistory || [];
       
       // Filter for mobile app payments (nexusone app)
       // Check if payment has source: 'react_native_app' or paymentMode indicates mobile
@@ -913,10 +680,6 @@ export const fetchPaymentTransactions = async (consumerId = null) => {
     };
   } catch (error) {
     console.error('❌ Error fetching payment transactions:', error);
-    return { 
-      success: false,
-      data: [],
-      message: error.message 
-    };
+    return { success: false, data: [], message: error?.message || String(error) };
   }
 };
