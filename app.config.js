@@ -67,7 +67,6 @@ function parseEnvFile(filePath) {
 module.exports = () => {
   const appJson = require('./app.json');
   const baseEnvPath = path.join(projectRoot, '.env');
-  // Always read Razorpay (and Sentry) from .env when building extra, so keys are never missed due to load order/cache
   const baseEnv = parseEnvFile(baseEnvPath);
   const razorpayKeyId = (env.EXPO_PUBLIC_RAZORPAY_KEY_ID || baseEnv.EXPO_PUBLIC_RAZORPAY_KEY_ID || '').trim();
   const razorpaySecretKey = (env.EXPO_PUBLIC_RAZORPAY_SECRET_KEY || baseEnv.EXPO_PUBLIC_RAZORPAY_SECRET_KEY || '').trim();
