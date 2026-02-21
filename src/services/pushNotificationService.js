@@ -49,12 +49,12 @@ const setupNotificationHandler = () => {
 let notificationReceivedListener = null;
 let notificationResponseListener = null;
 
-// Listeners for in-app BI (NexusOne) test notification card only
+// Listeners for in-app BI (NexusOne) notification card (used by PUSH-channel and formerly by test)
 let testCardListeners = [];
 
-// BI/NexusOne notification copy (same for in-app card and system notification)
-const TEST_NOTIFICATION_TITLE = 'NexusOne';
-const TEST_NOTIFICATION_BODY = 'This is a test notification from Best Infra.';
+// --- Test notification (commented out) ---
+// const TEST_NOTIFICATION_TITLE = 'NexusOne';
+// const TEST_NOTIFICATION_BODY = 'This is a test notification from Best Infra.';
 
 /**
  * Subscribe to show the in-app BI notification card (NexusOne style).
@@ -76,17 +76,14 @@ export const showNotificationCard = (payload) => {
   testCardListeners.forEach((cb) => cb(payload));
 };
 
-/**
- * Show the BI (NexusOne) in-app notification card only — no system/Expo notification.
- * Call this from Settings "Test push notification" so the user sees the app's card.
- */
-export const showTestNotificationCard = () => {
-  showNotificationCard({
-    title: TEST_NOTIFICATION_TITLE,
-    body: TEST_NOTIFICATION_BODY,
-    data: { test: true },
-  });
-};
+/** Test notification — commented out */
+// export const showTestNotificationCard = () => {
+//   showNotificationCard({
+//     title: TEST_NOTIFICATION_TITLE,
+//     body: TEST_NOTIFICATION_BODY,
+//     data: { test: true },
+//   });
+// };
 
 // Storage key for IDs of PUSH-channel notifications we've already shown (from API poll)
 const PUSH_CHANNEL_SHOWN_IDS_KEY = '@push_channel_shown_ids';
@@ -443,36 +440,32 @@ const ensureNotificationChannel = async () => {
   }
 };
 
-/**
- * Schedule a system notification for testing (shows in pull bar in 2 seconds).
- * Uses NexusOne/BI title and body. App name & icon in pull bar = "NexusOne" only in a
- * development build; in Expo Go the system shows "Expo Go".
- */
-export const scheduleTestNotification = async () => {
-  if (isRunningInExpoGo()) {
-    throw new Error('System notifications require a development build (not Expo Go)');
-  }
-  try {
-    const Notifications = getNotifications();
-    if (!Notifications) throw new Error('Push notifications not available');
-    await ensureNotificationChannel();
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: TEST_NOTIFICATION_TITLE,
-        body: TEST_NOTIFICATION_BODY,
-        data: { test: true },
-        ...(Platform.OS === 'android' && { channelId: DEFAULT_CHANNEL_ID }),
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: 2,
-      },
-    });
-  } catch (error) {
-    console.error('❌ Error scheduling test notification:', error);
-    throw error;
-  }
-};
+/** Test notification — schedule system notification (commented out) */
+// export const scheduleTestNotification = async () => {
+//   if (isRunningInExpoGo()) {
+//     throw new Error('System notifications require a development build (not Expo Go)');
+//   }
+//   try {
+//     const Notifications = getNotifications();
+//     if (!Notifications) throw new Error('Push notifications not available');
+//     await ensureNotificationChannel();
+//     await Notifications.scheduleNotificationAsync({
+//       content: {
+//         title: TEST_NOTIFICATION_TITLE,
+//         body: TEST_NOTIFICATION_BODY,
+//         data: { test: true },
+//         ...(Platform.OS === 'android' && { channelId: DEFAULT_CHANNEL_ID }),
+//       },
+//       trigger: {
+//         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+//         seconds: 2,
+//       },
+//     });
+//   } catch (error) {
+//     console.error('❌ Error scheduling test notification:', error);
+//     throw error;
+//   }
+// };
 
 /**
  * Fetch notifications from API, filter those with meta.channels including "PUSH",
@@ -546,12 +539,9 @@ export const checkAndShowPushChannelNotifications = async () => {
   }
 };
 
-/**
- * Test push notification: show BI in-app card now + schedule system notification in 2s.
- * In Expo Go, only the in-app card is shown (system notifications require a dev build).
- */
-export const sendTestPushNotification = () => {
-  showTestNotificationCard();
-  if (isRunningInExpoGo()) return;
-  scheduleTestNotification().catch((e) => console.warn('Schedule test failed:', e?.message));
-};
+/** Test push notification — commented out */
+// export const sendTestPushNotification = () => {
+//   showTestNotificationCard();
+//   if (isRunningInExpoGo()) return;
+//   scheduleTestNotification().catch((e) => console.warn('Schedule test failed:', e?.message));
+// };
