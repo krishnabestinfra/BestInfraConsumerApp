@@ -6,7 +6,7 @@ import { useTheme } from "../../context/ThemeContext";
 import Menu from "../../../assets/icons/bars.svg";
 import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
 import Logo from "../../components/global/Logo";
-import { sendTestPushNotification } from "../../services/pushNotificationService";
+// import { sendTestPushNotification } from "../../services/pushNotificationService";
 // Import icons - placeholder comments for icons you'll need to add
 import ThemeIcon from "../../../assets/icons/theme.svg";
 import FontSizeIcon from "../../../assets/icons/fontIcon.svg";
@@ -167,19 +167,18 @@ const Settings = ({ navigation }) => {
             }
           />
 
-          {/* Test push notification - visible at top */}
-          <PreferenceItem
+          {/* Test push notification - visible at top (commented out) */}
+          {/* <PreferenceItem
             icon={
               <View style={styles.iconPlaceholder}>
                 <TermsIcon width={24} height={24} />
               </View>
             }
             title="Test push notification"
-            // subtitle="BI card now; in 2s in pull bar (dev build = NexusOne)"
             onPress={() => {
               sendTestPushNotification();
             }}
-          />
+          /> */}
 
           {/* Font size card with inline chips */}
           <Pressable
