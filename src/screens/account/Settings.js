@@ -27,7 +27,7 @@ const FONT_CHOICES = [
 ];
 
 const Settings = ({ navigation }) => {
-  const appVersion = "1.0.26";
+  const appVersion = "2.0.1";
   const {
     isDark: isDarkMode,
     colors: themeColors,
