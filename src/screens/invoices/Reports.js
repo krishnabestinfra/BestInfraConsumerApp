@@ -63,8 +63,12 @@ const Reports = ({ navigation }) => {
       Alert.alert("Error", "Please sign in to generate reports");
       return;
     }
+    const isMonthlyReport = filterType === "Monthly Consumption";
     const startStr = formatYYYYMMDD(startDate);
-    const endStr = formatYYYYMMDD(endDate);
+    const endForApi = isMonthlyReport
+      ? new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0)
+      : endDate;
+    const endStr = formatYYYYMMDD(endForApi);
     const reportType = reportTypeToApi[filterType] ?? "daily-consumption";
 
     setReportError(null);
@@ -78,7 +82,10 @@ const Reports = ({ navigation }) => {
       }
       if (result?.success && result?.data != null) {
         const reportLabel = filterType.replace(/\s+/g, " ");
-        const reportName = `${reportLabel} (${formatDDMMYYYY(startDate)} - ${formatDDMMYYYY(endDate)}).pdf`;
+        const dateRangeLabel = isMonthlyReport
+          ? `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()} - ${monthNames[endDate.getMonth()]} ${endDate.getFullYear()}`
+          : `${formatDDMMYYYY(startDate)} - ${formatDDMMYYYY(endDate)}`;
+        const reportName = `${reportLabel} (${dateRangeLabel}).pdf`;
         setRecentReports((prev) => [
           { id: Date.now(), name: reportName, data: result.data, reportType: filterType },
           ...prev,
@@ -393,31 +400,35 @@ const Reports = ({ navigation }) => {
             )}
           </View>
 
-          {/* Select Date */}
+          {/* Select Date / Select Month (for Monthly Consumption) */}
           <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Select Date</Text>
+            <Text style={styles.filterLabel}>
+              {filterType === "Monthly Consumption" ? "Select Month" : "Select Date"}
+            </Text>
             <View style={styles.dateRow}>
               <View style={styles.dateInputContainer}>
                 <DatePicker
-                  placeholder="dd-mm-yyyy"
+                  placeholder={filterType === "Monthly Consumption" ? "mm-yyyy" : "dd-mm-yyyy"}
                   value={startDate}
                   onChange={(date) => setStartDate(date)}
                   style={styles.datePickerInput}
                   containerStyle={styles.datePickerContainer}
                   textStyle={styles.datePickerText}
                   dateFormat="dd-mm-yyyy"
+                  mode={filterType === "Monthly Consumption" ? "month" : "date"}
                 />
               </View>
               <Text style={styles.dateSeparator}>-</Text>
               <View style={styles.dateInputContainer}>
                 <DatePicker
-                  placeholder="dd-mm-yyyy"
+                  placeholder={filterType === "Monthly Consumption" ? "mm-yyyy" : "dd-mm-yyyy"}
                   value={endDate}
                   onChange={(date) => setEndDate(date)}
                   style={styles.datePickerInput}
                   containerStyle={styles.datePickerContainer}
                   textStyle={styles.datePickerText}
                   dateFormat="dd-mm-yyyy"
+                  mode={filterType === "Monthly Consumption" ? "month" : "date"}
                 />
               </View>
             </View>
