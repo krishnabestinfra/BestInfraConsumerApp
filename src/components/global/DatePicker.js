@@ -26,6 +26,7 @@ const DatePicker = ({
   minimumDate,
   maximumDate,
   dateFormat = 'dd/mm/yyyy', // 'dd/mm/yyyy' or 'dd-mm-yyyy'
+  mode = 'date', // 'date' = full date (day+month+year), 'month' = year+month only
 }) => {
   const { getScaledFontSize } = useTheme();
   const s14 = getScaledFontSize(14);
@@ -34,9 +35,15 @@ const DatePicker = ({
   const s12 = getScaledFontSize(12);
   const [showPicker, setShowPicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(value || new Date());
+  const isMonthMode = mode === 'month';
 
   const formatDate = (date) => {
     if (!date) return '';
+    if (isMonthMode) {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${month}-${year}`;
+    }
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
@@ -51,7 +58,9 @@ const DatePicker = ({
   };
 
   const handleDateSelect = (day, month, year) => {
-    const newDate = new Date(year, month - 1, day);
+    const newDate = isMonthMode
+      ? new Date(year, month - 1, 1)
+      : new Date(year, month - 1, day);
     setSelectedDate(newDate);
     if (onChange) {
       onChange(newDate);
@@ -125,13 +134,18 @@ const DatePicker = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { fontSize: s18 }]}>Select Date</Text>
+              <Text style={[styles.modalTitle, { fontSize: s18 }]}>
+                {isMonthMode ? 'Select Year & Month' : 'Select Date'}
+              </Text>
               <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
                 <CrossIcon width={18} height={18} fill={COLORS.primaryFontColor} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.pickerContainer}>
+            <ScrollView
+              style={styles.pickerContainer}
+              contentContainerStyle={styles.pickerContent}
+            >
               {/* Year Picker */}
               <View style={styles.pickerSection}>
                 <Text style={[styles.pickerLabel, { fontSize: s16 }]}>Year</Text>
@@ -144,7 +158,7 @@ const DatePicker = ({
                           styles.yearButton,
                           year === currentYear && styles.selectedButton
                         ]}
-                        onPress={() => setSelectedDate(new Date(year, currentMonth - 1, currentDay))}
+                        onPress={() => setSelectedDate(new Date(year, currentMonth - 1, isMonthMode ? 1 : currentDay))}
                       >
                         <Text style={[
                           styles.yearText,
@@ -160,7 +174,7 @@ const DatePicker = ({
               </View>
 
               {/* Month Picker */}
-              <View style={styles.pickerSection}>
+              <View style={[styles.pickerSection, !isMonthMode && styles.pickerSectionSpaced]}>
                 <Text style={[styles.pickerLabel, { fontSize: s16 }]}>Month</Text>
                 <View style={styles.monthGrid}>
                   {months.map((month, index) => (
@@ -170,7 +184,7 @@ const DatePicker = ({
                         styles.monthButton,
                         (index + 1) === currentMonth && styles.selectedButton
                       ]}
-                      onPress={() => setSelectedDate(new Date(currentYear, index, currentDay))}
+                      onPress={() => setSelectedDate(new Date(currentYear, index, isMonthMode ? 1 : currentDay))}
                     >
                       <Text style={[
                         styles.monthText,
@@ -184,30 +198,32 @@ const DatePicker = ({
                 </View>
               </View>
 
-              {/* Day Picker */}
-              <View style={styles.pickerSection}>
-                <Text style={[styles.pickerLabel, { fontSize: s16 }]}>Day</Text>
-                <View style={styles.dayGrid}>
-                  {generateDays(currentYear, currentMonth).map((day) => (
-                    <TouchableOpacity
-                      key={day}
-                      style={[
-                        styles.dayButton,
-                        day === currentDay && styles.selectedButton
-                      ]}
-                      onPress={() => setSelectedDate(new Date(currentYear, currentMonth - 1, day))}
-                    >
-                      <Text style={[
-                        styles.dayText,
-                        { fontSize: s14 },
-                        day === currentDay && styles.selectedText
-                      ]}>
-                        {day}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+              {/* Day Picker - hidden in month mode */}
+              {!isMonthMode && (
+                <View style={[styles.pickerSection, styles.daySection]}>
+                  <Text style={[styles.pickerLabel, { fontSize: s16 }]}>Day</Text>
+                  <View style={styles.dayGrid}>
+                    {generateDays(currentYear, currentMonth).map((day) => (
+                      <TouchableOpacity
+                        key={day}
+                        style={[
+                          styles.dayButton,
+                          day === currentDay && styles.selectedButton
+                        ]}
+                        onPress={() => setSelectedDate(new Date(currentYear, currentMonth - 1, day))}
+                      >
+                        <Text style={[
+                          styles.dayText,
+                          { fontSize: s14 },
+                          day === currentDay && styles.selectedText
+                        ]}>
+                          {day}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
+              )}
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -216,7 +232,7 @@ const DatePicker = ({
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.confirmButton} 
-                onPress={() => handleDateSelect(currentDay, currentMonth, currentYear)}
+                onPress={() => handleDateSelect(isMonthMode ? 1 : currentDay, currentMonth, currentYear)}
               >
                 <Text style={[styles.confirmButtonText, { fontSize: s14 }]}>Confirm</Text>
               </TouchableOpacity>
@@ -296,11 +312,20 @@ const styles = StyleSheet.create({
   },
   pickerContainer: {
     maxHeight: 400,
+  },
+  pickerContent: {
     padding: 20,
+    paddingBottom: 32,
     gap: 20,
   },
   pickerSection: {
     gap: 10,
+  },
+  pickerSectionSpaced: {
+    marginBottom: 4,
+  },
+  daySection: {
+    marginBottom: 8,
   },
   pickerLabel: {
     fontSize: 16,
