@@ -14,15 +14,14 @@ import { isRunningInExpoGo } from "./src/utils/expoGoDetect";
 import SplashScreen from "./src/splashScreen/SplashScreen";
 import OnBoarding from "./src/screens/OnBoarding";
 import Login from "./src/auth/Login";
-import Dashboard from "./src/screens/Dashboard";
-import Profile from "./src/screens/Profile";
-import ProfileScreenMain from "./src/screens/ProfileScreenMain";
-import SideMenu from "./src/screens/SideMenu";
-import Usage from "./src/screens/Usage";
-import Payments from "./src/screens/Payments";
-import Transactions from "./src/screens/Transactions";
-import Tickets from "./src/screens/Tickets";
-import Settings from "./src/screens/Settings";
+import Notifications from "./src/screens/account/Notifications";
+import Profile from "./src/screens/account/Profile";
+import SideMenu from "./src/screens/account/SideMenu";
+import Usage from "./src/screens/usage/Usage";
+import Payments from "./src/screens/recharge/Payments";
+import Transactions from "./src/screens/invoices/Transactions";
+import Tickets from "./src/screens/tickets/Tickets";
+import Settings from "./src/screens/account/Settings";
 import { TabProvider } from "./src/context/TabContext";
 import { ThemeProvider } from "./src/context/ThemeContext";
 import { AppProvider } from "./src/context/AppContext";
@@ -33,17 +32,16 @@ import ForgotPassword from "./src/auth/ForgotPassword";
 import OTPLogin from "./src/auth/OTPLogin";
 import ResetPassword from "./src/auth/ResetPassword";
 import GuestLogin from "./src/auth/GuestLogin";
-import TicketDetails from "./src/screens/TicketDetails";
-import ChatSupport from "./src/screens/ChatSupport";
-import PostPaidDashboard from "./src/screens/PostPaidDashboard";
-import PostPaidRechargePayments from "./src/screens/PostPaidRechargePayments";
-import PaymentStatus from "./src/screens/PaymentStatus";
-import DgScreen from "./src/screens/DgScreen";
-import ConsumerDataTable from "./src/screens/ConsumerDataTable";
-import Invoices from "./src/screens/Invoices";
-import Reports from "./src/screens/Reports";
-import TermsOfServicesScreen from "./src/screens/TermsOfServicesScreen";
-import PrivacyPolicyScreen from "./src/screens/PrivacyPolicyScreen";
+import TicketDetails from "./src/screens/tickets/TicketDetails";
+import ChatSupport from "./src/screens/tickets/ChatSupport";
+import PostPaidDashboard from "./src/screens/dashboard/PostPaidDashboard";
+import PostPaidRechargePayments from "./src/screens/dashboard/PostPaidRechargePayments";
+import PaymentStatus from "./src/screens/recharge/PaymentStatus";
+import LsDataTable from "./src/screens/dashboard/LsDataTable";
+import Invoices from "./src/screens/invoices/Invoices";
+import Reports from "./src/screens/invoices/Reports";
+import TermsOfServicesScreen from "./src/screens/account/TermsOfServicesScreen";
+import PrivacyPolicyScreen from "./src/screens/account/PrivacyPolicyScreen";
 import Toastify from 'react-native-toast-message';
 import ErrorBoundary from "./src/components/global/ErrorBoundary";
 import { initializeMonitoring } from "./src/config/monitoring";
@@ -148,7 +146,7 @@ export default function App() {
       }
 
       // Define dashboard screens
-      const dashboardScreens = ['PostPaidDashboard', 'Dashboard'];
+      const dashboardScreens = ['PostPaidDashboard'];
       
       if (dashboardScreens.includes(routeName)) {
         // On Dashboard - press back to exit
@@ -231,18 +229,13 @@ export default function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="Dashboard"
-            component={Dashboard}
+            name="Notifications"
+            component={Notifications}
             options={{ headerShown: false }}
           />
           <Stack.Screen
             name="Profile"
             component={Profile}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ProfileScreenMain"
-            component={ProfileScreenMain}
             options={{ headerShown: false }}
           />
           <Stack.Screen
@@ -321,13 +314,8 @@ export default function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="DG"
-            component={DgScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ConsumerDataTable"
-            component={ConsumerDataTable}
+            name="LsDataTable"
+            component={LsDataTable}
             options={{ headerShown: false }}
           />
           <Stack.Screen

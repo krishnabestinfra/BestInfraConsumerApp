@@ -6,17 +6,17 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
 import React, { useState, useEffect } from "react";
-import ChevronRight from "../../assets/icons/rightArrow.svg";
-import { apiClient } from "../services/apiClient";
-import ChatIcon from "../../assets/icons/chatIcon.svg";
-import TimelineCheckBlue from "../../assets/icons/timeLineCheckBlue.svg";
-import TimelineCheckGreen from "../../assets/icons/timeLineCheckGreen.svg";
-import DashboardHeader from "../components/global/DashboardHeader";
-import BottomNavigation from "../components/global/BottomNavigation";
-import { formatFrontendDateTime } from "../utils/dateUtils";
+import ChevronRight from "../../../assets/icons/rightArrow.svg";
+import { apiClient } from "../../services/apiClient";
+import ChatIcon from "../../../assets/icons/chatIcon.svg";
+import TimelineCheckBlue from "../../../assets/icons/timeLineCheckBlue.svg";
+import TimelineCheckGreen from "../../../assets/icons/timeLineCheckGreen.svg";
+import DashboardHeader from "../../components/global/DashboardHeader";
+import BottomNavigation from "../../components/global/BottomNavigation";
+import { formatFrontendDateTime } from "../../utils/dateUtils";
 
 const DARK_CARD_BG = "#1A1F2E";
 

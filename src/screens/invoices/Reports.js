@@ -1,25 +1,26 @@
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Modal, Alert, ActivityIndicator, Share } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
-import BottomNavigation from "../components/global/BottomNavigation";
-import Menu from "../../assets/icons/bars.svg";
-import MenuWhite from "../../assets/icons/menuBarWhite.svg";
-import Notification from "../../assets/icons/notification.svg";
-import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
-import Logo from "../components/global/Logo";
-import AnimatedRings from "../components/global/AnimatedRings";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
+import BottomNavigation from "../../components/global/BottomNavigation";
+import Menu from "../../../assets/icons/bars.svg";
+import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
+import Notification from "../../../assets/icons/notification.svg";
+import NotificationWhite from "../../../assets/icons/NotificationWhite.svg";
+import Logo from "../../components/global/Logo";
+import AnimatedRings from "../../components/global/AnimatedRings";
 import { StatusBar } from "expo-status-bar";
-import DropDownIcon from "../../assets/icons/dropdownArrow.svg";
-import ShareIcon from "../../assets/icons/share.svg";
-import DatePicker from "../components/global/DatePicker";
-import DocumentIcon from "../../assets/icons/document.svg";
-import { getUser } from "../utils/storage";
-import { apiClient } from "../services/apiClient";
-import { formatDDMMYYYY, formatYYYYMMDD } from "../utils/dateUtils";
+import DropDownIcon from "../../../assets/icons/dropdownArrow.svg";
+import ShareIcon from "../../../assets/icons/share.svg";
+import DatePicker from "../../components/global/DatePicker";
+import DocumentIcon from "../../../assets/icons/document.svg";
+import { getUser } from "../../utils/storage";
+import { apiClient } from "../../services/apiClient";
+import { formatDDMMYYYY, formatYYYYMMDD } from "../../utils/dateUtils";
 import * as XLSX from "xlsx";
+import { isDemoUser, getDemoReportResponse, getDemoRecentReports } from "../../constants/demoData";
 
 
 const Reports = ({ navigation }) => {
@@ -40,6 +41,17 @@ const Reports = ({ navigation }) => {
 
   const reportTypes = ["Daily Consumption", "Monthly Consumption", "Payment History"];
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const user = await getUser();
+      const identifier = user?.identifier;
+      if (cancelled || !identifier || !isDemoUser(identifier)) return;
+      setRecentReports(getDemoRecentReports(identifier));
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const handleGetReport = async () => {
     if (!startDate || !endDate) {
       Alert.alert("Error", "Please select both start and end dates");
@@ -58,7 +70,12 @@ const Reports = ({ navigation }) => {
     setReportError(null);
     setReportLoading(true);
     try {
-      const result = await apiClient.getConsumerReport(identifier, startStr, endStr, reportType);
+      let result;
+      if (isDemoUser(identifier)) {
+        result = getDemoReportResponse(identifier, startStr, endStr, reportType);
+      } else {
+        result = await apiClient.getConsumerReport(identifier, startStr, endStr, reportType);
+      }
       if (result?.success && result?.data != null) {
         const reportLabel = filterType.replace(/\s+/g, " ");
         const reportName = `${reportLabel} (${formatDDMMYYYY(startDate)} - ${formatDDMMYYYY(endDate)}).pdf`;
@@ -307,7 +324,7 @@ const Reports = ({ navigation }) => {
 
         <Pressable
           style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-          onPress={() => navigation.navigate("Profile")}
+          onPress={() => navigation.navigate("Notifications")}
         >
           {isDark ? (
             <NotificationWhite width={18} height={18} />
@@ -481,6 +498,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    zIndex: 99,
   },
   logoWrapper: {
     alignItems: "center",

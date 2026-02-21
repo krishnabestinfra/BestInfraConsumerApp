@@ -1,6 +1,45 @@
 // Demo data and helpers used when logging in with demo credentials.
 // This allows the app to show complete, realistic data even if the
 // backend or database is unavailable.
+//
+// All demo values are derived from DEMO_CANONICAL below so that
+// dashboard, invoices, usage, profile, notifications, and tickets stay in sync.
+
+// ========== SINGLE SOURCE OF TRUTH – all demo data derives from here ==========
+const DEMO_CANONICAL = {
+  // One demo consumer / meter
+  meterSerialNumber: "24021286",
+  meterId: "DEMO-METER-001",
+  consumerNumber: "CON-1002",
+  connectionType: "Residential",
+
+  // Contact (same across profile, auth, notifications, dashboard)
+  phone: "9876543210",
+  emailDomain: "demo.consumer",
+
+  // Address (profile, consumer details)
+  address: "123 GMR Avenue, Sector 5, Best Infra City - 110001",
+
+  // Billing: current (Feb 2026) vs previous (Jan 2026)
+  dueDate: "2026-02-15T00:00:00Z",
+  lastBillDueDate: "2026-01-15T00:00:00Z",
+  thisMonthKwh: 2060,
+  lastMonthKwh: 2340,
+  savingsKwh: 280, // lastMonthKwh - thisMonthKwh
+
+  // Amounts (rupees) – current unpaid bill and previous paid bill
+  currentBillAmount: 48230.5,
+  previousBillAmount: 51210.75,
+  totalOutstanding: 48230.5, // same as currentBillAmount (unpaid)
+
+  // Bill/invoice identifiers
+  currentBillNumber: "INV-2401",
+  previousBillNumber: "INV-23012",
+  billId: "DEMO-BILL-2401",
+
+  // Ticket IDs (consistent with DEMO_TICKETS)
+  ticketPrefix: "TKT-24",
+};
 
 // All identifiers that should be treated as demo users.
 // Keep this in sync with the dummy credentials in Login.js.
@@ -73,24 +112,11 @@ const getLastNDaysLabels = (n) => {
   return labels;
 };
 
-// Monthly: 12 months of non‑zero data so 90D (3 months) and 1Y (12 months) are filled
-// SYNC: Last two values (Jan, Feb 2026) must match dashboardStats & DEMO_INVOICES:
-//   - Jan 2026 (lastMonth) = 2340 kWh
-//   - Feb 2026 (thisMonth) = 2060 kWh
-//   - savings = lastMonth - thisMonth = 280 kWh
+// Monthly: 12 months – last two values from DEMO_CANONICAL (Jan 2340, Feb 2060 kWh)
 const DEMO_MONTHLY_SERIES = [
-  1750, // Mar 2025
-  1820, // Apr
-  1895, // May
-  1930, // Jun
-  1980, // Jul
-  2050, // Aug
-  2120, // Sep
-  2185, // Oct
-  2250, // Nov
-  2310, // Dec
-  2340, // Jan 2026 (lastMonth - matches DEMO_INVOICES[1].unitsConsumed)
-  2060, // Feb 2026 (thisMonth - matches DEMO_INVOICES[0].unitsConsumed & dashboardStats)
+  1750, 1820, 1895, 1930, 1980, 2050, 2120, 2185, 2250, 2310,
+  DEMO_CANONICAL.lastMonthKwh,   // Jan 2026
+  DEMO_CANONICAL.thisMonthKwh,  // Feb 2026
 ];
 const DEMO_MONTHLY_LABELS = [
   "Mar 2025",
@@ -118,19 +144,17 @@ export const getDemoConsumerCore = (identifier) => {
       ? `GMR Consumer ${trimmed.slice(-3)}`
       : "Best Infra Consumer";
 
-  const now = new Date();
-
   return {
     name: friendlyName,
     consumerName: friendlyName,
     identifier: trimmed,
-    consumerNumber: trimmed,
+    consumerNumber: DEMO_CANONICAL.consumerNumber,
     uniqueIdentificationNo: trimmed,
-    meterSerialNumber: "24021286",
-    meterNumber: "24021286",
-    meterId: "DEMO-METER-001",
-    readingDate: now.toISOString(),
-    totalOutstanding: 2060.0,
+    meterSerialNumber: DEMO_CANONICAL.meterSerialNumber,
+    meterNumber: DEMO_CANONICAL.meterSerialNumber,
+    meterId: DEMO_CANONICAL.meterId,
+    readingDate: new Date().toISOString(),
+    totalOutstanding: DEMO_CANONICAL.totalOutstanding,
   };
 };
 
@@ -145,12 +169,9 @@ export const getDemoDashboardConsumerData = (identifier) => {
       : 0;
   const peakUsage = dailyValues.length > 0 ? Math.max(...dailyValues) : 0;
 
-  // SYNC: thisMonthKwh, lastMonthKwh, savingsKwh must align with:
-  // - DEMO_MONTHLY_SERIES last two values (chart derives thisMonth/lastMonth from chart)
-  // - DEMO_INVOICES[0].unitsConsumed (current bill), DEMO_INVOICES[1].unitsConsumed (previous)
-  const thisMonthKwh = 2060; // Feb 2026 - matches DEMO_INVOICES[0].unitsConsumed & DEMO_MONTHLY_SERIES last
-  const lastMonthKwh = 2340; // Jan 2026 - matches DEMO_INVOICES[1].unitsConsumed & DEMO_MONTHLY_SERIES second-to-last
-  const savingsKwh = Math.max(lastMonthKwh - thisMonthKwh, 0); // 280 kWh
+  const thisMonthKwh = DEMO_CANONICAL.thisMonthKwh;
+  const lastMonthKwh = DEMO_CANONICAL.lastMonthKwh;
+  const savingsKwh = DEMO_CANONICAL.savingsKwh;
 
   // Generate daily labels for the last 30 days ending today.
   // 7D and 30D views slice from this array, so:
@@ -179,11 +200,10 @@ export const getDemoDashboardConsumerData = (identifier) => {
       lastMonthKwh,
       savingsKwh,
     },
-    // Simple demo tamper events list for Alerts table
     alerts: [
       {
         id: 1,
-        meterSerialNumber: core.meterSerialNumber,
+        meterSerialNumber: DEMO_CANONICAL.meterSerialNumber,
         consumerName: core.name,
         tamperDatetime: "2026-01-10T08:42:00Z",
         tamperTypeDesc: "R_PH CT Open",
@@ -192,7 +212,7 @@ export const getDemoDashboardConsumerData = (identifier) => {
       },
       {
         id: 2,
-        meterSerialNumber: core.meterSerialNumber,
+        meterSerialNumber: DEMO_CANONICAL.meterSerialNumber,
         consumerName: core.name,
         tamperDatetime: "2026-01-06T11:15:00Z",
         tamperTypeDesc: "Voltage Imbalance",
@@ -211,24 +231,48 @@ export const getDemoDashboardConsumerData = (identifier) => {
     yPhasePowerFactor: 0.95,
     bPhasePowerFactor: 0.97,
     kW: 145.3,
-    // Demo billing-related fields for payments / overdue logic
-    dueDate: "2026-02-15T00:00:00Z",
-    paymentDueDate: "2026-02-15T00:00:00Z",
-    outstandingDueDate: "2026-02-15T00:00:00Z",
-    lastBillDueDate: "2026-01-15T00:00:00Z",
-    billDueDate: "2026-02-15T00:00:00Z",
-    // Contact info for payment flows
-    email: `${core.identifier}@demo.consumer`,
-    contact: "9876543210",
-    // Demo bill identifier for payment integration
-    billId: "DEMO-BILL-2401",
+    dueDate: DEMO_CANONICAL.dueDate,
+    paymentDueDate: DEMO_CANONICAL.dueDate,
+    outstandingDueDate: DEMO_CANONICAL.dueDate,
+    lastBillDueDate: DEMO_CANONICAL.lastBillDueDate,
+    billDueDate: DEMO_CANONICAL.dueDate,
+    email: `${core.identifier}@${DEMO_CANONICAL.emailDomain}`,
+    contact: DEMO_CANONICAL.phone,
+    billId: DEMO_CANONICAL.billId,
   };
 };
 
 export const getDemoUsageConsumerData = getDemoDashboardConsumerData;
 
-// Demo last month bill amount for Usage screen
-export const DEMO_LAST_MONTH_BILL = 18340.75;
+// --------- PROFILE SCREEN DEMO DATA ----------
+export const getDemoProfileConsumerData = (identifier) => {
+  const core = getDemoConsumerCore(identifier);
+  return {
+    name: core.name,
+    permanentAddress: DEMO_CANONICAL.address,
+    uniqueIdentificationNo: core.uniqueIdentificationNo,
+    meterSerialNumber: DEMO_CANONICAL.meterSerialNumber,
+    connectionType: DEMO_CANONICAL.connectionType,
+    mobileNo: DEMO_CANONICAL.phone,
+  };
+};
+
+export const getDemoAuthProfile = (identifier) => {
+  const trimmed = String(identifier || "demo").trim();
+  return {
+    success: true,
+    data: {
+      user: {
+        id: "demo-user-1",
+        email: `${trimmed}@${DEMO_CANONICAL.emailDomain}`,
+        phone: DEMO_CANONICAL.phone,
+      },
+    },
+  };
+};
+
+// Last month bill amount (Jan 2026) – matches DEMO_INVOICES[1].totalAmount
+export const DEMO_LAST_MONTH_BILL = DEMO_CANONICAL.previousBillAmount;
 
 // Detailed consumer snapshot used by ConsumerDetailsBottomSheet
 export const getDemoConsumerDetails = (identifier) => {
@@ -288,7 +332,7 @@ export const getDemoLsDataForDate = (identifier, formattedDate, meterId) => {
     });
   }
 
-  const metaMeterId = meterId || "DEMO-METER-001";
+  const metaMeterId = meterId || DEMO_CANONICAL.meterId;
 
   return {
     data,
@@ -304,7 +348,7 @@ export const getDemoLsDataForDate = (identifier, formattedDate, meterId) => {
 };
 
 // --------- TICKETS DEMO DATA ----------
-
+// Stats must match counts in DEMO_TICKETS by status
 export const DEMO_TICKET_STATS = {
   total: 4,
   open: 1,
@@ -316,7 +360,7 @@ export const DEMO_TICKET_STATS = {
 export const DEMO_TICKETS = [
   {
     id: "DEMO-TKT-001",
-    ticketNumber: "TKT-2401",
+    ticketNumber: `${DEMO_CANONICAL.ticketPrefix}01`,
     category: "METER",
     status: "Open",
     priority: "High",
@@ -324,7 +368,7 @@ export const DEMO_TICKETS = [
   },
   {
     id: "DEMO-TKT-002",
-    ticketNumber: "TKT-2402",
+    ticketNumber: `${DEMO_CANONICAL.ticketPrefix}02`,
     category: "BILLING",
     status: "In Progress",
     priority: "Low",
@@ -332,7 +376,7 @@ export const DEMO_TICKETS = [
   },
   {
     id: "DEMO-TKT-003",
-    ticketNumber: "TKT-2403",
+    ticketNumber: `${DEMO_CANONICAL.ticketPrefix}03`,
     category: "TECHNICAL",
     status: "In Progress",
     priority: "High",
@@ -340,7 +384,7 @@ export const DEMO_TICKETS = [
   },
   {
     id: "DEMO-TKT-004",
-    ticketNumber: "TKT-2404",
+    ticketNumber: `${DEMO_CANONICAL.ticketPrefix}04`,
     category: "CONNECTION",
     status: "Resolved",
     priority: "High",
@@ -349,42 +393,151 @@ export const DEMO_TICKETS = [
 ];
 
 // --------- INVOICES DEMO DATA ----------
-
+// Current (unpaid) and previous (paid) align with DEMO_CANONICAL kWh and amounts
 export const DEMO_INVOICES = [
   {
     id: 1,
-    billNumber: "INV-2401",
-    fromDate: "2025-12-01T00:00:00Z",
-    toDate: "2025-12-31T23:59:59Z",
-    billDate: "2026-01-01T10:00:00Z",
-    dueDate: "2026-01-15T10:00:00Z",
-    unitsConsumed: 2060,
-    totalAmount: 48230.5,
+    billNumber: DEMO_CANONICAL.currentBillNumber,
+    fromDate: "2026-01-01T00:00:00Z",
+    toDate: "2026-01-31T23:59:59Z",
+    billDate: "2026-02-01T10:00:00Z",
+    dueDate: DEMO_CANONICAL.dueDate,
+    unitsConsumed: DEMO_CANONICAL.thisMonthKwh,
+    totalAmount: DEMO_CANONICAL.currentBillAmount,
     isPaid: false,
   },
   {
     id: 2,
-    billNumber: "INV-23012",
-    fromDate: "2025-11-01T00:00:00Z",
-    toDate: "2025-11-30T23:59:59Z",
-    billDate: "2025-12-01T10:00:00Z",
-    dueDate: "2025-12-15T10:00:00Z",
-    unitsConsumed: 2340,
-    totalAmount: 51210.75,
+    billNumber: DEMO_CANONICAL.previousBillNumber,
+    fromDate: "2025-12-01T00:00:00Z",
+    toDate: "2025-12-31T23:59:59Z",
+    billDate: "2026-01-01T10:00:00Z",
+    dueDate: DEMO_CANONICAL.lastBillDueDate,
+    unitsConsumed: DEMO_CANONICAL.lastMonthKwh,
+    totalAmount: DEMO_CANONICAL.previousBillAmount,
     isPaid: true,
   },
   {
     id: 3,
     billNumber: "INV-23011",
-    fromDate: "2025-10-01T00:00:00Z",
-    toDate: "2025-10-31T23:59:59Z",
-    billDate: "2025-11-01T10:00:00Z",
-    dueDate: "2025-11-15T10:00:00Z",
+    fromDate: "2025-11-01T00:00:00Z",
+    toDate: "2025-11-30T23:59:59Z",
+    billDate: "2025-12-01T10:00:00Z",
+    dueDate: "2025-12-15T10:00:00Z",
     unitsConsumed: 1980,
     totalAmount: 46875.0,
     isPaid: true,
   },
 ];
+
+// --------- REPORTS DEMO DATA ----------
+// Report payload shape matches what Reports.js getReportSheetData expects (chartData.daily/monthly or data/payments)
+function getDemoDailyReportLabels(count = 30) {
+  const labels = [];
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() - 1);
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(endDate);
+    d.setDate(d.getDate() - i);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = monthNames[d.getMonth()];
+    const year = d.getFullYear();
+    labels.push(`${day} ${month} ${year}`);
+  }
+  return labels;
+}
+
+/**
+ * Returns { success: true, data } for Reports screen. data shape matches getReportSheetData:
+ * - daily-consumption: chartData.daily (xAxisData, seriesData[0].data)
+ * - monthly-consumption: chartData.monthly (xAxisData, seriesData[0].data)
+ * - payment-history: { data: [{ Date, Amount, Description }] }
+ */
+export function getDemoReportResponse(identifier, startStr, endStr, reportType) {
+  const dailyLabels = getDemoDailyReportLabels(DEMO_DAILY_SERIES.length);
+  if (reportType === "daily-consumption") {
+    return {
+      success: true,
+      data: {
+        chartData: {
+          daily: {
+            xAxisData: dailyLabels,
+            seriesData: [{ data: [...DEMO_DAILY_SERIES] }],
+          },
+        },
+      },
+    };
+  }
+  if (reportType === "monthly-consumption") {
+    return {
+      success: true,
+      data: {
+        chartData: {
+          monthly: {
+            xAxisData: [...DEMO_MONTHLY_LABELS],
+            seriesData: [{ data: [...DEMO_MONTHLY_SERIES] }],
+          },
+        },
+      },
+    };
+  }
+  if (reportType === "payment-history") {
+    return {
+      success: true,
+      data: {
+        data: [
+          { Date: "15 Jan 2026", Amount: DEMO_CANONICAL.previousBillAmount, Description: `Payment for ${DEMO_CANONICAL.previousBillNumber}` },
+          { Date: "15 Dec 2025", Amount: 46875.0, Description: "Payment for INV-23011" },
+          { Date: "20 Nov 2025", Amount: DEMO_CANONICAL.totalOutstanding, Description: `Outstanding – ${DEMO_CANONICAL.currentBillNumber} (due 15 Feb 2026)` },
+        ],
+      },
+    };
+  }
+  return { success: true, data: { chartData: { daily: { xAxisData: dailyLabels, seriesData: [{ data: [...DEMO_DAILY_SERIES] }] } } } };
+}
+
+/**
+ * Pre-built recent reports for demo user so Reports screen shows list without calling API.
+ * Each item: { id, name, data, reportType }.
+ */
+export function getDemoRecentReports(identifier) {
+  const dailyLabels = getDemoDailyReportLabels(DEMO_DAILY_SERIES.length);
+  const now = new Date();
+  const formatRange = (s, e) => `${s.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, "-")} - ${e.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, "-")}`;
+  const end = new Date(now);
+  end.setDate(end.getDate() - 1);
+  const startDaily = new Date(end);
+  startDaily.setDate(startDaily.getDate() - 29);
+  const startMonthly = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  const endMonthly = new Date(now.getFullYear(), now.getMonth(), 0);
+  return [
+    {
+      id: "demo-report-daily",
+      name: `Daily Consumption (${formatRange(startDaily, end)}).pdf`,
+      data: { chartData: { daily: { xAxisData: dailyLabels, seriesData: [{ data: [...DEMO_DAILY_SERIES] }] } } },
+      reportType: "Daily Consumption",
+    },
+    {
+      id: "demo-report-monthly",
+      name: `Monthly Consumption (${formatRange(startMonthly, endMonthly)}).pdf`,
+      data: { chartData: { monthly: { xAxisData: [...DEMO_MONTHLY_LABELS], seriesData: [{ data: [...DEMO_MONTHLY_SERIES] }] } } },
+      reportType: "Monthly Consumption",
+    },
+    {
+      id: "demo-report-payment",
+      name: `Payment History (${formatRange(startMonthly, end)}).pdf`,
+      data: {
+        data: [
+          { Date: "15 Jan 2026", Amount: DEMO_CANONICAL.previousBillAmount, Description: `Payment for ${DEMO_CANONICAL.previousBillNumber}` },
+          { Date: "15 Dec 2025", Amount: 46875.0, Description: "Payment for INV-23011" },
+          { Date: "20 Nov 2025", Amount: DEMO_CANONICAL.totalOutstanding, Description: `Outstanding – ${DEMO_CANONICAL.currentBillNumber}` },
+        ],
+      },
+      reportType: "Payment History",
+    },
+  ];
+}
 
 // --------- NOTIFICATIONS DEMO DATA ----------
 
@@ -407,41 +560,40 @@ export const getDemoNotifications = (identifier) => {
   const dashboardData = getDemoDashboardConsumerData(identifier);
   const core = getDemoConsumerCore(identifier);
 
+  const dueDateFormatted = new Date(DEMO_CANONICAL.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  const outstandingFormatted = DEMO_CANONICAL.totalOutstanding.toLocaleString("en-IN", { minimumFractionDigits: 2 });
+  const currentBillFormatted = DEMO_CANONICAL.currentBillAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 });
+  const previousBillFormatted = DEMO_CANONICAL.previousBillAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 });
+
   return [
     {
       id: `DEMO-NOTIF-001-${identifier}`,
       title: "Payment Successful",
-      message: `Your payment of ₹${core.totalOutstanding.toFixed(2)} has been successfully processed.`,
+      message: `Your payment of ₹${outstandingFormatted} has been successfully processed.`,
       type: "payment",
       is_read: false,
       created_at: timestamps[0].toISOString(),
-      meta: {
-        sentAt: timestamps[0].toISOString(),
-      },
+      meta: { sentAt: timestamps[0].toISOString() },
       redirect_url: "/invoices",
     },
     {
       id: `DEMO-NOTIF-002-${identifier}`,
       title: "Bill Due Reminder",
-      message: `Your bill of ₹${core.totalOutstanding.toFixed(2)} is due on ${new Date(dashboardData.dueDate || new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. Please pay to avoid late fees.`,
+      message: `Your bill of ₹${outstandingFormatted} (${DEMO_CANONICAL.currentBillNumber}) is due on ${dueDateFormatted}. Please pay to avoid late fees.`,
       type: "due",
       is_read: false,
       created_at: timestamps[1].toISOString(),
-      meta: {
-        sentAt: timestamps[1].toISOString(),
-      },
+      meta: { sentAt: timestamps[1].toISOString() },
       redirect_url: "/invoices",
     },
     {
       id: `DEMO-NOTIF-003-${identifier}`,
       title: "Meter Reading Alert",
-      message: `Unusual consumption pattern detected for meter ${core.meterSerialNumber}. Please verify your usage.`,
+      message: `Unusual consumption pattern detected for meter ${DEMO_CANONICAL.meterSerialNumber}. Please verify your usage.`,
       type: "alert",
       is_read: true,
       created_at: timestamps[2].toISOString(),
-      meta: {
-        sentAt: timestamps[2].toISOString(),
-      },
+      meta: { sentAt: timestamps[2].toISOString() },
       redirect_url: "/usage",
     },
     {
@@ -451,33 +603,27 @@ export const getDemoNotifications = (identifier) => {
       type: "warning",
       is_read: false,
       created_at: timestamps[3].toISOString(),
-      meta: {
-        sentAt: timestamps[3].toISOString(),
-      },
+      meta: { sentAt: timestamps[3].toISOString() },
       redirect_url: "/dashboard",
     },
     {
       id: `DEMO-NOTIF-005-${identifier}`,
       title: "New Invoice Generated",
-      message: `Invoice INV-2401 for ₹48,230.50 has been generated. View details in the Invoices section.`,
+      message: `Invoice ${DEMO_CANONICAL.currentBillNumber} for ₹${currentBillFormatted} has been generated. View details in the Invoices section.`,
       type: "info",
       is_read: true,
       created_at: timestamps[4].toISOString(),
-      meta: {
-        sentAt: timestamps[4].toISOString(),
-      },
+      meta: { sentAt: timestamps[4].toISOString() },
       redirect_url: "/invoices",
     },
     {
       id: `DEMO-NOTIF-006-${identifier}`,
       title: "Account Balance Updated",
-      message: `Your account balance has been updated. Outstanding amount: ₹${core.totalOutstanding.toFixed(2)}.`,
+      message: `Your account balance has been updated. Outstanding amount: ₹${outstandingFormatted}.`,
       type: "balance",
       is_read: true,
       created_at: timestamps[5].toISOString(),
-      meta: {
-        sentAt: timestamps[5].toISOString(),
-      },
+      meta: { sentAt: timestamps[5].toISOString() },
       redirect_url: "/dashboard",
     },
     {
@@ -487,21 +633,17 @@ export const getDemoNotifications = (identifier) => {
       type: "info",
       is_read: true,
       created_at: timestamps[6].toISOString(),
-      meta: {
-        sentAt: timestamps[6].toISOString(),
-      },
+      meta: { sentAt: timestamps[6].toISOString() },
       redirect_url: null,
     },
     {
       id: `DEMO-NOTIF-008-${identifier}`,
       title: "Payment Receipt",
-      message: `Payment receipt for ₹51,210.75 has been generated. You can download it from the Invoices section.`,
+      message: `Payment receipt for ₹${previousBillFormatted} (${DEMO_CANONICAL.previousBillNumber}) has been generated. You can download it from the Invoices section.`,
       type: "success",
       is_read: true,
       created_at: timestamps[7].toISOString(),
-      meta: {
-        sentAt: timestamps[7].toISOString(),
-      },
+      meta: { sentAt: timestamps[7].toISOString() },
       redirect_url: "/invoices",
     },
   ];

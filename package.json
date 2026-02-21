@@ -64,6 +64,7 @@
     "zod": "^4.0.5"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
     "@babel/core": "^7.20.0",
     "@react-native-community/cli": "^15.0.0",
     "@types/react": "~19.0.10",

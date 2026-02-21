@@ -1,21 +1,21 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
-import Menu from "../../assets/icons/bars.svg";
-import MenuWhite from "../../assets/icons/menuBarWhite.svg";
-import Notification from "../../assets/icons/notification.svg";
-import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
-import BiLogo from "../../assets/icons/Logo.svg";
-import DatePicker from "../components/global/DatePicker";
-import Table from "../components/global/Table";
-import Button from "../components/global/Button";
-import DownloadButton from "../components/global/DownloadButton";
-import { getUser } from "../utils/storage";
-import { API, API_ENDPOINTS } from "../constants/constants";
-import { apiClient } from "../services/apiClient";
-import { formatFrontendDate } from "../utils/dateUtils";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
+import Menu from "../../../assets/icons/bars.svg";
+import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
+import Notification from "../../../assets/icons/notification.svg";
+import NotificationWhite from "../../../assets/icons/NotificationWhite.svg";
+import BiLogo from "../../../assets/icons/Logo.svg";
+import DatePicker from "../../components/global/DatePicker";
+import Table from "../../components/global/Table";
+import Button from "../../components/global/Button";
+import DownloadButton from "../../components/global/DownloadButton";
+import { getUser } from "../../utils/storage";
+import { API, API_ENDPOINTS } from "../../constants/constants";
+import { apiClient } from "../../services/apiClient";
+import { formatFrontendDate } from "../../utils/dateUtils";
 
 
 const Transactions = ({ navigation }) => {
@@ -168,12 +168,12 @@ const Transactions = ({ navigation }) => {
               <Menu width={18} height={18} fill="#202d59" />
             )}
           </Pressable>
-          <Pressable onPress={() => navigation.navigate("Dashboard")}>
+          <Pressable onPress={() => navigation.navigate("PostPaidDashboard")}>
             <BiLogo width={45} height={45} />
           </Pressable>
           <Pressable
             style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}
-            onPress={() => navigation.navigate("Profile")}
+            onPress={() => navigation.navigate("Notifications")}
           >
             {isDark ? (
               <NotificationWhite width={18} height={18} />

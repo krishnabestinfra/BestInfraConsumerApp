@@ -62,14 +62,14 @@ const SideMenuNavigation = ({ navigation }) => {
 
   useEffect(() => {
     if (currentRoute) {
-      if (currentRoute === "PostPaidDashboard" || currentRoute === "Dashboard") {
-        setActiveItem("Dashboard");
+      if (currentRoute === "PostPaidDashboard") {
+        setActiveItem("PostPaidDashboard");
       } else if (currentRoute === "Usage") {
         setActiveItem("Usage");
       } else if (currentRoute === "PostPaidRechargePayments" || currentRoute === "Payments") {
         setActiveItem("Payments");
       } else if (currentRoute === "Invoices") {
-        setActiveItem("Dashboard");
+        setActiveItem("Invoices");
       } else if (currentRoute === "Tickets") {
         setActiveItem("Tickets");
       } else if (currentRoute === "Settings") {

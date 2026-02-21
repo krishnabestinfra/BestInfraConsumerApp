@@ -7,26 +7,26 @@ import {
   Pressable,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
-import Table from "../components/global/Table";
-import Menu from "../../assets/icons/bars.svg";
-import MenuWhite from "../../assets/icons/menuBarWhite.svg";
-import Notification from "../../assets/icons/notification.svg";
-import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
-import BiLogo from "../../assets/icons/Logo.svg";
-import DropdownIcon from "../../assets/icons/dropDown.svg";
-import { API_ENDPOINTS } from "../constants/constants";
-import { getUser } from "../utils/storage";
-import { authService } from "../services/authService";
-import { apiClient } from "../services/apiClient";
-import { SkeletonLoader } from '../utils/loadingManager';
-import { isDemoUser, getDemoLsDataForDate } from "../constants/demoData";
-import { formatFrontendDateTime, formatFrontendDate } from "../utils/dateUtils";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
+import Table from "../../components/global/Table";
+import Menu from "../../../assets/icons/bars.svg";
+import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
+import Notification from "../../../assets/icons/notification.svg";
+import NotificationWhite from "../../../assets/icons/NotificationWhite.svg";
+import BiLogo from "../../../assets/icons/Logo.svg";
+import DropdownIcon from "../../../assets/icons/dropDown.svg";
+import { API_ENDPOINTS } from "../../constants/constants";
+import { getUser } from "../../utils/storage";
+import { authService } from "../../services/authService";
+import { apiClient } from "../../services/apiClient";
+import { SkeletonLoader } from '../../utils/loadingManager';
+import { isDemoUser, getDemoLsDataForDate } from "../../constants/demoData";
+import { formatFrontendDateTime, formatFrontendDate } from "../../utils/dateUtils";
 
 // Pagination is handled by Table component (5 rows per page)
 
-const ConsumerDataTable = ({ navigation, route }) => {
+const LsDataTable = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
   const { date, meterId, viewType: initialViewType, barData, consumerData } = route?.params || {};
   const [lsData, setLsData] = useState([]);
@@ -331,12 +331,12 @@ const ConsumerDataTable = ({ navigation, route }) => {
               <Menu width={18} height={18} fill="#202d59" />
             )}
           </Pressable>
-          <Pressable onPress={() => navigation.navigate("Dashboard")}>
+          <Pressable onPress={() => navigation.navigate("PostPaidDashboard")}>
             <BiLogo width={45} height={45} />
           </Pressable>
           <Pressable
             style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}
-            onPress={() => navigation.navigate("Profile")}
+            onPress={() => navigation.navigate("Notifications")}
           >
             {isDark ? (
               <NotificationWhite width={18} height={18} />
@@ -641,5 +641,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ConsumerDataTable;
+export default LsDataTable;
 

@@ -1,34 +1,34 @@
 import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated, Modal } from "react-native";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
-import { getUser, getToken } from "../utils/storage";
-import { API_ENDPOINTS } from "../constants/constants";
-import { 
-  getCachedConsumerData, 
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
+import { getUser, getToken } from "../../utils/storage";
+import { API_ENDPOINTS } from "../../constants/constants";
+import {
+  getCachedConsumerData,
   syncConsumerData,
   fetchBillingHistory
-} from "../services/apiService";
-import DashboardHeader from "../components/global/DashboardHeader";
-import BottomNavigation from "../components/global/BottomNavigation";
-import { handleViewBill } from "../services/InvoicePDFService";
+} from "../../services/apiService";
+import DashboardHeader from "../../components/global/DashboardHeader";
+import BottomNavigation from "../../components/global/BottomNavigation";
+import { handleViewBill } from "../../services/InvoicePDFService";
 import { WebView } from "react-native-webview";
-import { authService } from "../services/authService";
-import { apiClient } from "../services/apiClient";
-import { isDemoUser, getDemoConsumerCore, DEMO_INVOICES } from "../constants/demoData";
-import { formatFrontendDate } from "../utils/dateUtils";
-import { getInvoiceDateValue } from "../utils/billingUtils";
-import Menu from "../../assets/icons/bars.svg";
-import MenuWhite from "../../assets/icons/menuBarWhite.svg";
-import Notification from "../../assets/icons/notification.svg";
-import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
-import EyeIcon from "../../assets/icons/eyeFill.svg";
-import Logo from "../components/global/Logo";
-import AnimatedRings from "../components/global/AnimatedRings";
+import { authService } from "../../services/authService";
+import { apiClient } from "../../services/apiClient";
+import { isDemoUser, getDemoConsumerCore, DEMO_INVOICES } from "../../constants/demoData";
+import { formatFrontendDate } from "../../utils/dateUtils";
+import { getInvoiceDateValue } from "../../utils/billingUtils";
+import Menu from "../../../assets/icons/bars.svg";
+import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
+import Notification from "../../../assets/icons/notification.svg";
+import NotificationWhite from "../../../assets/icons/NotificationWhite.svg";
+import EyeIcon from "../../../assets/icons/eyeFill.svg";
+import Logo from "../../components/global/Logo";
+import AnimatedRings from "../../components/global/AnimatedRings";
 import { StatusBar } from "expo-status-bar";
-import FilterIcon from "../../assets/icons/filter.svg";
-import NoInvoiceIcon from "../../assets/icons/NoInvoice.svg";
+import FilterIcon from "../../../assets/icons/filter.svg";
+import NoInvoiceIcon from "../../../assets/icons/NoInvoice.svg";
 
 const INVOICE_FILTERS = [
   { key: "all", label: "All" },
@@ -757,7 +757,7 @@ const Invoices = ({ navigation }) => {
 
           <Pressable
             style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-            onPress={() => navigation.navigate("Profile")}
+            onPress={() => navigation.navigate("Notifications")}
           >
             {isDark ? (
               <NotificationWhite width={18} height={18} />

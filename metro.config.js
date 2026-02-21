@@ -25,6 +25,9 @@ config.transformer.svgrConfig = {
 // Fix for Metro version compatibility
 config.resolver.platforms = ["ios", "android", "native", "web"];
 
+// Avoid "Got unexpected undefined" when resolving modules (e.g. after moving files)
+config.resolver.unstable_enablePackageExports = false;
+
 // Ensure proper bundle generation
 config.serializer = {
   ...config.serializer,

@@ -1,21 +1,21 @@
 import { StyleSheet, Text, View, ScrollView, RefreshControl } from "react-native";
 import React, { useState, useEffect, useCallback } from "react";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
-import DashboardHeader from "../components/global/DashboardHeader";
-import BottomNavigation from "../components/global/BottomNavigation";
-import { getCachedConsumerData } from "../utils/cacheManager";
-import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../services/apiService";
-import { getBillDateValue } from "../utils/billingUtils";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
+import DashboardHeader from "../../components/global/DashboardHeader";
+import BottomNavigation from "../../components/global/BottomNavigation";
+import { getCachedConsumerData } from "../../utils/cacheManager";
+import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../../services/apiService";
+import { getBillDateValue } from "../../utils/billingUtils";
 import { StatusBar } from "expo-status-bar";
-import { getUser } from "../utils/storage";
-import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
-import VectorDiagram from "../components/VectorDiagram";
-import { apiClient } from '../services/apiClient';
-import { isDemoUser, getDemoUsageConsumerData, DEMO_LAST_MONTH_BILL } from "../constants/demoData";
+import { getUser } from "../../utils/storage";
+import ConsumerDetailsBottomSheet from "../../components/ConsumerDetailsBottomSheet";
+import VectorDiagram from "../../components/VectorDiagram";
+import { apiClient } from '../../services/apiClient';
+import { isDemoUser, getDemoUsageConsumerData, DEMO_LAST_MONTH_BILL } from "../../constants/demoData";
 import { LinearGradient } from "expo-linear-gradient";
-import MeterIcon from "../../assets/icons/meterBolt.svg";
-import WalletIcon from "../../assets/icons/walletCard.svg";
+import MeterIcon from "../../../assets/icons/meterBolt.svg";
+import WalletIcon from "../../../assets/icons/walletCard.svg";
 
 
 const Usage = ({ navigation }) => {

@@ -81,7 +81,7 @@ const PushNotificationHandler = () => {
       } else if (url.includes('/payments') || url.includes('payment')) {
         navigation?.navigate('Payments');
       } else if (url.includes('/profile') || url.includes('notification')) {
-        navigation?.navigate('Profile');
+        navigation?.navigate('Notifications');
       } else if (url.includes('/dashboard')) {
         navigation?.navigate('PostPaidDashboard');
       }
@@ -93,7 +93,7 @@ const PushNotificationHandler = () => {
       navigation?.navigate('Payments');
     } else {
       // Default: navigate to notifications page
-      navigation?.navigate('Profile');
+      navigation?.navigate('Notifications');
     }
 
     // Refresh notification list

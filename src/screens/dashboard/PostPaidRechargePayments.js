@@ -9,27 +9,28 @@ import {
   KeyboardAvoidingView, 
   Platform 
 } from "react-native";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
 import React, { useState, useEffect, useMemo } from "react";
-import Input from "../components/global/Input";
-import Button from "../components/global/Button";
-import DashboardHeader from "../components/global/DashboardHeader";
-import BottomNavigation from "../components/global/BottomNavigation";
-import DirectRazorpayPayment from "../components/DirectRazorpayPayment";
-import { getUser } from "../utils/storage";
-import { API, API_ENDPOINTS } from "../constants/constants";
-import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../services/apiService";
-import { getCachedConsumerData } from "../utils/cacheManager";
-import { isDemoUser, getDemoDashboardConsumerData } from "../constants/demoData";
-import { 
-  processRazorpayPayment, 
-  handlePaymentSuccess, 
-  handlePaymentError, 
-  formatAmount 
-} from "../services/paymentService";
-import { getConsumerDueDate } from "../utils/billingUtils";
-import { parseDueDate } from "../utils/dateUtils";
+import Input from "../../components/global/Input";
+import Button from "../../components/global/Button";
+import DashboardHeader from "../../components/global/DashboardHeader";
+import BottomNavigation from "../../components/global/BottomNavigation";
+import DirectRazorpayPayment from "../../components/DirectRazorpayPayment";
+import { getUser } from "../../utils/storage";
+import { authService } from "../../services/authService";
+import { API, API_ENDPOINTS } from "../../constants/constants";
+import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../../services/apiService";
+import { getCachedConsumerData } from "../../utils/cacheManager";
+import { isDemoUser, getDemoDashboardConsumerData } from "../../constants/demoData";
+import {
+  processRazorpayPayment,
+  handlePaymentSuccess,
+  handlePaymentError,
+  formatAmount
+} from "../../services/paymentService";
+import { getConsumerDueDate } from "../../utils/billingUtils";
+import { parseDueDate } from "../../utils/dateUtils";
 
 
 const IS_TESTING_MODE = true; // Change to false when ready for production
@@ -109,6 +110,15 @@ const PostPaidRechargePayments = ({ navigation }) => {
   const handlePayment = async () => {
     try {
       if (!validatePaymentAmount()) {
+        return;
+      }
+      const token = await authService.getValidAccessToken();
+      if (!token) {
+        Alert.alert(
+          "Session Expired",
+          "Session expired. Please sign in again.",
+          [{ text: "OK", onPress: () => navigation.replace("Login") }]
+        );
         return;
       }
 
@@ -226,7 +236,15 @@ const PostPaidRechargePayments = ({ navigation }) => {
 
     } catch (error) {
       console.error('❌ Payment error:', error);
-      
+      const isSessionExpired = error?.code === 'SESSION_EXPIRED' || (error?.message && String(error.message).includes('Session expired'));
+      if (isSessionExpired) {
+        Alert.alert(
+          "Session Expired",
+          "Session expired. Please sign in again.",
+          [{ text: "OK", onPress: () => navigation.replace("Login") }]
+        );
+        return;
+      }
       Alert.alert(
         "Payment Failed", 
         error.message || "An error occurred while processing payment. Please try again.",
@@ -243,16 +261,16 @@ const PostPaidRechargePayments = ({ navigation }) => {
       console.log('✅ Payment successful, verifying and storing in database...');
       const result = await handlePaymentSuccess(paymentResponse, navigation, setShowPaymentModal);
       
-      // Check if payment was stored in database
-      if (result && result.verificationSuccess === false) {
-        console.warn('⚠️ Payment verification failed - payment may not be stored in database');
+      if (result?.sessionExpired) {
         Alert.alert(
-          "Payment Completed", 
-          "Your payment was successful, but verification is pending. The transaction will be stored shortly.",
-          [{ text: "OK" }]
+          "Session Expired",
+          "Session expired. Please sign in again.",
+          [{ text: "OK", onPress: () => navigation.replace("Login") }]
         );
-      } else if (result && result.verificationSuccess === true) {
-        console.log('✅ Payment verified and stored in database successfully');
+        return;
+      }
+      if (result?.verificationSuccess === true && __DEV__) {
+        console.log('✅ Payment verified and stored in database');
       }
     } catch (error) {
       console.error('❌ Payment success handling error:', error);

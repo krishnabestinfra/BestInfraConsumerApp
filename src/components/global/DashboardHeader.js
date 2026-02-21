@@ -154,7 +154,7 @@ const DashboardHeader = React.memo(({
         
         <Pressable
           style={styles.bellWrapper}
-          onPress={() => rightIcon === 'back' ? navigation.goBack() : navigation.navigate('Profile')}
+          onPress={() => rightIcon === 'back' ? navigation.goBack() : navigation.navigate('Notifications')}
         >
           <View style={[styles.bellIcon, iconWrapperBg && { backgroundColor: iconWrapperBg }]}>
             {rightIcon === 'back' ? (

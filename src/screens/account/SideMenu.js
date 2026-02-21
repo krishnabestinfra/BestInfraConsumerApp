@@ -1,28 +1,27 @@
 import { Image, Pressable, ScrollView, StatusBar, StyleSheet, Text, View, Animated } from "react-native";
 import React, { useState, useCallback, useEffect, useContext, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
-import Menu from "../../assets/icons/barsWhite.svg";
-import Notification from "../../assets/icons/notification.svg";
-import BiLogo from "../../assets/icons/LogoWhite.svg";
-import Dashboard from "./Dashboard";
-import Usage from "./Usage";
-import PostPaidRechargePayments from "./PostPaidRechargePayments";
-import Transactions from "./Transactions";
-import Tickets from "./Tickets";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
+import Menu from "../../../assets/icons/barsWhite.svg";
+import Notification from "../../../assets/icons/notification.svg";
+import BiLogo from "../../../assets/icons/LogoWhite.svg";
+import Usage from "../usage/Usage";
+import PostPaidRechargePayments from "../dashboard/PostPaidRechargePayments";
+import Transactions from "../invoices/Transactions";
+import Tickets from "../tickets/Tickets";
 import Settings from "./Settings";
 import { BlurView } from "expo-blur";
-import { TabContext } from "../context/TabContext"; 
-import SideMenuNavigation from "../components/SideMenuNavigation";
-import Logo from "../components/global/Logo";
-import { logoutUser, getUser } from "../utils/storage";
-import { apiClient } from "../services/apiClient";
-import { API, API_ENDPOINTS } from "../constants/constants";
-import { authService } from "../services/authService";
-import CrossIcon from "../../assets/icons/crossWhite.svg";
-import { getTenantSubdomain } from "../config/apiConfig";
-import PostPaidDashboard from "./PostPaidDashboard";
+import { TabContext } from "../../context/TabContext";
+import SideMenuNavigation from "../../components/SideMenuNavigation";
+import Logo from "../../components/global/Logo";
+import { logoutUser, getUser } from "../../utils/storage";
+import { apiClient } from "../../services/apiClient";
+import { API, API_ENDPOINTS } from "../../constants/constants";
+import { authService } from "../../services/authService";
+import CrossIcon from "../../../assets/icons/crossWhite.svg";
+import { getTenantSubdomain } from "../../config/apiConfig";
+import PostPaidDashboard from "../dashboard/PostPaidDashboard";
 
 // Skeleton placeholder for loading state
 const SkeletonField = ({ width = "70%", height = 14, style }) => {
@@ -65,10 +64,10 @@ const SideMenu = ({ navigation }) => {
   const tenantSubdomain = getTenantSubdomain ? getTenantSubdomain() : "gmr";
   const tenantLogoSource =
     tenantSubdomain === "ntpl"
-      ? require("../../assets/images/ntpl.png")
-      : require("../../assets/images/gmr.png");
+      ? require("../../../assets/images/ntpl.png")
+      : require("../../../assets/images/gmr.png");
 
-  // Fetch profile data from same APIs as ProfileScreenMain (consumers + auth profile)
+  // Fetch profile data from same APIs as Profile (consumers + auth profile)
   useFocusEffect(
     useCallback(() => {
       let isMounted = true;
@@ -81,7 +80,7 @@ const SideMenu = ({ navigation }) => {
             return;
           }
 
-          // 1) Fetch consumer data - same as ProfileScreenMain
+          // 1) Fetch consumer data - same as Profile
           const consumerEndpoint = API_ENDPOINTS.consumers.get(user.identifier);
           const consumerResult = await apiClient.request(consumerEndpoint, { method: "GET" });
 
@@ -197,19 +196,19 @@ const SideMenu = ({ navigation }) => {
           {/* <BiLogo width={45} height={45} /> */}
           <Logo variant="white" size="medium" />
         </Pressable>
-        <Pressable style={styles.bellIcon} onPress={() => navigation.navigate("Profile")}>
+        <Pressable style={styles.bellIcon} onPress={() => navigation.navigate("Notifications")}>
           <Notification width={18} height={18} fill={COLORS.brandBlueColor} />
         </Pressable>
       </View>
-      {/* Profile Section - Clickable to navigate to ProfileScreenMain */}
+      {/* Profile Section - Clickable to navigate to Profile */}
       <Pressable 
         style={styles.profileSection}
-        onPress={() => navigation.navigate("ProfileScreenMain")}
+        onPress={() => navigation.navigate("Profile")}
       >
         <View style={styles.profileContainer}>
           <View style={styles.profileImageWrapper}>
             <Image 
-              source={require("../../assets/images/profile.jpg")} 
+              source={require("../../../assets/images/profile.jpg")} 
               style={styles.gmrLogo}
             />
             <Image 

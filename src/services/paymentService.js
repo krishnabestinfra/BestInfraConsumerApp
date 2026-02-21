@@ -104,16 +104,19 @@ const base64Encode = (str) => {
  * 
  * Backend should create actual Razorpay order during verification if frontend-generated order_id is used.
  */
+/** Error code returned when token/user is missing so UI can show "Session expired" and redirect to login */
+export const SESSION_EXPIRED_ERROR = 'session_expired';
+const SESSION_EXPIRED_MESSAGE = 'Session expired. Please sign in again.';
+
 export const createPaymentOrder = async (paymentData) => {
   try {
     const user = await getUser();
     const token = await authService.getValidAccessToken();
     if (!user || !user.identifier) {
-      throw new Error('User authentication required');
+      return { success: false, error: SESSION_EXPIRED_ERROR, message: SESSION_EXPIRED_MESSAGE };
     }
-
     if (!token) {
-      throw new Error('Authentication token required');
+      return { success: false, error: SESSION_EXPIRED_ERROR, message: SESSION_EXPIRED_MESSAGE };
     }
 
     // Check if Razorpay secret key is configured (REQUIRED for creating real orders with automatic capture)
@@ -750,11 +753,10 @@ export const verifyPayment = async (paymentResponse) => {
     const token = await authService.getValidAccessToken();
     const user = await getUser();
     if (!token) {
-      throw new Error('Authentication token required for payment verification');
+      return { success: false, error: SESSION_EXPIRED_ERROR, message: SESSION_EXPIRED_MESSAGE };
     }
-
     if (!user || !user.identifier) {
-      throw new Error('User information required for payment verification');
+      return { success: false, error: SESSION_EXPIRED_ERROR, message: SESSION_EXPIRED_MESSAGE };
     }
 
      // DEBUG: Log full payment response
@@ -940,15 +942,19 @@ export const verifyPayment = async (paymentResponse) => {
           continue;
         } else {
           lastError = new Error(result.message || apiResult.error || `HTTP ${apiResult.status}: Payment verification failed`);
-          console.error('❌ Verification endpoint error:', { status: apiResult.status, message: result.message || 'Unknown error', error: result.error });
+          if (__DEV__) {
+            console.warn('⚠️ Verification endpoint returned:', apiResult.status, result.message || 'Unknown error');
+          }
           if (endpoint !== verifyEndpoints[verifyEndpoints.length - 1]) continue;
           break;
         }
       } catch (fetchError) {
-        console.error(`❌ Error with verification endpoint ${endpoint}:`, fetchError?.message);
+        if (__DEV__) {
+          console.warn('⚠️ Verification request error:', fetchError?.message);
+        }
         lastError = fetchError;
         if (endpoint !== verifyEndpoints[verifyEndpoints.length - 1]) continue;
-        throw fetchError;
+        break;
       }
     }
 
@@ -1066,105 +1072,79 @@ export const verifyPayment = async (paymentResponse) => {
         payment_id: paymentId, // Explicitly return payment_id for easy access
       };
     } else {
-      // If route doesn't exist (404), this is CRITICAL - payment won't be stored
       if (response && response.status === 404) {
-        console.error('❌ CRITICAL: Verification route not found (404)');
-        console.error('❌ Payment will NOT be stored in database without this endpoint');
-        console.error('❌ Endpoint should be: /billing/payment/verify');
-        console.warn('⚠️ Using fallback verification - payment may need manual storage');
-        return createFallbackVerification(paymentResponse, verificationPayload);
+        if (__DEV__) {
+          console.warn('⚠️ Verify endpoint 404 - using fallback');
+        }
+        const userForFallback = await getUser().catch(() => null);
+        return createFallbackVerification(paymentResponse, {
+          ...verificationPayload,
+          consumerId: userForFallback?.identifier || verificationPayload.consumer_id || 'unknown',
+          consumerName: userForFallback?.name || verificationPayload.consumer_name || 'Customer',
+        });
       }
       
-      // Handle 500 Internal Server Error - Prisma/database error
+      // Handle 500 Internal Server Error - backend/database error; do not throw - return fallback so user flow is not interrupted
       if (response && response.status === 500) {
-        const errorMessage = result?.message || result?.error || 'Internal server error';
-        console.error('❌ Payment verification failed - 500 Internal Server Error:', {
-          status: 500,
-          message: errorMessage,
-          endpoint: verifyEndpoints[0],
-          error_details: result?.error,
-          sent_payload: {
-            has_payment_id: !!verificationPayload.razorpay_payment_id,
-            has_order_id: !!verificationPayload.razorpay_order_id,
-            has_signature: !!verificationPayload.razorpay_signature,
-            has_bill_id: !!verificationPayload.bill_id,
-            bill_id_value: verificationPayload.bill_id,
-            bill_id_type: typeof verificationPayload.bill_id,
-            consumer_id: verificationPayload.consumer_id
-          }
-        });
-        
-        // Check if it's a Prisma error (bill not found)
-        if (errorMessage && errorMessage.includes('prisma.bills.findUnique')) {
-          console.error('❌ CRITICAL: Backend Prisma error - bill not found in database');
-          console.error('❌ Backend tried to find bill with id:', verificationPayload.bill_id);
-          console.error('❌ This bill_id may not exist in the database');
-          console.error('❌ SOLUTION: Backend should create a new bill if bill_id doesn\'t exist');
-          console.error('❌ OR: Backend should handle missing bill gracefully and create one');
+        if (__DEV__) {
+          console.warn('⚠️ Backend returned 500 on verify - using fallback (payment still succeeded).', result?.message || '');
         }
-        
-        throw new Error(`${errorMessage}. Backend error: The bill with id ${verificationPayload.bill_id || 'null'} may not exist in the database. Backend should create a new bill if bill_id is missing or doesn't exist.`);
+        const userForFallback = await getUser().catch(() => null);
+        return createFallbackVerification(paymentResponse, {
+          razorpay_payment_id: verificationPayload.razorpay_payment_id,
+          razorpay_order_id: verificationPayload.razorpay_order_id,
+          razorpay_signature: verificationPayload.razorpay_signature,
+          consumerId: userForFallback?.identifier || verificationPayload.consumer_id || 'unknown',
+          consumerName: userForFallback?.name || verificationPayload.consumer_name || 'Customer',
+          amount: verificationPayload.amount,
+          currency: verificationPayload.currency || 'INR',
+          payment_method: verificationPayload.payment_method || 'upi',
+          notes: verificationPayload.notes || {},
+        });
       }
       
-      // Handle 400 Bad Request - missing parameters
+      // Handle 400 Bad Request - do not throw; return fallback so user flow is not interrupted
       if (response && response.status === 400) {
-        const errorMessage = result?.message || 'Missing required payment verification parameters';
-        console.error('❌ Payment verification failed - 400 Bad Request:', {
-          status: 400,
-          message: errorMessage,
-          endpoint: verifyEndpoints[0],
-          sent_payload: {
-            has_payment_id: !!verificationPayload.razorpay_payment_id,
-            has_order_id: !!verificationPayload.razorpay_order_id,
-            has_signature: !!verificationPayload.razorpay_signature,
-            has_bill_id: !!verificationPayload.bill_id,
-            bill_id_value: verificationPayload.bill_id,
-            bill_id_type: typeof verificationPayload.bill_id,
-            consumer_id: verificationPayload.consumer_id
-          },
-          full_payload: verificationPayload
-        });
-        
-        // If bill_id is missing, provide specific guidance
-        if (!verificationPayload.bill_id || verificationPayload.bill_id === '') {
-          console.error('❌ CRITICAL: bill_id is missing or empty in verification payload');
-          console.error('❌ Backend requires bill_id to be present and non-empty');
-          console.error('❌ SOLUTION: Backend should either:');
-          console.error('   1. Return bill_id during order creation (/billing/payment/create-link)');
-          console.error('   2. Accept empty/null bill_id and create bill during verification');
-          console.error('❌ Current bill_id value:', verificationPayload.bill_id);
-          console.error('❌ Payment response bill_id sources checked:', {
-            'paymentResponse.bill_id': paymentResponse.bill_id,
-            'paymentResponse.billId': paymentResponse.billId,
-            'paymentResponse.notes.bill_id': paymentResponse.notes?.bill_id,
-            'paymentResponse.notes.billId': paymentResponse.notes?.billId
-          });
+        if (__DEV__) {
+          console.warn('⚠️ Backend returned 400 on verify - using fallback (payment still succeeded).', result?.message || '');
         }
-        
-        // Provide detailed error message
-        throw new Error(`${errorMessage}. bill_id is required by backend but was ${verificationPayload.bill_id ? `"${verificationPayload.bill_id}"` : 'missing'}. Please ensure backend returns bill_id during order creation or accepts empty bill_id for mobile app payments.`);
+        const userForFallback = await getUser().catch(() => null);
+        return createFallbackVerification(paymentResponse, {
+          razorpay_payment_id: verificationPayload.razorpay_payment_id,
+          razorpay_order_id: verificationPayload.razorpay_order_id,
+          razorpay_signature: verificationPayload.razorpay_signature,
+          consumerId: userForFallback?.identifier || verificationPayload.consumer_id || 'unknown',
+          consumerName: userForFallback?.name || verificationPayload.consumer_name || 'Customer',
+          amount: verificationPayload.amount,
+          currency: verificationPayload.currency || 'INR',
+          payment_method: verificationPayload.payment_method || 'upi',
+          notes: verificationPayload.notes || {},
+        });
       }
       
-      // Log detailed error information
-      console.error('❌ Payment verification failed - payment NOT stored in database:', {
-        status: response?.status || 'No response',
-        message: result?.message || lastError?.message || 'Unknown error',
-        error: result?.error || lastError?.message,
-        endpoint: verifyEndpoints[0],
-        sent_payload_keys: Object.keys(verificationPayload)
+      // Other errors - return fallback so user flow is not interrupted
+      if (__DEV__) {
+        console.warn('⚠️ Verification did not succeed - using fallback.', result?.message || lastError?.message || '');
+      }
+      const userForFallback = await getUser().catch(() => null);
+      return createFallbackVerification(paymentResponse, {
+        razorpay_payment_id: verificationPayload.razorpay_payment_id,
+        razorpay_order_id: verificationPayload.razorpay_order_id,
+        razorpay_signature: verificationPayload.razorpay_signature,
+        consumerId: userForFallback?.identifier || verificationPayload.consumer_id || 'unknown',
+        consumerName: userForFallback?.name || verificationPayload.consumer_name || 'Customer',
+        amount: verificationPayload.amount,
+        currency: verificationPayload.currency || 'INR',
+        payment_method: verificationPayload.payment_method || 'upi',
+        notes: verificationPayload.notes || {},
       });
-      
-      // Throw error to ensure it's handled properly
-      throw new Error(result?.message || lastError?.message || `Payment verification failed: ${response?.status || 'Unknown'}. Payment may not be stored in database.`);
     }
 
   } catch (error) {
-    console.error('❌ Error verifying payment:', error);
-    
-    // Get user again in case it wasn't available earlier
+    if (__DEV__) {
+      console.warn('⚠️ Verification error (using fallback):', error?.message || error);
+    }
     const userForFallback = await getUser().catch(() => null);
-    
-    // If it's a network error or route not found, use fallback
     if (error.message && (
       error.message.includes('Route not found') || 
       error.message.includes('404') ||
@@ -1185,10 +1165,7 @@ export const verifyPayment = async (paymentResponse) => {
       });
     }
     
-    // Even if verification fails, if we have payment_id, create fallback success response
-    // This ensures user sees success page and payment can be verified later
     if (paymentResponse.razorpay_payment_id) {
-      console.warn('⚠️ Verification failed but payment_id exists - creating fallback success response');
       return createFallbackVerification(paymentResponse, {
         razorpay_payment_id: paymentResponse.razorpay_payment_id,
         razorpay_order_id: paymentResponse.razorpay_order_id || null,
@@ -1316,7 +1293,10 @@ export const processRazorpayPayment = async (paymentData, navigation, setShowPay
     const orderResult = await createPaymentOrder(paymentData);
     
     if (!orderResult.success) {
-      throw new Error(orderResult.message || orderResult.error || 'Failed to create payment order');
+      const msg = orderResult.message || orderResult.error || 'Failed to create payment order';
+      const err = new Error(msg);
+      if (orderResult.error === SESSION_EXPIRED_ERROR) err.code = 'SESSION_EXPIRED';
+      throw err;
     }
 
     const orderData = orderResult.data;
@@ -1515,6 +1495,13 @@ export const handlePaymentSuccess = async (paymentResponse, navigation, setShowP
       console.log('🔄 Starting payment verification to store in database...');
       verifyResult = await verifyPayment(paymentResponse);
       
+      if (verifyResult.error === SESSION_EXPIRED_ERROR) {
+        setShowPaymentModal(false);
+        if (navigation?.replace) {
+          navigation.replace('Login', { message: SESSION_EXPIRED_MESSAGE });
+        }
+        return { success: false, sessionExpired: true };
+      }
       if (verifyResult.success && verifyResult.stored_in_database) {
         console.log('✅ Payment successfully verified and stored in database');
       } else if (verifyResult.success) {

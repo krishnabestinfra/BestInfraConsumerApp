@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { COLORS, colors } from '../constants/colors';
-import { useTheme } from '../context/ThemeContext';
-import DashboardHeader from '../components/global/DashboardHeader';
+import { COLORS, colors } from '../../constants/colors';
+import { useTheme } from '../../context/ThemeContext';
+import DashboardHeader from '../../components/global/DashboardHeader';
 
 const LAST_UPDATED = 'January 1, 2024';
 
@@ -12,38 +12,33 @@ const BG_LIGHT_GREEN = '#F2F8F2';
 const SECTIONS = [
   {
     id: '01',
-    title: 'Acceptance of Terms',
-    body: 'By accessing and using this application, you accept and agree to be bound by the terms and provision of this agreement.',
+    title: 'Information We Collect',
+    body: 'We collect information you provide directly to us, such as when you create an account, log in, or contact us for support.',
   },
   {
     id: '02',
-    title: 'Use License',
-    body: 'Permission is granted to temporarily download one copy of the application for personal, non-commercial transitory viewing only.',
+    title: 'How We Use Your Information',
+    body: 'We use the information we collect to provide, maintain, and improve our services; process transactions and send related information; send technical notices, updates, security alerts, and support messages; and respond to your comments, questions, and customer service requests.',
   },
   {
     id: '03',
-    title: 'Disclaimer',
-    body: "The materials on this application are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.",
+    title: 'Information Sharing',
+    body: 'We do not share, sell, or otherwise disclose your personal information for purposes other than those outlined in this Privacy Policy.',
   },
   {
     id: '04',
-    title: 'Limitations',
-    body: 'In no event shall we or our suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on our application.',
+    title: 'Your Rights',
+    body: 'You have the right to access your personal information, correct inaccurate personal information, request deletion of your personal information, and object to our processing of your personal information.',
   },
   {
     id: '05',
-    title: 'Revisions and Errata',
-    body: 'The materials appearing on our application could include technical, typographical, or photographic errors. We do not warrant that any of the materials on our application are accurate, complete or current.',
+    title: 'Changes to This Policy',
+    body: 'We may update this privacy policy from time to time. We will notify you of any changes by posting the new policy on this page.',
   },
   {
     id: '06',
-    title: 'Links',
-    body: 'We have not reviewed all of the sites linked to our application and are not responsible for the contents of any such linked site.',
-  },
-  {
-    id: '07',
-    title: 'Modifications',
-    body: 'We may revise these terms of service for our application at any time without notice.',
+    title: 'Contact Us',
+    body: 'If you have any questions about this Privacy Policy, please contact us.',
   },
 ];
 
@@ -77,7 +72,7 @@ function SectionItem({ id, title, body, scaled, isDark }) {
   );
 }
 
-export default function TermsOfServicesScreen({ navigation }) {
+export default function PrivacyPolicyScreen({ navigation }) {
   const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const s12 = getScaledFontSize(12);
   const s13 = getScaledFontSize(13);
@@ -115,7 +110,7 @@ export default function TermsOfServicesScreen({ navigation }) {
             { fontSize: s24 },
             isDark && { color: '#FFFFFF' },
           ]}>
-            Terms Of Service
+            Privacy Policy
           </Text>
           <Text style={[
             styles.lastUpdated,
@@ -130,8 +125,8 @@ export default function TermsOfServicesScreen({ navigation }) {
               key={section.id}
               id={section.id}
               title={section.title}
-              scaled={scaled}
               body={section.body}
+              scaled={scaled}
               isDark={isDark}
             />
           ))}
@@ -159,18 +154,15 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 24,
     marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
   },
   pageTitle: {
-    fontSize: 24,
+    fontSize: 16,
     fontFamily: 'Manrope-Bold',
     color: colors.color_text_primary,
     marginBottom: 6,
   },
   lastUpdated: {
-    fontSize: 10,
+    fontSize: 13,
     fontFamily: 'Manrope-Regular',
     color: colors.color_text_secondary,
     marginBottom: 24,
@@ -193,13 +185,13 @@ const styles = StyleSheet.create({
     color: '#5BB56C',
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Manrope-Bold',
     color: colors.color_text_primary,
     marginBottom: 8,
   },
   sectionBody: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Manrope-Regular',
     color: colors.color_text_secondary,
     lineHeight: 22,

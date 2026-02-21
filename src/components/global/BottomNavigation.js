@@ -67,7 +67,7 @@ const BottomNavigation = ({ navigation }) => {
     const routeName = route.name;
     
 
-    if (routeName === 'PostPaidDashboard' || routeName === 'Dashboard') {
+    if (routeName === 'PostPaidDashboard') {
       return 'home';
     }
     if (routeName === 'PostPaidRechargePayments' || routeName === 'Payments') {

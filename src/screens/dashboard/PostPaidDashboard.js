@@ -12,35 +12,35 @@ import {
 } from "react-native";
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { StatusBar } from "expo-status-bar";
-import { COLORS, colors } from "../constants/colors";
-import Arrow from "../../assets/icons/arrow.svg";
-import GroupedBarChart from "../components/GroupedBarChart";
-import ConsumerGroupedBarChart from "../components/ConsumerGroupedBarChart";
-import Table from "../components/global/Table";
-import Input from "../components/global/Input";
-import Meter from "../../assets/icons/meterWhite.svg";
-import GlobeShield from "../../assets/icons/globe-shield.svg";
-import DashboardHeader from "../components/global/DashboardHeader";
-import BottomNavigation from "../components/global/BottomNavigation";
-import LastCommunicationIcon from "../../assets/icons/signal.svg";
-import EyeIcon from "../../assets/icons/eyeFill.svg";
-import { API, API_ENDPOINTS } from "../constants/constants";
-import { getUser, getToken } from "../utils/storage";
-import { useTheme } from "../context/ThemeContext";
+import { COLORS, colors } from "../../constants/colors";
+import Arrow from "../../../assets/icons/arrow.svg";
+import GroupedBarChart from "../../components/GroupedBarChart";
+import ConsumerGroupedBarChart from "../../components/ConsumerGroupedBarChart";
+import Table from "../../components/global/Table";
+import Input from "../../components/global/Input";
+import Meter from "../../../assets/icons/meterWhite.svg";
+import GlobeShield from "../../../assets/icons/globe-shield.svg";
+import DashboardHeader from "../../components/global/DashboardHeader";
+import BottomNavigation from "../../components/global/BottomNavigation";
+import LastCommunicationIcon from "../../../assets/icons/signal.svg";
+import EyeIcon from "../../../assets/icons/eyeFill.svg";
+import { API, API_ENDPOINTS } from "../../constants/constants";
+import { getUser, getToken } from "../../utils/storage";
+import { useTheme } from "../../context/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
-import ConsumerDetailsBottomSheet from "../components/ConsumerDetailsBottomSheet";
-import { useLoading, SkeletonLoader } from '../utils/loadingManager';
-import { apiClient } from '../services/apiClient';
-import { isDemoUser, getDemoDashboardConsumerData, DEMO_INVOICES } from "../constants/demoData";
-import { fetchBillingHistory } from "../services/apiService";
-import ComparisonIconBlack from "../../assets/icons/comparisonBlack.svg";
-import ComparisonIconWhite from "../../assets/icons/comparisonWhite.svg";
-import DropdownIcon from "../../assets/icons/dropDown.svg";
-import CalendarIcon from "../../assets/icons/CalendarBlue.svg";
-import PiggybankIcon from "../../assets/icons/piggybank.svg";
-import CalendarDatePicker from "../components/global/CalendarDatePicker";
-import { formatFrontendDateTime, formatFrontendDate, parseDueDate, getDueDaysText } from "../utils/dateUtils";
-import { getConsumerDueDate, getLatestInvoiceDates } from "../utils/billingUtils";
+import ConsumerDetailsBottomSheet from "../../components/ConsumerDetailsBottomSheet";
+import { useLoading, SkeletonLoader } from '../../utils/loadingManager';
+import { apiClient } from '../../services/apiClient';
+import { isDemoUser, getDemoDashboardConsumerData, DEMO_INVOICES } from "../../constants/demoData";
+import { fetchBillingHistory } from "../../services/apiService";
+import ComparisonIconBlack from "../../../assets/icons/comparisonBlack.svg";
+import ComparisonIconWhite from "../../../assets/icons/comparisonWhite.svg";
+import DropdownIcon from "../../../assets/icons/dropDown.svg";
+import CalendarIcon from "../../../assets/icons/CalendarBlue.svg";
+import PiggybankIcon from "../../../assets/icons/piggybank.svg";
+import CalendarDatePicker from "../../components/global/CalendarDatePicker";
+import { formatFrontendDateTime, formatFrontendDate, parseDueDate, getDueDaysText } from "../../utils/dateUtils";
+import { getConsumerDueDate, getLatestInvoiceDates } from "../../utils/billingUtils";
 
 const FALLBACK_ALERT_ROWS = [
   {
@@ -1213,7 +1213,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
     }
 
     // Navigate with all necessary data
-    navigation.navigate('ConsumerDataTable', {
+    navigation.navigate('LsDataTable', {
       date: formattedDate,
       meterId: meterId, // Pass as string
       viewType: viewTypeForParsing,

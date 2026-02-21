@@ -1,15 +1,15 @@
 import { StyleSheet, Text, View, ScrollView} from "react-native";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import Input from "../components/global/Input";
-import Button from "../components/global/Button";
-import RechargeRadioButton from "../components/global/RechargeRadioButton";
-import DashboardHeader from "../components/global/DashboardHeader";
-import { fetchConsumerData, syncConsumerData } from "../services/apiService";
-import { getUser } from "../utils/storage";
-import { getCachedConsumerData } from "../utils/cacheManager";
+import Input from "../../components/global/Input";
+import Button from "../../components/global/Button";
+import RechargeRadioButton from "../../components/global/RechargeRadioButton";
+import DashboardHeader from "../../components/global/DashboardHeader";
+import { fetchConsumerData, syncConsumerData } from "../../services/apiService";
+import { getUser } from "../../utils/storage";
+import { getCachedConsumerData } from "../../utils/cacheManager";
 
 
 const Payments = React.memo(({ navigation }) => {

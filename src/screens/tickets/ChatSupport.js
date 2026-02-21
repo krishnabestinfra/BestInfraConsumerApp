@@ -20,18 +20,18 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { Easing } from "react-native-reanimated";
-import Menu from "../../assets/icons/bars.svg";
-import MenuWhite from "../../assets/icons/menuBarWhite.svg";
-import Notification from "../../assets/icons/notification.svg";
-import NotificationWhite from "../../assets/icons/NotificationWhite.svg";
-import CrossIcon from "../../assets/icons/crossWhite.svg";
-import SendIcon from "../../assets/icons/messageSend.svg";
-import Logo from "../components/global/Logo";
-import BottomNavigation from "../components/global/BottomNavigation";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
-import { getUser } from "../utils/storage";
-import ChatIcon from "../../assets/icons/chatIcon.svg";
+import Menu from "../../../assets/icons/bars.svg";
+import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
+import Notification from "../../../assets/icons/notification.svg";
+import NotificationWhite from "../../../assets/icons/NotificationWhite.svg";
+import CrossIcon from "../../../assets/icons/crossWhite.svg";
+import SendIcon from "../../../assets/icons/messageSend.svg";
+import Logo from "../../components/global/Logo";
+import BottomNavigation from "../../components/global/BottomNavigation";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
+import { getUser } from "../../utils/storage";
+import ChatIcon from "../../../assets/icons/chatIcon.svg";
 
 const RING_COUNT = 20;
 const RING_DELAY = 800;
@@ -198,7 +198,7 @@ const ChatSupport = ({ navigation, route }) => {
 
         <Pressable
           style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-          onPress={() => navigation.navigate("Profile")}
+          onPress={() => navigation.navigate("Notifications")}
         >
           {isDark ? (
             <NotificationWhite width={18} height={18} />

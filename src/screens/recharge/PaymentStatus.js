@@ -1,11 +1,11 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
-import Button from "../components/global/Button";
-import SuccessIcon from "../../assets/icons/checkmark.svg";
-import { getPaymentStatus, formatAmount, formatPaymentDate } from "../services/paymentService";
+import Button from "../../components/global/Button";
+import SuccessIcon from "../../../assets/icons/checkmark.svg";
+import { getPaymentStatus, formatAmount, formatPaymentDate } from "../../services/paymentService";
 
 const PaymentStatus = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();

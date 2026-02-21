@@ -16,20 +16,21 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from 'expo-image-picker';
-import Menu from "../../assets/icons/bars.svg";
-import MenuWhite from "../../assets/icons/menuBarWhite.svg";
-import Notification from "../../assets/icons/notificationDark.svg";
-import CameraIcon from "../../assets/icons/cameraIcon.svg";
-import Logo from "../components/global/Logo";
-import BackArrowIcon from "../../assets/icons/Back.svg";
-import BackArrowIconWhite from "../../assets/icons/BackWhite.svg";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
-import { useNotifications } from "../context/NotificationsContext";
-import { getUser } from "../utils/storage";
-import { apiClient } from "../services/apiClient";
-import { API, API_ENDPOINTS } from "../constants/constants";
-import { authService } from "../services/authService";
+import Menu from "../../../assets/icons/bars.svg";
+import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
+import Notification from "../../../assets/icons/notificationDark.svg";
+import CameraIcon from "../../../assets/icons/cameraIcon.svg";
+import Logo from "../../components/global/Logo";
+import BackArrowIcon from "../../../assets/icons/Back.svg";
+import BackArrowIconWhite from "../../../assets/icons/BackWhite.svg";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useNotifications } from "../../context/NotificationsContext";
+import { getUser } from "../../utils/storage";
+import { apiClient } from "../../services/apiClient";
+import { API, API_ENDPOINTS } from "../../constants/constants";
+import { authService } from "../../services/authService";
+import { isDemoUser, getDemoProfileConsumerData, getDemoAuthProfile } from "../../constants/demoData";
 
 // Skeleton placeholder for loading state
 const SkeletonField = ({ width = "70%", height = 14, style }) => {
@@ -60,7 +61,7 @@ const SkeletonField = ({ width = "70%", height = 14, style }) => {
   );
 };
 
-const ProfileScreenMain = ({ navigation }) => {
+const Profile = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
   const scrollViewRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -108,9 +109,35 @@ const ProfileScreenMain = ({ navigation }) => {
           return;
         }
 
+        // Demo user: use demo data and skip API calls
+        if (isDemoUser(user.identifier)) {
+          const consumerData = getDemoProfileConsumerData(user.identifier);
+          const authProfile = getDemoAuthProfile(user.identifier);
+          const u = authProfile?.data?.user || {};
+          const mapped = {
+            name: consumerData.name || "",
+            mobile: consumerData.mobileNo || u.phone || "",
+            email: u.email || "",
+            address: consumerData.permanentAddress || "",
+            consumerId: consumerData.uniqueIdentificationNo || "",
+            meterNumber: consumerData.meterSerialNumber || "",
+            connectionType: consumerData.connectionType || "Residential",
+          };
+          if (u.id) setProfileUserId(u.id);
+          setUserData(mapped);
+          setEditData({
+            name: mapped.name || "",
+            mobile: mapped.mobile || "",
+            email: mapped.email || "",
+            address: mapped.address || "",
+          });
+          setIsLoading(false);
+          return;
+        }
+
         // 1) Fetch consumer data for name/address/meter info
         const consumerEndpoint = API_ENDPOINTS.consumers.get(user.identifier);
-        console.log("🔍 ProfileScreenMain fetching consumer details from:", consumerEndpoint);
+        console.log("🔍 Profile fetching consumer details from:", consumerEndpoint);
         const consumerResult = await apiClient.request(consumerEndpoint, { method: "GET" });
 
         let name = "";
@@ -133,7 +160,7 @@ const ProfileScreenMain = ({ navigation }) => {
         // 2) Fetch auth profile data for email + phone (users table)
         const token = await authService.getValidAccessToken();
         const profileUrl = `${API.AUTH_URL}/profile?token=${token}`;
-        console.log("🔍 ProfileScreenMain fetching auth profile from:", profileUrl);
+        console.log("🔍 Profile fetching auth profile from:", profileUrl);
         const profileResult = await apiClient.request(profileUrl, { method: "GET" });
 
         let email = "";
@@ -384,7 +411,7 @@ const ProfileScreenMain = ({ navigation }) => {
               activeOpacity={0.8}
             >
               <Image
-                source={profileImage ? { uri: profileImage } : require("../../assets/images/profile.jpg")}
+                source={profileImage ? { uri: profileImage } : require("../../../assets/images/profile.jpg")}
                 style={styles.profilePhoto}
               />
               <View style={styles.cameraIconWrapper}>
@@ -393,7 +420,7 @@ const ProfileScreenMain = ({ navigation }) => {
             </TouchableOpacity>
             {/* <Text style={styles.changePhotoText}>Tap to change photo</Text> */}
             </>) : (<><Image
-              source={profileImage ? { uri: profileImage } : require("../../assets/images/profile.jpg")}
+              source={profileImage ? { uri: profileImage } : require("../../../assets/images/profile.jpg")}
               style={styles.profilePhoto}
             /></>)}
 
@@ -546,7 +573,7 @@ const ProfileScreenMain = ({ navigation }) => {
   );
 };
 
-export default ProfileScreenMain;
+export default Profile;
 
 const styles = StyleSheet.create({
   Container: {

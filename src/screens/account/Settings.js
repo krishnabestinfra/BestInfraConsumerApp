@@ -1,23 +1,23 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, Switch, TouchableOpacity } from "react-native";
 import React, { useState } from "react";
 import { StatusBar } from "expo-status-bar";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
-import Menu from "../../assets/icons/bars.svg";
-import MenuWhite from "../../assets/icons/menuBarWhite.svg";
-import Logo from "../components/global/Logo";
-import { sendTestPushNotification } from "../services/pushNotificationService";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
+import Menu from "../../../assets/icons/bars.svg";
+import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
+import Logo from "../../components/global/Logo";
+import { sendTestPushNotification } from "../../services/pushNotificationService";
 // Import icons - placeholder comments for icons you'll need to add
-import ThemeIcon from "../../assets/icons/theme.svg";
-import FontSizeIcon from "../../assets/icons/fontIcon.svg";
-import LanguageIcon from "../../assets/icons/language.svg";
-import HelpIcon from "../../assets/icons/questionMark.svg";
-import TermsIcon from "../../assets/icons/info.svg";
-// import PrivacyIcon from "../../assets/icons/privacyIcon.svg";
-// import VersionIcon from "../../assets/icons/versionIcon.svg";
-import ChevronRight from "../../assets/icons/rightArrow.svg";
-import BackIcon from "../../assets/icons/Back.svg";
-import BackIconWhite from "../../assets/icons/BackWhite.svg";
+import ThemeIcon from "../../../assets/icons/theme.svg";
+import FontSizeIcon from "../../../assets/icons/fontIcon.svg";
+import LanguageIcon from "../../../assets/icons/language.svg";
+import HelpIcon from "../../../assets/icons/questionMark.svg";
+import TermsIcon from "../../../assets/icons/info.svg";
+// import PrivacyIcon from "../../../assets/icons/privacyIcon.svg";
+// import VersionIcon from "../../../assets/icons/versionIcon.svg";
+import ChevronRight from "../../../assets/icons/rightArrow.svg";
+import BackIcon from "../../../assets/icons/Back.svg";
+import BackIconWhite from "../../../assets/icons/BackWhite.svg";
 
 const FONT_CHOICES = [
   { value: 'default', label: 'Default' },

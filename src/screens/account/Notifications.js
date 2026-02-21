@@ -11,20 +11,20 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import Menu from "../../assets/icons/bars.svg";
-import Notification from "../../assets/icons/notificationsWhite.svg";
-import NotificationIcon from "../../assets/icons/notificationDark.svg";
-import BiLogo from "../../assets/icons/LogoWhite.svg";
-import HandBill from "../../assets/icons/handBill.svg";
-import Calendar from "../../assets/icons/calendar.svg";
-import CheapDollar from "../../assets/icons/cheapDollar.svg";
-import NotificationCard from "../components/global/NotificationCard";
-import Logo from "../components/global/Logo";
-import { COLORS } from "../constants/colors";
-import { useTheme } from "../context/ThemeContext";
-import { useApp } from "../context/AppContext";
-import { useNotifications } from "../context/NotificationsContext";
-import { getUser } from "../utils/storage";
+import Menu from "../../../assets/icons/bars.svg";
+import Notification from "../../../assets/icons/notificationsWhite.svg";
+import NotificationIcon from "../../../assets/icons/notificationDark.svg";
+import BiLogo from "../../../assets/icons/LogoWhite.svg";
+import HandBill from "../../../assets/icons/handBill.svg";
+import Calendar from "../../../assets/icons/calendar.svg";
+import CheapDollar from "../../../assets/icons/cheapDollar.svg";
+import NotificationCard from "../../components/global/NotificationCard";
+import Logo from "../../components/global/Logo";
+import { COLORS } from "../../constants/colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useApp } from "../../context/AppContext";
+import { useNotifications } from "../../context/NotificationsContext";
+import { getUser } from "../../utils/storage";
 
 /**
  * Resolve the logged-in consumer ID from all possible sources.
@@ -44,14 +44,14 @@ const getLoggedInConsumerId = (user, consumerData, routeUid) => {
   );
 };
 
-const Profile = ({ navigation, route }) => {
+const Notifications = ({ navigation, route }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
   const s14 = getScaledFontSize(14);
   const s12 = getScaledFontSize(12);
   // Get consumer data from context
   let consumerData = null;
   let user = null;
-  
+
   try {
     const appContext = useApp();
     consumerData = appContext.consumerData;
@@ -77,11 +77,11 @@ const Profile = ({ navigation, route }) => {
   const consumerUid = getLoggedInConsumerId(effectiveUser, consumerData, route?.params?.uid) || '—';
 
   // Get notification data from global context
-  const { 
-    notifications, 
-    isLoading, 
-    error, 
-    markAsRead, 
+  const {
+    notifications,
+    isLoading,
+    error,
+    markAsRead,
     refreshNotifications,
     setConsumerUid,
     consumerUid: currentConsumerUid,
@@ -96,7 +96,7 @@ const Profile = ({ navigation, route }) => {
 
   useEffect(() => {
     if (consumerUid && consumerUid !== '—' && consumerUid !== currentConsumerUid) {
-      console.log(`🔄 Profile: Switching to consumer ${consumerUid}`);
+      console.log(`🔄 Notifications: Switching to consumer ${consumerUid}`);
       setConsumerUid(consumerUid);
     }
   }, [consumerUid, currentConsumerUid, setConsumerUid]);
@@ -141,12 +141,12 @@ const Profile = ({ navigation, route }) => {
 
   const handleNotificationPress = async (notification) => {
     console.log('Notification pressed:', notification.title);
-    
+
     // Mark as read if not already read
     if (!notification.is_read) {
       await markAsRead(notification.id);
     }
-    
+
     if (notification.redirect_url) {
       console.log('Redirect URL:', notification.redirect_url);
     }
@@ -170,7 +170,7 @@ const Profile = ({ navigation, route }) => {
           <Notification width={18} height={18} fill="#ffffff" />
         </Pressable>
       </View>
-      
+
       <ScrollView
         style={[styles.notificationsContainer, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{ flexGrow: 1 }}
@@ -195,8 +195,8 @@ const Profile = ({ navigation, route }) => {
         ) : error && displayNotifications.length === 0 ? (
           <View style={styles.errorContainer}>
             <Text style={[styles.errorText, { fontSize: s14 }]}>
-              {error.includes('Failed to fetch') ? 
-                `Unable to load notifications for ${consumerUid}` : 
+              {error.includes('Failed to fetch') ?
+                `Unable to load notifications for ${consumerUid}` :
                 error
               }
             </Text>
@@ -236,7 +236,7 @@ const Profile = ({ navigation, route }) => {
   );
 };
 
-export default Profile;
+export default Notifications;
 
 const styles = StyleSheet.create({
   Container: {
