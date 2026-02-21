@@ -35,6 +35,7 @@ import { isDemoUser, getDemoDashboardConsumerData, DEMO_INVOICES } from "../../c
 import { fetchBillingHistory } from "../../services/apiService";
 import ComparisonIconBlack from "../../../assets/icons/comparisonBlack.svg";
 import ComparisonIconWhite from "../../../assets/icons/comparisonWhite.svg";
+import ComparisonHighIcon from "../../../assets/icons/comparison-high.svg";
 import DropdownIcon from "../../../assets/icons/dropDown.svg";
 import CalendarIcon from "../../../assets/icons/CalendarBlue.svg";
 import PiggybankIcon from "../../../assets/icons/piggybank.svg";
@@ -1659,7 +1660,10 @@ const PostPaidDashboard = ({ navigation, route }) => {
                   {isLoading ? (
                     <SkeletonLoader variant="lines" lines={1} style={{ width: 70, height: 18, marginTop: 2 }} />
                   ) : (
-                    <Text style={[styles.monthlyValueBlue, darkOverlay.monthlyValueBlue]}>
+                    <Text style={[
+                      comparisonDiffKwh > 0 ? styles.monthlyValueRed : styles.monthlyValueBlue,
+                      comparisonDiffKwh > 0 ? null : darkOverlay.monthlyValueBlue
+                    ]}>
                       {(thisMonthKwh ?? 0).toLocaleString("en-IN")} kWh
                     </Text>
                   )}
@@ -1698,6 +1702,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
                       <View
                         style={[
                           styles.progressBarRemainder,
+                          comparisonDiffKwh > 0 && styles.progressBarRemainderGray,
                           { width: `${Math.min(100, Math.max(0, 100 - comparisonBarFillPercent))}%` },
                         ]}
                       />
@@ -1713,9 +1718,9 @@ const PostPaidDashboard = ({ navigation, route }) => {
                       </>
                     ) : comparisonDiffKwh > 0 ? (
                       <>
-                        <PiggybankIcon width={16} height={16} fill={themeColors.accent} style={styles.savingsMessageIcon} />
-                        <Text style={[styles.savingsMessage, styles.moreUsageMessage, darkOverlay.moreUsageMessage]}>
-                          You used {(comparisonDiffKwh ?? 0).toLocaleString("en-IN")} kWh more
+                        <ComparisonHighIcon width={16} height={16} style={styles.savingsMessageIcon} />
+                        <Text style={[styles.savingsMessage, styles.excessUsageMessage]}>
+                          You used {(comparisonDiffKwh ?? 0).toLocaleString("en-IN")} kWh in excess
                         </Text>
                       </>
                     ) : (
@@ -2467,7 +2472,7 @@ const styles = StyleSheet.create({
   usageStatsCardValueRed: {
     fontSize: 18,
     fontFamily: "Manrope-Bold",
-    color: colors.color_danger,
+    color: "#E53935",
     lineHeight: 28,
   },
   comparisonCard: {
@@ -2525,6 +2530,15 @@ const styles = StyleSheet.create({
     color: colors.color_text_secondary,
     lineHeight: 28,
   },
+  monthlyValueRed: {
+    fontSize: 20,
+    fontFamily: "Manrope-Bold",
+    color: "#E53935",
+    lineHeight: 28,
+  },
+  excessUsageMessage: {
+    color: "#E53935",
+  },
   progressBarContainer: {
     marginBottom: 8,
   },
@@ -2542,6 +2556,9 @@ const styles = StyleSheet.create({
   },
   progressBarRemainder: {
     backgroundColor: "transparent",
+  },
+  progressBarRemainderGray: {
+    backgroundColor: "#D1D5DB",
   },
   savingsMessageRow: {
     flexDirection: "row",
