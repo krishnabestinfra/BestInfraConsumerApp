@@ -310,12 +310,10 @@ const SideMenuNavigation = ({ navigation }) => {
             </View>
 
             {/* Usage Threshold Alert */}
-            <View style={styles.thresholdSection}>
+            {/* <View style={styles.thresholdSection}>
               <Text style={[styles.thresholdLabel, { fontSize: scaled.modalLabel }, isDark && { color: themeColors.textSecondary }]}>Usage Threshold Alert</Text>
               <View style={styles.sliderContainer}>
-                {/* Custom track background (unfilled - light grey) */}
                 <View style={[styles.sliderTrackBg, isDark && { backgroundColor: themeColors.progressBarTrack }]} />
-                {/* Custom filled track (dark blue) */}
                 <View
                   style={[
                     styles.sliderTrackFilled,
@@ -323,7 +321,6 @@ const SideMenuNavigation = ({ navigation }) => {
                     isDark && { backgroundColor: themeColors.brandBlue },
                   ]}
                 />
-                {/* Custom 15x15 thumb - Animated to avoid flicker while dragging */}
                 <Animated.View
                   pointerEvents="none"
                   style={[
@@ -361,7 +358,7 @@ const SideMenuNavigation = ({ navigation }) => {
                 <Text style={[styles.thresholdValueNumber, { fontSize: scaled.modalTitleBig }, isDark && { color: themeColors.brandBlue }]}>{Math.round(usageThreshold)}</Text>
                 <Text style={[styles.thresholdValueUnit, { fontSize: scaled.modalTitleMid }, isDark && { color: themeColors.brandBlue }]}> kWh</Text>
               </Text>
-            </View>
+            </View> */}
 
             {/* Toggle Settings */}
             <View style={styles.toggleSection}>

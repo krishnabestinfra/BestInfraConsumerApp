@@ -175,7 +175,7 @@ const Settings = ({ navigation }) => {
               </View>
             }
             title="Test push notification"
-            subtitle="BI card now; in 2s in pull bar (dev build = NexusOne)"
+            // subtitle="BI card now; in 2s in pull bar (dev build = NexusOne)"
             onPress={() => {
               sendTestPushNotification();
             }}
