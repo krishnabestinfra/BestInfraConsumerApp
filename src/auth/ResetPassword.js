@@ -245,8 +245,8 @@ const ResetPassword = () => {
   const renderStepSuccess = () => (
     <>
       <View style={styles.successTextBlock}>
-        <Text style={[styles.successTitle, { fontSize: s24 }]}>Password Reset Successfully!</Text>
-        <Text style={[styles.successMessage, { fontSize: s14 }]}>
+        <Text style={[styles.successTitle, { fontSize: s24 }, isDark && { color: themeColors.textPrimary }]}>Password Reset Successfully!</Text>
+        <Text style={[styles.successMessage, { fontSize: s14 }, isDark && { color: themeColors.textSecondary }]}>
           Your password has been changed successfully. You can now log in with your new password.
         </Text>
       </View>
@@ -263,8 +263,8 @@ const ResetPassword = () => {
   const renderStepOtp = () => (
     <>
       <View style={styles.textBlock}>
-      <Text style={[styles.title, { fontSize: s24 }]}>Forgot Password?</Text>
-            <Text style={[styles.subtitle, { fontSize: s14 }]}>
+      <Text style={[styles.title, { fontSize: s24 }, isDark && { color: themeColors.textPrimary }]}>Forgot Password?</Text>
+            <Text style={[styles.subtitle, { fontSize: s14 }, isDark && { color: themeColors.textSecondary }]}>
               No worries! Enter your registered email address,
               and we&apos;ll send you a verification code to reset your
               password.
@@ -293,7 +293,7 @@ const ResetPassword = () => {
           style={styles.otpWrapper}
         />
         <Pressable onPress={handleResendCode} disabled={submitting} style={styles.resendWrap}>
-          <Text style={[styles.resendText, { fontSize: s12 }]}>Resend Code</Text>
+          <Text style={[styles.resendText, { fontSize: s12 }, isDark && { color: themeColors.accent }]}>Resend Code</Text>
         </Pressable>
         <Button
           title="Reset Password"
@@ -304,18 +304,18 @@ const ResetPassword = () => {
           disabled={submitting}
         />
         <View style={styles.rememberRow}>
-          <Text style={[styles.rememberText, { fontSize: s13 }]}>Remember your password?</Text>
+          <Text style={[styles.rememberText, { fontSize: s13 }, isDark && { color: themeColors.textPrimary }]}>Remember your password?</Text>
           <Pressable onPress={handleBackToLogin} style={styles.backToLoginButton}>
-            <Text style={[styles.backToLoginText, { fontSize: s13 }]}>Back to Login</Text>
+            <Text style={[styles.backToLoginText, { fontSize: s13 }, isDark && { color: themeColors.accent }]}>Back to Login</Text>
           </Pressable>
         </View>
         <View style={styles.orSection}>
-          <View style={styles.straightLine} />
-          <View style={styles.orContainer}>
-            <Text style={[styles.orText, { fontSize: sOr }]}>OR</Text>
+          <View style={[styles.straightLine, isDark && { backgroundColor: themeColors.cardBorder }]} />
+          <View style={[styles.orContainer, isDark && { backgroundColor: themeColors.card }]}>
+            <Text style={[styles.orText, { fontSize: sOr }, isDark && { color: themeColors.textPrimary }]}>OR</Text>
           </View>
           <Pressable style={styles.otpButton} onPress={handleGetOTP}>
-            <Text style={[styles.otpText, { fontSize: s14 }]}>Get OTP</Text>
+            <Text style={[styles.otpText, { fontSize: s14 }, isDark && { color: themeColors.textPrimary }]}>Get OTP</Text>
           </Pressable>
         </View>
       </View>
@@ -325,8 +325,8 @@ const ResetPassword = () => {
   const renderStepNewPassword = () => (
     <>
       <View style={styles.textBlock}>
-        <Text style={[styles.title, { fontSize: s24 }]}>Create New Password</Text>
-        <Text style={[styles.subtitle, { fontSize: s14 }]}>
+        <Text style={[styles.title, { fontSize: s24 }, isDark && { color: themeColors.textPrimary }]}>Create New Password</Text>
+        <Text style={[styles.subtitle, { fontSize: s14 }, isDark && { color: themeColors.textSecondary }]}>
           Enter your new password and confirm it.
         </Text>
       </View>
@@ -390,7 +390,7 @@ const ResetPassword = () => {
           disabled={submitting}
         />
         <Pressable onPress={handleBackToNewPasswordStep} style={styles.backToStepLink}>
-          <Text style={[styles.backToLoginText, { fontSize: s13 }]}>Back to email & code</Text>
+          <Text style={[styles.backToLoginText, { fontSize: s13 }, isDark && { color: themeColors.accent }]}>Back to email & code</Text>
         </Pressable>
       </View>
     </>
@@ -412,7 +412,7 @@ const ResetPassword = () => {
         style={{ flex: 1 }}
       >
         <ScrollView
-          style={[styles.subContainer, isDark && { backgroundColor: themeColors.screen }]}
+          style={[styles.subContainer, isDark && { backgroundColor: "transparent" }]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.imageContainer}>

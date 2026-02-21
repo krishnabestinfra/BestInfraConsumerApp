@@ -286,7 +286,7 @@ const OTPLogin = ({ navigation }) => {
         style={{ flex: 1 }}
       >
         <ScrollView
-          style={[styles.subContainer, isDark && { backgroundColor: themeColors.screen }]}
+          style={[styles.subContainer, isDark && { backgroundColor: "transparent" }]}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.imageContainer}>
@@ -301,8 +301,8 @@ const OTPLogin = ({ navigation }) => {
           </View>
 
           <View style={styles.textBlock}>
-            <Text style={[styles.title, { fontSize: s24 }]}>OTP Login</Text>
-            <Text style={[styles.subtitle, { fontSize: s14 }]}>
+            <Text style={[styles.title, { fontSize: s24 }, isDark && { color: themeColors.textPrimary }]}>OTP Login</Text>
+            <Text style={[styles.subtitle, { fontSize: s14 }, isDark && { color: themeColors.textSecondary }]}>
               Enter your registered email address, and we&apos;ll send you a
               6-digit verification code to complete your login.
             </Text>
@@ -317,7 +317,7 @@ const OTPLogin = ({ navigation }) => {
               keyboardType="email-address"
               variant="default"
               size="medium"
-              rightIcon={<User width={18} height={18} fill={COLORS.primaryFontColor} />}
+              rightIcon={<User width={18} height={18} fill={isDark ? themeColors.textSecondary : COLORS.primaryFontColor} />}
               style={styles.phoneInput}
               error={emailError}
               autoFocus={!otpSent}
@@ -349,7 +349,7 @@ const OTPLogin = ({ navigation }) => {
                     <Tick size={14} fill={COLORS.secondaryFontColor} />
                   )}
                 </View>
-                <Text style={[styles.rememberText, { fontSize: s14 }]}>Remember</Text>
+                <Text style={[styles.rememberText, { fontSize: s14 }, isDark && { color: themeColors.textPrimary }]}>Remember</Text>
               </Pressable>
             </View>
 
@@ -381,12 +381,13 @@ const OTPLogin = ({ navigation }) => {
               onPress={() => canResend && handleGenerateOTP()}
               disabled={!canResend}
             >
-              <Text style={[styles.resendText, { fontSize: s14 }]}>Did not receive the code? </Text>
+              <Text style={[styles.resendText, { fontSize: s14 }, isDark && { color: themeColors.textSecondary }]}>Did not receive the code? </Text>
               <Text
                 style={[
                   styles.timerText,
                   { fontSize: s14 },
                   canResend && styles.timerTextLink,
+                  isDark && { color: themeColors.accent },
                 ]}
               >
                   Resend in {formatTimer(resendSeconds)}
@@ -400,12 +401,13 @@ const OTPLogin = ({ navigation }) => {
                 onPress={() => canResend && handleGenerateOTP()}
                 disabled={!canResend}
               >
-                <Text style={[styles.resendText, { fontSize: s14 }]}>Did not receive the code? </Text>
+                <Text style={[styles.resendText, { fontSize: s14 }, isDark && { color: themeColors.textSecondary }]}>Did not receive the code? </Text>
                 <Text
                   style={[
                     styles.timerText,
                     { fontSize: s14 },
                     styles.timerTextLink,
+                    isDark && { color: themeColors.accent },
                   ]}
                 >
                   Resend OTP
