@@ -470,41 +470,23 @@ const VectorDiagram = ({
     b: { voltage: '#2563eb', current: '#4CAF50', dot: '#2563eb' },
   };
 
-  // Data table row component - Proper table structure
+  // Usage table row: category label on left, three phase columns (dot + label + value) on right
   const textStyle = isDark ? { color: '#FFFFFF' } : undefined;
-  const DataTableRow = ({ phase, voltageValue, currentValue, powerValue, color, voltageLabel, currentLabel, powerLabel }) => (
-    <View style={[styles.dataRow, isDark && { borderBottomColor: 'rgba(255,255,255,0.12)' }]}>
-      {/* Voltage Column */}
-      <View style={styles.tableColumn}>
-        <View style={styles.columnItem}>
-          <View style={[styles.phaseDot, { backgroundColor: color }]} />
-          <Text style={[styles.dataLabel, textStyle, { fontSize: s14 }]}>{voltageLabel}</Text>
-        </View>
-        <Text style={[styles.dataValue, textStyle, { fontSize: s12 }]}>
-          {loading ? '...' : `${formatValue(voltageValue)} V`}
-        </Text>
-      </View>
-      
-      {/* Current Column */}
-      <View style={styles.tableColumn}>
-        <View style={styles.columnItem}>
-          <View style={[styles.phaseDot, { backgroundColor: color }]} />
-          <Text style={[styles.dataLabel, textStyle, { fontSize: s14 }]}>{currentLabel}</Text>
-        </View>
-        <Text style={[styles.dataValue, textStyle, { fontSize: s12 }]}>
-          {loading ? '...' : `${formatValue(currentValue)} A`}
-        </Text>
-      </View>
-      
-      {/* Power Column */}
-      <View style={styles.tableColumn}>
-        <View style={styles.columnItem}>
-          <View style={[styles.phaseDot, { backgroundColor: color }]} />
-          <Text style={[styles.dataLabel, textStyle, { fontSize: s14 }]}>{powerLabel}</Text>
-        </View>
-        <Text style={[styles.dataValue, textStyle, { fontSize: s12 }]}>
-          {loading ? '...' : `${formatValue(powerValue, 2)} W`}
-        </Text>
+  const MeasurementRow = ({ categoryLabel, phases, unit }) => (
+    <View style={[styles.measurementRow, isDark && { borderBottomColor: 'rgba(255,255,255,0.12)' }]}>
+      <Text style={[styles.categoryLabel, textStyle, { fontSize: s14 }]}>{categoryLabel}</Text>
+      <View style={styles.phasesRow}>
+        {phases.map(({ color, label, value }) => (
+          <View key={label} style={styles.phaseBlock}>
+            <View style={styles.phaseBlockHeader}>
+              <View style={[styles.phaseDot, { backgroundColor: color }]} />
+              <Text style={[styles.phaseLabel, textStyle, { fontSize: s12 }]}>{label}</Text>
+            </View>
+            <Text style={[styles.phaseValue, textStyle, { fontSize: s12 }]}>
+              {loading ? '...' : `${formatValue(value, 2)}${unit}`}
+            </Text>
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -554,49 +536,35 @@ const VectorDiagram = ({
         </Svg>
       </View>
 
-      {/* Data Table - Bottom Section - Proper Table Structure */}
+      {/* Data Table - Bottom Section: rows by measurement type (Voltage, Current, Power) */}
       <View style={styles.tableWrapper}>
-        <View style={[styles.tableHeader, isDark && { borderBottomColor: 'rgba(255,255,255,0.12)' }]}>
-          <Text style={[styles.headerText, { fontSize: s12 }, isDark && { color: '#FFFFFF' }]}>Voltage</Text>
-          <Text style={[styles.headerText, { fontSize: s12 }, isDark && { color: '#FFFFFF' }]}>Current</Text>
-          <Text style={[styles.headerText, { fontSize: s12 }, isDark && { color: '#FFFFFF' }]}>Power</Text>
-        </View>
-        
         <View style={styles.tableContainer}>
-          <DataTableRow
-            phase="r"
-            voltageValue={getVoltageInVolts('r')}
-            currentValue={current.r}
-            powerValue={calculatePower('r')}
-            color={phaseColors.r.dot}
-            voltageLabel="VR"
-            currentLabel="IR"
-            powerLabel="PR"
-            loading={loading}
+          <MeasurementRow
+            categoryLabel="Voltage"
+            unit="V"
+            phases={[
+              { color: phaseColors.r.dot, label: 'VR', value: getVoltageInVolts('r') },
+              { color: phaseColors.y.dot, label: 'VY', value: getVoltageInVolts('y') },
+              { color: phaseColors.b.dot, label: 'VB', value: getVoltageInVolts('b') },
+            ]}
           />
-          
-          <DataTableRow
-            phase="y"
-            voltageValue={getVoltageInVolts('y')}
-            currentValue={current.y}
-            powerValue={calculatePower('y')}
-            color={phaseColors.y.dot}
-            voltageLabel="VY"
-            currentLabel="IY"
-            powerLabel="PY"
-            loading={loading}
+          <MeasurementRow
+            categoryLabel="Current"
+            unit="A"
+            phases={[
+              { color: phaseColors.r.dot, label: 'IR', value: current.r },
+              { color: phaseColors.y.dot, label: 'IY', value: current.y },
+              { color: phaseColors.b.dot, label: 'IB', value: current.b },
+            ]}
           />
-          
-          <DataTableRow
-            phase="b"
-            voltageValue={getVoltageInVolts('b')}
-            currentValue={current.b}
-            powerValue={calculatePower('b')}
-            color={phaseColors.b.dot}
-            voltageLabel="VB"
-            currentLabel="IB"
-            powerLabel="PB"
-            loading={loading}
+          <MeasurementRow
+            categoryLabel="Power"
+            unit="W"
+            phases={[
+              { color: phaseColors.r.dot, label: 'PR', value: calculatePower('r') },
+              { color: phaseColors.y.dot, label: 'PY', value: calculatePower('y') },
+              { color: phaseColors.b.dot, label: 'PB', value: calculatePower('b') },
+            ]}
           />
         </View>
       </View>
@@ -632,61 +600,51 @@ const styles = StyleSheet.create({
   tableContainer: {
     width: '100%',
   },
-  tableHeader: {
+  measurementRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-    paddingBottom: 8,
-    paddingHorizontal: 8,
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  headerText: {
-    fontSize: 12,
+  categoryLabel: {
     fontFamily: 'Manrope-SemiBold',
     color: COLORS.primaryFontColor,
-    opacity: 0.8,
-    flex: 1,
-    textAlign: 'center',
+    width: 72,
+    marginRight: 8,
   },
-  dataRow: {
+  phasesRow: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
   },
-  tableColumn: {
+  phaseBlock: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
   },
-  columnItem: {
+  phaseBlockHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 2,
   },
   phaseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 6,
+    marginRight: 4,
   },
-  dataLabel: {
-    fontSize: 11,
+  phaseLabel: {
     fontFamily: 'Manrope-Medium',
     color: COLORS.primaryFontColor,
+    fontSize: 14,
   },
-  dataValue: {
-    fontSize: 12,
+  phaseValue: {
     fontFamily: 'Manrope-SemiBold',
     color: COLORS.primaryFontColor,
     textAlign: 'center',
-    marginTop: 0,
   },
 });
 
