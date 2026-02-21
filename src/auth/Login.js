@@ -290,8 +290,8 @@ const Login = ({ navigation }) => {
             </View>
 
             <View style={styles.TextContainer}>
-              <Text style={[styles.welcomeText, { fontSize: s24, color: themeColors.textPrimary }]}>Welcome</Text>
-              <Text style={[styles.bestinfraText, { fontSize: s24, color: themeColors.textPrimary }]}>to Best Infra</Text>
+              <Text style={[styles.welcomeText, { fontSize: s24, color: themeColors.textPrimary }]}>Powering Precision </Text>
+              {/* <Text style={[styles.bestinfraText, { fontSize: s24, color: themeColors.textPrimary }]}>to Best Infra</Text> */}
             </View>
             <View style={styles.TextContainer}>
               <Text style={[styles.LoginText, { fontSize: s14, color: themeColors.textSecondary }]}>
