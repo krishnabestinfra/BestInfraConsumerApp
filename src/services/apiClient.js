@@ -390,26 +390,26 @@ class ApiClient {
   }
 
   /**
-   * Get tickets stats
+   * Get tickets stats (admin API)
    */
-  async getTicketsStats(uid) {
-    const endpoint = API_ENDPOINTS.tickets.stats(uid);
+  async getTicketsStats(consumerNumber) {
+    const endpoint = API_ENDPOINTS.tickets.stats(consumerNumber);
     return this.request(endpoint);
   }
 
   /**
-   * Get tickets table
+   * Get tickets table (admin API: /admin/api/tickets/app/{appId}?consumerNumber=...&page=1&limit=10)
    */
-  async getTicketsTable(uid) {
-    const endpoint = API_ENDPOINTS.tickets.table(uid);
+  async getTicketsTable(appId, consumerNumber, page = 1, limit = 10) {
+    const endpoint = API_ENDPOINTS.tickets.table(appId, consumerNumber, page, limit);
     return this.request(endpoint);
   }
 
   /**
-   * Get ticket details by id
+   * Get ticket details by id (admin API)
    */
   async getTicketDetails(id) {
-    const endpoint = API_ENDPOINTS.tickets.update(id);
+    const endpoint = API_ENDPOINTS.tickets.details(id);
     return this.request(endpoint);
   }
 

@@ -93,17 +93,19 @@ const Tickets = ({ navigation }) => {
         if (result.success) {
           setConsumerData(result.data);
         }
-        
+        // Admin stats API expects consumerNumber (e.g. CON-1002); use same source as create ticket
+        const consumerNumber = result?.data?.consumerNumber ?? cachedResult?.data?.consumerNumber ?? user?.consumerNumber ?? user.identifier;
         // Fetch ticket statistics (force refresh after creating a ticket so new ticket appears)
-        const statsResult = await fetchTicketStats(user.identifier, forceRefreshTickets);
+        const statsResult = await fetchTicketStats(consumerNumber, forceRefreshTickets);
         if (statsResult.success) {
           setTicketStats(statsResult.data);
         }
         
-        // Fetch tickets table data (force refresh after creating a ticket so new ticket appears)
-        const tableResult = await fetchTicketsTable(user.identifier, forceRefreshTickets);
+        // Fetch tickets table (admin API: /admin/api/tickets/app/{appId}?consumerNumber=...&page=1&limit=10)
+        const tableResult = await fetchTicketsTable(consumerNumber, forceRefreshTickets, { appId: 1, page: 1, limit: 10 });
         if (tableResult.success) {
-          setTableData(tableResult.data || []);
+          const list = Array.isArray(tableResult.data) ? tableResult.data : tableResult.data?.data ?? [];
+          setTableData(list);
         } else {
           console.error('Failed to fetch tickets table:', tableResult.message);
           setTableData([]); // Set empty array on failure
@@ -348,7 +350,7 @@ const Tickets = ({ navigation }) => {
             }), [])}
             columns={useMemo(() => [
               { key: 'ticketNumber', title: 'Ticket ID', flex: 1.2 },
-              { key: 'category', title: 'Category', flex: 1.5 },
+              { key: 'type', title: 'Category', flex: 1.5 },
               { key: 'status', title: 'Status', flex: 1 },
               { 
                 key: 'view', 

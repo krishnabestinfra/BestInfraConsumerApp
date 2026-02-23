@@ -236,16 +236,16 @@ export const fetchBillingHistory = async (uid) => {
 };
 
 /**
- * Fetch ticket statistics with caching
- * @param {string} uid - Consumer identifier
+ * Fetch ticket statistics with caching (admin API: /admin/api/tickets/stats?consumerNumber=...)
+ * @param {string} consumerNumber - Consumer number (e.g. CON-1002) or identifier
  * @param {boolean} forceRefresh - If true, bypass cache and fetch fresh data (e.g. after creating a ticket)
  */
-export const fetchTicketStats = async (uid, forceRefresh = false) => {
+export const fetchTicketStats = async (consumerNumber, forceRefresh = false) => {
   try {
     return await cacheManager.getData(
       'ticket_stats',
-      API_ENDPOINTS.tickets.stats(uid),
-      uid,
+      API_ENDPOINTS.tickets.stats(consumerNumber),
+      consumerNumber,
       forceRefresh
     );
   } catch (error) {
@@ -254,19 +254,28 @@ export const fetchTicketStats = async (uid, forceRefresh = false) => {
   }
 };
 
+/** Default appId for tickets (override via options or env if needed) */
+const DEFAULT_APP_ID = 1;
+
 /**
- * Fetch tickets table data with caching
- * @param {string} uid - Consumer identifier
+ * Fetch tickets table data with caching (admin API: GET /admin/api/tickets/app/{appId}?consumerNumber=...&page=1&limit=10)
+ * @param {string} consumerNumber - Consumer number (e.g. CON-1002) or identifier
  * @param {boolean} forceRefresh - If true, bypass cache and fetch fresh data (e.g. after creating a ticket)
+ * @param {{ appId?: number, page?: number, limit?: number }} options - appId (default 1), page (default 1), limit (default 10)
  */
-export const fetchTicketsTable = async (uid, forceRefresh = false) => {
+export const fetchTicketsTable = async (consumerNumber, forceRefresh = false, options = {}) => {
+  const { appId = DEFAULT_APP_ID, page = 1, limit = 10 } = options;
   try {
-    return await cacheManager.getData(
+    const result = await cacheManager.getData(
       'ticket_table',
-      API_ENDPOINTS.tickets.table(uid),
-      uid,
+      API_ENDPOINTS.tickets.table(appId, consumerNumber, page, limit),
+      consumerNumber,
       forceRefresh
     );
+    if (result.success && result.data != null && !Array.isArray(result.data)) {
+      result.data = result.data?.data ?? result.data ?? [];
+    }
+    return result;
   } catch (error) {
     console.error("Error fetching tickets table:", error);
     return { success: false, message: error.message };

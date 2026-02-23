@@ -112,10 +112,12 @@ export const API_ENDPOINTS = {
   },
   
   tickets: {
-    stats: (uid) => `${API.TICKETS_URL}/tickets/stats?uid=${uid}`,
-    table: (uid) => `${API.TICKETS_URL}/tickets/table?uid=${uid}`,
+    stats: (consumerNumber) => `${API.ADMIN_TICKETS_URL}/tickets/stats?consumerNumber=${encodeURIComponent(consumerNumber)}`,
+    table: (appId, consumerNumber, page = 1, limit = 10) =>
+      `${API.ADMIN_TICKETS_URL}/tickets/app/${appId}?consumerNumber=${encodeURIComponent(consumerNumber)}&page=${page}&limit=${limit}`,
     create: () => `${API.ADMIN_TICKETS_URL}/tickets`,
-    update: (id) => `${API.TICKETS_URL}/tickets/${id}`,
+    details: (id) => `${API.ADMIN_TICKETS_URL}/tickets/${id}`,
+    update: (id) => `${API.ADMIN_TICKETS_URL}/tickets/${id}`,
   },
   
   // Payment endpoints
