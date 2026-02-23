@@ -150,7 +150,7 @@ const Tickets = ({ navigation }) => {
       // Use consumerNumber from consumers API (e.g. CON-1002 from /consumers/BI25GMRA0001)
       const consumerNumber = consumerData?.consumerNumber || user?.consumerNumber || user.identifier;
       console.log('🎫 Creating ticket for consumer:', consumerNumber, 'data:', ticketData);
-      const result = await createTicket(consumerNumber, ticketData);
+      const result = await createTicket(consumerNumber, ticketData, { consumerData, user });
       console.log('🎫 Create ticket result (Tickets screen):', result?.success, result);
       const isSuccess = result?.success === true || result?.status === "success" || (result?.data && !result?.error);
       if (isSuccess) {

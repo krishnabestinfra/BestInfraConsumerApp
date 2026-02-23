@@ -293,27 +293,61 @@ const TICKET_PRIORITY_MAP = {
   'High': 'HIGH',
   'Urgent': 'URGENT',
 };
+/** Admin API: map form category to type (e.g. TECHNICAL_ISSUE) and category (e.g. TECHNICAL_SUPPORT) */
+const TICKET_TYPE_MAP = {
+  'Technical': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
+  'Technical Issue': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
+  'Billing': { type: 'BILLING_ISSUE', category: 'BILLING_SUPPORT' },
+  'Billing Issue': { type: 'BILLING_ISSUE', category: 'BILLING_SUPPORT' },
+  'Connection': { type: 'CONNECTION_ISSUE', category: 'CONNECTION_SUPPORT' },
+  'Connection Issue': { type: 'CONNECTION_ISSUE', category: 'CONNECTION_SUPPORT' },
+  'Meter': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
+  'Meter Issue': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
+  'General Inquiry': { type: 'GENERAL_INQUIRY', category: 'OTHER' },
+  'General': { type: 'GENERAL_INQUIRY', category: 'OTHER' },
+};
 
 /**
- * Create new ticket via API (POST to /tickets)
- * @param {string} consumerNumber - Consumer identifier
+ * Create new ticket via admin API (POST https://api.bestinfra.app/admin/api/tickets).
+ * Body: title, description, type, category, priority, consumerNumber, appId, customerName, customerEmail, customerPhone, tags.
+ *
+ * @param {string} consumerNumber - Consumer identifier (e.g. CON-1002)
  * @param {object} formData - { subject, description, category, priority? }
+ * @param {object} [context] - Optional { consumerData, user } for customerName, customerEmail, customerPhone
  * @returns {Promise<{ success: boolean, data?: any, message?: string }>}
  */
-export const createTicket = async (consumerNumber, formData) => {
+export const createTicket = async (consumerNumber, formData, context = {}) => {
   try {
-    const category = TICKET_CATEGORY_MAP[formData.category] || (typeof formData.category === 'string' ? formData.category.toUpperCase() : 'OTHER').replace('GENERAL', 'OTHER') || 'OTHER';
-    const priority = TICKET_PRIORITY_MAP[formData.priority] || (typeof formData.priority === 'string' ? formData.priority.toUpperCase() : 'HIGH') || 'HIGH';
+    const { consumerData = {}, user = {} } = context;
+    const categoryLabel = formData.category || '';
+    const typeCategory = TICKET_TYPE_MAP[categoryLabel] || { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' };
+    const category = TICKET_CATEGORY_MAP[categoryLabel] || (typeof categoryLabel === 'string' ? categoryLabel.toUpperCase().replace('GENERAL', 'OTHER') : 'OTHER') || 'OTHER';
+    const priority = TICKET_PRIORITY_MAP[formData.priority] || (typeof formData.priority === 'string' ? formData.priority.toUpperCase() : 'MEDIUM') || 'MEDIUM';
+
+    const customerName =
+      consumerData?.name ?? consumerData?.consumerName ?? consumerData?.customerName ?? user?.name ?? user?.firstName ?? '';
+    const customerEmail =
+      consumerData?.email ?? consumerData?.emailId ?? consumerData?.contactEmail ?? user?.email ?? '';
+    const customerPhone =
+      consumerData?.mobileNo ?? consumerData?.phone ?? consumerData?.contactNumber ?? consumerData?.contact ?? user?.phone ?? user?.contact ?? '';
+
     const payload = {
-      subject: formData.subject || 'No subject',
+      title: formData.subject || formData.title || 'No subject',
       description: formData.description || '',
-      category,
+      type: typeCategory.type,
+      category: typeCategory.category,
       priority,
-      consumerNumber,
+      consumerNumber: consumerNumber || consumerData?.consumerNumber || user?.consumerNumber || user?.identifier,
+      appId: typeof formData.appId === 'number' ? formData.appId : 1,
+      customerName: customerName || 'Consumer',
+      customerEmail: customerEmail || '',
+      customerPhone: customerPhone || '',
+      tags: Array.isArray(formData.tags) ? formData.tags : [],
     };
+
     if (__DEV__) {
-      console.log('🎫 createTicket called → POST https://api.bestinfra.app/gmr/api/tickets (with access token)');
-      console.log('🎫 Payload sent to backend:', JSON.stringify(payload, null, 2));
+      console.log('🎫 createTicket → POST https://api.bestinfra.app/admin/api/tickets');
+      console.log('🎫 Payload:', JSON.stringify(payload, null, 2));
     }
     const result = await apiClient.createTicket(payload);
     if (__DEV__) {
