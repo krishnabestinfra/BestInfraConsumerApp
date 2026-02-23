@@ -251,10 +251,10 @@ class UnifiedCacheManager {
           identifier
         );
         
-        // Preload ticket table
+        // Preload ticket table (admin API: /admin/api/tickets/app/{appId}?consumerNumber=...&page=1&limit=10)
         await this.getData(
           CACHE_KEYS.TICKET_TABLE,
-          API_ENDPOINTS.tickets.table(identifier),
+          API_ENDPOINTS.tickets.table(1, identifier, 1, 10),
           identifier
         );
         

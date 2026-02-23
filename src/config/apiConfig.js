@@ -39,6 +39,8 @@ const API_HOST = getApiHost();
 
 const getTenantBaseUrl = () => `${API_HOST}/${currentTenantSubdomain}/api`;
 const getTenantTicketsBaseUrl = () => `${API_HOST}/${currentTenantSubdomain}/api`;
+// Admin API for ticket creation (POST https://api.bestinfra.app/admin/api/tickets)
+const getAdminTicketsBaseUrl = () => `${API_HOST}/admin/api`;
 const getTenantHealthUrl = () => `${API_HOST}/${currentTenantSubdomain}/api/health`;
 const getTenantPaymentUrl = () => `${API_HOST}/${currentTenantSubdomain}/api/payment`;
 const getTenantAuthUrl = () => `${API_HOST}/${currentTenantSubdomain}/api/sub-app/auth`;
@@ -53,6 +55,9 @@ export const API = {
   get TICKETS_URL() {
     return getTenantTicketsBaseUrl();
   },
+  get ADMIN_TICKETS_URL() {
+    return getAdminTicketsBaseUrl();
+  },
   get AUTH_URL() {
     return getTenantAuthUrl();
   },
@@ -65,7 +70,6 @@ export const API = {
   get PAYMENT_URL() {
     return getTenantPaymentUrl();
   },
-  // Expose middleware base for debugging if needed
   get MIDDLEWARE_BASE_URL() {
     return MIDDLEWARE_BASE_URL;
   },
@@ -108,11 +112,12 @@ export const API_ENDPOINTS = {
   },
   
   tickets: {
-    stats: (uid) => `${API.TICKETS_URL}/tickets/stats?uid=${uid}`,
-    table: (uid) => `${API.TICKETS_URL}/tickets/table?uid=${uid}`,
-    // Ticket creation is tenant-specific; use current tenant base URL
-    create: () => `${API.TICKETS_URL}/tickets`,
-    update: (id) => `${API.TICKETS_URL}/tickets/${id}`,
+    stats: (consumerNumber) => `${API.ADMIN_TICKETS_URL}/tickets/stats?consumerNumber=${encodeURIComponent(consumerNumber)}`,
+    table: (appId, consumerNumber, page = 1, limit = 10) =>
+      `${API.ADMIN_TICKETS_URL}/tickets/app/${appId}?consumerNumber=${encodeURIComponent(consumerNumber)}&page=${page}&limit=${limit}`,
+    create: () => `${API.ADMIN_TICKETS_URL}/tickets`,
+    details: (id) => `${API.ADMIN_TICKETS_URL}/tickets/${id}`,
+    update: (id) => `${API.ADMIN_TICKETS_URL}/tickets/${id}`,
   },
   
   // Payment endpoints
