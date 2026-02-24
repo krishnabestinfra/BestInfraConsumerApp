@@ -794,14 +794,14 @@ const Invoices = ({ navigation }) => {
         maxToRenderPerBatch={10}
         windowSize={5}
         removeClippedSubviews={true}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={fetchInvoices}
-            colors={[COLORS.secondaryColor]}
-            tintColor={COLORS.secondaryColor}
-          />
-        }
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={isLoading}
+        //     onRefresh={fetchInvoices}
+        //     colors={[COLORS.secondaryColor]}
+        //     tintColor={COLORS.secondaryColor}
+        //   />
+        // }
       />
 
       {/* PDF Generation Overlay */}

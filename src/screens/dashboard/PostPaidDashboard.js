@@ -1294,14 +1294,14 @@ const PostPaidDashboard = ({ navigation, route }) => {
         style={[styles.Container, darkOverlay.container]}
         contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={fetchConsumerData}
-            colors={[themeColors.accent]}
-            tintColor={themeColors.accent}
-          />
-        }
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={isLoading}
+        //     onRefresh={fetchConsumerData}
+        //     colors={[themeColors.accent]}
+        //     tintColor={themeColors.accent}
+        //   />
+        // }
       >
         <View style={[styles.Container, darkOverlay.container]}>
           <StatusBar style={isDark ? "light" : "dark"} />

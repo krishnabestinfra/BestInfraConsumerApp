@@ -259,14 +259,14 @@ const Tickets = ({ navigation }) => {
         style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{flexGrow: 1, paddingBottom: 130}}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={fetchData}
-            colors={[COLORS.secondaryColor]}
-            tintColor={COLORS.secondaryColor}
-          />
-        }
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={isLoading}
+        //     onRefresh={fetchData}
+        //     colors={[COLORS.secondaryColor]}
+        //     tintColor={COLORS.secondaryColor}
+        //   />
+        // }
         nestedScrollEnabled={true}
       >
 

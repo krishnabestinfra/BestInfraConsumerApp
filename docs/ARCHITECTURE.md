@@ -140,3 +140,6 @@ Screens / Context
 - **Current:** PostPaidDashboard (main), LsDataTable, and shared components (UltraFastScreen, OptimizedScreen) exist. Feature flags (`config/featureFlags.js`) allow toggling; navigation still points to PostPaidDashboard as primary.
 - **Intended:** Prefer one config-driven or role-based dashboard long-term; legacy variants can be deprecated or hidden via feature flags when consolidation is done.
 - **Screen-level ErrorBoundary:** Key screens (Invoices, Notifications, PostPaidDashboard, Transactions, Tickets, TicketDetails, ChatSupport, Reports) are wrapped with `withScreenErrorBoundary` so one broken screen does not crash the whole app.
+
+
+I wanted to make this app lag free faster then it was not and super faster application is what i wanted what are the road blockers that making the application making slower so that give me a correct root cause so that i wanted to make sure that was implemented in it accordingly interms of performace and all this lagging and slower resposnse 

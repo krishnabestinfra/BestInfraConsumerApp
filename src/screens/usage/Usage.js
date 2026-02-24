@@ -242,14 +242,14 @@ const Usage = ({ navigation }) => {
         style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{ paddingBottom: 130 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={handleRefresh}
-            colors={[COLORS.secondaryColor]}
-            tintColor={COLORS.secondaryColor}
-          />
-        }
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={isLoading}
+        //     onRefresh={handleRefresh}
+        //     colors={[COLORS.secondaryColor]}
+        //     tintColor={COLORS.secondaryColor}
+        //   />
+        // }
       >
         <StatusBar style="dark" />
         <DashboardHeader
