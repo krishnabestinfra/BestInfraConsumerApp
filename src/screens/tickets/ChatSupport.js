@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback} from "react";
 import {
   View,
   Text,
@@ -139,8 +139,9 @@ const ChatSupport = ({ navigation, route }) => {
     navigation.goBack();
   };
 
-  const keyExtractor = useCallback((item) => String(item.id), []);
+  const keyExtractor = useCallback((item) => String(item?.id ?? ""), []);
   const renderItem = useCallback(({ item: msg }) => {
+    if (!msg) return null;
     const isSupport = msg.sender === "support";
     return (
       <View
@@ -243,8 +244,11 @@ const ChatSupport = ({ navigation, route }) => {
 
       <View style={styles.chatAreaWrap}>
         <View style={[styles.whiteContainer, isDark && { backgroundColor: themeColors.screen }]}>
-          <ScrollView
+          <FlatList
             ref={scrollViewRef}
+            data={messages}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
             style={styles.messagesContainer}
             contentContainerStyle={styles.messagesContent}
             showsVerticalScrollIndicator={false}
@@ -255,9 +259,7 @@ const ChatSupport = ({ navigation, route }) => {
               }, 100);
             }}
             onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
-          >
-            {messages.map(renderMessage)}
-          </ScrollView>
+          />
 
           <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
@@ -342,7 +344,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 5,
     borderTopRightRadius: 5,
   },
-    gap: 10,
   chatHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
