@@ -36,6 +36,8 @@ import ChatIcon from "../../../assets/icons/chatIcon.svg";
 const RING_COUNT = 20;
 const RING_DELAY = 800;
 const ANIMATION_DURATION = 5000;
+const GAP_ABOVE_BOTTOM = 10;
+const BOTTOM_NAV_HEIGHT = 112;
 
 const Ring = ({ index, progress }) => {
   const ringStyle = useAnimatedStyle(() => {
@@ -62,21 +64,7 @@ const ChatSupport = ({ navigation, route }) => {
   const progress = useSharedValue(0);
   const scrollViewRef = useRef(null);
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: "support",
-      senderName: "Support Team",
-      text: "Hello! I'm here to help with your voltage fluctuation issue. Can you tell me more about when this started?",
-      time: "09:15 am",
-    },
-    {
-      id: 2,
-      sender: "user",
-      text: "It started about a week ago. The voltage keeps dropping and rising unpredictably.",
-      time: "09:15 am",
-    },
-  ]);
+  const [messages, setMessages] = useState([]);
 
   const { ticketId, ticketData } = route?.params || {};
 
@@ -106,22 +94,42 @@ const ChatSupport = ({ navigation, route }) => {
   const handleSendMessage = () => {
     if (message.trim() === "") return;
 
+    const now = new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).toLowerCase();
+
     const newMessage = {
       id: messages.length + 1,
       sender: "user",
       text: message.trim(),
-      time: new Date().toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }).toLowerCase(),
+      time: now,
     };
 
-    setMessages([...messages, newMessage]);
+    const name = ticketData?.name ?? ticketData?.customerName ?? "—";
+    const phone = ticketData?.phone ?? ticketData?.customerPhone ?? "—";
+    const email = ticketData?.email ?? ticketData?.customerEmail ?? "—";
+    const contactReply =
+      "Thank you for your message. For assistance, please contact:\n\nName: " +
+      name +
+      "\nPhone: " +
+      phone +
+      "\nEmail: " +
+      email;
+
+    const replyMessage = {
+      id: messages.length + 2,
+      sender: "support",
+      senderName: "Support Team",
+      text: contactReply,
+      time: now,
+    };
+
+    setMessages([...messages, newMessage, replyMessage]);
     setMessage("");
     Keyboard.dismiss();
 
-    // Scroll to bottom after adding message
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
@@ -172,7 +180,7 @@ const ChatSupport = ({ navigation, route }) => {
     <KeyboardAvoidingView
       style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}
       behavior={Platform.OS === "ios" ? "padding" : "padding"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      keyboardVerticalOffset={GAP_ABOVE_BOTTOM}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
@@ -225,48 +233,48 @@ const ChatSupport = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Chat Messages Container with White Background */}
-      <View style={[styles.whiteContainer, isDark && { backgroundColor: themeColors.screen }]}>
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          onLayout={() => {
-            setTimeout(() => {
-              scrollViewRef.current?.scrollToEnd({ animated: false });
-            }, 100);
-          }}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
-        >
-          {messages.map(renderMessage)}
-        </ScrollView>
-        
-        {/* Message Input */}
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Your Message"
-              placeholderTextColor="#9CA3AF"
-              value={message}
-              onChangeText={setMessage}
-              multiline
-              maxLength={500}
-            />
-            <TouchableOpacity
-              style={styles.sendButton}
-              onPress={handleSendMessage}
-              activeOpacity={0.7}
-            >
-              <SendIcon width={22} height={22} />
-            </TouchableOpacity>
+      <View style={styles.chatAreaWrap}>
+        <View style={[styles.whiteContainer, isDark && { backgroundColor: themeColors.screen }]}>
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.messagesContainer}
+            contentContainerStyle={styles.messagesContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            onLayout={() => {
+              setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: false });
+              }, 100);
+            }}
+            onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
+          >
+            {messages.map(renderMessage)}
+          </ScrollView>
+
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Your Message"
+                placeholderTextColor="#9CA3AF"
+                value={message}
+                onChangeText={setMessage}
+                multiline
+                maxLength={500}
+              />
+              <TouchableOpacity
+                style={styles.sendButton}
+                onPress={handleSendMessage}
+                activeOpacity={0.7}
+              >
+                <SendIcon width={22} height={22} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
+        <View style={[styles.chatBottomGap, { height: BOTTOM_NAV_HEIGHT + GAP_ABOVE_BOTTOM }]} />
       </View>
- 
-      {/* Bottom Navigation */}
+
       <BottomNavigation navigation={navigation} />
 
     </KeyboardAvoidingView>
@@ -326,10 +334,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 5,
     borderTopRightRadius: 5,
   },
+    gap: 10,
   chatHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
   },
   chatIconWrapper: {
     width: 32,
@@ -343,6 +351,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   chatHeaderTitle: {
+    marginLeft: 10,
     fontSize: 16,
     fontFamily: "Manrope-SemiBold",
     color: "#FFFFFF",
@@ -354,26 +363,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  chatBottomGap: {
+    height: 106,
+    marginBottom: 106, 
+  },
+  chatAreaWrap: {
+    flex: 1,
+  },
   whiteContainer: {
     flex: 1,
     backgroundColor: "#FFFFFF",
     marginHorizontal: 30,
     borderRadius: 5,
     overflow: "hidden",
-    marginBottom: 70, // space above bottom navigation so content stays above bottom nav
+    zIndex: 1,
+    elevation: 2,
+  },
+  chatBottomGap: {
+    backgroundColor: "transparent",
   },
   messagesContainer: {
     flex: 1,
     paddingTop: 10,
   },
   messagesContent: {
+    gap: 16,
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingBottom: 40,
-    gap: 16,
   },
   messageWrapper: {
     maxWidth: "85%",
+    marginBottom: 16,
   },
   supportMessageWrapper: {
     alignSelf: "flex-start",
@@ -431,8 +452,10 @@ const styles = StyleSheet.create({
   inputContainer: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    paddingBottom: Platform.OS === "ios" ? 30 : 16,
+    paddingBottom: 16 + GAP_ABOVE_BOTTOM,
     backgroundColor: "#FFFFFF",
+    zIndex: 2,
+    elevation: 3,
   },
   inputWrapper: {
     flexDirection: "row",
@@ -460,3 +483,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
+ 
