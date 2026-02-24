@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, RefreshControl, Alert } from "react-native";
+import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, RefreshControl, Alert, Animated } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
@@ -21,6 +21,46 @@ import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SkeletonLoader } from '../../utils/loadingManager';
 import CreateNewTicket from "../../components/global/CreateNewTicket";
+
+// Shimmer constants (same as Invoices for consistent skeleton effect)
+const SHIMMER_LIGHT = { base: "#e0e0e0", gradient: ["#e0e0e0", "#f5f5f5", "#e0e0e0"] };
+const SHIMMER_DARK = { base: "#3a3a3c", gradient: ["#3a3a3c", "rgba(255,255,255,0.06)", "#3a3a3c"] };
+
+// Shimmer effect component for skeleton loading (theme-aware)
+const Shimmer = ({ style, baseColor, gradientColors }) => {
+  const shimmerAnim = useRef(new Animated.Value(-1)).current;
+  const base = baseColor ?? SHIMMER_LIGHT.base;
+  const gradient = gradientColors ?? SHIMMER_LIGHT.gradient;
+  useEffect(() => {
+    shimmerAnim.setValue(-1);
+    Animated.loop(
+      Animated.timing(shimmerAnim, { toValue: 1, duration: 1500, useNativeDriver: true })
+    ).start();
+  }, [shimmerAnim]);
+  const translateX = shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [-200, 300] });
+  return (
+    <View style={[style, { overflow: "hidden", backgroundColor: base }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateX }] }]}>
+        <LinearGradient colors={gradient} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ flex: 1 }} />
+      </Animated.View>
+    </View>
+  );
+};
+
+// Skeleton Ticket Box (one stat box placeholder, theme-aware)
+const SkeletonTicketBox = ({ isDark, styles }) => {
+  const shimmer = isDark ? SHIMMER_DARK : SHIMMER_LIGHT;
+  const boxBg = isDark ? "#1A1F2E" : COLORS.secondaryFontColor;
+  return (
+    <View style={[styles.TicketBox, { backgroundColor: boxBg }]}>
+      <View style={styles.TicketBoxTextContainer}>
+        <Shimmer style={{ width: 70, height: 12, borderRadius: 4 }} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+        <Shimmer style={{ width: 28, height: 20, borderRadius: 4, marginTop: 6 }} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+      </View>
+      <Shimmer style={[styles.TicketBoxIcon, { backgroundColor: shimmer.base }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+    </View>
+  );
+};
 import TicketSuccessModal from "../../components/global/TicketSuccessModal";
 import { isDemoUser, getDemoConsumerCore, DEMO_TICKET_STATS, DEMO_TICKETS } from "../../constants/demoData";
 
@@ -250,87 +290,48 @@ const Tickets = ({ navigation }) => {
         </View>
 
         <View style={styles.TicketContainerTwo}>
-          <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
-            <View style={styles.TicketBoxTextContainer}>
-              <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>Open Tickets</Text>
-
-              <View style={{ minWidth: 20 }}> 
-                {statsLoading ? (
-                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
-                ) : (
+          {statsLoading ? (
+            [1, 2, 3, 4].map((key) => <SkeletonTicketBox key={key} isDark={isDark} styles={styles} />)
+          ) : (
+            <>
+              <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
+                <View style={styles.TicketBoxTextContainer}>
+                  <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>Open Tickets</Text>
                   <Text style={styles.TicketBoxNumber}>{ticketStats.open}</Text>
-                )}
-              </View>
-            </View>
-                <LinearGradient
-                  colors={["#E6F6ED", "#C2EAD2"]}
-                  start={{  x: 0.5, y: 0.5  }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.TicketBoxIcon}
-                >
+                </View>
+                <LinearGradient colors={["#E6F6ED", "#C2EAD2"]} start={{ x: 0.5, y: 0.5 }} end={{ x: 1, y: 1 }} style={styles.TicketBoxIcon}>
                   <OpenIcon width={16} height={16} />
-              </LinearGradient>
-          </View>
-          <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
-            <View style={styles.TicketBoxTextContainer}>
-              <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>In Progress</Text>
-              <View style={{ minWidth: 20 }}> 
-                {statsLoading ? (
-                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
-                ) : (
+                </LinearGradient>
+              </View>
+              <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
+                <View style={styles.TicketBoxTextContainer}>
+                  <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>In Progress</Text>
                   <Text style={styles.TicketBoxNumber}>{ticketStats.inProgress}</Text>
-                )}
+                </View>
+                <LinearGradient colors={["#E6F6ED", "#C2EAD2"]} start={{ x: 0.5, y: 0.5 }} end={{ x: 1, y: 1 }} style={styles.TicketBoxIcon}>
+                  <ProgressIcon width={16} height={16} />
+                </LinearGradient>
               </View>
-            </View>
-              <LinearGradient
-                colors={["#E6F6ED", "#C2EAD2"]}
-                start={{  x: 0.5, y: 0.5  }}
-                end={{ x: 1, y: 1 }}
-                style={styles.TicketBoxIcon}
-              >
-                <ProgressIcon width={16} height={16} />
-              </LinearGradient>
-          </View>
-          <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
-            <View style={styles.TicketBoxTextContainer}>
-              <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>Resolved</Text>
-              <View style={{ minWidth: 20 }}> 
-                {statsLoading ? (
-                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
-                ) : (
+              <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
+                <View style={styles.TicketBoxTextContainer}>
+                  <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>Resolved</Text>
                   <Text style={styles.TicketBoxNumber}>{ticketStats.resolved}</Text>
-                )}
+                </View>
+                <LinearGradient colors={["#E6F6ED", "#C2EAD2"]} start={{ x: 0.5, y: 0.5 }} end={{ x: 1, y: 1 }} style={styles.TicketBoxIcon}>
+                  <ResolvedIcon width={16} height={16} />
+                </LinearGradient>
               </View>
-            </View>
-              <LinearGradient
-                colors={["#E6F6ED", "#C2EAD2"]}
-                start={{  x: 0.5, y: 0.5  }}
-                end={{ x: 1, y: 1 }}
-                style={styles.TicketBoxIcon}
-              >
-                <ResolvedIcon width={16} height={16} />
-              </LinearGradient>
-          </View>
-          <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
-            <View style={styles.TicketBoxTextContainer}>
-              <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>Closed</Text>
-              <View style={{ minWidth: 20 }}> 
-                {statsLoading ? (
-                  <SkeletonLoader variant="lines" lines={1} style={{ height: 30, width: 20 }} />
-                ) : (
+              <View style={[styles.TicketBox, isDark && { backgroundColor: '#1A1F2E' }]}>
+                <View style={styles.TicketBoxTextContainer}>
+                  <Text style={[styles.TicketBoxtext, isDark && { color: '#FFFFFF' }]}>Closed</Text>
                   <Text style={styles.TicketBoxNumber}>{ticketStats.closed}</Text>
-                )}
+                </View>
+                <LinearGradient colors={["#E6F6ED", "#C2EAD2"]} start={{ x: 0.5, y: 0.5 }} end={{ x: 1, y: 1 }} style={styles.TicketBoxIcon}>
+                  <ClosedIcon width={16} height={16} />
+                </LinearGradient>
               </View>
-            </View>
-            <LinearGradient
-              colors={["#E6F6ED", "#C2EAD2"]}
-              start={{  x: 0.5, y: 0.5  }}
-              end={{ x: 1, y: 1 }}
-              style={styles.TicketBoxIcon}
-            >
-              <ClosedIcon width={16} height={16} />
-            </LinearGradient>
-          </View>
+            </>
+          )}
         </View>
         <View style={styles.TicketContainerThree}>
           <Table

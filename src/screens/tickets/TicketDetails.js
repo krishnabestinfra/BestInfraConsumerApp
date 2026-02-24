@@ -4,11 +4,12 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
+  FlatList,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ChevronRight from "../../../assets/icons/rightArrow.svg";
 import { apiClient } from "../../services/apiClient";
 import ChatIcon from "../../../assets/icons/chatIcon.svg";
@@ -19,6 +20,42 @@ import BottomNavigation from "../../components/global/BottomNavigation";
 import { formatFrontendDateTime } from "../../utils/dateUtils";
 
 const DARK_CARD_BG = "#1A1F2E";
+
+const TimelineItem = React.memo(({ item, isLast, isDark, themeColors }) => (
+  <View style={styles.timelineItem}>
+    <View style={styles.timelineLeft}>
+      <View style={[styles.timelineIcon, isDark && { backgroundColor: "rgba(255,255,255,0.08)" }]}>
+        {item.resolved ? (
+          <TimelineCheckGreen width={12} height={12} />
+        ) : item.completed ? (
+          <TimelineCheckBlue width={12} height={12} />
+        ) : (
+          <View style={styles.timelineIconPending} />
+        )}
+      </View>
+      {!isLast && (
+        <View
+          style={[
+            styles.timelineLine,
+            item.completed && styles.timelineLineCompleted,
+            isDark && { backgroundColor: "rgba(255,255,255,0.08)" },
+          ]}
+        />
+      )}
+    </View>
+    <View style={styles.timelineContent}>
+      <Text style={[styles.timelineItemTitle, isDark && { color: themeColors.textPrimary }]}>
+        {item.title}
+      </Text>
+      <Text style={[styles.timelineItemDescription, isDark && { color: themeColors.textSecondary }]}>
+        {item.description}
+      </Text>
+      <Text style={[styles.timelineItemDate, isDark && { color: themeColors.textSecondary }]}>
+        {item.date}
+      </Text>
+    </View>
+  </View>
+));
 
 const TicketDetails = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
@@ -204,39 +241,20 @@ const TicketDetails = ({ navigation, route }) => {
           </Text>
 
           <View style={[styles.timelineCard, isDark && { backgroundColor: DARK_CARD_BG }]}>
-            {timelineData.map((item, index) => (
-              <View key={item.id} style={styles.timelineItem}>
-                <View style={styles.timelineLeft}>
-                  <View style={[styles.timelineIcon, isDark && { backgroundColor: "rgba(255,255,255,0.08)" }]}>
-                    {item.resolved ? (
-                      <TimelineCheckGreen width={12} height={12} />
-                    ) : item.completed ? (
-                      <TimelineCheckBlue width={12} height={12} />
-                    ) : (
-                      <View style={styles.timelineIconPending} />
-                    )}
-                  </View>
-                  {index < timelineData.length - 1 && (
-                    <View style={[
-                      styles.timelineLine,
-                      item.completed && styles.timelineLineCompleted,
-                      isDark && { backgroundColor: "rgba(255,255,255,0.08)" }
-                    ]} />
-                  )}
-                </View>
-                <View style={styles.timelineContent}>
-                  <Text style={[styles.timelineItemTitle, isDark && { color: themeColors.textPrimary }]}>
-                    {item.title}
-                  </Text>
-                  <Text style={[styles.timelineItemDescription, isDark && { color: themeColors.textSecondary }]}>
-                    {item.description}
-                  </Text>
-                  <Text style={[styles.timelineItemDate, isDark && { color: themeColors.textSecondary }]}>
-                    {item.date}
-                  </Text>
-                </View>
-              </View>
-            ))}
+            <FlatList
+              data={timelineData}
+              scrollEnabled={false}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item, index }) => (
+                <TimelineItem
+                  item={item}
+                  isLast={index === timelineData.length - 1}
+                  isDark={isDark}
+                  themeColors={themeColors}
+                />
+              )}
+              initialNumToRender={15}
+            />
           </View>
 
           {/* Chat Support Button */}

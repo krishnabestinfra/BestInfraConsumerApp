@@ -18,16 +18,16 @@ import { View, ActivityIndicator, StyleSheet, Animated } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
 
-const SHIMMER_LIGHT = {
+export const SHIMMER_LIGHT = {
   base: '#e0e0e0',
   gradient: ['#e0e0e0', '#f5f5f5', '#e0e0e0'],
 };
-const SHIMMER_DARK = {
+export const SHIMMER_DARK = {
   base: '#3a3a3c',
   gradient: ['#3a3a3c', 'rgba(255,255,255,0.06)', '#3a3a3c'],
 };
 
-const Shimmer = ({ style, baseColor, gradientColors }) => {
+export const Shimmer = ({ style, baseColor, gradientColors }) => {
   const shimmerAnim = useRef(new Animated.Value(-1)).current;
   const base = baseColor || SHIMMER_LIGHT.base;
   const gradient = gradientColors || SHIMMER_LIGHT.gradient;

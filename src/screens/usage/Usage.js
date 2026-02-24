@@ -16,7 +16,29 @@ import { isDemoUser, getDemoUsageConsumerData, DEMO_LAST_MONTH_BILL } from "../.
 import { LinearGradient } from "expo-linear-gradient";
 import MeterIcon from "../../../assets/icons/meterBolt.svg";
 import WalletIcon from "../../../assets/icons/walletCard.svg";
+import { Shimmer, SHIMMER_LIGHT, SHIMMER_DARK } from "../../utils/loadingManager";
 
+// Fallback if loadingManager exports are missing (e.g. cached bundle)
+const SHIMMER_LIGHT_FALLBACK = { base: "#e0e0e0", gradient: ["#e0e0e0", "#f5f5f5", "#e0e0e0"] };
+const SHIMMER_DARK_FALLBACK = { base: "#3a3a3c", gradient: ["#3a3a3c", "rgba(255,255,255,0.06)", "#3a3a3c"] };
+
+// Skeleton Usage Card (one summary card placeholder, theme-aware – same pattern as Tickets/Invoices)
+const SkeletonUsageCard = ({ isDark, styles }) => {
+  const shimmer = (isDark ? (SHIMMER_DARK ?? SHIMMER_DARK_FALLBACK) : (SHIMMER_LIGHT ?? SHIMMER_LIGHT_FALLBACK));
+  const cardBg = isDark ? "#1A1F2E" : COLORS.secondaryFontColor;
+  const borderColor = isDark ? "rgba(255,255,255,0.08)" : "#F1F3F4";
+  return (
+    <View style={[styles.professionalCard, { backgroundColor: cardBg, borderColor }]}>
+      <View style={styles.cardContent}>
+        <View style={styles.cardHeader}>
+          <Shimmer style={{ flex: 1, height: 16, borderRadius: 4, marginRight: 8 }} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+          <Shimmer style={[styles.professionalCardIcon, { backgroundColor: shimmer.base }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+        </View>
+        <Shimmer style={{ width: 80, height: 24, borderRadius: 4, marginTop: 4 }} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+      </View>
+    </View>
+  );
+};
 
 const Usage = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
@@ -271,53 +293,60 @@ const Usage = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Professional Cards */}
+          {/* Professional Cards – skeleton when loading (same shimmer as Tickets/Invoices) */}
           <View style={styles.professionalCardsContainer}>
-            {/* Consumption Card */}
-            <View style={[styles.professionalCard, isDark && { backgroundColor: '#1A1F2E', borderColor: 'rgba(255,255,255,0.08)' }]}>
-              <View style={styles.cardContent}>
-                <View style={styles.cardHeader}>
-                  <Text style={[styles.professionalCardTitle, isDark && { color: '#FFFFFF' }]}>
-                    {selectedView === "daily" ? "Daily Consumption" : "Monthly Consumption"}
-                  </Text>
-                  <LinearGradient
-                    colors={["#E8F5E9", "#C8E6C9"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.professionalCardIcon}
-                  >
-                    <MeterIcon width={18} height={18} />
-                  </LinearGradient>
+            {isLoading ? (
+              <>
+                <SkeletonUsageCard isDark={isDark} styles={styles} />
+                <SkeletonUsageCard isDark={isDark} styles={styles} />
+              </>
+            ) : (
+              <>
+                {/* Consumption Card */}
+                <View style={[styles.professionalCard, isDark && { backgroundColor: '#1A1F2E', borderColor: 'rgba(255,255,255,0.08)' }]}>
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardHeader}>
+                      <Text style={[styles.professionalCardTitle, isDark && { color: '#FFFFFF' }]}>
+                        {selectedView === "daily" ? "Daily Consumption" : "Monthly Consumption"}
+                      </Text>
+                      <LinearGradient
+                        colors={["#E8F5E9", "#C8E6C9"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.professionalCardIcon}
+                      >
+                        <MeterIcon width={18} height={18} />
+                      </LinearGradient>
+                    </View>
+                    <Text style={styles.professionalCardValue}>
+                      {selectedView === "daily" ? `${getDailyConsumption()} kWh` : `${getMonthlyConsumption()} kWh`}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.professionalCardValue}>
-                  {selectedView === "daily" ? `${getDailyConsumption()} kWh` : `${getMonthlyConsumption()} kWh`}
-                </Text>
-              </View>
-            </View>
 
-            {/* Charges Card */}
-            <View style={[styles.professionalCard, isDark && { backgroundColor: '#1A1F2E', borderColor: 'rgba(255,255,255,0.08)' }]}>
-              <View style={styles.cardContent}>
-                <View style={styles.cardHeader}>
-                  <Text style={[styles.professionalCardTitle, isDark && { color: '#FFFFFF' }]}>
-                    {selectedView === "daily" ? "Daily\nCharges" : "Monthly\nCharges"}
-                  </Text>
-                  <LinearGradient
-                    colors={["#E8F5E9", "#C8E6C9"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.professionalCardIcon}
-                  >
-                    <WalletIcon width={18} height={18} />
-                  </LinearGradient>
+                {/* Charges Card */}
+                <View style={[styles.professionalCard, isDark && { backgroundColor: '#1A1F2E', borderColor: 'rgba(255,255,255,0.08)' }]}>
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardHeader}>
+                      <Text style={[styles.professionalCardTitle, isDark && { color: '#FFFFFF' }]}>
+                        {selectedView === "daily" ? "Daily\nCharges" : "Monthly\nCharges"}
+                      </Text>
+                      <LinearGradient
+                        colors={["#E8F5E9", "#C8E6C9"]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.professionalCardIcon}
+                      >
+                        <WalletIcon width={18} height={18} />
+                      </LinearGradient>
+                    </View>
+                    <Text style={styles.professionalCardValue}>
+                      {selectedView === "monthly" ? formatCurrency(lastMonthBillAmount) : "N/A"}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.professionalCardValue}>
-                  {selectedView === "monthly" 
-                    ? (isLoading ? "Loading..." : formatCurrency(lastMonthBillAmount))
-                    : "N/A"}
-                </Text>
-              </View>
-            </View>
+              </>
+            )}
           </View>
         </View>
 

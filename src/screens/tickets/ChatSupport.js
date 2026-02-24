@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  ScrollView,
+  FlatList,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -131,12 +131,11 @@ const ChatSupport = ({ navigation, route }) => {
     navigation.goBack();
   };
 
-  const renderMessage = (msg) => {
+  const keyExtractor = useCallback((item) => String(item.id), []);
+  const renderItem = useCallback(({ item: msg }) => {
     const isSupport = msg.sender === "support";
-
     return (
       <View
-        key={msg.id}
         style={[
           styles.messageWrapper,
           isSupport ? styles.supportMessageWrapper : styles.userMessageWrapper,
@@ -166,7 +165,16 @@ const ChatSupport = ({ navigation, route }) => {
         </View>
       </View>
     );
-  };
+  }, []);
+
+  const scrollToEnd = useCallback(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: false });
+    }, 100);
+  }, []);
+  const onContentSizeChange = useCallback(() => {
+    scrollViewRef.current?.scrollToEnd({ animated: false });
+  }, []);
 
   return (
     <KeyboardAvoidingView
@@ -227,21 +235,22 @@ const ChatSupport = ({ navigation, route }) => {
 
       {/* Chat Messages Container with White Background */}
       <View style={[styles.whiteContainer, isDark && { backgroundColor: themeColors.screen }]}>
-        <ScrollView
+        <FlatList
           ref={scrollViewRef}
+          data={messages}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          onLayout={() => {
-            setTimeout(() => {
-              scrollViewRef.current?.scrollToEnd({ animated: false });
-            }, 100);
-          }}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
-        >
-          {messages.map(renderMessage)}
-        </ScrollView>
+          onLayout={scrollToEnd}
+          onContentSizeChange={onContentSizeChange}
+          inverted
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={8}
+        />
         
         {/* Message Input */}
         <View style={styles.inputContainer}>

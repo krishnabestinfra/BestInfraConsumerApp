@@ -1,14 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  Dimensions,
   ActivityIndicator,
-  ScrollView,
   RefreshControl,
 } from "react-native";
+import AppFlatList from "../../components/global/AppFlatList";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import Menu from "../../../assets/icons/bars.svg";
@@ -139,18 +138,96 @@ const Notifications = ({ navigation, route }) => {
     }
   };
 
-  const handleNotificationPress = async (notification) => {
-    console.log('Notification pressed:', notification.title);
-
-    // Mark as read if not already read
+  const handleNotificationPress = useCallback(async (notification) => {
     if (!notification.is_read) {
       await markAsRead(notification.id);
     }
-
     if (notification.redirect_url) {
-      console.log('Redirect URL:', notification.redirect_url);
+      navigation.navigate(notification.redirect_url);
     }
-  };
+  }, [markAsRead, navigation]);
+
+  const keyExtractor = useCallback((item) => String(item.id), []);
+  const renderItem = useCallback(
+    ({ item }) => (
+      <NotificationCard
+        title={item.title}
+        message={item.message}
+        sentAt={item.meta?.sentAt || item.created_at}
+        icon={getNotificationIcon(item.type)}
+        variant={getNotificationVariant(item.type)}
+        isRead={item.is_read}
+        onPress={() => handleNotificationPress(item)}
+      />
+    ),
+    [handleNotificationPress]
+  );
+  const ItemSeparator = useMemo(() => () => <View style={styles.itemSeparator} />, []);
+  const refreshControl = useMemo(
+    () => (
+      <RefreshControl
+        refreshing={isLoading}
+        onRefresh={refreshNotifications}
+        colors={[COLORS.secondaryFontColor]}
+        tintColor={COLORS.secondaryFontColor}
+      />
+    ),
+    [isLoading, refreshNotifications]
+  );
+
+  const listEmptyComponent = useMemo(() => {
+    if (showLoading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.secondaryFontColor} />
+          <Text style={[styles.loadingText, { fontSize: s14 }]}>Loading notifications...</Text>
+        </View>
+      );
+    }
+    if (error && displayNotifications.length === 0) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { fontSize: s14 }]}>
+            {error.includes('Failed to fetch')
+              ? `Unable to load notifications for ${consumerUid}`
+              : error}
+          </Text>
+          <Pressable style={styles.retryButton} onPress={refreshNotifications}>
+            <Text style={[styles.retryButtonText, { fontSize: s14 }]}>Retry</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    if (displayNotifications.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={[styles.emptyText, { fontSize: s14 }]}>No notifications available</Text>
+          <Text style={[styles.emptySubText, { fontSize: s12 }]}>for {consumerUid}</Text>
+        </View>
+      );
+    }
+    return null;
+  }, [
+    showLoading,
+    error,
+    displayNotifications.length,
+    consumerUid,
+    s14,
+    s12,
+    refreshNotifications,
+  ]);
+
+  const listHeaderComponent = useMemo(() => {
+    if (error && displayNotifications.length > 0) {
+      return (
+        <View style={styles.refreshErrorBanner}>
+          <Text style={[styles.refreshErrorText, { fontSize: s12 }]}>{error}</Text>
+          <Text style={[styles.refreshErrorHint, { fontSize: s12 }]}>Pull down to try again.</Text>
+        </View>
+      );
+    }
+    return null;
+  }, [error, displayNotifications.length, s12]);
 
   return (
     <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
@@ -171,67 +248,18 @@ const Notifications = ({ navigation, route }) => {
         </Pressable>
       </View>
 
-      <ScrollView
+      <AppFlatList
+        data={displayNotifications}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ItemSeparatorComponent={ItemSeparator}
+        ListEmptyComponent={listEmptyComponent}
+        ListHeaderComponent={listHeaderComponent}
+        refreshControl={refreshControl}
         style={[styles.notificationsContainer, isDark && { backgroundColor: themeColors.screen }]}
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={displayNotifications.length === 0 ? styles.listEmptyContent : undefined}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-
-          displayNotifications.length > 0 ? (
-            <RefreshControl
-              refreshing={isLoading}
-              onRefresh={refreshNotifications}
-              colors={[COLORS.secondaryFontColor]}
-              tintColor={COLORS.secondaryFontColor}
-            />
-          ) : undefined
-        }
-      >
-        {showLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.secondaryFontColor} />
-            <Text style={[styles.loadingText, { fontSize: s14 }]}>Loading notifications...</Text>
-          </View>
-        ) : error && displayNotifications.length === 0 ? (
-          <View style={styles.errorContainer}>
-            <Text style={[styles.errorText, { fontSize: s14 }]}>
-              {error.includes('Failed to fetch') ?
-                `Unable to load notifications for ${consumerUid}` :
-                error
-              }
-            </Text>
-            <Pressable style={styles.retryButton} onPress={refreshNotifications}>
-              <Text style={[styles.retryButtonText, { fontSize: s14 }]}>Retry</Text>
-            </Pressable>
-          </View>
-        ) : displayNotifications.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { fontSize: s14 }]}>No notifications available</Text>
-            <Text style={[styles.emptySubText, { fontSize: s12 }]}>for {consumerUid}</Text>
-          </View>
-        ) : (
-          <>
-            {error ? (
-              <View style={styles.refreshErrorBanner}>
-                <Text style={[styles.refreshErrorText, { fontSize: s12 }]}>{error}</Text>
-                <Text style={[styles.refreshErrorHint, { fontSize: s12 }]}>Pull down to try again.</Text>
-              </View>
-            ) : null}
-            {displayNotifications.map((notification) => (
-              <NotificationCard
-                key={notification.id}
-                title={notification.title}
-                message={notification.message}
-                sentAt={notification.meta?.sentAt || notification.created_at}
-                icon={getNotificationIcon(notification.type)}
-                variant={getNotificationVariant(notification.type)}
-                isRead={notification.is_read}
-                onPress={() => handleNotificationPress(notification)}
-              />
-            ))}
-          </>
-        )}
-      </ScrollView>
+      />
     </View>
   );
 };
@@ -287,9 +315,16 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   notificationsContainer: {
+    flex: 1,
     paddingVertical: 20,
-    paddingHorizontal:25,
+    paddingHorizontal: 25,
     paddingTop: 10,
+  },
+  listEmptyContent: {
+    flexGrow: 1,
+  },
+  itemSeparator: {
+    height: 12,
   },
   loadingContainer: {
     flex: 1,

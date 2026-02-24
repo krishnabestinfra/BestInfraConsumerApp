@@ -84,3 +84,59 @@ Screens / Context
 | `monitoring.ts` | Sentry init (production), captureError, beforeSend sanitization. |
 | `performanceMonitor.js` | Cold start and slow-API logging; optional production reporting. |
 | `schemas/apiSchemaMap.js` | Maps endpoint URL patterns to Zod schemas for response validation. |
+| `utils/logger.js` | Structured logger (debug/info/warn/error); apiLogger used in apiClient; no sensitive payloads. |
+| `config/featureFlags.js` | Central config for which screens/features are enabled (plan/A-B). |
+| `constants/designTokens.js` | Spacing, radius, list defaults for consistent UI. |
+| `components/global/AppFlatList.js` | Shared FlatList with default virtualization props. |
+| `components/global/withScreenErrorBoundary.js` | HOC to wrap screens in ErrorBoundary for screen-level isolation. |
+| `screens/invoices/useInvoiceFilter.js` | Hook for invoice filter state and modal; keeps Invoices screen lean. |
+
+---
+
+## 7. Performance & scalability
+
+- **First paint:** App does not block on font loading; navigator and Splash show immediately (system fonts), then custom fonts apply when loaded.
+- **List screens:** Invoices, Notifications, TicketDetails (timeline), ChatSupport (messages), and Reports (recent list) use `FlatList` (or `AppFlatList`) with `keyExtractor`, `initialNumToRender`, `maxToRenderPerBatch`, `windowSize`, and `removeClippedSubviews` for virtualized scrolling. List item components (e.g. NotificationCard) are wrapped in `React.memo` where appropriate.
+- **Cold start:** Measured via `reportColdStart()` after fonts; slow APIs (>1500ms) reported via `reportApiLatency()`.
+- **Tests:** `npm test` runs Jest. Suites: `performanceMonitor.test.js`, `apiClient.test.js` (cache, pending reuse, 404/403), `ErrorBoundary.test.js` (getDerivedStateFromError, captureError).
+
+---
+
+## 8. Logging & feature flags
+
+- **Logger:** `utils/logger.js` exposes `apiLogger`; apiClient uses it instead of `console.log` in the request path. Levels: debug, info, warn, error; in production only warn/error by default so prod logs stay useful without leaking data.
+- **Feature flags:** `config/featureFlags.js` defines `featureFlags` and `isFeatureEnabled(key)` for conditional screens/features. Use for plan-based or A/B rollout.
+
+---
+
+## 9. How to add a new list screen
+
+- Use `FlatList` or `AppFlatList` with a stable `keyExtractor`, `ListEmptyComponent` for loading/error/empty, and optional `ListHeaderComponent`. Pass `onRefresh` and `RefreshControl` when pull-to-refresh is needed.
+- Memoize the `renderItem` component (e.g. with `React.memo`) and use `useCallback` for handlers so list identity stays stable.
+- Prefer `designTokens.listDefaults` or `AppFlatList` for consistent `initialNumToRender`, `windowSize`, etc.
+- For **fixed-height list items**, pass `getItemLayout` so FlatList can size scroll without measuring every item (faster scroll).
+
+---
+
+## 10. Token lifecycle & SecureStore
+
+- **Access token:** Short-lived; stored via `secureStorage` (SecureStore when available, else AsyncStorage). authService stores/reads; apiClient uses via authService.getValidAccessToken().
+- **Refresh token:** Long-lived; stored in SecureStore when available. Used only by tokenService.refreshAccessToken() on 401.
+- **Migration:** On first read of a sensitive key, secureStorage migrates from AsyncStorage to SecureStore and removes from AsyncStorage. No duplicate storage.
+- **Logout / session expired:** tokenService.clearTokens() removes both; triggerSessionExpired() notifies app to redirect to login. No reuse of expired token.
+
+---
+
+## 11. Runbook (production)
+
+- **Sentry:** Check project dashboard for errors; filter by release. beforeSend redacts headers/body/user; no tokens in events.
+- **Health:** Use apiClient.healthCheck() or health endpoint for connectivity. No health check on app startup by default.
+- **Session / outage:** If users report "session expired" or login failures, check auth/refresh endpoint and tenant subdomain. Clear tokens and re-login is the user-side fix.
+
+---
+
+## 12. Dashboards & screens
+
+- **Current:** PostPaidDashboard (main), LsDataTable, and shared components (UltraFastScreen, OptimizedScreen) exist. Feature flags (`config/featureFlags.js`) allow toggling; navigation still points to PostPaidDashboard as primary.
+- **Intended:** Prefer one config-driven or role-based dashboard long-term; legacy variants can be deprecated or hidden via feature flags when consolidation is done.
+- **Screen-level ErrorBoundary:** Key screens (Invoices, Notifications, PostPaidDashboard, Transactions, Tickets, TicketDetails, ChatSupport, Reports) are wrapped with `withScreenErrorBoundary` so one broken screen does not crash the whole app.

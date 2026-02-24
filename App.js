@@ -44,6 +44,7 @@ import TermsOfServicesScreen from "./src/screens/account/TermsOfServicesScreen";
 import PrivacyPolicyScreen from "./src/screens/account/PrivacyPolicyScreen";
 import Toastify from 'react-native-toast-message';
 import ErrorBoundary from "./src/components/global/ErrorBoundary";
+import { withScreenErrorBoundary } from "./src/components/global/withScreenErrorBoundary";
 import { initializeMonitoring } from "./src/config/monitoring";
 import { reportColdStart } from "./src/utils/performanceMonitor";
 
@@ -193,15 +194,7 @@ export default function App() {
     return () => backHandler.remove();
   }, []);
 
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.container}>
-        <Logo variant="white" size="large" />
-        <ActivityIndicator size="large" color={COLORS.secondaryFontColor} style={styles.loader} />
-      </View>
-    );
-  }
-
+  // Don't block first paint on fonts: show app immediately (system fonts), then re-render when fonts load for smoother UX.
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -232,7 +225,7 @@ export default function App() {
           />
           <Stack.Screen
             name="Notifications"
-            component={Notifications}
+            component={withScreenErrorBoundary(Notifications)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
@@ -257,12 +250,12 @@ export default function App() {
           />
           <Stack.Screen
             name="Transactions"
-            component={Transactions}
+            component={withScreenErrorBoundary(Transactions)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
             name="Tickets"
-            component={Tickets}
+            component={withScreenErrorBoundary(Tickets)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
@@ -292,17 +285,17 @@ export default function App() {
           />
           <Stack.Screen
             name="TicketDetails"
-            component={TicketDetails}
+            component={withScreenErrorBoundary(TicketDetails)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
             name="ChatSupport"
-            component={ChatSupport}
+            component={withScreenErrorBoundary(ChatSupport)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
             name="PostPaidDashboard"
-            component={PostPaidDashboard}
+            component={withScreenErrorBoundary(PostPaidDashboard)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
@@ -322,12 +315,12 @@ export default function App() {
           />
           <Stack.Screen
             name="Invoices"
-            component={Invoices}
+            component={withScreenErrorBoundary(Invoices)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
             name="Reports"
-            component={Reports}
+            component={withScreenErrorBoundary(Reports)}
             options={{ headerShown: false }}
           />
           <Stack.Screen

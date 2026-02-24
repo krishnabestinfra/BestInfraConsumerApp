@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated, Modal } from "react-native";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { StyleSheet, Text, View, ScrollView, FlatList, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated, Modal } from "react-native";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
@@ -19,26 +19,19 @@ import { apiClient } from "../../services/apiClient";
 import { isDemoUser, getDemoConsumerCore, DEMO_INVOICES } from "../../constants/demoData";
 import { formatFrontendDate } from "../../utils/dateUtils";
 import { getInvoiceDateValue } from "../../utils/billingUtils";
-import Menu from "../../../assets/icons/bars.svg";
-import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
-import Notification from "../../../assets/icons/notification.svg";
-import NotificationWhite from "../../../assets/icons/NotificationWhite.svg";
 import EyeIcon from "../../../assets/icons/eyeFill.svg";
-import Logo from "../../components/global/Logo";
-import AnimatedRings from "../../components/global/AnimatedRings";
 import { StatusBar } from "expo-status-bar";
 import FilterIcon from "../../../assets/icons/filter.svg";
 import NoInvoiceIcon from "../../../assets/icons/NoInvoice.svg";
+import {
+  INVOICE_LIST_SEPARATOR_HEIGHT,
+  SHIMMER_LIGHT,
+  SHIMMER_DARK,
+} from "./invoiceConstants";
+import { useInvoiceFilter } from "./useInvoiceFilter";
 
-const INVOICE_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "paid", label: "Paid" },
-  { key: "unpaid", label: "Unpaid" },
-];
-
-// Shimmer colors for light/dark theme (aligned with loadingManager)
-const SHIMMER_LIGHT = { base: "#e0e0e0", gradient: ["#e0e0e0", "#f5f5f5", "#e0e0e0"] };
-const SHIMMER_DARK = { base: "#3a3a3c", gradient: ["#3a3a3c", "rgba(255,255,255,0.06)", "#3a3a3c"] };
+/** Stable separator for FlatList so the list does not re-create it every render. */
+const InvoiceListSeparator = () => <View style={{ height: INVOICE_LIST_SEPARATOR_HEIGHT }} />;
 
 // Shimmer effect component for skeleton loading (theme-aware via baseColor/gradientColors)
 const Shimmer = ({ style, baseColor, gradientColors }) => {
@@ -426,9 +419,8 @@ const Invoices = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [consumerData, setConsumerData] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-  const [pendingStatusFilter, setPendingStatusFilter] = useState("all");
+  const filter = useInvoiceFilter();
+  const { statusFilter, pendingStatusFilter, setPendingStatusFilter, isFilterModalVisible, applyFilter, openFilterModal, closeFilterModal, filterOptions: INVOICE_FILTERS } = filter;
   const [pdfViewerBase64, setPdfViewerBase64] = useState(null);
   const [pdfViewerBillNumber, setPdfViewerBillNumber] = useState("");
 
@@ -615,10 +607,7 @@ const Invoices = ({ navigation }) => {
     }
   }, [consumerData, fetchInvoiceData]);
 
-  const handleFilterPress = () => {
-    setPendingStatusFilter(statusFilter);
-    setIsFilterModalVisible(true);
-  };
+  const handleFilterPress = openFilterModal;
 
   const renderInvoiceCard = (invoiceCard) => {
     const isPaid = invoiceCard.isPaid;
@@ -717,17 +706,94 @@ const Invoices = ({ navigation }) => {
     );
   };
 
+  const listHeader = (
+    <>
+      <DashboardHeader
+        navigation={navigation}
+        variant="invoices"
+        showBalance={false}
+        showProfileSection={false}
+      />
+      <View style={styles.scrollBody}>
+        <View style={styles.pageHeader}>
+          <Text style={[
+            styles.pageTitle,
+            isDark && { color: themeColors.textPrimary ?? "#FFFFFF" },
+          ]}>
+            My Invoices
+          </Text>
+          <Pressable style={styles.filterButton} onPress={handleFilterPress}>
+            <FilterIcon
+              width={24}
+              height={24}
+              fill={isDark ? "#FFFFFF" : "#151515"}
+            />
+          </Pressable>
+        </View>
+      </View>
+    </>
+  );
+
+  const emptyComponent = (
+    <View style={[
+      styles.emptyContainer,
+      isDark && { backgroundColor: "#1C1E26" },
+    ]}>
+      <View style={[
+        styles.emptyIconCircle,
+        isDark && { backgroundColor: "#1A1F2E" },
+      ]}>
+        <NoInvoiceIcon
+          width={28}
+          height={28}
+          fill={isDark ? themeColors?.textSecondary ?? "#9CA3AF" : "#BABECC"}
+        />
+      </View>
+      <Text style={[
+        styles.emptyTitle,
+        isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
+      ]}>
+        No Invoices Yet
+      </Text>
+      <Text style={[
+        styles.emptySubtitle,
+        isDark && { color: themeColors?.textSecondary ?? "#9CA3AF" },
+      ]}>
+        Your invoices will appear here once they are generated. Check back soon!
+      </Text>
+    </View>
+  );
+
+  const skeletonListEmpty = (
+    <View style={styles.skeletonCardsWrap}>
+      {[1, 2, 3].map((index) => (
+        <SkeletonInvoiceCard key={index} isDark={isDark} themeColors={themeColors} />
+      ))}
+    </View>
+  );
+
+  const listEmptyComponent = isLoading ? skeletonListEmpty : emptyComponent;
+
   return (
     <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <ScrollView
-        style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
+      <FlatList
+        data={isLoading ? [] : filteredInvoiceCards}
+        keyExtractor={(item, index) => item.id || item.invoiceId || `inv-${index}`}
+        renderItem={({ item }) => renderInvoiceCard(item)}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmptyComponent}
+        ItemSeparatorComponent={InvoiceListSeparator}
         contentContainerStyle={[
-          { paddingBottom: 130 },
-          !isLoading && filteredInvoiceCards.length === 0 && { flexGrow: 1 },
+          (isLoading || filteredInvoiceCards.length === 0) && { flexGrow: 1 },
         ]}
+        style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -736,98 +802,7 @@ const Invoices = ({ navigation }) => {
             tintColor={COLORS.secondaryColor}
           />
         }
-      >
-        {/* Header (inside scroll so it scrolls with content) */}
-        <View style={styles.header}>
-          <Pressable
-            style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-            onPress={() => navigation.navigate("SideMenu")}
-          >
-            {isDark ? (
-              <MenuWhite width={18} height={18} />
-            ) : (
-              <Menu width={18} height={18} fill="#202d59" />
-            )}
-          </Pressable>
-
-          <View style={styles.logoWrapper}>
-            <AnimatedRings />
-            <Logo variant={isDark ? "white" : "blue"} size="medium" />
-          </View>
-
-          <Pressable
-            style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-            onPress={() => navigation.navigate("Notifications")}
-          >
-            {isDark ? (
-              <NotificationWhite width={18} height={18} />
-            ) : (
-              <Notification width={18} height={18} fill="#202d59" />
-            )}
-          </Pressable>
-        </View>
-
-        <View style={styles.scrollBody}>
-          {/* Page Title with Filter */}
-          <View style={styles.pageHeader}>
-            <Text style={[
-              styles.pageTitle,
-              isDark && { color: themeColors.textPrimary ?? "#FFFFFF" },
-            ]}>
-              My Invoices
-            </Text>
-            <Pressable style={styles.filterButton} onPress={handleFilterPress}>
-              <FilterIcon
-                width={24}
-                height={24}
-                fill={isDark ? "#FFFFFF" : "#151515"}
-              />
-            </Pressable>
-          </View>
-
-          {/* Invoice Cards */}
-          {isLoading ? (
-            <View style={styles.cardsContainer}>
-              {[1, 2, 3].map((index) => (
-                <SkeletonInvoiceCard key={index} isDark={isDark} themeColors={themeColors} />
-              ))}
-            </View>
-          ) : filteredInvoiceCards.length > 0 ? (
-            <View style={styles.cardsContainer}>
-              {filteredInvoiceCards.map(renderInvoiceCard)}
-            </View>
-          ) : (
-            <View style={[
-              styles.emptyContainer,
-              { flex: 1 },
-              isDark && { backgroundColor: "#1C1E26" },
-            ]}>
-              <View style={[
-                styles.emptyIconCircle,
-                isDark && { backgroundColor: "#1A1F2E" },
-              ]}>
-                <NoInvoiceIcon
-                  width={28}
-                  height={28}
-                  fill={isDark ? themeColors?.textSecondary ?? "#9CA3AF" : "#BABECC"}
-                />
-              </View>
-              <Text style={[
-                styles.emptyTitle,
-                isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
-              ]}>
-                No Invoices Yet
-              </Text>
-              <Text style={[
-                styles.emptySubtitle,
-                isDark && { color: themeColors?.textSecondary ?? "#9CA3AF" },
-              ]}>
-                Your invoices will appear here once they are generated. Check back soon!
-              </Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+      />
 
       {/* PDF Generation Overlay */}
       {isGeneratingPDF && (
@@ -882,7 +857,7 @@ const Invoices = ({ navigation }) => {
         <View style={styles.filterOverlay}>
           <Pressable
             style={styles.filterBackdrop}
-            onPress={() => setIsFilterModalVisible(false)}
+            onPress={closeFilterModal}
           />
           <View style={styles.filterCard}>
             <Text style={styles.filterTitle}>Filter invoices</Text>
@@ -915,10 +890,7 @@ const Invoices = ({ navigation }) => {
 
             <TouchableOpacity
               style={styles.filterApplyButton}
-              onPress={() => {
-                setStatusFilter(pendingStatusFilter);
-                setIsFilterModalVisible(false);
-              }}
+              onPress={applyFilter}
               activeOpacity={0.85}
             >
               <Text style={styles.filterApplyText}>Apply Filter</Text>
@@ -940,37 +912,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#EEF8F0",
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 75,
-    paddingBottom: 70,
-    paddingHorizontal: 16,
-  },
-  headerButton: {
-    backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
-    borderRadius: 60,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  logoWrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
   scrollContainer: {
     flex: 1,
   },
   scrollBody: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 26,
   },
   pageHeader: {
     flexDirection: "row",
@@ -1025,6 +971,7 @@ const styles = StyleSheet.create({
   filterBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
+    MarginHorizontal: 16,
   },
   filterCard: {
     width: "80%",
@@ -1125,8 +1072,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     lineHeight: 20,
   },
-  cardsContainer: {
+  skeletonCardsWrap: {
     gap: 16,
+    marginHorizontal: 3,
   },
   invoiceCard: {
     backgroundColor: "#FFFFFF",
@@ -1137,6 +1085,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+    marginHorizontal: 16,
   },
   cardHeader: {
     flexDirection: "row",

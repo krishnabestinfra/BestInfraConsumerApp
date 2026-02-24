@@ -31,7 +31,29 @@ import {
 } from "../../services/paymentService";
 import { getConsumerDueDate } from "../../utils/billingUtils";
 import { parseDueDate } from "../../utils/dateUtils";
+import { Shimmer, SHIMMER_LIGHT, SHIMMER_DARK } from "../../utils/loadingManager";
 
+// Fallback if loadingManager exports are missing
+const SHIMMER_LIGHT_FALLBACK = { base: "#e0e0e0", gradient: ["#e0e0e0", "#f5f5f5", "#e0e0e0"] };
+const SHIMMER_DARK_FALLBACK = { base: "#3a3a3c", gradient: ["#3a3a3c", "rgba(255,255,255,0.06)", "#3a3a3c"] };
+
+// Skeleton Recharge Card (Outstanding Amount placeholder – same pattern as Tickets/Invoices/Usage)
+const SkeletonRechargeCard = ({ isDark, styles }) => {
+  const shimmer = (isDark ? (SHIMMER_DARK ?? SHIMMER_DARK_FALLBACK) : (SHIMMER_LIGHT ?? SHIMMER_LIGHT_FALLBACK));
+  const cardBg = isDark ? "#1A1F2E" : COLORS.secondaryFontColor;
+  const inputBg = isDark ? "#1F2E34" : "#F8F8F8";
+  return (
+    <View style={[styles.amountCard1, { backgroundColor: cardBg }]}>
+      <View style={styles.amountCardHeader}>
+        <Shimmer style={{ width: 140, height: 14, borderRadius: 4 }} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+        <Shimmer style={[styles.statusDot, { backgroundColor: shimmer.base }]} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+      </View>
+      <View style={[styles.amountInputContainer, { backgroundColor: inputBg, borderRadius: 6 }]}>
+        <Shimmer style={{ flex: 1, height: 44, borderRadius: 6 }} baseColor={shimmer.base} gradientColors={shimmer.gradient} />
+      </View>
+    </View>
+  );
+};
 
 const IS_TESTING_MODE = true; // Change to false when ready for production
 const TEST_PAYMENT_AMOUNT = 100; // ₹1 in paise (100 paise = 1 rupee)
@@ -397,42 +419,48 @@ const PostPaidRechargePayments = ({ navigation }) => {
 
         <View style={[styles.contentOnTop, isDark && { backgroundColor: themeColors.screen }]}>
         <View style={styles.contentSection}>
-          {/* Input Boxes Section */}
+          {/* Input Boxes Section – skeleton when loading (same shimmer as Tickets/Invoices/Usage) */}
           <View style={styles.inputSection}>
-            {/* Outstanding Amount */}
-            <View style={[
-              styles.amountCard1,
-              selectedOption === "option1" && styles.amountCardSelected1,
-              isDark && { backgroundColor: '#1A1F2E' }
-            ]}>
-              <View style={styles.amountCardHeader}>
-                <Text style={[styles.amountCardTitle, isDark && { color: '#FFFFFF' }]}>Outstanding Amount</Text>
+            {isLoading ? (
+              <SkeletonRechargeCard isDark={isDark} styles={styles} />
+            ) : (
+              <>
+                {/* Outstanding Amount */}
                 <View style={[
-                  styles.statusDot,
-                  selectedOption === "option1" && styles.statusDotSelected
-                ]} />
-              </View>
-              <View style={styles.amountInputContainer}>
-                <Input
-                  placeholder={isLoading ? "Loading..." : outstandingAmount}
-                  value={selectedOption === "option1" ? (isLoading ? "Loading..." : outstandingAmount) : ""}
-                  editable={false}
-                  style={styles.amountInput}
-                  containerStyle={[
-                    styles.amountInput,
-                    isDark && {
-                      backgroundColor: "#1F2E34",
-                    },
-                  ]}
-                  onChangeText={handleCustomAmountChange}
-                  inputStyle={[
-                    styles.amountInputText,
-                    isOverdue && styles.amountInputOverdue,
-                    isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
-                  ]}
-                />
-              </View>
-            </View>
+                  styles.amountCard1,
+                  selectedOption === "option1" && styles.amountCardSelected1,
+                  isDark && { backgroundColor: '#1A1F2E' }
+                ]}>
+                  <View style={styles.amountCardHeader}>
+                    <Text style={[styles.amountCardTitle, isDark && { color: '#FFFFFF' }]}>Outstanding Amount</Text>
+                    <View style={[
+                      styles.statusDot,
+                      selectedOption === "option1" && styles.statusDotSelected
+                    ]} />
+                  </View>
+                  <View style={styles.amountInputContainer}>
+                    <Input
+                      placeholder={outstandingAmount}
+                      value={selectedOption === "option1" ? outstandingAmount : ""}
+                      editable={false}
+                      style={styles.amountInput}
+                      containerStyle={[
+                        styles.amountInput,
+                        isDark && {
+                          backgroundColor: "#1F2E34",
+                        },
+                      ]}
+                      onChangeText={handleCustomAmountChange}
+                      inputStyle={[
+                        styles.amountInputText,
+                        isOverdue && styles.amountInputOverdue,
+                        isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
+                      ]}
+                    />
+                  </View>
+                </View>
+              </>
+            )}
 
             {/* Overdue Amount */}
              {/* <View style={[

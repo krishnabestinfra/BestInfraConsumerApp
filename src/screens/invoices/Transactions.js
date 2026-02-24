@@ -16,6 +16,7 @@ import { getUser } from "../../utils/storage";
 import { API, API_ENDPOINTS } from "../../constants/constants";
 import { apiClient } from "../../services/apiClient";
 import { formatFrontendDate } from "../../utils/dateUtils";
+import { info, warn, error as logError } from "../../utils/logger";
 
 
 const Transactions = ({ navigation }) => {
@@ -40,11 +41,11 @@ const Transactions = ({ navigation }) => {
 
       try {
         const paymentHistoryUrl = API_ENDPOINTS.payment.history(user.identifier);
-        console.log('🔄 Fetching payment history from:', paymentHistoryUrl);
+        info('Transactions', 'Fetching payment history');
         const paymentResult = await apiClient.request(paymentHistoryUrl, { method: 'GET' });
         if (paymentResult.success) {
           const paymentData = paymentResult.data ?? paymentResult.rawBody ?? paymentResult;
-          console.log('📦 Payment history response:', paymentData);
+          if (__DEV__) info('Transactions', 'Payment history received');
           if (paymentData?.success && paymentData?.data) {
             if (Array.isArray(paymentData.data)) {
               paymentHistory = paymentData.data;
@@ -60,7 +61,7 @@ const Transactions = ({ navigation }) => {
           }
         }
       } catch (paymentError) {
-        console.warn('⚠️ Payment history endpoint failed, trying consumer endpoint:', paymentError);
+        warn('Transactions', 'Payment history endpoint failed, trying consumer endpoint', paymentError?.message);
       }
 
       if (paymentHistory.length === 0) {
@@ -68,7 +69,7 @@ const Transactions = ({ navigation }) => {
           const consumerResult = await apiClient.request(API_ENDPOINTS.consumers.get(user.identifier), { method: 'GET' });
           if (consumerResult.success) {
             const consumerData = consumerResult.data ?? consumerResult.rawBody ?? consumerResult;
-            console.log('📦 Consumer data response:', consumerData);
+            if (__DEV__) info('Transactions', 'Consumer data received');
             if (consumerData?.success && consumerData?.data) {
               if (Array.isArray(consumerData.data.paymentHistory)) {
                 paymentHistory = consumerData.data.paymentHistory;
@@ -82,7 +83,7 @@ const Transactions = ({ navigation }) => {
             }
           }
         } catch (consumerError) {
-          console.error('❌ Error fetching from consumer endpoint:', consumerError);
+          logError('Transactions', 'Error fetching from consumer endpoint', consumerError?.message);
         }
       }
       

@@ -24,6 +24,7 @@ import * as tokenService from './tokenService';
 import { triggerSessionExpired } from '../utils/sessionExpiredHandler';
 import { getSchemaForEndpoint } from '../schemas/apiSchemaMap';
 import { reportApiLatency } from '../utils/performanceMonitor';
+import { apiLogger } from '../utils/logger';
 
 const REQUIRES_REAUTH_RESPONSE = {
   success: false,
@@ -54,14 +55,14 @@ class ApiClient {
     if (!isMutation && this.requestCache.has(cacheKey)) {
       const cached = this.requestCache.get(cacheKey);
       if (Date.now() - cached.timestamp < 30000) { // 30 second cache
-        console.log(`⚡ API: Cache hit for ${endpoint}`);
+        apiLogger.info('Cache hit for', endpoint);
         return cached.data;
       }
     }
 
     // Return pending request if already in progress (GET only - mutations get a fresh request each time)
     if (!isMutation && this.pendingRequests.has(cacheKey)) {
-      console.log(`⚡ API: Reusing pending request for ${endpoint}`);
+      apiLogger.info('Reusing pending request for', endpoint);
       return this.pendingRequests.get(cacheKey);
     }
 
@@ -106,11 +107,9 @@ class ApiClient {
       const user = await getUser();
 
       if (showLogs) {
-        console.log(`🔄 API Request: ${method} ${endpoint}`);
-        console.log(`   Consumer: ${user?.identifier || 'unknown'}`);
-        console.log(`   Token present: ${!!token}`);
+        apiLogger.debug(method, endpoint, 'Consumer:', user?.identifier ? '[set]' : 'unknown', 'Token:', !!token);
         if (method === 'POST' && body) {
-          console.log(`   Request body:`, JSON.stringify(body, null, 2));
+          apiLogger.debug('Request body keys:', body ? Object.keys(body) : []);
         }
       }
 
@@ -138,8 +137,7 @@ class ApiClient {
       clearTimeout(timeoutId);
 
       if (showLogs) {
-        console.log(`   Response status: ${response.status}`);
-        console.log(`   Response headers:`, Object.fromEntries(response.headers.entries()));
+        apiLogger.debug('Response status', response.status);
       }
 
       // Handle different response statuses
@@ -175,7 +173,7 @@ class ApiClient {
       }
 
       if (showLogs) {
-        console.log('✅ API Response received:', parsed);
+        apiLogger.debug('Response received, success:', !!parsed?.data);
       }
 
       const responsePayload = {
@@ -194,11 +192,11 @@ class ApiClient {
       return responsePayload;
 
     } catch (error) {
-      console.error(`❌ API Request failed: ${method} ${endpoint}`, error);
+      apiLogger.error('Request failed', method, endpoint, error?.message || error);
       
       // Handle different error types
       if (error.name === 'AbortError') {
-        console.error(`⏱️ Request timeout after ${timeout}ms: ${endpoint}`);
+        apiLogger.warn('Request timeout', timeout, 'ms', endpoint);
         return {
           success: false,
           error: `Request timeout after ${Math.round(timeout / 1000)}s - the server may be slow. Please try again.`,
@@ -232,7 +230,7 @@ class ApiClient {
     try {
       const errorResponse = await response.json();
       errorDetails = errorResponse.message || errorResponse.error || '';
-      if (__DEV__) console.log('API Error Response', response.status, errorDetails);
+      if (__DEV__) apiLogger.debug('Error response', response.status, errorDetails);
     } catch (e) {}
 
     const errorMessage = `HTTP ${response.status}: ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`;
@@ -342,7 +340,7 @@ class ApiClient {
 
     if (response.status >= 500 && retries > 0) {
       // Server error - retry
-      console.log(`🔄 Retrying request (${retries} attempts left)...`);
+      apiLogger.info('Retrying request, attempts left:', retries);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
       return this.request(endpoint, { ...originalOptions, retries: retries - 1 });
     }
@@ -420,8 +418,7 @@ class ApiClient {
   async createTicket(payload) {
     const endpoint = API_ENDPOINTS.tickets.create();
     if (__DEV__) {
-      console.log('🎫 Create ticket API:', endpoint);
-      console.log('🎫 Create ticket payload:', JSON.stringify(payload, null, 2));
+      apiLogger.debug('Create ticket', endpoint, 'payload keys:', payload ? Object.keys(payload) : []);
     }
     return this.request(endpoint, {
       method: 'POST',
