@@ -60,13 +60,11 @@ const TimelineItem = React.memo(({ item, isLast, isDark, themeColors }) => (
 const TicketDetails = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
 
-  // Get ticket data from navigation params (support both raw API shape { data } and unwrapped ticket)
   const params = route?.params || {};
   const rawTicketData = params.ticketData;
   const paramsTicket = rawTicketData?.data ?? rawTicketData;
   const { ticketId, category, status } = params;
 
-  // Fetch full ticket from API when we have an id (GET /gmr/api/tickets/:id)
   const [fetchedTicket, setFetchedTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const apiId = paramsTicket?.id ?? ticketId;
@@ -95,47 +93,86 @@ const TicketDetails = ({ navigation, route }) => {
     return () => { cancelled = true; };
   }, [apiId]);
 
-  // Use API data when available, else fall back to params
   const ticketData = fetchedTicket ?? paramsTicket;
 
-  // Normalized priority used across header and details
   const priority = (ticketData?.priority || category || "High") ?? "High";
 
+  const assignedToDisplay = ticketData?.assignedTo
+    ? [ticketData.assignedTo.firstName, ticketData.assignedTo.lastName].filter(Boolean).join(" ") || ticketData.assignedTo.username
+    : "Unassigned";
 
-  const timelineData = ticketData?.timeline || [
-    {
-      id: 1,
-      title: "Ticket Created",
-      description: "Your ticket has been registered",
-      date: "24 Jan, 09:00 am",
-      completed: true,
-      resolved: false,
-    },
-    {
-      id: 2,
-      title: "Assigned to Technician",
-      description: "Suresh M. will handle your request",
-      date: "24 Jan, 11:30 am",
-      completed: true,
-      resolved: false,
-    },
-    {
-      id: 3,
-      title: "Under Investigation",
-      description: "Technician inspecting the area",
-      date: "25 Jan, 02:00 pm",
-      completed: true,
-      resolved: false,
-    },
-    {
-      id: 4,
-      title: "Issue Resolved",
-      description: "Your ticket has been Resolved",
-      date: "24 Jan 03:00 pm",
-      completed: true,
-      resolved: true,
-    },
-  ];
+
+  const timelineData = ticketData
+    ? [
+        {
+          id: 1,
+          title: "Ticket Created",
+          description: "Your ticket has been registered",
+          date: formatFrontendDateTime(ticketData.createdAt) || "—",
+          completed: true,
+          resolved: true,
+        },
+        {
+          id: 2,
+          title: "Assigned to Technician",
+          description: ticketData.assignedTo
+            ? [ticketData.assignedTo.firstName, ticketData.assignedTo.lastName].filter(Boolean).join(" ") || ticketData.assignedTo.username
+            : "—",
+          date: formatFrontendDateTime(ticketData.assignedAt) || "—",
+          completed: true,
+          resolved: false,
+        },
+        {
+          id: 3,
+          title: "Under Investigation",
+          description: "Technician inspecting the area",
+          date: "—",
+          completed: true,
+          resolved: false,
+        },
+        {
+          id: 4,
+          title: "Issue Resolved",
+          description: "Your ticket has been Resolved",
+          date: formatFrontendDateTime(ticketData.resolvedAt) || "—",
+          completed: true,
+          resolved: !!ticketData.resolvedAt,
+        },
+      ]
+    : [
+        {
+          id: 1,
+          title: "Ticket Created",
+          description: "Your ticket has been registered",
+          date: "24 Jan, 09:00 am",
+          completed: true,
+          resolved: true,
+        },
+        {
+          id: 2,
+          title: "Assigned to Technician",
+          description: "Suresh M. will handle your request",
+          date: "24 Jan, 11:30 am",
+          completed: true,
+          resolved: false,
+        },
+        {
+          id: 3,
+          title: "Under Investigation",
+          description: "Technician inspecting the area",
+          date: "25 Jan, 02:00 pm",
+          completed: true,
+          resolved: false,
+        },
+        {
+          id: 4,
+          title: "Issue Resolved",
+          description: "Your ticket has been Resolved",
+          date: "24 Jan 03:00 pm",
+          completed: true,
+          resolved: true,
+        },
+      ];
 
   const getPriorityStyle = (priority) => {
     const p = priority?.toLowerCase();
@@ -170,7 +207,6 @@ const TicketDetails = ({ navigation, route }) => {
           </View>
         ) : (
         <View style={styles.scrollBody}>
-          {/* Ticket Details Section */}
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, isDark && { color: themeColors.textPrimary }]}>
               Ticket Details
@@ -229,7 +265,7 @@ const TicketDetails = ({ navigation, route }) => {
                   Assigned to
                 </Text>
                 <Text style={[styles.detailValue, isDark && { color: themeColors.textPrimary }]}>
-                  {ticketData?.assignedTo || "BI-Tech Team"}
+                  {assignedToDisplay}
                 </Text>
               </View>
             </View>
@@ -396,10 +432,8 @@ const styles = StyleSheet.create({
   },
   timelineLine: {
     width: 3,
-    // flex: 1,
     height: 45,
     backgroundColor: "#E8EBF2CC",
-    // marginTop: 2,
   },
   timelineLineCompleted: {
     backgroundColor: "#E8EBF2CC",

@@ -310,8 +310,8 @@ const TICKET_TYPE_MAP = {
   'Billing Issue': { type: 'BILLING_ISSUE', category: 'BILLING_SUPPORT' },
   'Connection': { type: 'CONNECTION_ISSUE', category: 'CONNECTION_SUPPORT' },
   'Connection Issue': { type: 'CONNECTION_ISSUE', category: 'CONNECTION_SUPPORT' },
-  'Meter': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
-  'Meter Issue': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
+  'Meter': { type: 'METER_ISSUE', category: 'METER_SUPPORT' },
+  'Meter Issue': { type: 'METER_ISSUE', category: 'METER_SUPPORT' },
   'General Inquiry': { type: 'GENERAL_INQUIRY', category: 'OTHER' },
   'General': { type: 'GENERAL_INQUIRY', category: 'OTHER' },
 };
