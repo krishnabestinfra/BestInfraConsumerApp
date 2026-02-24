@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
@@ -19,12 +19,15 @@ import { formatFrontendDate } from "../../utils/dateUtils";
 import { info, warn, error as logError } from "../../utils/logger";
 
 
+const STALE_THRESHOLD = 120000; // 2 minutes
+
 const Transactions = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [tableData, setTableData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const lastFetchedAtRef = useRef(0);
 
   const fetchPaymentHistory = useCallback(async () => {
     try {
@@ -128,18 +131,16 @@ const Transactions = ({ navigation }) => {
       setTableData([]);
     } finally {
       setIsLoading(false);
+      lastFetchedAtRef.current = Date.now();
     }
   }, []);
 
-  // Fetch on mount
-  useEffect(() => {
-    fetchPaymentHistory();
-  }, [fetchPaymentHistory]);
-
-  // Refresh when screen is focused (e.g., after returning from payment)
+  // Only refetch on focus if data is stale (older than 2 minutes)
   useFocusEffect(
     useCallback(() => {
-      fetchPaymentHistory();
+      if (Date.now() - lastFetchedAtRef.current >= STALE_THRESHOLD) {
+        fetchPaymentHistory();
+      }
     }, [fetchPaymentHistory])
   );
   return (

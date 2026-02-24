@@ -20,6 +20,7 @@ import { setTenantSubdomain } from "../config/apiConfig";
 import { storeUser, extractConsumerInfo } from "../utils/storage";
 import { authService } from "../services/authService";
 import { apiClient } from "../services/apiClient";
+import { useConsumer } from "../context/ConsumerContext";
 import Logo from "../components/global/Logo";
 import Button from "../components/global/Button";
 import Input from "../components/global/Input";
@@ -60,6 +61,7 @@ function resolveTenantFromIdentifier(identifier) {
 
 const OTPLogin = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const { refreshConsumer } = useConsumer();
   const s24 = getScaledFontSize(24);
   const s14 = getScaledFontSize(14);
   const s12 = getScaledFontSize(12);
@@ -237,6 +239,7 @@ const OTPLogin = ({ navigation }) => {
           } catch (pushErr) {
             if (__DEV__) console.warn("[OTPLogin] Push register skip:", pushErr?.message);
           }
+          refreshConsumer({ force: true });
           navigation.reset({
             index: 0,
             routes: [{ name: "PostPaidDashboard" }],

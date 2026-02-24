@@ -7,53 +7,18 @@ import Input from "../../components/global/Input";
 import Button from "../../components/global/Button";
 import RechargeRadioButton from "../../components/global/RechargeRadioButton";
 import DashboardHeader from "../../components/global/DashboardHeader";
-import { fetchConsumerData, syncConsumerData } from "../../services/apiService";
-import { getUser } from "../../utils/storage";
-import { getCachedConsumerData } from "../../utils/cacheManager";
+import { useConsumer } from "../../context/ConsumerContext";
 
 
 const Payments = React.memo(({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
   const [selectedOption, setSelectedOption] = useState("option3");
   const [customAmount, setCustomAmount] = useState("");
-  const [consumerData, setConsumerData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { consumerData, isConsumerLoading: isLoading, refreshConsumer } = useConsumer();
 
-  // Fetch consumer data with caching
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const user = await getUser();
-        
-        if (user && user.identifier) {
-          // Try to get cached data first for instant display
-          const cachedResult = await getCachedConsumerData(user.identifier);
-          if (cachedResult.success) {
-            setConsumerData(cachedResult.data);
-            setIsLoading(false);
-          }
-          
-          // Fetch fresh data
-          const result = await fetchConsumerData(user.identifier);
-          if (result.success) {
-            setConsumerData(result.data);
-          }
-          
-          // Background sync
-          syncConsumerData(user.identifier).catch(error => {
-            console.error('Background sync failed:', error);
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching consumer data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+    refreshConsumer();
+  }, [refreshConsumer]);
 
   const rechargeOptions = useMemo(() => [
     {

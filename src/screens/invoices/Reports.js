@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Modal, Alert, ActivityIndicator, Share, FlatList } from "react-native";
 import React, { useState, useEffect } from "react";
+import { useIsFocused } from "@react-navigation/native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { COLORS } from "../../constants/colors";
@@ -25,6 +26,7 @@ import { isDemoUser, getDemoReportResponse, getDemoRecentReports } from "../../c
 
 const Reports = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
+  const isFocused = useIsFocused();
   const [filterType, setFilterType] = useState("Daily Consumption");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -325,7 +327,7 @@ const Reports = ({ navigation }) => {
         </Pressable>
 
         <View style={styles.logoWrapper}>
-          <AnimatedRings />
+          <AnimatedRings paused={!isFocused} />
           <Logo variant={isDark ? "white" : "blue"} size="medium" />
         </View>
 

@@ -19,6 +19,7 @@ import { logoutUser, getUser } from "../../utils/storage";
 import { apiClient } from "../../services/apiClient";
 import { API, API_ENDPOINTS } from "../../constants/constants";
 import { authService } from "../../services/authService";
+import { useConsumer } from "../../context/ConsumerContext";
 import CrossIcon from "../../../assets/icons/crossWhite.svg";
 import { getTenantSubdomain } from "../../config/apiConfig";
 import PostPaidDashboard from "../dashboard/PostPaidDashboard";
@@ -54,11 +55,13 @@ const SkeletonField = ({ width = "70%", height = 14, style }) => {
 
 const SideMenu = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const { clearConsumer } = useConsumer();
   const s14 = getScaledFontSize(14);
   const s11 = getScaledFontSize(11);
   const { activeItem, setActiveItem } = useContext(TabContext);
   const [profileData, setProfileData] = useState({ name: "", consumerId: "" });
   const [isUserLoading, setIsUserLoading] = useState(true);
+  const lastFetchedAtRef = useRef(0);
 
   // Determine current tenant (client) for branding (GMR vs NTPL)
   const tenantSubdomain = getTenantSubdomain ? getTenantSubdomain() : "gmr";
@@ -68,8 +71,10 @@ const SideMenu = ({ navigation }) => {
       : require("../../../assets/images/gmr.png");
 
   // Fetch profile data from same APIs as Profile (consumers + auth profile)
+  // Only refetch on focus if data is stale (older than 2 minutes)
   useFocusEffect(
     useCallback(() => {
+      if (Date.now() - lastFetchedAtRef.current < 120000) return;
       let isMounted = true;
       const fetchProfileData = async () => {
         try {
@@ -129,6 +134,7 @@ const SideMenu = ({ navigation }) => {
           }
         } finally {
           if (isMounted) setIsUserLoading(false);
+          lastFetchedAtRef.current = Date.now();
         }
       };
       fetchProfileData();
@@ -145,7 +151,8 @@ const SideMenu = ({ navigation }) => {
     try {
       console.log('🔄 User initiated logout...');
       // Call logout which handles server token revocation and local cleanup
-      await logoutUser(); // This calls authService.logout() which revokes tokens on server
+      await logoutUser();
+      clearConsumer();
       setActiveItem("Logout");
       
 

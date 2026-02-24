@@ -14,9 +14,9 @@ import EyeIcon from "../../../assets/icons/eyeFill.svg";
 import DashboardHeader from "../../components/global/DashboardHeader";
 import BottomNavigation from "../../components/global/BottomNavigation";
 import { LinearGradient } from "expo-linear-gradient";
-import { fetchConsumerData, syncConsumerData, fetchTicketStats, fetchTicketsTable, createTicket } from "../../services/apiService";
+import { fetchTicketStats, fetchTicketsTable, createTicket } from "../../services/apiService";
 import { getUser } from "../../utils/storage";
-import { getCachedConsumerData } from "../../utils/cacheManager";
+import { useConsumer } from "../../context/ConsumerContext";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SkeletonLoader } from '../../utils/loadingManager';
@@ -62,12 +62,16 @@ const SkeletonTicketBox = ({ isDark, styles }) => {
   );
 };
 import TicketSuccessModal from "../../components/global/TicketSuccessModal";
-import { isDemoUser, getDemoConsumerCore, DEMO_TICKET_STATS, DEMO_TICKETS } from "../../constants/demoData";
+import { isDemoUser, DEMO_TICKET_STATS, DEMO_TICKETS } from "../../constants/demoData";
+
+const STALE_THRESHOLD = 120000; // 2 minutes
 
 const Tickets = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
   const bottomSheetRef = useRef(null);
   const pendingSuccessModalRef = useRef(false);
+  const lastFetchedAtRef = useRef(0);
+  const consumerNumberRef = useRef(null);
   const snapPoints = ['100%']; // Nearly full screen
 
   const handleOpenBottomSheet = useCallback(() => {
@@ -86,8 +90,10 @@ const Tickets = ({ navigation }) => {
   }, []);
 
   // const [showModal, setShowModal] = useState(false);
-  const [consumerData, setConsumerData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { consumerData, isConsumerLoading: isLoading, refreshConsumer } = useConsumer();
+  consumerNumberRef.current = consumerData?.consumerNumber ?? null;
+  const consumerDataRef = useRef(consumerData);
+  consumerDataRef.current = consumerData;
   const [ticketStats, setTicketStats] = useState({
     total: 0,
     open: 0,
@@ -101,77 +107,60 @@ const Tickets = ({ navigation }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdTicket, setCreatedTicket] = useState(null);
 
-  const fetchData = useCallback(async (forceRefreshTickets = false) => {
+  const abortRef = useRef(null);
+
+  const fetchData = useCallback(async (forceRefreshTickets = false, signal) => {
     try {
-      setIsLoading(true);
+      const user = await getUser();
+      if (!user?.identifier || signal?.aborted) return;
+
+      if (isDemoUser(user.identifier)) {
+        setTicketStats(DEMO_TICKET_STATS);
+        setTableData(DEMO_TICKETS);
+        setStatsLoading(false);
+        setTableLoading(false);
+        return;
+      }
+
       setStatsLoading(true);
       setTableLoading(true);
-      const user = await getUser();
-      
-      if (user && user.identifier) {
-        // DEMO MODE: use local demo data instead of hitting the backend
-        if (isDemoUser(user.identifier)) {
-          const core = getDemoConsumerCore(user.identifier);
-          setConsumerData(core);
-          setTicketStats(DEMO_TICKET_STATS);
-          setTableData(DEMO_TICKETS);
-          setIsLoading(false);
-          setStatsLoading(false);
-          setTableLoading(false);
-          console.log("🎫 Using demo ticket data for:", user.identifier);
-          return;
-        }
 
-        const cachedResult = await getCachedConsumerData(user.identifier);
-        if (cachedResult.success) {
-          setConsumerData(cachedResult.data);
-          setIsLoading(false);
-        }
-        
-        // Fetch fresh data
-        const result = await fetchConsumerData(user.identifier);
-        if (result.success) {
-          setConsumerData(result.data);
-        }
-        // Admin stats API expects consumerNumber (e.g. CON-1002); use same source as create ticket
-        const consumerNumber = result?.data?.consumerNumber ?? cachedResult?.data?.consumerNumber ?? user?.consumerNumber ?? user.identifier;
-        // Fetch ticket statistics (force refresh after creating a ticket so new ticket appears)
-        const statsResult = await fetchTicketStats(consumerNumber, forceRefreshTickets);
-        if (statsResult.success) {
-          setTicketStats(statsResult.data);
-        }
-        
-        // Fetch tickets table (admin API: /admin/api/tickets/app/{appId}?consumerNumber=...&page=1&limit=10)
-        const tableResult = await fetchTicketsTable(consumerNumber, forceRefreshTickets, { appId: 1, page: 1, limit: 10 });
-        if (tableResult.success) {
-          const list = Array.isArray(tableResult.data) ? tableResult.data : tableResult.data?.data ?? [];
-          setTableData(list);
-        } else {
-          console.error('Failed to fetch tickets table:', tableResult.message);
-          setTableData([]); // Set empty array on failure
-        }
-        
-        // Background sync
-        syncConsumerData(user.identifier).catch(error => {
-          console.error('Background sync failed:', error);
-        });
+      const consumerNumber = consumerNumberRef.current ?? user?.consumerNumber ?? user.identifier;
+
+      const [statsResult, tableResult] = await Promise.all([
+        fetchTicketStats(consumerNumber, forceRefreshTickets),
+        fetchTicketsTable(consumerNumber, forceRefreshTickets, { appId: 1, page: 1, limit: 10 }),
+      ]);
+      if (signal?.aborted) return;
+
+      if (statsResult.success) setTicketStats(statsResult.data);
+      if (tableResult.success) {
+        const list = Array.isArray(tableResult.data) ? tableResult.data : tableResult.data?.data ?? [];
+        setTableData(list);
+      } else {
+        setTableData([]);
       }
+
+      lastFetchedAtRef.current = Date.now();
     } catch (error) {
-      console.error('Error fetching consumer data:', error);
+      if (error?.name === 'AbortError') return;
+      console.error('Error fetching ticket data:', error);
     } finally {
-      setIsLoading(false);
-      setStatsLoading(false);
-      setTableLoading(false);
+      if (!signal?.aborted) { setStatsLoading(false); setTableLoading(false); }
     }
   }, []);
 
-  // Fetch consumer data with caching (on focus only, avoid double-call on mount)
-
-  // Refresh data when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      fetchData();
-    }, [fetchData])
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      refreshConsumer();
+      if (Date.now() - lastFetchedAtRef.current >= STALE_THRESHOLD) {
+        fetchData(false, controller.signal);
+      }
+      return () => controller.abort();
+    }, [fetchData, refreshConsumer])
   );
 
   // const handleOpenModal = () => {
@@ -190,9 +179,9 @@ const Tickets = ({ navigation }) => {
         return false;
       }
       // Use consumerNumber from consumers API (e.g. CON-1002 from /consumers/BI25GMRA0001)
-      const consumerNumber = consumerData?.consumerNumber || user?.consumerNumber || user.identifier;
+      const consumerNumber = consumerNumberRef.current || user?.consumerNumber || user.identifier;
       console.log('🎫 Creating ticket for consumer:', consumerNumber, 'data:', ticketData);
-      const result = await createTicket(consumerNumber, ticketData, { consumerData, user });
+      const result = await createTicket(consumerNumber, ticketData, { consumerData: consumerDataRef.current, user });
       console.log('🎫 Create ticket result (Tickets screen):', result?.success, result);
       const isSuccess = result?.success === true || result?.status === "success" || (result?.data && !result?.error);
       if (isSuccess) {
@@ -216,7 +205,7 @@ const Tickets = ({ navigation }) => {
       Alert.alert("Error", error.message || "Failed to create ticket.");
       return false;
     }
-  }, [consumerData?.consumerNumber]);
+  }, [fetchData, handleCloseBottomSheet]);
 
   const handleCloseSuccessModal = useCallback(() => {
     setShowSuccessModal(false);

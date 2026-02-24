@@ -16,6 +16,7 @@ import { getCachedConsumerData, backgroundSyncConsumerData } from '../../utils/c
 import { cacheManager } from '../../utils/cacheManager';
 import { useLoading } from '../../utils/loadingManager';
 import { useNotifications } from '../../context/NotificationsContext';
+import { useIsFocused } from '@react-navigation/native';
 import Logo from './Logo';
 import AnimatedRings from './AnimatedRings';
 
@@ -30,6 +31,7 @@ const DashboardHeader = React.memo(({
   showProfileSection = true, // Hide greeting/balance for legal pages
 }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const isFocused = useIsFocused();
   const [userName, setUserName] = useState('');
   const scaledHi = getScaledFontSize(18);
   const scaledStaying = getScaledFontSize(14);
@@ -146,7 +148,7 @@ const DashboardHeader = React.memo(({
         </Pressable>
         
         <Pressable style={styles.logoWrapper} onPress={() => navigation.navigate('PostPaidDashboard')}>
-          {showRings && <AnimatedRings />}
+          {showRings && <AnimatedRings paused={!isFocused} />}
           <View style={styles.logoOnTop}>
             <Logo variant={isDark ? 'white' : 'blue'} size="medium" />
           </View>

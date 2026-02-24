@@ -27,7 +27,8 @@ const CACHE_KEYS = {
   CONSUMER_IDENTIFIER: 'current_consumer_identifier'
 };
 
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes (fresh threshold)
+const STALE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours (max age before eviction)
 const PRELOAD_CACHE_DURATION = 60 * 60 * 1000; // 1 hour for preloaded data
 
 class UnifiedCacheManager {
@@ -51,9 +52,9 @@ class UnifiedCacheManager {
       if (cachedData && timestamp && identifier) {
         const parsedData = JSON.parse(cachedData);
         const cacheTime = parseInt(timestamp);
-        const now = Date.now();
-        
-        if (now - cacheTime < CACHE_DURATION) {
+        const age = Date.now() - cacheTime;
+
+        if (age < STALE_MAX_AGE) {
           this.cache.set(identifier, {
             data: parsedData,
             timestamp: cacheTime
@@ -78,12 +79,13 @@ class UnifiedCacheManager {
     const cached = this.cache.get(cacheKey);
     
     if (cached) {
-      const now = Date.now();
-      if (now - cached.timestamp < CACHE_DURATION) {
+      const age = Date.now() - cached.timestamp;
+      if (age < STALE_MAX_AGE) {
         return {
           success: true,
           data: cached.data,
           fromCache: true,
+          stale: age >= CACHE_DURATION,
           timestamp: cached.timestamp
         };
       } else {
@@ -92,7 +94,7 @@ class UnifiedCacheManager {
       }
     }
     
-    return { success: false, fromCache: false };
+    return { success: false, fromCache: false, stale: false };
   }
 
   /**

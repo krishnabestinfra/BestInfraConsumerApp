@@ -4,15 +4,14 @@ import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
 import DashboardHeader from "../../components/global/DashboardHeader";
 import BottomNavigation from "../../components/global/BottomNavigation";
-import { getCachedConsumerData } from "../../utils/cacheManager";
-import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../../services/apiService";
+import { fetchBillingHistory } from "../../services/apiService";
 import { getBillDateValue } from "../../utils/billingUtils";
 import { StatusBar } from "expo-status-bar";
 import { getUser } from "../../utils/storage";
 import ConsumerDetailsBottomSheet from "../../components/ConsumerDetailsBottomSheet";
 import VectorDiagram from "../../components/VectorDiagram";
-import { apiClient } from '../../services/apiClient';
-import { isDemoUser, getDemoUsageConsumerData, DEMO_LAST_MONTH_BILL } from "../../constants/demoData";
+import { isDemoUser, DEMO_LAST_MONTH_BILL } from "../../constants/demoData";
+import { useConsumer } from "../../context/ConsumerContext";
 import { LinearGradient } from "expo-linear-gradient";
 import MeterIcon from "../../../assets/icons/meterBolt.svg";
 import WalletIcon from "../../../assets/icons/walletCard.svg";
@@ -42,9 +41,7 @@ const SkeletonUsageCard = ({ isDark, styles }) => {
 
 const Usage = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
-  // Main state
-  const [consumerData, setConsumerData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { consumerData, isConsumerLoading: isLoading, refreshConsumer } = useConsumer();
   const [selectedView, setSelectedView] = useState("daily");
   const [lastMonthBillAmount, setLastMonthBillAmount] = useState(null);
   
@@ -52,142 +49,47 @@ const Usage = ({ navigation }) => {
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
 
-  // Fetch last month's bill amount from billing history
-  const fetchLastMonthBill = useCallback(async (uid) => {
-    if (!uid) return;
-    
+  const fetchBillingData = useCallback(async (signal) => {
     try {
-      console.log("🔄 Usage: Fetching billing history for last month bill");
-      const billingResult = await fetchBillingHistory(uid);
-      
+      const user = await getUser();
+      if (!user?.identifier || signal?.aborted) return;
+
+      if (isDemoUser(user.identifier)) {
+        setLastMonthBillAmount(DEMO_LAST_MONTH_BILL);
+        return;
+      }
+
+      const billingResult = await fetchBillingHistory(user.identifier);
+      if (signal?.aborted) return;
+
       if (billingResult.success && billingResult.data) {
-        const billingData = Array.isArray(billingResult.data) 
-          ? billingResult.data 
-          : [billingResult.data];
-        
-        if (billingData.length === 0) {
+        const billingData = Array.isArray(billingResult.data) ? billingResult.data : [billingResult.data];
+        if (billingData.length > 0) {
+          const sortedBills = [...billingData].sort(
+            (a, b) => getBillDateValue(b) - getBillDateValue(a)
+          );
+          const lastMonthBill = sortedBills.length > 1 ? sortedBills[1] : sortedBills[0];
+          const billAmount = lastMonthBill?.total_amount_payable ?? lastMonthBill?.totalAmount ?? lastMonthBill?.amount ?? lastMonthBill?.total_amount ?? 0;
+          setLastMonthBillAmount(billAmount);
+        } else {
           setLastMonthBillAmount(null);
-          return;
         }
-        
-        // Sort billing data by date (newest first) to ensure correct order
-        const sortedBills = [...billingData].sort(
-          (a, b) => getBillDateValue(b) - getBillDateValue(a)
-        );
-        
-        // Get the second item (index 1) as last month's bill (index 0 is current month)
-        // If only one bill exists, use it
-        const lastMonthBill = sortedBills.length > 1 ? sortedBills[1] : sortedBills[0];
-        
-        const billAmount = lastMonthBill?.total_amount_payable || 
-                          lastMonthBill?.totalAmount || 
-                          lastMonthBill?.amount || 
-                          lastMonthBill?.total_amount || 
-                          0;
-        
-        setLastMonthBillAmount(billAmount);
-        console.log("✅ Usage: Last month bill amount:", billAmount);
+      } else {
+        setLastMonthBillAmount(null);
       }
     } catch (error) {
-      console.error("❌ Usage: Error fetching last month bill:", error);
+      if (error?.name === 'AbortError') return;
+      console.error("Usage: Error fetching billing data:", error);
       setLastMonthBillAmount(null);
     }
   }, []);
 
-  // Fetch consumer data with proper error handling (or demo data if using demo credentials)
-  const fetchConsumerData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      console.log("🔄 Usage: Starting data fetch");
-
-      // Get authenticated user data
-      const user = await getUser();
-
-      if (!user || !user.identifier) {
-        console.error("❌ Usage: No authenticated user found");
-        setIsLoading(false);
-        return;
-      }
-
-      // DEMO MODE: if logged in with demo credentials, use local demo data
-      if (isDemoUser(user.identifier)) {
-        const demoData = getDemoUsageConsumerData(user.identifier);
-        setConsumerData(demoData);
-        setLastMonthBillAmount(DEMO_LAST_MONTH_BILL);
-        console.log("📊 Usage: Using demo consumer data for:", user.identifier);
-        setIsLoading(false);
-        return;
-      }
-
-      console.log("🔄 Usage: Fetching data for:", user.identifier);
-
-      // Try cached data first for instant display
-      const cachedResult = await getCachedConsumerData(user.identifier);
-      if (cachedResult.success && cachedResult.data) {
-        setConsumerData(cachedResult.data);
-        console.log("⚡ Usage: Using cached data");
-        setIsLoading(false);
-      }
-
-      // Fetch fresh data from API
-      const result = await apiClient.getConsumerData(user.identifier);
-      
-      if (result.success && result.data) {
-        setConsumerData(result.data);
-        console.log("✅ Usage: Fresh data loaded:", result.data);
-        
-        // Fetch last month's bill amount
-        const uid = result.data?.uniqueIdentificationNo || user.identifier;
-        fetchLastMonthBill(uid);
-        
-        // Background sync for future updates
-        syncConsumerData(user.identifier).catch(error => {
-          console.error("⚠️ Usage: Background sync failed:", error);
-        });
-      } else {
-        throw new Error(result.error || "Failed to fetch consumer data");
-      }
-    } catch (error) {
-      console.error("❌ Usage: API error:", error);
-      
-      // Set fallback data with user's actual identifier
-      const user = await getUser();
-      const fallbackData = {
-        name: user?.name || "Consumer",
-        meterSerialNumber: user?.meterSerialNumber || "N/A",
-        uniqueIdentificationNo: user?.identifier || user?.consumerNumber || "N/A",
-        readingDate: new Date().toLocaleString(),
-        totalOutstanding: 0,
-        dailyConsumption: 0,
-        monthlyConsumption: 0,
-        chartData: {
-          daily: {
-            seriesData: [{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }],
-            xAxisData: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-          },
-          monthly: {
-            seriesData: [{ data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }],
-            xAxisData: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"]
-          }
-        }
-      };
-      
-      setConsumerData(fallbackData);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchLastMonthBill]);
-
-  // Load data on component mount
   useEffect(() => {
-    fetchConsumerData();
-  }, [fetchConsumerData]);
-
-  // Add refresh functionality
-  const handleRefresh = useCallback(() => {
-    console.log("🔄 Usage: Manual refresh triggered");
-    fetchConsumerData();
-  }, [fetchConsumerData]);
+    refreshConsumer();
+    const controller = new AbortController();
+    fetchBillingData(controller.signal);
+    return () => controller.abort();
+  }, [refreshConsumer, fetchBillingData]);
 
 
 

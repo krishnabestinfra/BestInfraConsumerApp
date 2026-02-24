@@ -18,8 +18,10 @@ import Animated, {
   withTiming,
   interpolate,
   runOnJS,
+  cancelAnimation,
 } from "react-native-reanimated";
 import { Easing } from "react-native-reanimated";
+import { useIsFocused } from "@react-navigation/native";
 import Menu from "../../../assets/icons/bars.svg";
 import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
 import Notification from "../../../assets/icons/notification.svg";
@@ -33,9 +35,9 @@ import { useTheme } from "../../context/ThemeContext";
 import { getUser } from "../../utils/storage";
 import ChatIcon from "../../../assets/icons/chatIcon.svg";
 
-const RING_COUNT = 20;
-const RING_DELAY = 800;
-const ANIMATION_DURATION = 5000;
+const RING_COUNT = 8;
+const RING_DELAY = 600;
+const ANIMATION_DURATION = 4000;
 const GAP_ABOVE_BOTTOM = 10;
 const BOTTOM_NAV_HEIGHT = 80;
 
@@ -61,6 +63,7 @@ const Ring = ({ index, progress }) => {
 
 const ChatSupport = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
+  const isFocused = useIsFocused();
   const progress = useSharedValue(0);
   const scrollViewRef = useRef(null);
   const [message, setMessage] = useState("");
@@ -69,7 +72,11 @@ const ChatSupport = ({ navigation, route }) => {
 
   const { ticketId, ticketData } = route?.params || {};
 
-  const loopAnimation = () => {
+  const pausedRef = useRef(!isFocused);
+  pausedRef.current = !isFocused;
+
+  const loopAnimation = useCallback(() => {
+    if (pausedRef.current) return;
     progress.value = 0;
     progress.value = withTiming(
       RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
@@ -79,11 +86,16 @@ const ChatSupport = ({ navigation, route }) => {
       },
       () => runOnJS(loopAnimation)()
     );
-  };
+  }, [progress]);
 
   useEffect(() => {
-    loopAnimation();
-  }, []);
+    if (isFocused) {
+      loopAnimation();
+    } else {
+      cancelAnimation(progress);
+      progress.value = 0;
+    }
+  }, [isFocused, loopAnimation, progress]);
 
   // Scroll to bottom on initial load
   useEffect(() => {

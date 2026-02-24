@@ -398,7 +398,7 @@ const LsDataTable = ({ navigation, route }) => {
       {/* Table Section */}
       <View style={styles.tableSection}>
         {isLoading ? (
-          <SkeletonLoader variant="table" style={{ marginVertical: 20 }} lines={10} columns={3} />
+          <SkeletonLoader variant="table" style={{ marginVertical: 20 }} lines={5} columns={3} />
         ) : error ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>❌ {error}</Text>

@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { getUser, isUserLoggedIn } from "../utils/storage";
 import { authService } from "../services/authService";
+import { useConsumer } from "../context/ConsumerContext";
 import Logo from "../components/global/Logo";
 import RippleEffect from "../components/RippleEffect";
 import { COLORS } from "../constants/colors";
@@ -12,6 +13,7 @@ const { width, height } = Dimensions.get("window");
 
 const SplashScreen = () => {
   const navigation = useNavigation();
+  const { refreshConsumer } = useConsumer();
   const [splashComplete, setSplashComplete] = useState(false);
 
   useEffect(() => {
@@ -37,6 +39,7 @@ const SplashScreen = () => {
 
       if (rememberMe && isAuthenticated && user) {
         console.log('✅ User authenticated with remember me enabled, navigating to dashboard');
+        refreshConsumer({ force: true });
         setTimeout(() => {
           setSplashComplete(true);
           navigation.reset({

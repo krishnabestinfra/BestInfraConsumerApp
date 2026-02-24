@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Dimensions } from "react-native";
+import { StyleSheet, Text, View, FlatList, Dimensions } from "react-native";
 import React, { useState } from "react";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
@@ -13,6 +13,9 @@ const COLUMN_WIDTHS = {
   serial: 50,
   default: 1,
 };
+
+const ROW_HEIGHT = 42; // minHeight 40 + marginTop 2
+const keyExtractor = (item, index) => item.id != null ? String(item.id) : String(index);
 
 const Table = ({ 
   data = [], 
@@ -219,94 +222,72 @@ const Table = ({
           <Text style={emptyTitleStyle}>
             {emptyMessage || "No Data Available"}
           </Text>
-          {/* <Text style={emptySubtitleStyle}>
-            There are no records available for the
-          </Text>
-          <Text style={emptySubtitleStyle}>
-           selected date and meter. Data may not
-          </Text>
-          <Text style={emptySubtitleStyle}>
-           have been synced yet.
-          </Text> */}
         </View>
       ) : (
+        <FlatList
+          data={paginatedData}
+          keyExtractor={keyExtractor}
+          renderItem={({ item, index }) => (
+            <View
+              style={[dataRowStyle, rowStyle, onRowPress && styles.pressableRow]}
+              onTouchEnd={() => handleRowPress(item)}
+            >
+              {showSerial && (
+                <View style={[styles.columnContainer, styles.serialColumn]}>
+                  <Text style={[dataTextStyle, styles.serialText, textStyle]}>
+                    {(currentPage - 1) * rowsPerPage + index + 1}
+                  </Text>
+                </View>
+              )}
+              {tableColumns.map((column, colIndex) => {
+                const value = item[column.key];
+                const isPriorityField = priorityField === column.key;
+                const priorityLevel = getPriorityLevel(value);
+                const hasPriority = isPriorityField && priorityLevel;
+                const isLastColumn = colIndex === tableColumns.length - 1;
 
-          paginatedData.map((item, index) => (
-          <View 
-            key={item.id || index} 
-            style={[
-              dataRowStyle,
-              rowStyle,
-              onRowPress && styles.pressableRow
-            ]}
-            onTouchEnd={() => handleRowPress(item)}
-          >
-            {showSerial && (
-              <View style={[styles.columnContainer, styles.serialColumn]}>
-                <Text style={[dataTextStyle, styles.serialText, textStyle]}>
-                  {(currentPage - 1) * rowsPerPage + index + 1}
-                </Text>
-              </View>
-            )}
-             {tableColumns.map((column, colIndex) => {
-               const value = item[column.key];
-               const isPriorityField = priorityField === column.key;
-               const priorityLevel = getPriorityLevel(value);
-               const hasPriority = isPriorityField && priorityLevel;
-               const isLastColumn = colIndex === tableColumns.length - 1;
-               
-               return (
-                 <View 
-                   key={column.key} 
-                   style={getColumnWrapperStyle(column, isLastColumn)}
-                 >
-                   {column.render ? (
-                     column.render(item)
-                   ) : isPriorityField && hasPriority ? (
-                     inlinePriority ? (
-                       <View style={styles.inlinePriorityWrapper}>
-                         <Text 
-                           style={[dataTextStyle, styles.multiLineText, textStyle]}
-                           numberOfLines={3}
-                         >
-                           {value}
-                         </Text>
-                         <PriorityTag priority={priorityLevel} />
-                       </View>
-                     ) : (
-                       <>
-                        <Text 
-                          style={[
-                            dataTextStyle, 
-                            styles.multiLineText, 
-                            textStyle,
-                            getTextAlignmentStyle(column.align)
-                          ]}
-                          numberOfLines={3}
-                        >
-                           {value}
-                         </Text>
-                         <PriorityTag priority={priorityLevel} />
-                       </>
-                     )
-                   ) : (
-                    <Text 
-                      style={[
-                        dataTextStyle, 
-                        styles.multiLineText, 
-                        textStyle,
-                        getTextAlignmentStyle(column.align)
-                      ]}
-                      numberOfLines={3}
-                    >
-                       {value}
-                     </Text>
-                   )}
-                 </View>
-               );
-             })}
-          </View>
-        ))
+                return (
+                  <View key={column.key} style={getColumnWrapperStyle(column, isLastColumn)}>
+                    {column.render ? (
+                      column.render(item)
+                    ) : isPriorityField && hasPriority ? (
+                      inlinePriority ? (
+                        <View style={styles.inlinePriorityWrapper}>
+                          <Text style={[dataTextStyle, styles.multiLineText, textStyle]} numberOfLines={3}>
+                            {value}
+                          </Text>
+                          <PriorityTag priority={priorityLevel} />
+                        </View>
+                      ) : (
+                        <>
+                          <Text
+                            style={[dataTextStyle, styles.multiLineText, textStyle, getTextAlignmentStyle(column.align)]}
+                            numberOfLines={3}
+                          >
+                            {value}
+                          </Text>
+                          <PriorityTag priority={priorityLevel} />
+                        </>
+                      )
+                    ) : (
+                      <Text
+                        style={[dataTextStyle, styles.multiLineText, textStyle, getTextAlignmentStyle(column.align)]}
+                        numberOfLines={3}
+                      >
+                        {value}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          )}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={3}
+          getItemLayout={ROW_HEIGHT ? (_data, idx) => ({ length: ROW_HEIGHT, offset: ROW_HEIGHT * idx, index: idx }) : undefined}
+          scrollEnabled={false}
+        />
       )}
       {data.length > rowsPerPage && (
         <View style={styles.paginationContainer}>

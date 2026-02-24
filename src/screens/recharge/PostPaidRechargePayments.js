@@ -17,12 +17,10 @@ import Button from "../../components/global/Button";
 import DashboardHeader from "../../components/global/DashboardHeader";
 import BottomNavigation from "../../components/global/BottomNavigation";
 import DirectRazorpayPayment from "../../components/DirectRazorpayPayment";
-import { getUser } from "../../utils/storage";
 import { authService } from "../../services/authService";
 import { API, API_ENDPOINTS } from "../../constants/constants";
-import { fetchConsumerData, syncConsumerData, fetchBillingHistory } from "../../services/apiService";
-import { getCachedConsumerData } from "../../utils/cacheManager";
-import { isDemoUser, getDemoDashboardConsumerData } from "../../constants/demoData";
+import { fetchBillingHistory } from "../../services/apiService";
+import { useConsumer } from "../../context/ConsumerContext";
 import {
   processRazorpayPayment,
   handlePaymentSuccess,
@@ -64,9 +62,8 @@ const PostPaidRechargePayments = ({ navigation }) => {
   const [selectedOption, setSelectedOption] = useState("option1");
   const [customAmount, setCustomAmount] = useState("");
   const [outstandingAmount, setOutstandingAmount] = useState("NA");
+  const { consumerData, isConsumerLoading, refreshConsumer } = useConsumer();
   const [isLoading, setIsLoading] = useState(true);
-  const [consumerData, setConsumerData] = useState(null);
-  const [isConsumerLoading, setIsConsumerLoading] = useState(true);
   const [isPaymentProcessing, setIsPaymentProcessing] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [orderData, setOrderData] = useState(null);
@@ -317,83 +314,21 @@ const PostPaidRechargePayments = ({ navigation }) => {
 
   // Fetch consumer data and outstanding amount with caching
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsConsumerLoading(true);
-        setIsLoading(true);
-        const user = await getUser();
-        
-        if (user && user.identifier) {
-          // DEMO MODE: use local demo consumer data and skip backend calls
-          if (isDemoUser(user.identifier)) {
-            const demo = getDemoDashboardConsumerData(user.identifier);
-            setConsumerData(demo);
+    refreshConsumer({ force: true });
+  }, [refreshConsumer]);
 
-            if (demo.totalOutstanding !== undefined) {
-              const formattedAmount = demo.totalOutstanding.toLocaleString('en-IN', {
-                maximumFractionDigits: 2,
-              });
-              setOutstandingAmount(formattedAmount);
-            } else {
-              setOutstandingAmount("NA");
-            }
-
-            setIsConsumerLoading(false);
-            setIsLoading(false);
-            return;
-          }
-
-          // Try to get cached data first for instant display
-          const cachedResult = await getCachedConsumerData(user.identifier);
-          if (cachedResult.success) {
-            setConsumerData(cachedResult.data);
-            
-            // Extract outstanding amount from cached data
-            if (cachedResult.data && cachedResult.data.totalOutstanding !== undefined) {
-              const formattedAmount = cachedResult.data.totalOutstanding.toLocaleString('en-IN', {
-                maximumFractionDigits: 2
-              });
-              setOutstandingAmount(formattedAmount);
-            }
-            
-            setIsConsumerLoading(false);
-            setIsLoading(false);
-          }
-          
-          // Fetch fresh data
-          const result = await fetchConsumerData(user.identifier);
-          if (result.success) {
-            setConsumerData(result.data);
-            
-            // Extract outstanding amount from fresh data
-            if (result.data && result.data.totalOutstanding !== undefined) {
-              const formattedAmount = result.data.totalOutstanding.toLocaleString('en-IN', {
-                maximumFractionDigits: 2
-              });
-              setOutstandingAmount(formattedAmount);
-            } else {
-              setOutstandingAmount("NA");
-            }
-          } else {
-            setOutstandingAmount("NA");
-          }
-          
-          // Background sync
-          syncConsumerData(user.identifier).catch(error => {
-            console.error('Background sync failed:', error);
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching consumer data:', error);
-        setOutstandingAmount("NA");
-      } finally {
-        setIsConsumerLoading(false);
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  // Derive outstanding amount from context's consumerData
+  useEffect(() => {
+    if (consumerData?.totalOutstanding !== undefined) {
+      const formattedAmount = consumerData.totalOutstanding.toLocaleString('en-IN', {
+        maximumFractionDigits: 2,
+      });
+      setOutstandingAmount(formattedAmount);
+    } else {
+      setOutstandingAmount("NA");
+    }
+    if (!isConsumerLoading) setIsLoading(false);
+  }, [consumerData, isConsumerLoading]);
 
   return (
     <KeyboardAvoidingView 
