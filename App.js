@@ -110,17 +110,19 @@ export default function App() {
     initPushNotifications();
   }, []);
 
-  // Poll for PUSH-channel notifications from API (backend sends data only; we show as push)
+  // Poll for PUSH-channel notifications from API (backend sends data only; we show as push).
+  // Delay initial run so app can show Splash/Dashboard first; avoid fetching before user is ready.
   useEffect(() => {
     const runCheck = () => checkAndShowPushChannelNotifications().catch(() => {});
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') runCheck();
     });
     const interval = setInterval(runCheck, 2 * 60 * 1000);
-    runCheck();
+    const initialDelay = setTimeout(runCheck, 5000);
     return () => {
       subscription?.remove?.();
       clearInterval(interval);
+      clearTimeout(initialDelay);
     };
   }, []);
 

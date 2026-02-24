@@ -10,10 +10,12 @@
  * - Caching and performance optimization
  */
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react';
 import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/apiService';
 import { getUser } from '../utils/storage';
 import { isDemoUser, getDemoNotifications } from '../constants/demoData';
+
+const MIN_FETCH_INTERVAL_MS = 15000; // Don't start a new fetch if last one was < 15s ago (stops call storms)
 
 // Action Types
 const ActionTypes = {
@@ -177,214 +179,156 @@ const NotificationsContext = createContext();
 // Provider Component
 export const NotificationsProvider = ({ children }) => {
   const [state, dispatch] = useReducer(notificationsReducer, initialState);
+  const stateRef = useRef(state);
+  const lastFetchTimeRef = useRef(0);
 
-  // Fetch notifications for a specific consumer
+  stateRef.current = state;
+
+  // Stable fetch: read state from ref so callback identity doesn't change on every state update.
+  // That stops consumers' useEffects from re-running and calling refresh in a loop.
   const fetchNotificationsData = useCallback(async (uid, forceRefresh = false) => {
-    if (!uid) {
-      return;
-    }
+    if (!uid) return;
 
-    // DEMO MODE: If demo user, use demo notifications immediately (skip API)
+    const currentState = stateRef.current;
+
     if (isDemoUser(uid)) {
-      const existingData = state.consumerNotifications[uid];
-      const isStale = existingData && (Date.now() - existingData.lastFetchTime > 300000); // 5 minutes
-
+      const existingData = currentState.consumerNotifications[uid];
+      const isStale = existingData && (Date.now() - existingData.lastFetchTime > 300000);
       if (!forceRefresh && existingData && !isStale) {
         dispatch({ type: ActionTypes.SWITCH_CONSUMER, payload: uid });
         return;
       }
-
-      // For demo users, load instantly without loading state or async overhead
-      // Use setTimeout(0) to ensure it happens synchronously in the next tick
       const demoNotifications = getDemoNotifications(uid);
-      // Dispatch immediately without loading state for instant display
-      dispatch({ 
-        type: ActionTypes.SET_NOTIFICATIONS, 
-        payload: demoNotifications,
-        consumerUid: uid
-      });
+      dispatch({ type: ActionTypes.SET_NOTIFICATIONS, payload: demoNotifications, consumerUid: uid });
       return;
     }
 
-    // REAL USER: Check if we have recent data (less than 5 minutes old)
-    const existingData = state.consumerNotifications[uid];
-    const isStale = existingData && (Date.now() - existingData.lastFetchTime > 300000); // 5 minutes
-
+    const existingData = currentState.consumerNotifications[uid];
+    const isStale = existingData && (Date.now() - existingData.lastFetchTime > 300000);
     if (!forceRefresh && existingData && !isStale) {
       dispatch({ type: ActionTypes.SWITCH_CONSUMER, payload: uid });
       return;
     }
 
+    // Throttle: avoid call storms when many components request refresh
+    const now = Date.now();
+    if (!forceRefresh && now - lastFetchTimeRef.current < MIN_FETCH_INTERVAL_MS) {
+      return;
+    }
+    lastFetchTimeRef.current = now;
+
     try {
       dispatch({ type: ActionTypes.SET_LOADING, payload: true });
-      
-      // Fetch notifications with pagination (page 1, limit 10 for initial load)
       const result = await fetchNotifications(uid, 1, 10);
-      const hasExistingList = state.notifications.length > 0;
+      const hasExistingList = stateRef.current.notifications.length > 0;
 
       if (result.success) {
         const notifications = result.data?.notifications || [];
-        
-        // Log successful fetches
         if (notifications.length > 0) {
-          console.log(`✅ Fetched ${notifications.length} notifications for consumer: ${uid}`);
-          console.log(`   Total available: ${result.data?.pagination?.total || notifications.length}`);
-          dispatch({ 
-            type: ActionTypes.SET_NOTIFICATIONS, 
-            payload: notifications,
-            consumerUid: uid
-          });
+          if (__DEV__) {
+            console.log(`✅ Fetched ${notifications.length} notifications for consumer: ${uid}`);
+          }
+          dispatch({ type: ActionTypes.SET_NOTIFICATIONS, payload: notifications, consumerUid: uid });
         } else {
-          // Empty response: on refresh, preserve existing list instead of clearing
           if (forceRefresh && hasExistingList) {
-            console.warn(`⚠️ Refresh returned no data for ${uid}, keeping existing list`);
             dispatch({ type: ActionTypes.SET_ERROR, payload: result.message || 'Could not refresh notifications.' });
           } else {
-            console.log(`ℹ️ No notifications found for consumer: ${uid}`);
-            dispatch({ 
-              type: ActionTypes.SET_NOTIFICATIONS, 
-              payload: [],
-              consumerUid: uid
-            });
+            dispatch({ type: ActionTypes.SET_NOTIFICATIONS, payload: [], consumerUid: uid });
           }
         }
       } else {
-        console.error(`❌ Failed to fetch notifications for ${uid}:`, result.message);
         if (forceRefresh && hasExistingList) {
           dispatch({ type: ActionTypes.SET_ERROR, payload: result.message || 'Could not refresh notifications.' });
         } else {
-          dispatch({ 
-            type: ActionTypes.SET_NOTIFICATIONS, 
-            payload: [],
-            consumerUid: uid
-          });
+          dispatch({ type: ActionTypes.SET_NOTIFICATIONS, payload: [], consumerUid: uid });
         }
       }
     } catch (error) {
-      // On refresh failure, preserve existing list; only clear on initial load
-      if (state.notifications.length > 0) {
-        console.warn('⚠️ Error refreshing notifications, keeping existing list:', error?.message);
+      if (stateRef.current.notifications.length > 0) {
         dispatch({ type: ActionTypes.SET_ERROR, payload: error?.message || 'Could not refresh notifications.' });
       } else {
-        dispatch({ 
-          type: ActionTypes.SET_NOTIFICATIONS, 
-          payload: [],
-          consumerUid: uid
-        });
+        dispatch({ type: ActionTypes.SET_NOTIFICATIONS, payload: [], consumerUid: uid });
       }
     }
-  }, [state.consumerNotifications, state.notifications]);
+  }, []);
 
-  // Set consumer UID and fetch notifications
   const setConsumerUid = useCallback((uid) => {
-    if (!uid) {
-      return;
-    }
-
-    const existingData = state.consumerNotifications[uid];
-    
+    if (!uid) return;
+    const currentState = stateRef.current;
+    const existingData = currentState.consumerNotifications[uid];
     if (existingData) {
       dispatch({ type: ActionTypes.SWITCH_CONSUMER, payload: uid });
-      
-      const isStale = Date.now() - existingData.lastFetchTime > 300000; // 5 minutes
-      if (isStale) {
-        setTimeout(() => fetchNotificationsData(uid, true), 0);
-      }
+      const isStale = Date.now() - existingData.lastFetchTime > 300000;
+      if (isStale) setTimeout(() => fetchNotificationsData(uid, true), 0);
     } else {
       dispatch({ type: ActionTypes.SET_CONSUMER_UID, payload: uid });
       setTimeout(() => fetchNotificationsData(uid), 0);
     }
-  }, [state.consumerNotifications, fetchNotificationsData]);
+  }, [fetchNotificationsData]);
 
-  // Mark notification as read
   const markAsRead = useCallback(async (notificationId) => {
+    const consumerUid = stateRef.current.consumerUid;
     try {
-      if (isDemoUser(state.consumerUid)) {
+      if (isDemoUser(consumerUid)) {
         dispatch({ type: ActionTypes.MARK_AS_READ, payload: notificationId });
         return { success: true };
       }
-      
       const result = await markNotificationAsRead(notificationId);
-      
-      if (result.success) {
-        dispatch({ type: ActionTypes.MARK_AS_READ, payload: notificationId });
-      }
-      
+      if (result.success) dispatch({ type: ActionTypes.MARK_AS_READ, payload: notificationId });
       return result;
     } catch (error) {
       console.error('Error marking notification as read:', error);
       return { success: false, message: error.message };
     }
-  }, [state.consumerUid]);
+  }, []);
 
-  // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
-    if (!state.consumerUid) {
-      console.warn('No consumer UID available for marking all as read');
-      return { success: false, message: 'No consumer UID available' };
-    }
-
+    const consumerUid = stateRef.current.consumerUid;
+    if (!consumerUid) return { success: false, message: 'No consumer UID' };
     try {
-      if (isDemoUser(state.consumerUid)) {
+      if (isDemoUser(consumerUid)) {
         dispatch({ type: ActionTypes.MARK_ALL_AS_READ });
         return { success: true };
       }
-      
-      // REAL USER: Call API
-      const result = await markAllNotificationsAsRead(state.consumerUid);
-      
-      if (result.success) {
-        dispatch({ type: ActionTypes.MARK_ALL_AS_READ });
-      }
-      
+      const result = await markAllNotificationsAsRead(consumerUid);
+      if (result.success) dispatch({ type: ActionTypes.MARK_ALL_AS_READ });
       return result;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       return { success: false, message: error.message };
     }
-  }, [state.consumerUid]);
+  }, []);
 
-  // Refresh notifications
   const refreshNotifications = useCallback(() => {
-    if (state.consumerUid) {
-      fetchNotificationsData(state.consumerUid, true);
-    }
-  }, [state.consumerUid, fetchNotificationsData]);
-
+    const uid = stateRef.current.consumerUid;
+    if (uid) fetchNotificationsData(uid, true);
+  }, [fetchNotificationsData]);
 
   const clearConsumerData = useCallback((uid) => {
-    console.log(`🗑️ Clearing notification data for consumer: ${uid}`);
+    if (__DEV__) console.log(`🗑️ Clearing notification data for consumer: ${uid}`);
     dispatch({ type: ActionTypes.CLEAR_CONSUMER_DATA, payload: uid });
   }, []);
 
-
   useEffect(() => {
     if (!state.consumerUid) return;
-
-    const interval = setInterval(() => {
-
-      fetchNotificationsData(state.consumerUid, true);
-    }, 120000); // 2 minutes instead of 30 seconds
-
+    const interval = setInterval(() => fetchNotificationsData(state.consumerUid, true), 120000);
     return () => clearInterval(interval);
   }, [state.consumerUid, fetchNotificationsData]);
 
-  // Initialize with current user (consumerNumber or identifier - auth may store either)
+  // Initialize once on mount so setConsumerUid isn't re-triggered by dependency churn
+  const initRanRef = useRef(false);
   useEffect(() => {
-    const initializeNotifications = async () => {
-      try {
-        const user = await getUser();
+    if (initRanRef.current) return;
+    initRanRef.current = true;
+    let mounted = true;
+    getUser()
+      .then((user) => {
+        if (!mounted) return;
         const consumerId = user?.consumerNumber || user?.identifier || user?.uid;
-
-        if (consumerId) {
-          setConsumerUid(consumerId);
-        }
-      } catch (error) {
-        // Silently handle initialization errors
-      }
-    };
-
-    initializeNotifications();
+        if (consumerId) setConsumerUid(consumerId);
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
   }, [setConsumerUid]);
 
   // Context value
