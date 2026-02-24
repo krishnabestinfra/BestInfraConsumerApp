@@ -236,16 +236,16 @@ export const fetchBillingHistory = async (uid) => {
 };
 
 /**
- * Fetch ticket statistics with caching
- * @param {string} uid - Consumer identifier
+ * Fetch ticket statistics with caching (admin API: /admin/api/tickets/stats?consumerNumber=...)
+ * @param {string} consumerNumber - Consumer number (e.g. CON-1002) or identifier
  * @param {boolean} forceRefresh - If true, bypass cache and fetch fresh data (e.g. after creating a ticket)
  */
-export const fetchTicketStats = async (uid, forceRefresh = false) => {
+export const fetchTicketStats = async (consumerNumber, forceRefresh = false) => {
   try {
     return await cacheManager.getData(
       'ticket_stats',
-      API_ENDPOINTS.tickets.stats(uid),
-      uid,
+      API_ENDPOINTS.tickets.stats(consumerNumber),
+      consumerNumber,
       forceRefresh
     );
   } catch (error) {
@@ -254,19 +254,28 @@ export const fetchTicketStats = async (uid, forceRefresh = false) => {
   }
 };
 
+/** Default appId for tickets (override via options or env if needed) */
+const DEFAULT_APP_ID = 1;
+
 /**
- * Fetch tickets table data with caching
- * @param {string} uid - Consumer identifier
+ * Fetch tickets table data with caching (admin API: GET /admin/api/tickets/app/{appId}?consumerNumber=...&page=1&limit=10)
+ * @param {string} consumerNumber - Consumer number (e.g. CON-1002) or identifier
  * @param {boolean} forceRefresh - If true, bypass cache and fetch fresh data (e.g. after creating a ticket)
+ * @param {{ appId?: number, page?: number, limit?: number }} options - appId (default 1), page (default 1), limit (default 10)
  */
-export const fetchTicketsTable = async (uid, forceRefresh = false) => {
+export const fetchTicketsTable = async (consumerNumber, forceRefresh = false, options = {}) => {
+  const { appId = DEFAULT_APP_ID, page = 1, limit = 10 } = options;
   try {
-    return await cacheManager.getData(
+    const result = await cacheManager.getData(
       'ticket_table',
-      API_ENDPOINTS.tickets.table(uid),
-      uid,
+      API_ENDPOINTS.tickets.table(appId, consumerNumber, page, limit),
+      consumerNumber,
       forceRefresh
     );
+    if (result.success && result.data != null && !Array.isArray(result.data)) {
+      result.data = result.data?.data ?? result.data ?? [];
+    }
+    return result;
   } catch (error) {
     console.error("Error fetching tickets table:", error);
     return { success: false, message: error.message };
@@ -293,27 +302,61 @@ const TICKET_PRIORITY_MAP = {
   'High': 'HIGH',
   'Urgent': 'URGENT',
 };
+/** Admin API: map form category to type (e.g. TECHNICAL_ISSUE) and category (e.g. TECHNICAL_SUPPORT) */
+const TICKET_TYPE_MAP = {
+  'Technical': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
+  'Technical Issue': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
+  'Billing': { type: 'BILLING_ISSUE', category: 'BILLING_SUPPORT' },
+  'Billing Issue': { type: 'BILLING_ISSUE', category: 'BILLING_SUPPORT' },
+  'Connection': { type: 'CONNECTION_ISSUE', category: 'CONNECTION_SUPPORT' },
+  'Connection Issue': { type: 'CONNECTION_ISSUE', category: 'CONNECTION_SUPPORT' },
+  'Meter': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
+  'Meter Issue': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
+  'General Inquiry': { type: 'GENERAL_INQUIRY', category: 'OTHER' },
+  'General': { type: 'GENERAL_INQUIRY', category: 'OTHER' },
+};
 
 /**
- * Create new ticket via API (POST to /tickets)
- * @param {string} consumerNumber - Consumer identifier
+ * Create new ticket via admin API (POST https://api.bestinfra.app/admin/api/tickets).
+ * Body: title, description, type, category, priority, consumerNumber, appId, customerName, customerEmail, customerPhone, tags.
+ *
+ * @param {string} consumerNumber - Consumer identifier (e.g. CON-1002)
  * @param {object} formData - { subject, description, category, priority? }
+ * @param {object} [context] - Optional { consumerData, user } for customerName, customerEmail, customerPhone
  * @returns {Promise<{ success: boolean, data?: any, message?: string }>}
  */
-export const createTicket = async (consumerNumber, formData) => {
+export const createTicket = async (consumerNumber, formData, context = {}) => {
   try {
-    const category = TICKET_CATEGORY_MAP[formData.category] || (typeof formData.category === 'string' ? formData.category.toUpperCase() : 'OTHER').replace('GENERAL', 'OTHER') || 'OTHER';
-    const priority = TICKET_PRIORITY_MAP[formData.priority] || (typeof formData.priority === 'string' ? formData.priority.toUpperCase() : 'HIGH') || 'HIGH';
+    const { consumerData = {}, user = {} } = context;
+    const categoryLabel = formData.category || '';
+    const typeCategory = TICKET_TYPE_MAP[categoryLabel] || { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' };
+    const category = TICKET_CATEGORY_MAP[categoryLabel] || (typeof categoryLabel === 'string' ? categoryLabel.toUpperCase().replace('GENERAL', 'OTHER') : 'OTHER') || 'OTHER';
+    const priority = TICKET_PRIORITY_MAP[formData.priority] || (typeof formData.priority === 'string' ? formData.priority.toUpperCase() : 'MEDIUM') || 'MEDIUM';
+
+    const customerName =
+      consumerData?.name ?? consumerData?.consumerName ?? consumerData?.customerName ?? user?.name ?? user?.firstName ?? '';
+    const customerEmail =
+      consumerData?.email ?? consumerData?.emailId ?? consumerData?.contactEmail ?? user?.email ?? '';
+    const customerPhone =
+      consumerData?.mobileNo ?? consumerData?.phone ?? consumerData?.contactNumber ?? consumerData?.contact ?? user?.phone ?? user?.contact ?? '';
+
     const payload = {
-      subject: formData.subject || 'No subject',
+      title: formData.subject || formData.title || 'No subject',
       description: formData.description || '',
-      category,
+      type: typeCategory.type,
+      category: typeCategory.category,
       priority,
-      consumerNumber,
+      consumerNumber: consumerNumber || consumerData?.consumerNumber || user?.consumerNumber || user?.identifier,
+      appId: typeof formData.appId === 'number' ? formData.appId : 1,
+      customerName: customerName || 'Consumer',
+      customerEmail: customerEmail || '',
+      customerPhone: customerPhone || '',
+      tags: Array.isArray(formData.tags) ? formData.tags : [],
     };
+
     if (__DEV__) {
-      console.log('🎫 createTicket called → POST https://api.bestinfra.app/gmr/api/tickets (with access token)');
-      console.log('🎫 Payload sent to backend:', JSON.stringify(payload, null, 2));
+      console.log('🎫 createTicket → POST https://api.bestinfra.app/admin/api/tickets');
+      console.log('🎫 Payload:', JSON.stringify(payload, null, 2));
     }
     const result = await apiClient.createTicket(payload);
     if (__DEV__) {

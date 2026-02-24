@@ -160,7 +160,7 @@ const TicketDetails = ({ navigation, route }) => {
                   Category
                 </Text>
                 <Text style={[styles.detailValue, isDark && { color: themeColors.textPrimary }]}>
-                  {ticketData?.category || category || "Connection Issue"}
+                  {ticketData?.type ?? ticketData?.category ?? category ?? "—"}
                 </Text>
               </View>
               <View style={styles.detailItem}>
