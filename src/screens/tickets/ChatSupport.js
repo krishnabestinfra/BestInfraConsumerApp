@@ -32,6 +32,7 @@ import Logo from "../../components/global/Logo";
 import BottomNavigation from "../../components/global/BottomNavigation";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
+import { useNotifications } from "../../context/NotificationsContext";
 import { getUser } from "../../utils/storage";
 import ChatIcon from "../../../assets/icons/chatIcon.svg";
 
@@ -63,6 +64,7 @@ const Ring = ({ index, progress }) => {
 
 const ChatSupport = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
+  const { unreadCount } = useNotifications();
   const isFocused = useIsFocused();
   const progress = useSharedValue(0);
   const scrollViewRef = useRef(null);
@@ -97,7 +99,7 @@ const ChatSupport = ({ navigation, route }) => {
     }
   }, [isFocused, loopAnimation, progress]);
 
-  // Scroll to bottom on initial load
+
   useEffect(() => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: false });
@@ -245,13 +247,20 @@ const ChatSupport = ({ navigation, route }) => {
         </View>
 
         <Pressable
-          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
+          style={styles.bellWrapper}
           onPress={() => navigation.navigate("Notifications")}
         >
-          {isDark ? (
-            <NotificationWhite width={18} height={18} />
-          ) : (
-            <Notification width={18} height={18} fill="#202d59" />
+          <View style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}>
+            {isDark ? (
+              <NotificationWhite width={18} height={18} />
+            ) : (
+              <Notification width={18} height={18} fill="#202d59" />
+            )}
+          </View>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            </View>
           )}
         </Pressable>
       </View>
@@ -354,6 +363,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  bellWrapper: {
+    position: "relative",
+    overflow: "visible",
+  },
+  badge: {
+    position: "absolute",
+    right: -3,
+    top: -3,
+    backgroundColor: "red",
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#fff",
+    zIndex: 10,
+    elevation: 6,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: "Manrope-Regular",
   },
   logoWrapper: {
     alignItems: "center",

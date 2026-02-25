@@ -89,14 +89,8 @@ const Profile = ({ navigation }) => {
     address: "",
   });
 
-  // Get notification count
-  let unreadCount = 0;
-  try {
-    const { notifications } = useNotifications();
-    unreadCount = notifications?.filter(n => !n.is_read)?.length || 0;
-  } catch (error) {
-    console.log('NotificationsProvider not available');
-  }
+  // Notification count from context (for any future header badge)
+  const { unreadCount } = useNotifications();
 
   // Fetch consumer details directly from /consumers/{identifier} once on mount
   useEffect(() => {
@@ -135,7 +129,7 @@ const Profile = ({ navigation }) => {
           return;
         }
 
-        // 1) Fetch consumer data for name/address/meter info
+
         const consumerEndpoint = API_ENDPOINTS.consumers.get(user.identifier);
         console.log("🔍 Profile fetching consumer details from:", consumerEndpoint);
         const consumerResult = await apiClient.request(consumerEndpoint, { method: "GET" });

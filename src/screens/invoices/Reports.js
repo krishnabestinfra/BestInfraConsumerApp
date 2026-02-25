@@ -5,6 +5,7 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
+import { useNotifications } from "../../context/NotificationsContext";
 import BottomNavigation from "../../components/global/BottomNavigation";
 import Menu from "../../../assets/icons/bars.svg";
 import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
@@ -26,6 +27,7 @@ import { isDemoUser, getDemoReportResponse, getDemoRecentReports } from "../../c
 
 const Reports = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
+  const { unreadCount } = useNotifications();
   const isFocused = useIsFocused();
   const [filterType, setFilterType] = useState("Daily Consumption");
   const [startDate, setStartDate] = useState(null);
@@ -332,13 +334,20 @@ const Reports = ({ navigation }) => {
         </View>
 
         <Pressable
-          style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
+          style={styles.bellWrapper}
           onPress={() => navigation.navigate("Notifications")}
         >
-          {isDark ? (
-            <NotificationWhite width={18} height={18} />
-          ) : (
-            <Notification width={18} height={18} fill="#202d59" />
+          <View style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}>
+            {isDark ? (
+              <NotificationWhite width={18} height={18} />
+            ) : (
+              <Notification width={18} height={18} fill="#202d59" />
+            )}
+          </View>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            </View>
           )}
         </Pressable>
       </View>
@@ -515,6 +524,31 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
     zIndex: 99,
+  },
+  bellWrapper: {
+    position: "relative",
+    overflow: "visible",
+  },
+  badge: {
+    position: "absolute",
+    right: -3,
+    top: -3,
+    backgroundColor: "red",
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#fff",
+    zIndex: 10,
+    elevation: 6,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: "Manrope-Regular",
   },
   logoWrapper: {
     alignItems: "center",
