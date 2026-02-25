@@ -13,6 +13,7 @@ import Tickets from "../tickets/Tickets";
 import Settings from "./Settings";
 import { BlurView } from "expo-blur";
 import { TabContext } from "../../context/TabContext";
+import { useNotifications } from "../../context/NotificationsContext";
 import SideMenuNavigation from "../../components/SideMenuNavigation";
 import Logo from "../../components/global/Logo";
 import { logoutUser, getUser } from "../../utils/storage";
@@ -54,6 +55,7 @@ const SkeletonField = ({ width = "70%", height = 14, style }) => {
 
 const SideMenu = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const { unreadCount } = useNotifications();
   const s14 = getScaledFontSize(14);
   const s11 = getScaledFontSize(11);
   const { activeItem, setActiveItem } = useContext(TabContext);
@@ -196,8 +198,15 @@ const SideMenu = ({ navigation }) => {
           {/* <BiLogo width={45} height={45} /> */}
           <Logo variant="white" size="medium" />
         </Pressable>
-        <Pressable style={styles.bellIcon} onPress={() => navigation.navigate("Notifications")}>
-          <Notification width={18} height={18} fill={COLORS.brandBlueColor} />
+        <Pressable style={styles.bellWrapper} onPress={() => navigation.navigate("Notifications")}>
+          <View style={styles.bellIcon}>
+            <Notification width={18} height={18} fill={COLORS.brandBlueColor} />
+          </View>
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
       {/* Profile Section - Clickable to navigate to Profile */}
@@ -358,6 +367,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 3,
+  },
+  bellWrapper: {
+    position: "relative",
+    overflow: "visible",
+  },
+  badge: {
+    position: "absolute",
+    right: -3,
+    top: -3,
+    backgroundColor: "red",
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#fff",
+    zIndex: 10,
+    elevation: 6,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: "Manrope-Regular",
   },
   MenuContainer: {
     flexDirection: "row",

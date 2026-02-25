@@ -9,6 +9,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
+import { useNotifications } from "../../context/NotificationsContext";
 import Table from "../../components/global/Table";
 import Menu from "../../../assets/icons/bars.svg";
 import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
@@ -28,6 +29,7 @@ import { formatFrontendDateTime, formatFrontendDate } from "../../utils/dateUtil
 
 const LsDataTable = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
+  const { unreadCount } = useNotifications();
   const { date, meterId, viewType: initialViewType, barData, consumerData } = route?.params || {};
   const [lsData, setLsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -335,13 +337,20 @@ const LsDataTable = ({ navigation, route }) => {
             <BiLogo width={45} height={45} />
           </Pressable>
           <Pressable
-            style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}
+            style={styles.bellWrapper}
             onPress={() => navigation.navigate("Notifications")}
           >
-            {isDark ? (
-              <NotificationWhite width={18} height={18} />
-            ) : (
-              <Notification width={18} height={18} fill="#202d59" />
+            <View style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}>
+              {isDark ? (
+                <NotificationWhite width={18} height={18} />
+              ) : (
+                <Notification width={18} height={18} fill="#202d59" />
+              )}
+            </View>
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              </View>
             )}
           </Pressable>
         </View>
@@ -496,6 +505,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     elevation: 5,
+  },
+  bellWrapper: {
+    position: "relative",
+    overflow: "visible",
+  },
+  badge: {
+    position: "absolute",
+    right: -3,
+    top: -3,
+    backgroundColor: "red",
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#fff",
+    zIndex: 10,
+    elevation: 6,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: "Manrope-Regular",
   },
   headerInfo: {
     padding: 20,

@@ -49,27 +49,31 @@ const notificationsReducer = (state, action) => {
         error: null
       };
 
-    case ActionTypes.SET_NOTIFICATIONS:
-      const notifications = action.payload || [];
-      const unreadCount = notifications.filter(n => !n.is_read).length;
-      const consumerUid = action.consumerUid || state.consumerUid;
+      case ActionTypes.SET_NOTIFICATIONS: {
+        const notifications = action.payload || [];
       
-      return {
-        ...state,
-        notifications,
-        unreadCount,
-        isLoading: false,
-        error: null,
-        lastFetchTime: Date.now(),
-        consumerNotifications: {
-          ...state.consumerNotifications,
-          [consumerUid]: {
-            notifications,
-            unreadCount,
-            lastFetchTime: Date.now()
+        // API uses boolean is_read
+        const unreadCount = notifications.filter(n => n.is_read === false).length;
+      
+        const consumerUid = action.consumerUid || state.consumerUid;
+        
+        return {
+          ...state,
+          notifications,
+          unreadCount,
+          isLoading: false,
+          error: null,
+          lastFetchTime: Date.now(),
+          consumerNotifications: {
+            ...state.consumerNotifications,
+            [consumerUid]: {
+              notifications,
+              unreadCount,
+              lastFetchTime: Date.now()
+            }
           }
-        }
-      };
+        };
+      }
 
     case ActionTypes.SET_ERROR:
       return {
@@ -85,7 +89,7 @@ const notificationsReducer = (state, action) => {
           : notification
       );
       
-      const updatedUnreadCount = updatedNotifications.filter(n => !n.is_read).length;
+      const updatedUnreadCount = updatedNotifications.filter(n => n.is_read === false).length;
       
       return {
         ...state,
