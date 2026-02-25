@@ -24,6 +24,7 @@ import * as tokenService from './tokenService';
 import { triggerSessionExpired } from '../utils/sessionExpiredHandler';
 import { getSchemaForEndpoint } from '../schemas/apiSchemaMap';
 import { reportApiLatency } from '../utils/performanceMonitor';
+import { apiLogger } from '../utils/logger';
 
 const REQUIRES_REAUTH_RESPONSE = {
   success: false,
@@ -34,56 +35,100 @@ const REQUIRES_REAUTH_RESPONSE = {
 
 class ApiClient {
   constructor() {
-    this.baseTimeout = 15000;
+    this.baseTimeout = 10000;
     this.maxRetries = 1;
     this.requestCache = new Map();
     this.pendingRequests = new Map();
     this.isRefreshing = false;
     this._requestQueue = [];
+    this._subscribers = new Map(); // endpoint → Set<callback>
+
+    this.CACHE_FRESH = 30_000;  // 0-30s: return cache, skip network
+    this.CACHE_STALE = 60_000;  // 30-60s: return cache, refresh in background
   }
 
   /**
-   * Make an authenticated API request with caching
+   * Subscribe to background refreshes for a cache key.
+   * Returns an unsubscribe function.
+   */
+  onCacheUpdate(cacheKey, callback) {
+    if (!this._subscribers.has(cacheKey)) this._subscribers.set(cacheKey, new Set());
+    this._subscribers.get(cacheKey).add(callback);
+    return () => this._subscribers.get(cacheKey)?.delete(callback);
+  }
+
+  _notifySubscribers(cacheKey, data) {
+    const subs = this._subscribers.get(cacheKey);
+    if (subs) subs.forEach(cb => { try { cb(data); } catch {} });
+  }
+
+  /**
+   * Make an authenticated API request with two-tier caching:
+   *  - Fresh (0-30s): return cached result, no network call.
+   *  - Stale (30-60s): return cached result immediately, trigger background refresh.
+   *  - Expired (>60s): normal network request.
    */
   async request(endpoint, options = {}) {
     const method = options.method || 'GET';
     const cacheKey = `${method}:${endpoint}`;
     const isMutation = method !== 'GET';
 
-    // Do not cache POST/PUT/DELETE - only cache GET
     if (!isMutation && this.requestCache.has(cacheKey)) {
       const cached = this.requestCache.get(cacheKey);
-      if (Date.now() - cached.timestamp < 30000) { // 30 second cache
-        console.log(`⚡ API: Cache hit for ${endpoint}`);
+      const age = Date.now() - cached.timestamp;
+
+      if (age < this.CACHE_FRESH) {
+        apiLogger.info('Cache hit (fresh) for', endpoint);
+        return cached.data;
+      }
+
+      if (age < this.CACHE_STALE) {
+        apiLogger.info('Cache hit (stale) for', endpoint, '— background refresh');
+        this._backgroundRefresh(endpoint, options, cacheKey);
         return cached.data;
       }
     }
 
-    // Return pending request if already in progress (GET only - mutations get a fresh request each time)
     if (!isMutation && this.pendingRequests.has(cacheKey)) {
-      console.log(`⚡ API: Reusing pending request for ${endpoint}`);
+      apiLogger.info('Reusing pending request for', endpoint);
       return this.pendingRequests.get(cacheKey);
     }
 
-    // Create new request
     const requestPromise = this._makeRequest(endpoint, options);
     this.pendingRequests.set(cacheKey, requestPromise);
 
     try {
       const result = await requestPromise;
-      
-      // Cache successful GET result only (never cache POST/PUT/DELETE)
+
       if (result.success && !isMutation) {
-        this.requestCache.set(cacheKey, {
-          data: result,
-          timestamp: Date.now()
-        });
+        this.requestCache.set(cacheKey, { data: result, timestamp: Date.now() });
       }
-      
+
       return result;
     } finally {
       this.pendingRequests.delete(cacheKey);
     }
+  }
+
+  /**
+   * Fire-and-forget network refresh that updates the in-memory cache
+   * and notifies any subscribers. Deduplicates with pending requests.
+   */
+  _backgroundRefresh(endpoint, options, cacheKey) {
+    if (this.pendingRequests.has(cacheKey)) return;
+
+    const promise = this._makeRequest(endpoint, options);
+    this.pendingRequests.set(cacheKey, promise);
+
+    promise
+      .then((result) => {
+        if (result.success) {
+          this.requestCache.set(cacheKey, { data: result, timestamp: Date.now() });
+          this._notifySubscribers(cacheKey, result);
+        }
+      })
+      .catch(() => {})
+      .finally(() => this.pendingRequests.delete(cacheKey));
   }
 
   /**
@@ -99,35 +144,42 @@ class ApiClient {
       retries = this.maxRetries,
       showLogs = true,
       skipAuth = false,
+      signal: externalSignal,
     } = options;
 
     try {
+      if (externalSignal?.aborted) {
+        return { success: false, error: 'Request cancelled', status: 0, isAborted: true };
+      }
+
       const token = skipAuth ? null : await authService.getValidAccessToken();
       const user = await getUser();
 
       if (showLogs) {
-        console.log(`🔄 API Request: ${method} ${endpoint}`);
-        console.log(`   Consumer: ${user?.identifier || 'unknown'}`);
-        console.log(`   Token present: ${!!token}`);
+        apiLogger.debug(method, endpoint, 'Consumer:', user?.identifier ? '[set]' : 'unknown', 'Token:', !!token);
         if (method === 'POST' && body) {
-          console.log(`   Request body:`, JSON.stringify(body, null, 2));
+          apiLogger.debug('Request body keys:', body ? Object.keys(body) : []);
         }
       }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+      if (externalSignal) {
+        externalSignal.addEventListener('abort', () => controller.abort(), { once: true });
+      }
+
       const tenantSubdomain = getTenantSubdomain ? getTenantSubdomain() : null;
       const requestHeaders = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Accept-Encoding': 'gzip, deflate',
         'Cache-Control': 'no-cache',
         ...(token && { 'Authorization': `Bearer ${token}` }),
         ...(tenantSubdomain && { 'X-Client': tenantSubdomain }),
         ...headers,
       };
 
-      // Make the request
       const response = await fetch(endpoint, {
         method,
         headers: requestHeaders,
@@ -138,8 +190,7 @@ class ApiClient {
       clearTimeout(timeoutId);
 
       if (showLogs) {
-        console.log(`   Response status: ${response.status}`);
-        console.log(`   Response headers:`, Object.fromEntries(response.headers.entries()));
+        apiLogger.debug('Response status', response.status);
       }
 
       // Handle different response statuses
@@ -175,7 +226,7 @@ class ApiClient {
       }
 
       if (showLogs) {
-        console.log('✅ API Response received:', parsed);
+        apiLogger.debug('Response received, success:', !!parsed?.data);
       }
 
       const responsePayload = {
@@ -194,11 +245,13 @@ class ApiClient {
       return responsePayload;
 
     } catch (error) {
-      console.error(`❌ API Request failed: ${method} ${endpoint}`, error);
+      apiLogger.error('Request failed', method, endpoint, error?.message || error);
       
-      // Handle different error types
       if (error.name === 'AbortError') {
-        console.error(`⏱️ Request timeout after ${timeout}ms: ${endpoint}`);
+        if (externalSignal?.aborted) {
+          return { success: false, error: 'Request cancelled', status: 0, isAborted: true };
+        }
+        apiLogger.warn('Request timeout', timeout, 'ms', endpoint);
         return {
           success: false,
           error: `Request timeout after ${Math.round(timeout / 1000)}s - the server may be slow. Please try again.`,
@@ -232,7 +285,7 @@ class ApiClient {
     try {
       const errorResponse = await response.json();
       errorDetails = errorResponse.message || errorResponse.error || '';
-      if (__DEV__) console.log('API Error Response', response.status, errorDetails);
+      if (__DEV__) apiLogger.debug('Error response', response.status, errorDetails);
     } catch (e) {}
 
     const errorMessage = `HTTP ${response.status}: ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`;
@@ -342,7 +395,7 @@ class ApiClient {
 
     if (response.status >= 500 && retries > 0) {
       // Server error - retry
-      console.log(`🔄 Retrying request (${retries} attempts left)...`);
+      apiLogger.info('Retrying request, attempts left:', retries);
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
       return this.request(endpoint, { ...originalOptions, retries: retries - 1 });
     }
@@ -355,14 +408,13 @@ class ApiClient {
   }
 
   /**
-   * Get consumer data
-   * Uses longer timeout since this endpoint can take longer to process
+   * Get consumer data — above-the-fold, fail fast so cache or error shows sooner
    */
   async getConsumerData(consumerId) {
     const endpoint = API_ENDPOINTS.consumers.get(consumerId);
     return this.request(endpoint, {
-      timeout: 30000, // 30 seconds timeout for consumer data
-      retries: 2, // Allow 2 retries for this important endpoint
+      timeout: 10000,
+      retries: 1,
     });
   }
 
@@ -376,7 +428,7 @@ class ApiClient {
   async getConsumerReport(identifier, startDate, endDate, reportType) {
     const endpoint = API_ENDPOINTS.consumers.report(identifier, startDate, endDate, reportType);
     return this.request(endpoint, {
-      timeout: 20000,
+      timeout: 12000,
       retries: 1,
     });
   }
@@ -420,8 +472,7 @@ class ApiClient {
   async createTicket(payload) {
     const endpoint = API_ENDPOINTS.tickets.create();
     if (__DEV__) {
-      console.log('🎫 Create ticket API:', endpoint);
-      console.log('🎫 Create ticket payload:', JSON.stringify(payload, null, 2));
+      apiLogger.debug('Create ticket', endpoint, 'payload keys:', payload ? Object.keys(payload) : []);
     }
     return this.request(endpoint, {
       method: 'POST',

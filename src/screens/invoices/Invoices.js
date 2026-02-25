@@ -1,44 +1,34 @@
-import { StyleSheet, Text, View, ScrollView, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated, Modal } from "react-native";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import { StyleSheet, Text, View, ScrollView, FlatList, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated, Modal } from "react-native";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
 import { getUser, getToken } from "../../utils/storage";
 import { API_ENDPOINTS } from "../../constants/constants";
-import {
-  getCachedConsumerData,
-  syncConsumerData,
-  fetchBillingHistory
-} from "../../services/apiService";
+import { fetchBillingHistory } from "../../services/apiService";
 import DashboardHeader from "../../components/global/DashboardHeader";
 import BottomNavigation from "../../components/global/BottomNavigation";
 import { handleViewBill } from "../../services/InvoicePDFService";
 import { WebView } from "react-native-webview";
 import { authService } from "../../services/authService";
 import { apiClient } from "../../services/apiClient";
-import { isDemoUser, getDemoConsumerCore, DEMO_INVOICES } from "../../constants/demoData";
+import { isDemoUser, DEMO_INVOICES } from "../../constants/demoData";
+import { useConsumer } from "../../context/ConsumerContext";
 import { formatFrontendDate } from "../../utils/dateUtils";
 import { getInvoiceDateValue } from "../../utils/billingUtils";
-import Menu from "../../../assets/icons/bars.svg";
-import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
-import Notification from "../../../assets/icons/notification.svg";
-import NotificationWhite from "../../../assets/icons/NotificationWhite.svg";
 import EyeIcon from "../../../assets/icons/eyeFill.svg";
-import Logo from "../../components/global/Logo";
-import AnimatedRings from "../../components/global/AnimatedRings";
 import { StatusBar } from "expo-status-bar";
 import FilterIcon from "../../../assets/icons/filter.svg";
 import NoInvoiceIcon from "../../../assets/icons/NoInvoice.svg";
+import {
+  INVOICE_LIST_SEPARATOR_HEIGHT,
+  SHIMMER_LIGHT,
+  SHIMMER_DARK,
+} from "./invoiceConstants";
+import { useInvoiceFilter } from "./useInvoiceFilter";
 
-const INVOICE_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "paid", label: "Paid" },
-  { key: "unpaid", label: "Unpaid" },
-];
-
-// Shimmer colors for light/dark theme (aligned with loadingManager)
-const SHIMMER_LIGHT = { base: "#e0e0e0", gradient: ["#e0e0e0", "#f5f5f5", "#e0e0e0"] };
-const SHIMMER_DARK = { base: "#3a3a3c", gradient: ["#3a3a3c", "rgba(255,255,255,0.06)", "#3a3a3c"] };
+/** Stable separator for FlatList so the list does not re-create it every render. */
+const InvoiceListSeparator = () => <View style={{ height: INVOICE_LIST_SEPARATOR_HEIGHT }} />;
 
 // Shimmer effect component for skeleton loading (theme-aware via baseColor/gradientColors)
 const Shimmer = ({ style, baseColor, gradientColors }) => {
@@ -419,115 +409,119 @@ const getPDFViewerHTML = (base64) => {
 `;
 };
 
+const InvoiceCardItem = React.memo(({ item, isDark, themeColors, onView, onShare, onPayNow, styles }) => {
+  const isPaid = item.isPaid;
+  return (
+    <View style={[styles.invoiceCard, isDark && { backgroundColor: "#1A1F2E" }]}>
+      <View style={styles.cardHeader}>
+        <Text style={[styles.invoiceIdText, isDark && { color: "#FFFFFF" }]}>{item.invoiceId}</Text>
+        <View style={[
+          styles.statusBadge,
+          isPaid ? styles.paidBadge : styles.unpaidBadge,
+          isDark && !isPaid && { backgroundColor: "rgba(255, 180, 0, 0.15)" },
+          isDark && isPaid && { backgroundColor: "rgba(85, 181, 108, 0.15)" },
+        ]}>
+          <Text style={[styles.statusText, isDark && { color: isPaid ? "#55B56C" : "#FFB400" }]}>
+            {isPaid ? "Paid" : "Unpaid"}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.datesContainer}>
+        <Text style={[styles.dateLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
+          Issued: {item.issuedDate}
+        </Text>
+        <Text style={[styles.dateLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
+          Due: {item.dueDate}
+        </Text>
+      </View>
+      <View style={[styles.detailsSection, isDark && { backgroundColor: "#1F2E34" }]}>
+        <View style={styles.detailItem}>
+          <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>Units Consumed</Text>
+          <Text style={[styles.detailValue, isDark && { color: "#FFFFFF" }]}>{item.unitsConsumed} kWh</Text>
+        </View>
+        <View style={styles.detailItem}>
+          <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>Amount Due</Text>
+          <Text style={[styles.detailValue, isDark && { color: "#FFFFFF" }]}>{item.amountDue}</Text>
+        </View>
+      </View>
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => isPaid ? onShare(item) : onPayNow(item)} activeOpacity={0.7}>
+          <Text style={styles.primaryButtonText}>{isPaid ? "Share" : "Pay Now"}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.secondaryButton, isDark && { backgroundColor: "#1A1F2E", borderColor: COLORS.secondaryColor }]}
+          onPress={() => onView(item)}
+          activeOpacity={0.7}
+        >
+          <EyeIcon width={16} height={16} fill={isDark ? "#FFFFFF" : COLORS.secondaryColor} />
+          <Text style={[styles.secondaryButtonText, isDark && { color: "#FFFFFF" }]}>View</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
 const Invoices = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
   const [invoiceCards, setInvoiceCards] = useState([]);
   const [filteredInvoiceCards, setFilteredInvoiceCards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [consumerData, setConsumerData] = useState(null);
+  const { consumerData, refreshConsumer } = useConsumer();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-  const [pendingStatusFilter, setPendingStatusFilter] = useState("all");
+  const filter = useInvoiceFilter();
+  const { statusFilter, pendingStatusFilter, setPendingStatusFilter, isFilterModalVisible, applyFilter, openFilterModal, closeFilterModal, filterOptions: INVOICE_FILTERS } = filter;
   const [pdfViewerBase64, setPdfViewerBase64] = useState(null);
   const [pdfViewerBillNumber, setPdfViewerBillNumber] = useState("");
 
-  // Fetch invoices and consumer data (or demo data if using demo credentials)
-  const fetchInvoices = useCallback(async () => {
+  const fetchInvoices = useCallback(async (signal) => {
     try {
-      setIsLoading(true);
       const user = await getUser();
-
-      if (!user || !user.identifier) {
-        setInvoiceCards([]);
-        return;
-      }
+      if (!user || !user.identifier) { setInvoiceCards([]); return; }
+      if (signal?.aborted) return;
 
       const identifier = user.identifier;
 
-      // DEMO MODE: use local demo invoices and consumer data
       if (isDemoUser(identifier)) {
-        const core = getDemoConsumerCore(identifier);
-        setConsumerData(core);
-
         const cards = transformInvoicesToCards(DEMO_INVOICES);
         setInvoiceCards(cards);
         setFilteredInvoiceCards(cards);
-
-        console.log("📄 Using demo invoices for:", identifier);
         setIsLoading(false);
         return;
       }
 
-      // Try to get cached consumer data first for instant UI population
-      const cachedResult = await getCachedConsumerData(identifier);
-      if (cachedResult.success && cachedResult.data) {
-        setConsumerData(cachedResult.data);
-      }
-
-      // Fetch latest consumer details for header context with access token
-      // Using apiClient for automatic token management and refresh
-      try {
-        const consumerEndpoint = API_ENDPOINTS.consumers.get(identifier);
-        const result = await apiClient.request(consumerEndpoint, {
-          method: 'GET',
-          showLogs: false, // Reduce logging for this call
-        });
-        
-        if (result.success && result.data) {
-          setConsumerData(result.data);
-          console.log('✅ Consumer data fetched successfully with access token');
-        } else {
-          console.warn('⚠️ Failed to fetch consumer data:', result.error || 'Unknown error');
-          // If authentication failed, apiClient would have attempted token refresh
-          if (result.requiresReauth) {
-            console.error('❌ Authentication required - user may need to login again');
-          }
-        }
-      } catch (consumerError) {
-        console.error('Error fetching consumer data:', consumerError);
-      }
-
-      // Fetch billing history for invoices cards
       const billingResult = await fetchBillingHistory(identifier);
+      if (signal?.aborted) return;
+
       if (billingResult.success) {
         if (billingResult.data && (Array.isArray(billingResult.data) ? billingResult.data.length > 0 : true)) {
-          // Normalize and sort invoices by date (newest first)
           const normalizedInvoices = normalizeBillingData(billingResult.data).sort(
             (a, b) => getInvoiceDateValue(b) - getInvoiceDateValue(a)
           );
           const cards = transformInvoicesToCards(normalizedInvoices);
           setInvoiceCards(cards);
           setFilteredInvoiceCards(cards);
-          console.log(`✅ Loaded ${normalizedInvoices.length} invoices`);
         } else {
-          // No billing data available
           setInvoiceCards([]);
-          if (billingResult.warning) {
-            console.warn('ℹ️', billingResult.message || 'No billing history available');
-          }
         }
       } else {
         console.error('Failed to fetch billing history:', billingResult.message);
         setInvoiceCards([]);
       }
-
-      // Background sync for consumer data
-      syncConsumerData(identifier).catch(error => {
-        console.error('Background sync failed:', error);
-      });
     } catch (error) {
+      if (error?.name === 'AbortError') return;
       console.error('Error fetching invoices:', error);
       setInvoiceCards([]);
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, []);
 
-  // Fetch data on component mount
   useEffect(() => {
-    fetchInvoices();
-  }, [fetchInvoices]);
+    refreshConsumer();
+    const controller = new AbortController();
+    fetchInvoices(controller.signal);
+    return () => controller.abort();
+  }, [fetchInvoices, refreshConsumer]);
 
   // Re-compute filtered cards whenever invoices or filter change
   useEffect(() => {
@@ -588,11 +582,11 @@ const Invoices = ({ navigation }) => {
     }
   }, [consumerData, fetchInvoiceData]);
 
-  const handlePayNow = (invoiceCard) => {
+  const handlePayNow = useCallback((invoiceCard) => {
     navigation.navigate('PostPaidRechargePayments', {
       invoiceData: invoiceCard._originalData
     });
-  };
+  }, [navigation]);
 
   // Handle invoice Share — opens share sheet (not viewer)
   const handleShare = useCallback(async (invoiceCard) => {
@@ -615,219 +609,119 @@ const Invoices = ({ navigation }) => {
     }
   }, [consumerData, fetchInvoiceData]);
 
-  const handleFilterPress = () => {
-    setPendingStatusFilter(statusFilter);
-    setIsFilterModalVisible(true);
-  };
+  const handleFilterPress = openFilterModal;
 
-  const renderInvoiceCard = (invoiceCard) => {
-    const isPaid = invoiceCard.isPaid;
-    
-    return (
-      <View
-        key={invoiceCard.id}
-        style={[
-          styles.invoiceCard,
-          isDark && { backgroundColor: "#1A1F2E" },
-        ]}
-      >
-        {/* Header with Invoice ID and Status */}
-        <View style={styles.cardHeader}>
-          <Text style={[styles.invoiceIdText, isDark && { color: "#FFFFFF" }]}>
-            {invoiceCard.invoiceId}
-          </Text>
-          <View style={[
-            styles.statusBadge,
-            isPaid ? styles.paidBadge : styles.unpaidBadge,
-            isDark && !isPaid && { backgroundColor: "rgba(255, 180, 0, 0.15)" },
-            isDark && isPaid && { backgroundColor: "rgba(85, 181, 108, 0.15)" },
+  const renderInvoiceItem = useCallback(({ item }) => (
+    <InvoiceCardItem
+      item={item} isDark={isDark} themeColors={themeColors} styles={styles}
+      onView={handleViewInvoice} onShare={handleShare} onPayNow={handlePayNow}
+    />
+  ), [isDark, themeColors, handleViewInvoice, handleShare, handlePayNow]);
+
+  const invoiceKeyExtractor = useCallback(
+    (item, index) => item.id || item.invoiceId || `inv-${index}`,
+    []
+  );
+
+  const listHeader = (
+    <>
+      <DashboardHeader
+        navigation={navigation}
+        variant="invoices"
+        showBalance={false}
+        showProfileSection={false}
+      />
+      <View style={styles.scrollBody}>
+        <View style={styles.pageHeader}>
+          <Text style={[
+            styles.pageTitle,
+            isDark && { color: themeColors.textPrimary ?? "#FFFFFF" },
           ]}>
-            <Text style={[
-              styles.statusText,
-              isDark && { color: isPaid ? "#55B56C" : "#FFB400" },
-            ]}>
-              {isPaid ? "Paid" : "Unpaid"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Dates */}
-        <View style={styles.datesContainer}>
-          <Text style={[styles.dateLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
-            Issued: {invoiceCard.issuedDate}
+            My Invoices
           </Text>
-          <Text style={[styles.dateLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
-            Due: {invoiceCard.dueDate}
-          </Text>
-        </View>
-
-        {/* Details Section */}
-        <View style={[
-          styles.detailsSection,
-          isDark && { backgroundColor: "#1F2E34" },
-        ]}>
-          <View style={styles.detailItem}>
-            <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
-              Units Consumed
-            </Text>
-            <Text style={[styles.detailValue, isDark && { color: "#FFFFFF" }]}>
-              {invoiceCard.unitsConsumed} kWh
-            </Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
-              Amount Due
-            </Text>
-            <Text style={[styles.detailValue, isDark && { color: "#FFFFFF" }]}>
-              {invoiceCard.amountDue}
-            </Text>
-          </View>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => isPaid ? handleShare(invoiceCard) : handlePayNow(invoiceCard)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.primaryButtonText}>{isPaid ? "Share" : "Pay Now"}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.secondaryButton,
-              isDark && {
-                backgroundColor: "#1A1F2E",
-                borderColor: COLORS.secondaryColor,
-              },
-            ]}
-            onPress={() => handleViewInvoice(invoiceCard)}
-            activeOpacity={0.7}
-          >
-            <EyeIcon width={16} height={16} fill={isDark ? "#FFFFFF" : COLORS.secondaryColor} />
-            <Text style={[
-              styles.secondaryButtonText,
-              isDark && { color: "#FFFFFF" },
-            ]}>
-              View
-            </Text>
-          </TouchableOpacity>
+          <Pressable style={styles.filterButton} onPress={handleFilterPress}>
+            <FilterIcon
+              width={24}
+              height={24}
+              fill={isDark ? "#FFFFFF" : "#151515"}
+            />
+          </Pressable>
         </View>
       </View>
-    );
-  };
+    </>
+  );
+
+  const emptyComponent = (
+    <View style={[
+      styles.emptyContainer,
+      isDark && { backgroundColor: "#1C1E26" },
+    ]}>
+      <View style={[
+        styles.emptyIconCircle,
+        isDark && { backgroundColor: "#1A1F2E" },
+      ]}>
+        <NoInvoiceIcon
+          width={28}
+          height={28}
+          fill={isDark ? themeColors?.textSecondary ?? "#9CA3AF" : "#BABECC"}
+        />
+      </View>
+      <Text style={[
+        styles.emptyTitle,
+        isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
+      ]}>
+        No Invoices Yet
+      </Text>
+      <Text style={[
+        styles.emptySubtitle,
+        isDark && { color: themeColors?.textSecondary ?? "#9CA3AF" },
+      ]}>
+        Your invoices will appear here once they are generated. Check back soon!
+      </Text>
+    </View>
+  );
+
+  const skeletonListEmpty = (
+    <View style={styles.skeletonCardsWrap}>
+      {[1, 2, 3].map((index) => (
+        <SkeletonInvoiceCard key={index} isDark={isDark} themeColors={themeColors} />
+      ))}
+    </View>
+  );
+
+  const listEmptyComponent = isLoading ? skeletonListEmpty : emptyComponent;
+  const containerStyle = useMemo(() => [styles.container, isDark && { backgroundColor: themeColors.screen }], [isDark, themeColors.screen]);
+  const scrollStyle = useMemo(() => [styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }], [isDark, themeColors.screen]);
+  const isListEmpty = isLoading || filteredInvoiceCards.length === 0;
+  const contentStyle = useMemo(() => isListEmpty ? [{ flexGrow: 1 }] : undefined, [isListEmpty]);
 
   return (
-    <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
+    <View style={containerStyle}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      <ScrollView
-        style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
-        contentContainerStyle={[
-          { paddingBottom: 130 },
-          !isLoading && filteredInvoiceCards.length === 0 && { flexGrow: 1 },
-        ]}
+      <FlatList
+        data={isLoading ? [] : filteredInvoiceCards}
+        keyExtractor={invoiceKeyExtractor}
+        renderItem={renderInvoiceItem}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmptyComponent}
+        ItemSeparatorComponent={InvoiceListSeparator}
+        contentContainerStyle={contentStyle}
+        style={scrollStyle}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isLoading}
-            onRefresh={fetchInvoices}
-            colors={[COLORS.secondaryColor]}
-            tintColor={COLORS.secondaryColor}
-          />
-        }
-      >
-        {/* Header (inside scroll so it scrolls with content) */}
-        <View style={styles.header}>
-          <Pressable
-            style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-            onPress={() => navigation.navigate("SideMenu")}
-          >
-            {isDark ? (
-              <MenuWhite width={18} height={18} />
-            ) : (
-              <Menu width={18} height={18} fill="#202d59" />
-            )}
-          </Pressable>
-
-          <View style={styles.logoWrapper}>
-            <AnimatedRings />
-            <Logo variant={isDark ? "white" : "blue"} size="medium" />
-          </View>
-
-          <Pressable
-            style={[styles.headerButton, isDark && { backgroundColor: '#1A1F2E' }]}
-            onPress={() => navigation.navigate("Notifications")}
-          >
-            {isDark ? (
-              <NotificationWhite width={18} height={18} />
-            ) : (
-              <Notification width={18} height={18} fill="#202d59" />
-            )}
-          </Pressable>
-        </View>
-
-        <View style={styles.scrollBody}>
-          {/* Page Title with Filter */}
-          <View style={styles.pageHeader}>
-            <Text style={[
-              styles.pageTitle,
-              isDark && { color: themeColors.textPrimary ?? "#FFFFFF" },
-            ]}>
-              My Invoices
-            </Text>
-            <Pressable style={styles.filterButton} onPress={handleFilterPress}>
-              <FilterIcon
-                width={24}
-                height={24}
-                fill={isDark ? "#FFFFFF" : "#151515"}
-              />
-            </Pressable>
-          </View>
-
-          {/* Invoice Cards */}
-          {isLoading ? (
-            <View style={styles.cardsContainer}>
-              {[1, 2, 3].map((index) => (
-                <SkeletonInvoiceCard key={index} isDark={isDark} themeColors={themeColors} />
-              ))}
-            </View>
-          ) : filteredInvoiceCards.length > 0 ? (
-            <View style={styles.cardsContainer}>
-              {filteredInvoiceCards.map(renderInvoiceCard)}
-            </View>
-          ) : (
-            <View style={[
-              styles.emptyContainer,
-              { flex: 1 },
-              isDark && { backgroundColor: "#1C1E26" },
-            ]}>
-              <View style={[
-                styles.emptyIconCircle,
-                isDark && { backgroundColor: "#1A1F2E" },
-              ]}>
-                <NoInvoiceIcon
-                  width={28}
-                  height={28}
-                  fill={isDark ? themeColors?.textSecondary ?? "#9CA3AF" : "#BABECC"}
-                />
-              </View>
-              <Text style={[
-                styles.emptyTitle,
-                isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
-              ]}>
-                No Invoices Yet
-              </Text>
-              <Text style={[
-                styles.emptySubtitle,
-                isDark && { color: themeColors?.textSecondary ?? "#9CA3AF" },
-              ]}>
-                Your invoices will appear here once they are generated. Check back soon!
-              </Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
+        // refreshControl={
+        //   <RefreshControl
+        //     refreshing={isLoading}
+        //     onRefresh={fetchInvoices}
+        //     colors={[COLORS.secondaryColor]}
+        //     tintColor={COLORS.secondaryColor}
+        //   />
+        // }
+      />
 
       {/* PDF Generation Overlay */}
       {isGeneratingPDF && (
@@ -882,7 +776,7 @@ const Invoices = ({ navigation }) => {
         <View style={styles.filterOverlay}>
           <Pressable
             style={styles.filterBackdrop}
-            onPress={() => setIsFilterModalVisible(false)}
+            onPress={closeFilterModal}
           />
           <View style={styles.filterCard}>
             <Text style={styles.filterTitle}>Filter invoices</Text>
@@ -915,10 +809,7 @@ const Invoices = ({ navigation }) => {
 
             <TouchableOpacity
               style={styles.filterApplyButton}
-              onPress={() => {
-                setStatusFilter(pendingStatusFilter);
-                setIsFilterModalVisible(false);
-              }}
+              onPress={applyFilter}
               activeOpacity={0.85}
             >
               <Text style={styles.filterApplyText}>Apply Filter</Text>
@@ -940,37 +831,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#EEF8F0",
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 75,
-    paddingBottom: 70,
-    paddingHorizontal: 16,
-  },
-  headerButton: {
-    backgroundColor: COLORS.secondaryFontColor,
-    width: 54,
-    height: 54,
-    borderRadius: 60,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  logoWrapper: {
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
   scrollContainer: {
     flex: 1,
   },
   scrollBody: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 26,
   },
   pageHeader: {
     flexDirection: "row",
@@ -1025,6 +890,7 @@ const styles = StyleSheet.create({
   filterBackdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.4)",
+    MarginHorizontal: 16,
   },
   filterCard: {
     width: "80%",
@@ -1125,8 +991,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     lineHeight: 20,
   },
-  cardsContainer: {
+  skeletonCardsWrap: {
     gap: 16,
+    marginHorizontal: 3,
   },
   invoiceCard: {
     backgroundColor: "#FFFFFF",
@@ -1137,6 +1004,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+    marginHorizontal: 16,
   },
   cardHeader: {
     flexDirection: "row",

@@ -390,7 +390,7 @@ const ConsumerGroupedBarChart = ({ viewType = "daily", timePeriod = "30D", data 
 
   if (loading) {
   return (
-    <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={12} />
+    <SkeletonLoader variant="barchart" style={{ marginVertical: 20 }} lines={6} />
   );
 }
 

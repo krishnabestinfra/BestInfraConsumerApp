@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Modal, Alert, ActivityIndicator, Share } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Modal, Alert, ActivityIndicator, Share, FlatList } from "react-native";
 import React, { useState, useEffect } from "react";
+import { useIsFocused } from "@react-navigation/native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { COLORS } from "../../constants/colors";
@@ -27,6 +28,7 @@ import { isDemoUser, getDemoReportResponse, getDemoRecentReports } from "../../c
 const Reports = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
   const { unreadCount } = useNotifications();
+  const isFocused = useIsFocused();
   const [filterType, setFilterType] = useState("Daily Consumption");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -327,7 +329,7 @@ const Reports = ({ navigation }) => {
         </Pressable>
 
         <View style={styles.logoWrapper}>
-          <AnimatedRings />
+          <AnimatedRings paused={!isFocused} />
           <Logo variant={isDark ? "white" : "blue"} size="medium" />
         </View>
 
@@ -463,25 +465,28 @@ const Reports = ({ navigation }) => {
         {/* Recent Reports Card */}
         <View style={styles.recentReportsCard}>
           <Text style={styles.recentReportsTitle}>Recent Reports</Text>
-          <View style={styles.reportsList}>
-            {recentReports.map((report) => (
-              <View key={report.id} style={styles.reportItem}>
+          <FlatList
+            data={recentReports}
+            scrollEnabled={false}
+            keyExtractor={(item) => String(item.id)}
+            renderItem={({ item: report }) => (
+              <View style={styles.reportItem}>
                 <View style={styles.reportItemLeft}>
                   <View style={styles.documentIcon}>
-                    {/* <Text style={styles.documentIconText}>📄</Text> */}
                     <DocumentIcon width={18} height={18} fill={COLORS.primaryFontColor} />
                   </View>
                   <Text style={styles.reportItemText}>{report.name}</Text>
                 </View>
-                <Pressable 
+                <Pressable
                   style={styles.shareButton}
                   onPress={() => handleShareReport(report)}
                 >
                   <ShareIcon width={18} height={18} fill={COLORS.primaryFontColor} />
                 </Pressable>
               </View>
-            ))}
-          </View>
+            )}
+            initialNumToRender={10}
+          />
         </View>
       </ScrollView>
       

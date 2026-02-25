@@ -20,6 +20,7 @@ import { API, API_ENDPOINTS } from "../constants/constants";
 import { setTenantSubdomain } from "../config/apiConfig";
 import { authService } from "../services/authService";
 import { apiClient } from "../services/apiClient";
+import { useConsumer } from "../context/ConsumerContext";
 import Button from "../components/global/Button";
 import Logo from "../components/global/Logo";
 import EmailLogin from "./EmailLogin";
@@ -32,6 +33,7 @@ const LOGO_CIRCLE_GRADIENT = ["#163b7c", "#1f3d6d", "#2a6f65", "#55b56c"];
 
 const Login = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const { refreshConsumer } = useConsumer();
   const s24 = getScaledFontSize(24);
   const s14 = getScaledFontSize(14);
   const [identifier, setIdentifier] = useState("");
@@ -115,6 +117,7 @@ const Login = ({ navigation }) => {
             {
               text: "Continue",
               onPress: () => {
+                refreshConsumer({ force: true });
                 navigation.reset({
                   index: 0,
                   routes: [{ name: "PostPaidDashboard" }],
@@ -219,6 +222,7 @@ const Login = ({ navigation }) => {
           console.warn("⚠️ Failed to register push token:", pushError);
         }
 
+        refreshConsumer({ force: true });
         navigation.reset({
           index: 0,
           routes: [{ name: "PostPaidDashboard" }],

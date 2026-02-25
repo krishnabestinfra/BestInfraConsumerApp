@@ -1,7 +1,7 @@
 import { StyleSheet, View, ActivityIndicator, BackHandler, ToastAndroid, Platform, AppState } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import * as Font from "expo-font";
 import { checkForAppUpdates } from "./src/utils/updateChecker";
 import Toast from 'react-native-toast-message';
@@ -11,41 +11,64 @@ import PushNotificationHandler from "./src/components/global/PushNotificationHan
 import { initializePushNotifications, checkAndShowPushChannelNotifications } from "./src/services/pushNotificationService";
 import { isRunningInExpoGo } from "./src/utils/expoGoDetect";
 
+// ── Critical path screens (loaded eagerly — Splash → Auth → Dashboard) ──
 import SplashScreen from "./src/splashScreen/SplashScreen";
 import OnBoarding from "./src/screens/OnBoarding";
 import Login from "./src/auth/Login";
-import Notifications from "./src/screens/account/Notifications";
-import Profile from "./src/screens/account/Profile";
-import SideMenu from "./src/screens/account/SideMenu";
-import Usage from "./src/screens/usage/Usage";
-import Payments from "./src/screens/recharge/Payments";
-import Transactions from "./src/screens/invoices/Transactions";
-import Tickets from "./src/screens/tickets/Tickets";
-import Settings from "./src/screens/account/Settings";
+import OTPLogin from "./src/auth/OTPLogin";
+import PostPaidDashboard from "./src/screens/dashboard/PostPaidDashboard";
+
 import { TabProvider } from "./src/context/TabContext";
 import { ThemeProvider } from "./src/context/ThemeContext";
 import { AppProvider } from "./src/context/AppContext";
 import { NotificationsProvider } from "./src/context/NotificationsContext";
 import { NavigationProvider } from "./src/context/NavigationContext";
 import { DataProvider } from "./src/context/DataContext";
-import ForgotPassword from "./src/auth/ForgotPassword";
-import OTPLogin from "./src/auth/OTPLogin";
-import ResetPassword from "./src/auth/ResetPassword";
-import GuestLogin from "./src/auth/GuestLogin";
-import TicketDetails from "./src/screens/tickets/TicketDetails";
-import ChatSupport from "./src/screens/tickets/ChatSupport";
-import PostPaidDashboard from "./src/screens/dashboard/PostPaidDashboard";
-import PostPaidRechargePayments from "./src/screens/recharge/PostPaidRechargePayments";
-import PaymentStatus from "./src/screens/recharge/PaymentStatus";
-import LsDataTable from "./src/screens/dashboard/LsDataTable";
-import Invoices from "./src/screens/invoices/Invoices";
-import Reports from "./src/screens/invoices/Reports";
-import TermsOfServicesScreen from "./src/screens/account/TermsOfServicesScreen";
-import PrivacyPolicyScreen from "./src/screens/account/PrivacyPolicyScreen";
+import { ConsumerProvider } from "./src/context/ConsumerContext";
 import Toastify from 'react-native-toast-message';
 import ErrorBoundary from "./src/components/global/ErrorBoundary";
+import { withScreenErrorBoundary } from "./src/components/global/withScreenErrorBoundary";
 import { initializeMonitoring } from "./src/config/monitoring";
 import { reportColdStart } from "./src/utils/performanceMonitor";
+
+// ── Lazy-loaded screens (deferred until first navigation) ──
+const LazyFallback = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+    <ActivityIndicator size="large" color={COLORS.secondaryColor} />
+  </View>
+);
+
+function lazyScreen(importFn) {
+  const Lazy = React.lazy(importFn);
+  return function LazyWrapper(props) {
+    return (
+      <Suspense fallback={<LazyFallback />}>
+        <Lazy {...props} />
+      </Suspense>
+    );
+  };
+}
+
+const ForgotPassword = lazyScreen(() => import("./src/auth/ForgotPassword"));
+const ResetPassword = lazyScreen(() => import("./src/auth/ResetPassword"));
+const GuestLogin = lazyScreen(() => import("./src/auth/GuestLogin"));
+const Notifications = lazyScreen(() => import("./src/screens/account/Notifications"));
+const Profile = lazyScreen(() => import("./src/screens/account/Profile"));
+const SideMenu = lazyScreen(() => import("./src/screens/account/SideMenu"));
+const Settings = lazyScreen(() => import("./src/screens/account/Settings"));
+const Usage = lazyScreen(() => import("./src/screens/usage/Usage"));
+const Payments = lazyScreen(() => import("./src/screens/recharge/Payments"));
+const PostPaidRechargePayments = lazyScreen(() => import("./src/screens/recharge/PostPaidRechargePayments"));
+const PaymentStatus = lazyScreen(() => import("./src/screens/recharge/PaymentStatus"));
+const Transactions = lazyScreen(() => import("./src/screens/invoices/Transactions"));
+const Invoices = lazyScreen(() => import("./src/screens/invoices/Invoices"));
+const Reports = lazyScreen(() => import("./src/screens/invoices/Reports"));
+const Tickets = lazyScreen(() => import("./src/screens/tickets/Tickets"));
+const TicketDetails = lazyScreen(() => import("./src/screens/tickets/TicketDetails"));
+const ChatSupport = lazyScreen(() => import("./src/screens/tickets/ChatSupport"));
+const LsDataTable = lazyScreen(() => import("./src/screens/dashboard/LsDataTable"));
+const TermsOfServicesScreen = lazyScreen(() => import("./src/screens/account/TermsOfServicesScreen"));
+const PrivacyPolicyScreen = lazyScreen(() => import("./src/screens/account/PrivacyPolicyScreen"));
 
 const Stack = createNativeStackNavigator();
 
@@ -110,17 +133,19 @@ export default function App() {
     initPushNotifications();
   }, []);
 
-  // Poll for PUSH-channel notifications from API (backend sends data only; we show as push)
+  // Poll for PUSH-channel notifications from API (backend sends data only; we show as push).
+  // Delay initial run so app can show Splash/Dashboard first; avoid fetching before user is ready.
   useEffect(() => {
     const runCheck = () => checkAndShowPushChannelNotifications().catch(() => {});
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') runCheck();
     });
     const interval = setInterval(runCheck, 2 * 60 * 1000);
-    runCheck();
+    const initialDelay = setTimeout(runCheck, 5000);
     return () => {
       subscription?.remove?.();
       clearInterval(interval);
+      clearTimeout(initialDelay);
     };
   }, []);
 
@@ -191,20 +216,13 @@ export default function App() {
     return () => backHandler.remove();
   }, []);
 
-  if (!fontsLoaded) {
-    return (
-      <View style={styles.container}>
-        <Logo variant="white" size="large" />
-        <ActivityIndicator size="large" color={COLORS.secondaryFontColor} style={styles.loader} />
-      </View>
-    );
-  }
-
+  // Don't block first paint on fonts: show app immediately (system fonts), then re-render when fonts load for smoother UX.
   return (
     <ErrorBoundary>
       <ThemeProvider>
         <AppProvider>
           <DataProvider>
+          <ConsumerProvider>
           <NavigationProvider>
             <NotificationsProvider>
               <TabProvider>
@@ -230,7 +248,7 @@ export default function App() {
           />
           <Stack.Screen
             name="Notifications"
-            component={Notifications}
+            component={withScreenErrorBoundary(Notifications)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
@@ -255,12 +273,12 @@ export default function App() {
           />
           <Stack.Screen
             name="Transactions"
-            component={Transactions}
+            component={withScreenErrorBoundary(Transactions)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
             name="Tickets"
-            component={Tickets}
+            component={withScreenErrorBoundary(Tickets)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
@@ -290,17 +308,17 @@ export default function App() {
           />
           <Stack.Screen
             name="TicketDetails"
-            component={TicketDetails}
+            component={withScreenErrorBoundary(TicketDetails)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
             name="ChatSupport"
-            component={ChatSupport}
+            component={withScreenErrorBoundary(ChatSupport)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
             name="PostPaidDashboard"
-            component={PostPaidDashboard}
+            component={withScreenErrorBoundary(PostPaidDashboard)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
@@ -320,12 +338,12 @@ export default function App() {
           />
           <Stack.Screen
             name="Invoices"
-            component={Invoices}
+            component={withScreenErrorBoundary(Invoices)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
             name="Reports"
-            component={Reports}
+            component={withScreenErrorBoundary(Reports)}
             options={{ headerShown: false }}
           />
           <Stack.Screen
@@ -345,6 +363,7 @@ export default function App() {
               </TabProvider>
             </NotificationsProvider>
           </NavigationProvider>
+          </ConsumerProvider>
           </DataProvider>
         </AppProvider>
       </ThemeProvider>

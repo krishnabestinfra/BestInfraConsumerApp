@@ -7,12 +7,13 @@ import Animated, {
   withTiming,
   withRepeat,
   interpolate,
+  cancelAnimation,
   Easing,
 } from "react-native-reanimated";
 
-const RING_COUNT = 20;
-const RING_DELAY = 800;
-const ANIMATION_DURATION = 5000;
+const RING_COUNT = 8;
+const RING_DELAY = 600;
+const ANIMATION_DURATION = 4000;
 const TOTAL_DURATION = RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION;
 
 const Ring = React.memo(({ index, progress }) => {
@@ -32,18 +33,23 @@ const Ring = React.memo(({ index, progress }) => {
 
 Ring.displayName = "Ring";
 
-const RippleEffect = ({ children }) => {
+const RippleEffect = ({ children, paused = false }) => {
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    progress.value = withRepeat(
-      withTiming(TOTAL_DURATION, {
-        duration: TOTAL_DURATION,
-        easing: Easing.inOut(Easing.ease),
-      }),
-      -1
-    );
-  }, [progress]);
+    if (paused) {
+      cancelAnimation(progress);
+      progress.value = 0;
+    } else {
+      progress.value = withRepeat(
+        withTiming(TOTAL_DURATION, {
+          duration: TOTAL_DURATION,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        -1
+      );
+    }
+  }, [paused, progress]);
 
   const rings = useMemo(
     () => Array.from({ length: RING_COUNT }, (_, i) => i),

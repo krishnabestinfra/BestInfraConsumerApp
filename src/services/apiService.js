@@ -438,10 +438,12 @@ export const fetchNotifications = async (uid, page = 1, limit = 10) => {
     }
 
     const url = API_ENDPOINTS.notifications.list(page, limit);
-    console.log('🔄 Fetching notifications:', { url, page, limit, tokenPresent: !!token });
+    if (__DEV__) {
+      console.log('🔄 Fetching notifications:', { url, page, limit, tokenPresent: !!token });
+    }
 
     const result = await apiClient.request(url, { method: 'GET', showLogs: false });
-    console.log('📬 Notifications API response status:', result.status);
+    if (__DEV__) console.log('📬 Notifications API response status:', result.status);
 
     if (result.status === 401) {
       console.warn('⚠️ 401 Unauthorized - token may be invalid or expired');
@@ -461,7 +463,9 @@ export const fetchNotifications = async (uid, page = 1, limit = 10) => {
     }
 
     const data = result.rawBody ?? result.data ?? result;
-    console.log('✅ Notifications API response:', { success: data?.success, notificationsCount: data?.data?.notifications?.length || 0, total: data?.data?.pagination?.total || 0 });
+    if (__DEV__) {
+      console.log('✅ Notifications API response:', { success: data?.success, notificationsCount: data?.data?.notifications?.length || 0, total: data?.data?.pagination?.total || 0 });
+    }
     if (data?.success && data?.data) {
       const notifications = data.data.notifications || [];
       return { success: true, data: { notifications, pagination: data.data.pagination || {} } };

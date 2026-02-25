@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback} from "react";
 import {
   View,
   Text,
   StyleSheet,
   Pressable,
-  ScrollView,
+  FlatList,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -18,8 +18,10 @@ import Animated, {
   withTiming,
   interpolate,
   runOnJS,
+  cancelAnimation,
 } from "react-native-reanimated";
 import { Easing } from "react-native-reanimated";
+import { useIsFocused } from "@react-navigation/native";
 import Menu from "../../../assets/icons/bars.svg";
 import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
 import Notification from "../../../assets/icons/notification.svg";
@@ -34,11 +36,11 @@ import { useNotifications } from "../../context/NotificationsContext";
 import { getUser } from "../../utils/storage";
 import ChatIcon from "../../../assets/icons/chatIcon.svg";
 
-const RING_COUNT = 20;
-const RING_DELAY = 800;
-const ANIMATION_DURATION = 5000;
+const RING_COUNT = 8;
+const RING_DELAY = 600;
+const ANIMATION_DURATION = 4000;
 const GAP_ABOVE_BOTTOM = 10;
-const BOTTOM_NAV_HEIGHT = 112;
+const BOTTOM_NAV_HEIGHT = 80;
 
 const Ring = ({ index, progress }) => {
   const ringStyle = useAnimatedStyle(() => {
@@ -63,14 +65,20 @@ const Ring = ({ index, progress }) => {
 const ChatSupport = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
   const { unreadCount } = useNotifications();
+  const isFocused = useIsFocused();
   const progress = useSharedValue(0);
   const scrollViewRef = useRef(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const { ticketId, ticketData } = route?.params || {};
 
-  const loopAnimation = () => {
+  const pausedRef = useRef(!isFocused);
+  pausedRef.current = !isFocused;
+
+  const loopAnimation = useCallback(() => {
+    if (pausedRef.current) return;
     progress.value = 0;
     progress.value = withTiming(
       RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
@@ -80,17 +88,38 @@ const ChatSupport = ({ navigation, route }) => {
       },
       () => runOnJS(loopAnimation)()
     );
-  };
+  }, [progress]);
 
   useEffect(() => {
-    loopAnimation();
-  }, []);
+    if (isFocused) {
+      loopAnimation();
+    } else {
+      cancelAnimation(progress);
+      progress.value = 0;
+    }
+  }, [isFocused, loopAnimation, progress]);
 
 
   useEffect(() => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: false });
     }, 100);
+  }, []);
+
+  // Track keyboard visibility so we can remove bottom gap when keyboard is open
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
   }, []);
 
   const handleSendMessage = () => {
@@ -141,12 +170,12 @@ const ChatSupport = ({ navigation, route }) => {
     navigation.goBack();
   };
 
-  const renderMessage = (msg) => {
+  const keyExtractor = useCallback((item) => String(item?.id ?? ""), []);
+  const renderItem = useCallback(({ item: msg }) => {
+    if (!msg) return null;
     const isSupport = msg.sender === "support";
-
     return (
       <View
-        key={msg.id}
         style={[
           styles.messageWrapper,
           isSupport ? styles.supportMessageWrapper : styles.userMessageWrapper,
@@ -176,13 +205,24 @@ const ChatSupport = ({ navigation, route }) => {
         </View>
       </View>
     );
-  };
+  }, []);
+
+  const scrollToEnd = useCallback(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: false });
+    }, 100);
+  }, []);
+  const onContentSizeChange = useCallback(() => {
+    scrollViewRef.current?.scrollToEnd({ animated: false });
+  }, []);
+
+  const bottomGapHeight = keyboardVisible ? 0 : BOTTOM_NAV_HEIGHT + GAP_ABOVE_BOTTOM;
 
   return (
     <KeyboardAvoidingView
       style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}
       behavior={Platform.OS === "ios" ? "padding" : "padding"}
-      keyboardVerticalOffset={GAP_ABOVE_BOTTOM}
+      keyboardVerticalOffset={0}
     >
       <StatusBar style={isDark ? "light" : "dark"} />
 
@@ -244,8 +284,11 @@ const ChatSupport = ({ navigation, route }) => {
 
       <View style={styles.chatAreaWrap}>
         <View style={[styles.whiteContainer, isDark && { backgroundColor: themeColors.screen }]}>
-          <ScrollView
+          <FlatList
             ref={scrollViewRef}
+            data={messages}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
             style={styles.messagesContainer}
             contentContainerStyle={styles.messagesContent}
             showsVerticalScrollIndicator={false}
@@ -256,11 +299,12 @@ const ChatSupport = ({ navigation, route }) => {
               }, 100);
             }}
             onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
-          >
-            {messages.map(renderMessage)}
-          </ScrollView>
+          />
 
-          <View style={styles.inputContainer}>
+          <View style={[
+            styles.inputContainer,
+            keyboardVisible && styles.inputContainerKeyboardVisible,
+          ]}>
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.textInput}
@@ -281,10 +325,12 @@ const ChatSupport = ({ navigation, route }) => {
             </View>
           </View>
         </View>
-        <View style={[styles.chatBottomGap, { height: BOTTOM_NAV_HEIGHT + GAP_ABOVE_BOTTOM }]} />
+        {!keyboardVisible && (
+          <View style={[styles.chatBottomGap, { height: bottomGapHeight }]} />
+        )}
       </View>
 
-      <BottomNavigation navigation={navigation} />
+      {!keyboardVisible && <BottomNavigation navigation={navigation} />}
 
     </KeyboardAvoidingView>
   );
@@ -368,7 +414,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 5,
     borderTopRightRadius: 5,
   },
-    gap: 10,
   chatHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
@@ -411,7 +456,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     overflow: "hidden",
     zIndex: 1,
-    elevation: 2,
+    elevation: 0.5,
   },
   chatBottomGap: {
     backgroundColor: "transparent",
@@ -490,6 +535,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     zIndex: 2,
     elevation: 3,
+  },
+  inputContainerKeyboardVisible: {
+    paddingBottom: 12,
   },
   inputWrapper: {
     flexDirection: "row",

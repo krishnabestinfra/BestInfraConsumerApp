@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -6,12 +6,13 @@ import Animated, {
   withTiming,
   interpolate,
   runOnJS,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { Easing } from 'react-native-reanimated';
 
-const RING_COUNT = 20;
-const RING_DELAY = 800;
-const ANIMATION_DURATION = 5000;
+const RING_COUNT = 8;
+const RING_DELAY = 600;
+const ANIMATION_DURATION = 4000;
 
 const Ring = ({ index, progress }) => {
   const ringStyle = useAnimatedStyle(() => {
@@ -33,10 +34,13 @@ const Ring = ({ index, progress }) => {
   return <Animated.View style={[styles.ring, ringStyle]} />;
 };
 
-const AnimatedRings = ({ style }) => {
+const AnimatedRings = ({ style, paused = false }) => {
   const progress = useSharedValue(0);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   const loopAnimation = useCallback(() => {
+    if (pausedRef.current) return;
     progress.value = 0;
     progress.value = withTiming(
       RING_DELAY * (RING_COUNT - 1) + ANIMATION_DURATION,
@@ -49,8 +53,13 @@ const AnimatedRings = ({ style }) => {
   }, [progress]);
 
   useEffect(() => {
-    loopAnimation();
-  }, [loopAnimation]);
+    if (paused) {
+      cancelAnimation(progress);
+      progress.value = 0;
+    } else {
+      loopAnimation();
+    }
+  }, [paused, loopAnimation, progress]);
 
   return (
     <View style={[styles.container, style]}>

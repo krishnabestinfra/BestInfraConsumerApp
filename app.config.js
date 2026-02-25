@@ -2,6 +2,12 @@
  * Expo app config. Loads environment-specific .env at build time only.
  * Injects apiBaseUrl, env, and Razorpay keys into extra. App code reads from config (Constants.expoConfig.extra).
  * No process.env in app bundle; only this file reads process.env (Node/build time).
+ *
+ * PRODUCTION (EAS) BUILDS: .env files are not available on EAS servers (they're gitignored).
+ * To avoid "Razorpay Key ID is required" in production, set EAS Secrets for the project:
+ *   - EXPO_PUBLIC_RAZORPAY_KEY_ID
+ *   - EXPO_PUBLIC_RAZORPAY_SECRET_KEY
+ * Then run a new production/preview build. See docs/EAS_PRODUCTION_RAZORPAY.md.
  */
 
 const path = require('path');
