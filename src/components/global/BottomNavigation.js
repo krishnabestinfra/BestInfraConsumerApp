@@ -150,7 +150,7 @@ const BottomNavigation = ({ navigation }) => {
           {navigationItems.map(renderNavigationItem)}
         </View>
       </View>
-      <View style={[styles.graySpacer, { backgroundColor: spacerBg }]} />
+      {/* <View style={[styles.graySpacer, { backgroundColor: spacerBg }]} /> */}
     </View>
   );
 };
@@ -165,9 +165,12 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.secondaryFontColor,
     borderTopWidth: 0.2,
-    borderTopColor: '#eee',
-    paddingTop: 4,
-    paddingBottom: 0,
+    borderTopColor: '#ddd',
+    height: 70,
+    justifyContent: 'center',
+    alignItems: 'center',
+    // paddingTop: 4,
+    // paddingBottom: 0,
   },
   graySpacer: {
     height: Platform.OS === 'ios' ? 24 : 20,

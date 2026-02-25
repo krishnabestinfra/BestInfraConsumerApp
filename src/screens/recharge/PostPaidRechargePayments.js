@@ -659,7 +659,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+    // paddingBottom: Platform.OS === 'ios' ? 40 : 30,
     paddingTop: 10,
     zIndex: 10,
     // backgroundColor: COLORS.secondaryFontColor,

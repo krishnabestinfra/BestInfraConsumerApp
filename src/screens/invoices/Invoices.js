@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, FlatList, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated, Modal } from "react-native";
+import { StyleSheet, Text, View, ScrollView, FlatList, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated, Modal, Button } from "react-native";
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../../constants/colors";
@@ -748,7 +748,7 @@ const Invoices = ({ navigation }) => {
             <Text style={[styles.pdfViewerTitle, isDark && { color: "#FFF" }]} numberOfLines={1}>
               {pdfViewerBillNumber || "Invoice"}
             </Text>
-            <TouchableOpacity
+          <TouchableOpacity
               style={styles.pdfViewerCloseBtn}
               onPress={() => setPdfViewerBase64(null)}
               activeOpacity={0.8}
@@ -1143,7 +1143,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 56,
+    paddingTop: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
@@ -1159,7 +1159,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     backgroundColor: COLORS.primaryColor,
-    borderRadius: 8,
+    borderRadius: 5,
   },
   pdfViewerCloseText: {
     fontSize: 15,

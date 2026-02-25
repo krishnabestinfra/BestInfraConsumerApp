@@ -46,6 +46,10 @@
       "eas": {
         "projectId": "4023ecc1-2e83-440b-85d7-dd31682d6465"
       }
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#ffffff",
+      "barStyle": "dark-content"
     }
   }
 }

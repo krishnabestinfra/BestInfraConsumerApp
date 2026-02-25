@@ -30,6 +30,7 @@ import ErrorBoundary from "./src/components/global/ErrorBoundary";
 import { withScreenErrorBoundary } from "./src/components/global/withScreenErrorBoundary";
 import { initializeMonitoring } from "./src/config/monitoring";
 import { reportColdStart } from "./src/utils/performanceMonitor";
+import NavigationBarController from "./src/core/system/NavigationBarController";
 
 // ── Lazy-loaded screens (deferred until first navigation) ──
 const LazyFallback = () => (
@@ -220,6 +221,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
+      <NavigationBarController />
         <AppProvider>
           <DataProvider>
           <ConsumerProvider>
