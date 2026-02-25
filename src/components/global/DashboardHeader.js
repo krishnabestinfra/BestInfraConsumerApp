@@ -154,11 +154,11 @@ const DashboardHeader = React.memo(({
           </View>
         </Pressable>
         
-        <Pressable
-          style={styles.bellWrapper}
-          onPress={() => rightIcon === 'back' ? navigation.goBack() : navigation.navigate('Notifications')}
-        >
-          <View style={[styles.bellIcon, iconWrapperBg && { backgroundColor: iconWrapperBg }]}>
+        <View style={styles.bellContainer}>
+          <Pressable
+            style={[styles.bellIcon, iconWrapperBg && { backgroundColor: iconWrapperBg }]}
+            onPress={() => rightIcon === 'back' ? navigation.goBack() : navigation.navigate('Notifications')}
+          >
             {rightIcon === 'back' ? (
               isDark ? (
                 <BackIconWhite width={20} height={20} />
@@ -168,13 +168,13 @@ const DashboardHeader = React.memo(({
             ) : (
               <NotificationIcon width={18} height={18} fill={isDark ? undefined : iconFill} />
             )}
-          </View>
+          </Pressable>
           {rightIcon !== 'back' && unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={[styles.badgeText, { fontSize: scaledBadge }]}>{unreadCount}</Text>
+            <View style={styles.badge} pointerEvents="none">
+              <Text style={[styles.badgeText, { fontSize: scaledBadge }]}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
             </View>
           )}
-        </Pressable>
+        </View>
       </View>
       
       {showProfileSection && (
@@ -252,23 +252,29 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
 
-  bellWrapper: {
-  position: 'relative',
-},
-badge: {
-  position: 'absolute',
-  right: -3,
-  top: -3,
-  backgroundColor: 'red',
-  width: 22,
-  height: 22,
-  borderRadius: 15,
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderWidth: 1,
-  borderColor: '#fff',
-  zIndex: 2,
-},
+  bellContainer: {
+    position: 'relative',
+    width: 66,
+    height: 66,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    backgroundColor: 'red',
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+    zIndex: 10,
+    elevation: 6,
+  },
 badgeText: {
   color: '#fff',
   fontSize: 10,
