@@ -32,23 +32,22 @@ const UploadInput = ({
   const s14 = getScaledFontSize(14);
   const s16 = getScaledFontSize(16);
 
-const handleUpload = async () => {
-  if (disabled) return;
+  const handleUpload = async () => {
+    if (disabled) return;
 
-  const hasPermission = await requestPermissions();
-  if (!hasPermission) return;
+    const hasPermission = await requestPermissions();
+    if (!hasPermission) return;
 
-  Alert.alert(
-    'Upload Image',
-    'Choose an option',
-    [
-      { text: 'Take a Photo', onPress: () => openCamera() },
-      { text: 'Choose from Library', onPress: () => openImageLibrary() },
-      { text: 'Cancel', style: 'cancel' }
-    ]
-  );
-};
-
+    Alert.alert(
+      'Upload Image',
+      'Choose an option',
+      [
+        { text: 'Take a Photo', onPress: () => openCamera() },
+        { text: 'Choose from Library', onPress: () => openImageLibrary() },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
 
   const removeFile = (index) => {
     if (disabled) return;
@@ -58,71 +57,70 @@ const handleUpload = async () => {
   };
 
   const requestPermissions = async () => {
-  if (disabled) return false;
+    if (disabled) return false;
 
-  const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
-  const libraryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
+    const libraryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-  if (cameraStatus.status !== 'granted' || libraryStatus.status !== 'granted') {
-    alert('Permissions for camera and library are required.');
-    return false;
-  }
-  return true;
-};
-
-const openCamera = async () => {
-  try {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      handleSelectedFiles(result.assets);
+    if (cameraStatus.status !== 'granted' || libraryStatus.status !== 'granted') {
+      alert('Permissions for camera and library are required.');
+      return false;
     }
-  } catch (error) {
-    console.log('Error opening camera:', error);
-    alert('An error occurred while accessing the camera.');
-  }
-};
+    return true;
+  };
 
-const openImageLibrary = async () => {
-  try {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: multiple,
-      quality: 1,
-    });
+  const openCamera = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      handleSelectedFiles(result.assets);
+      if (!result.canceled) {
+        handleSelectedFiles(result.assets);
+      }
+    } catch (error) {
+      console.log('Error opening camera:', error);
+      alert('An error occurred while accessing the camera.');
     }
-  } catch (error) {
-    console.log('Error opening library:', error);
-    alert('An error occurred while accessing the library.');
-  }
-};
+  };
 
-const handleSelectedFiles = (assets) => {
-  let selectedFiles = assets.map(asset => ({
-    uri: asset.uri,
-    name: asset.fileName || asset.uri.split('/').pop(),
-    type: asset.type || 'image/jpeg',
-    size: asset.fileSize || 0,
-  }));
+  const openImageLibrary = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: multiple,
+        quality: 1,
+      });
 
-  if (!multiple) {
-    selectedFiles = selectedFiles.slice(0, 1);
-  }
+      if (!result.canceled) {
+        handleSelectedFiles(result.assets);
+      }
+    } catch (error) {
+      console.log('Error opening library:', error);
+      alert('An error occurred while accessing the library.');
+    }
+  };
 
-  if (value.length + selectedFiles.length > maxFiles) {
-    alert(`You can upload up to ${maxFiles} files.`);
-    selectedFiles = selectedFiles.slice(0, maxFiles - value.length);
-  }
+  const handleSelectedFiles = (assets) => {
+    let selectedFiles = assets.map(asset => ({
+      uri: asset.uri,
+      name: asset.fileName || asset.uri.split('/').pop(),
+      type: asset.type || 'image/jpeg',
+      size: asset.fileSize || 0,
+    }));
 
-  onChange([...value, ...selectedFiles]);
-};
+    if (!multiple) {
+      selectedFiles = selectedFiles.slice(0, 1);
+    }
 
+    if (value.length + selectedFiles.length > maxFiles) {
+      alert(`You can upload up to ${maxFiles} files.`);
+      selectedFiles = selectedFiles.slice(0, maxFiles - value.length);
+    }
+
+    onChange([...value, ...selectedFiles]);
+  };
 
   const getContainerStyle = () => {
     const baseStyle = [styles.inputContainer, styles[`${variant}Container`], styles[size]];
@@ -173,12 +171,13 @@ const handleSelectedFiles = (assets) => {
       >
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <UploadClipIcon width={20} height={20} fill={isDark ? "#FFFFFF" : "#6B7280"} stroke={isDark ? "#FFFFFF" : "#6B7280"} />
+            {/* ✅ ONLY CHANGE: removed stroke to avoid odd/double outline */}
+            <UploadClipIcon width={20} height={20} fill="none" stroke={isDark ? "#FFFFFF" : "#6B7280"} />
           </View>
           
           <View style={styles.textContainer}>
-<Text style={[getTextStyle(), { fontSize: size === 'large' ? s16 : size === 'small' ? s12 : s14 }]}>
-            {value.length > 0 
+            <Text style={[getTextStyle(), { fontSize: size === 'large' ? s16 : size === 'small' ? s12 : s14 }]}>
+              {value.length > 0 
                 ? `${value.length} file${value.length > 1 ? 's' : ''} selected`
                 : placeholder
               }
@@ -201,7 +200,6 @@ const handleSelectedFiles = (assets) => {
         </View>
       </TouchableOpacity>
 
-      {/* Selected files preview */}
       {value.length > 0 && (
         <View style={styles.filesPreview}>
           {value.map((file, index) => (
@@ -254,9 +252,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderStyle: 'dashed',
-    // backgroundColor:"red"
   },
-  // Variant styles
   defaultContainer: {
     borderWidth: Platform.OS === 'ios' ? 0.4 : 1,
     borderColor: '#F8F8F8',
@@ -270,7 +266,6 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     backgroundColor: '#f5f5f5',
   },
-  // Size styles
   small: {
     minHeight: 40,
   },
@@ -308,7 +303,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: '#6E6E6E',
-    fontSize:14,
+    fontSize: 14,
   },
   fileNames: {
     fontSize: 12,
@@ -320,15 +315,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    // backgroundColor: COLORS.primaryColor,
   },
   browseButtonText: {
     color: COLORS.secondaryColor,
     fontSize: 14,
-    // fontWeight:"600",
     fontFamily: 'Manrope-Bold',
   },
-  // Files preview
   filesPreview: {
     marginTop: 8,
   },
@@ -365,14 +357,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Disabled styles
   disabledContainer: {
     opacity: 0.6,
   },
   disabledText: {
     opacity: 0.6,
   },
-  // Error styles
   errorContainer: {
     borderColor: '#ff4444',
   },
