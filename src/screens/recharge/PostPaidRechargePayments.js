@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryColor,
   },
   amountInputOverdue: {
-    color: '#FF0000',
+    color: '#9b9b9b',
     fontWeight: '600',
   },
   loadingContainer: {
