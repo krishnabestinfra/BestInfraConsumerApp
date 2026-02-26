@@ -100,22 +100,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "bold",
-    color: COLORS.primaryFontColor,
+    color: COLORS.primaryFontColor, // ✅ Primary
     textAlign: "center",
     marginBottom: 12,
   },
   ticketNumber: {
     fontSize: 15,
-    color: COLORS.primaryFontColor,
+    color: "#707070", // ✅ Secondary
     textAlign: "center",
     marginBottom: 6,
   },
   subtext: {
     fontSize: 14,
-    color: COLORS.primaryFontColor,
+    color: "#707070", // ✅ Secondary
     textAlign: "center",
     marginBottom: 40,
-    opacity: 0.9,
   },
   actions: {
     width: "100%",
@@ -136,7 +135,7 @@ const styles = StyleSheet.create({
   },
   returnLinkText: {
     fontSize: 15,
-    color: COLORS.primaryColor,
+    color: COLORS.primaryColor, // ✅ Action stays prominent
     fontWeight: "500",
   },
 });
