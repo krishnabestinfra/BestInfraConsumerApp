@@ -29,17 +29,17 @@ const loginSchema = z.object({
 });
 
 const LoginForm = ({
-  email,
-  setEmail,
-  password,
-  setPassword,
-  checked,
-  setChecked,
-  handleLogin,
+  email = "",
+  setEmail = () => {},
+  password = "",
+  setPassword = () => {},
+  checked = false,
+  setChecked = () => {},
+  handleLogin = async () => {},
   navigation,
   isLoading = false,
-  loginError,
-  setLoginError,
+  loginError = "",
+  setLoginError = () => {},
 }) => {
   const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const s14 = getScaledFontSize(14);
@@ -51,8 +51,8 @@ const LoginForm = ({
   const [hasAnyInput, setHasAnyInput] = useState(false);
 
   useEffect(() => {
-    const hasIdentifier = email && email.trim().length > 0;
-    const hasPassword = password && password.trim().length > 0;
+    const hasIdentifier = (email ?? "").trim().length > 0;
+    const hasPassword = (password ?? "").trim().length > 0;
     setHasAnyInput(hasIdentifier && hasPassword);
   }, [email, password]);
 
@@ -83,10 +83,13 @@ const LoginForm = ({
       }
       return null;
     } catch (error) {
-      if (error instanceof z.ZodError) {
+      if (error instanceof z.ZodError && error.errors?.length) {
         return error.errors[0].message;
       }
-      return "Invalid input";
+    
+      return field === "identifier"
+        ? "Please enter a valid UID"
+        : "Please enter a valid password";
     }
   };
 
@@ -148,8 +151,8 @@ const LoginForm = ({
           variant="default"
           size="medium"
           style={styles.inputContainer}
-          error={touched.identifier ? errors.identifier : null}
-          hasErrorBorder={!!loginError || !!(touched.identifier && errors.identifier)}
+          error={touched?.identifier ? errors?.identifier ?? null : null}
+          hasErrorBorder={!!loginError || !!(touched?.identifier && errors?.identifier)}
           rightIcon={
             <User 
               width={20} 
@@ -170,8 +173,8 @@ const LoginForm = ({
           variant="default"
           size="medium"
           style={styles.inputContainer}
-          error={touched.password ? errors.password : null}
-          hasErrorBorder={!!loginError || !!(touched.password && errors.password)}
+          error={touched?.password ? errors?.password ?? null : null}
+          hasErrorBorder={!!loginError || !!(touched?.password && errors?.password)}
           rightIcon={
             <Pressable onPress={togglePasswordVisibility} disabled={isLoading}>
               <View style={styles.eyeIconContainer}>

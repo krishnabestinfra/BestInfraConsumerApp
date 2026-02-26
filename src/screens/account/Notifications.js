@@ -319,12 +319,13 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 25,
     paddingTop: 10,
+    marginBottom: 30,
   },
   listEmptyContent: {
     flexGrow: 1,
   },
   itemSeparator: {
-    height: 12,
+    // height: 12,
   },
   loadingContainer: {
     flex: 1,
