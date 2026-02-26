@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
-import DropdownIcon from '../../../assets/icons/dropdownArrow.svg';
+import DropdownIcon from '../../../assets/icons/dropDown.svg';
 
 const SelectDropdown = ({
   label,

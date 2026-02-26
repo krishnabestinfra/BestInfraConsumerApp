@@ -173,7 +173,7 @@ const handleSelectedFiles = (assets) => {
       >
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <UploadClipIcon width={20} height={20} fill={isDark ? "#FFFFFF" : "#6B7280"} stroke={isDark ? "#FFFFFF" : "#6B7280"} />
+            <UploadClipIcon width={20} height={20} stroke={isDark ? "#FFFFFF" : "#6B7280"} />
           </View>
           
           <View style={styles.textContainer}>

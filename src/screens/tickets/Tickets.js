@@ -63,6 +63,7 @@ const SkeletonTicketBox = ({ isDark, styles }) => {
 };
 import TicketSuccessModal from "../../components/global/TicketSuccessModal";
 import { isDemoUser, DEMO_TICKET_STATS, DEMO_TICKETS } from "../../constants/demoData";
+import { useScreenTiming } from "../../utils/useScreenTiming";
 
 const STALE_THRESHOLD = 120000; // 2 minutes
 
@@ -108,6 +109,10 @@ const Tickets = ({ navigation }) => {
   const [createdTicket, setCreatedTicket] = useState(null);
 
   const abortRef = useRef(null);
+  const { onLayout: onScreenLayout } = useScreenTiming('Tickets', {
+    isLoading: statsLoading || tableLoading,
+    dataReady: !statsLoading && !tableLoading,
+  });
 
   const fetchData = useCallback(async (forceRefreshTickets = false, signal) => {
     try {
@@ -242,7 +247,7 @@ const Tickets = ({ navigation }) => {
   }, [navigation]);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onScreenLayout}>
 
       <ScrollView
         style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}

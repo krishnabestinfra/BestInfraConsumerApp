@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 5,
     fontFamily: 'Manrope-Medium',
   },
   // Size variants

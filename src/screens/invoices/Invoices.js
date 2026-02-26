@@ -17,6 +17,7 @@ import { useConsumer } from "../../context/ConsumerContext";
 import { formatFrontendDate } from "../../utils/dateUtils";
 import { getInvoiceDateValue } from "../../utils/billingUtils";
 import EyeIcon from "../../../assets/icons/eyeFill.svg";
+import Logo from "../../components/global/Logo";
 import { StatusBar } from "expo-status-bar";
 import FilterIcon from "../../../assets/icons/filter.svg";
 import NoInvoiceIcon from "../../../assets/icons/NoInvoice.svg";
@@ -26,9 +27,30 @@ import {
   SHIMMER_DARK,
 } from "./invoiceConstants";
 import { useInvoiceFilter } from "./useInvoiceFilter";
+import { useScreenTiming } from "../../utils/useScreenTiming";
 
 /** Stable separator for FlatList so the list does not re-create it every render. */
 const InvoiceListSeparator = () => <View style={{ height: INVOICE_LIST_SEPARATOR_HEIGHT }} />;
+
+/** Circular spinner with logo in center — used for PDF generation overlay */
+const PdfLoadingSpinner = () => {
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(spinAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [spinAnim]);
+  const rotate = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+  return (
+    <Animated.View style={[styles.pdfSpinnerRing, { transform: [{ rotate }] }]} />
+  );
+};
 
 // Shimmer effect component for skeleton loading (theme-aware via baseColor/gradientColors)
 const Shimmer = ({ style, baseColor, gradientColors }) => {
@@ -472,6 +494,10 @@ const Invoices = ({ navigation }) => {
   const { statusFilter, pendingStatusFilter, setPendingStatusFilter, isFilterModalVisible, applyFilter, openFilterModal, closeFilterModal, filterOptions: INVOICE_FILTERS } = filter;
   const [pdfViewerBase64, setPdfViewerBase64] = useState(null);
   const [pdfViewerBillNumber, setPdfViewerBillNumber] = useState("");
+  const { onLayout: onScreenLayout } = useScreenTiming('Invoices', {
+    isLoading,
+    dataReady: !isLoading,
+  });
 
   const fetchInvoices = useCallback(async (signal) => {
     try {
@@ -696,7 +722,7 @@ const Invoices = ({ navigation }) => {
   const contentStyle = useMemo(() => isListEmpty ? [{ flexGrow: 1 }] : undefined, [isListEmpty]);
 
   return (
-    <View style={containerStyle}>
+    <View style={containerStyle} onLayout={onScreenLayout}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <FlatList
@@ -727,11 +753,12 @@ const Invoices = ({ navigation }) => {
       {isGeneratingPDF && (
         <View style={styles.pdfOverlay}>
           <View style={styles.pdfOverlayContent}>
-            <ActivityIndicator
-              size="large"
-              color={COLORS.primaryColor}
-              style={styles.loadingGif}
-            />
+            <View style={styles.pdfSpinnerWrapper}>
+              <PdfLoadingSpinner />
+              <View style={styles.pdfLogoCenter}>
+                <Logo variant="blue" width={34} height={34} />
+              </View>
+            </View>
             <Text style={styles.pdfOverlayText}>Generating Invoice PDF...</Text>
           </View>
         </View>
@@ -1128,6 +1155,27 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
+  pdfSpinnerWrapper: {
+    width: 72,
+    height: 72,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pdfSpinnerRing: {
+    position: "absolute",
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3,
+    borderTopColor: COLORS.primaryColor,
+    borderRightColor: COLORS.primaryColor,
+    borderBottomColor: COLORS.primaryColor,
+    borderLeftColor: "transparent",
+  },
+  pdfLogoCenter: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   pdfOverlayText: {
     marginTop: 16,
     fontSize: 15,
@@ -1174,8 +1222,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   loadingGif: {
-    width: 140,
-    height: 140,
+    width: 20,
+    height: 20,
   },
   loadingText: {
     fontSize: 16,

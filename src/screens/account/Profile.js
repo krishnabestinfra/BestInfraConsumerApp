@@ -341,11 +341,8 @@ const Profile = ({ navigation }) => {
         <Pressable
           style={({ pressed }) => [
             styles.barsIcon,
-            isDark && { backgroundColor: '#1A1F2E' },
-            pressed && styles.buttonPressed
-          ]}
+            isDark && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.navigate("SideMenu")}
-          android_ripple={{ color: 'rgba(0,0,0,0.15)', borderless: false, radius: 27 }}
         >
           {isDark ? (
             <MenuWhite width={18} height={18} />
@@ -357,10 +354,8 @@ const Profile = ({ navigation }) => {
         <Pressable
           style={({ pressed }) => [
             styles.logoWrapper,
-            pressed && styles.logoPressed
           ]}
           onPress={() => navigation.navigate("PostPaidDashboard")}
-          android_ripple={{ color: 'rgba(85,181,108,0.2)', borderless: false, radius: 40 }}
         >
           <Logo variant={isDark ? "white" : "blue"} size="medium" />
         </Pressable>
@@ -388,180 +383,180 @@ const Profile = ({ navigation }) => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-      <ScrollView
-        ref={scrollViewRef}
-        style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
-        contentContainerStyle={[styles.scrollContent, isEditing && { paddingBottom: 0 }]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
-        {/* Profile Photo Section */}
-        <View style={styles.profilePhotoSection}>
-          {isEditing ? (<>
-            <TouchableOpacity
-              style={styles.profilePhotoWrapper}
-              onPress={handleChangePhoto}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={profileImage ? { uri: profileImage } : require("../../../assets/images/profile.jpg")}
-                style={styles.profilePhoto}
-              />
-              <View style={styles.cameraIconWrapper}>
-                <CameraIcon width={14} height={14} fill="#FFFFFF" />
-              </View>
-            </TouchableOpacity>
-            {/* <Text style={styles.changePhotoText}>Tap to change photo</Text> */}
+        <ScrollView
+          ref={scrollViewRef}
+          style={[styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }]}
+          contentContainerStyle={[styles.scrollContent, isEditing && { paddingBottom: 0 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          {/* Profile Photo Section */}
+          <View style={styles.profilePhotoSection}>
+            {isEditing ? (<>
+              <TouchableOpacity
+                style={styles.profilePhotoWrapper}
+                onPress={handleChangePhoto}
+                activeOpacity={0.8}
+              >
+                <Image
+                  source={profileImage ? { uri: profileImage } : require("../../../assets/images/profile.jpg")}
+                  style={styles.profilePhoto}
+                />
+                <View style={styles.cameraIconWrapper}>
+                  <CameraIcon width={14} height={14} fill="#FFFFFF" />
+                </View>
+              </TouchableOpacity>
+              {/* <Text style={styles.changePhotoText}>Tap to change photo</Text> */}
             </>) : (<><Image
               source={profileImage ? { uri: profileImage } : require("../../../assets/images/profile.jpg")}
               style={styles.profilePhoto}
             /></>)}
 
-        </View>
-
-        {/* Main Content Card */}
-        <View style={styles.contentCard}>
-          {/* Account Information Section */}
-
-          <View>
-            <View style={styles.accountInfoSection}>
-              <Text style={styles.accountInfoTitle}>Account Information</Text>
-            </View>
-            <View style={styles.accountInfoContent}>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Consumer ID</Text>
-                {isLoading ? (
-                  <SkeletonField width="55%" height={14} />
-                ) : (
-                  <Text style={styles.infoValue}>{safeDisplay(userData.consumerId)}</Text>
-                )}
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Meter Number</Text>
-                {isLoading ? (
-                  <SkeletonField width="50%" height={14} />
-                ) : (
-                  <Text style={styles.infoValue}>{safeDisplay(userData.meterNumber)}</Text>
-                )}
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Connection Type</Text>
-                {isLoading ? (
-                  <SkeletonField width="45%" height={14} />
-                ) : (
-                  <Text style={styles.infoValue}>{safeDisplay(userData.connectionType)}</Text>
-                )}
-              </View>
-            </View>
           </View>
 
-          {/* Editable Fields */}
-          <View style={styles.fieldsContainer}>
-            {/* Full Name - not editable (direct from API) */}
-            <View style={styles.fieldWrapper}>
-              {isLoading ? (
-                <View style={styles.skeletonFieldInner}>
-                  <SkeletonField width="65%" height={14} />
-                </View>
-              ) : (
-                <Text style={styles.fieldValue}>{safeDisplay(userData.name)}</Text>
-              )}
-            </View>
+          {/* Main Content Card */}
+          <View style={styles.contentCard}>
+            {/* Account Information Section */}
 
-            {/* Mobile Number */}
-            <View style={styles.fieldWrapper}>
-              {isLoading ? (
-                <View style={styles.skeletonFieldInner}>
-                  <SkeletonField width="55%" height={14} />
-                </View>
-              ) : isEditing ? (
-                <TextInput
-                  style={styles.input}
-                  value={editData.mobile}
-                  onChangeText={(text) => setEditData(prev => ({ ...prev, mobile: text }))}
-                  placeholder="Mobile Number"
-                  placeholderTextColor="#9CA3AF"
-                  keyboardType="phone-pad"
-                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)}
-                />
-              ) : (
-                <Text style={styles.fieldValue}>{safeDisplay(userData.mobile)}</Text>
-              )}
-            </View>
-
-            {/* Email */}
-            <View style={styles.fieldWrapper}>
-              {isLoading ? (
-                <View style={styles.skeletonFieldInner}>
-                  <SkeletonField width="70%" height={14} />
-                </View>
-              ) : isEditing ? (
-                <TextInput
-                  style={styles.input}
-                  value={editData.email}
-                  onChangeText={(text) => setEditData(prev => ({ ...prev, email: text }))}
-                  placeholder="Email"
-                  placeholderTextColor="#9CA3AF"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)}
-                />
-              ) : (
-                <Text style={styles.fieldValue}>{safeDisplay(userData.email)}</Text>
-              )}
-            </View>
-
-            {/* Address (read-only, not editable) */}
-            <View style={styles.fieldWrapper}>
-              {isLoading ? (
-                <View style={[styles.skeletonFieldInner, { flexDirection: "column", gap: 6 }]}>
-                  <SkeletonField width="90%" height={14} />
-                  <SkeletonField width="75%" height={14} />
-                </View>
-              ) : (
-                <Text style={styles.fieldValue}>{safeDisplay(userData.address)}</Text>
-              )}
-            </View>
-          </View>
-
-          {/* Buttons */}
-          <View style={styles.buttonContainer}>
-            {isEditing ? (
-              <View style={styles.editButtonsRow}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={handleCancelPress}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.saveButton}
-                  onPress={handleSaveChanges}
-                  activeOpacity={0.8}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+            <View>
+              <View style={styles.accountInfoSection}>
+                <Text style={styles.accountInfoTitle}>Account Information</Text>
+              </View>
+              <View style={styles.accountInfoContent}>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Consumer ID</Text>
+                  {isLoading ? (
+                    <SkeletonField width="55%" height={14} />
                   ) : (
-                    <Text style={styles.saveButtonText}>Save</Text>
+                    <Text style={styles.infoValue}>{safeDisplay(userData.consumerId)}</Text>
                   )}
-                </TouchableOpacity>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Meter Number</Text>
+                  {isLoading ? (
+                    <SkeletonField width="50%" height={14} />
+                  ) : (
+                    <Text style={styles.infoValue}>{safeDisplay(userData.meterNumber)}</Text>
+                  )}
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Connection Type</Text>
+                  {isLoading ? (
+                    <SkeletonField width="45%" height={14} />
+                  ) : (
+                    <Text style={styles.infoValue}>{safeDisplay(userData.connectionType)}</Text>
+                  )}
+                </View>
               </View>
-            ) : (
-              <TouchableOpacity
-                style={[styles.editProfileButton, isLoading && styles.editButtonDisabled]}
-                onPress={handleEditPress}
-                activeOpacity={0.8}
-                disabled={isLoading}
-              >
-                <Text style={styles.editProfileButtonText}>Edit Profile</Text>
-              </TouchableOpacity>
-            )}
+            </View>
+
+            {/* Editable Fields */}
+            <View style={styles.fieldsContainer}>
+              {/* Full Name - not editable (direct from API) */}
+              <View style={styles.fieldWrapper}>
+                {isLoading ? (
+                  <View style={styles.skeletonFieldInner}>
+                    <SkeletonField width="65%" height={14} />
+                  </View>
+                ) : (
+                  <Text style={styles.fieldValue}>{safeDisplay(userData.name)}</Text>
+                )}
+              </View>
+
+              {/* Mobile Number */}
+              <View style={styles.fieldWrapper}>
+                {isLoading ? (
+                  <View style={styles.skeletonFieldInner}>
+                    <SkeletonField width="55%" height={14} />
+                  </View>
+                ) : isEditing ? (
+                  <TextInput
+                    style={styles.input}
+                    value={editData.mobile}
+                    onChangeText={(text) => setEditData(prev => ({ ...prev, mobile: text }))}
+                    placeholder="Mobile Number"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="phone-pad"
+                    onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)}
+                  />
+                ) : (
+                  <Text style={styles.fieldValue}>{safeDisplay(userData.mobile)}</Text>
+                )}
+              </View>
+
+              {/* Email */}
+              <View style={styles.fieldWrapper}>
+                {isLoading ? (
+                  <View style={styles.skeletonFieldInner}>
+                    <SkeletonField width="70%" height={14} />
+                  </View>
+                ) : isEditing ? (
+                  <TextInput
+                    style={styles.input}
+                    value={editData.email}
+                    onChangeText={(text) => setEditData(prev => ({ ...prev, email: text }))}
+                    placeholder="Email"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)}
+                  />
+                ) : (
+                  <Text style={styles.fieldValue}>{safeDisplay(userData.email)}</Text>
+                )}
+              </View>
+
+              {/* Address (read-only, not editable) */}
+              <View style={styles.fieldWrapper}>
+                {isLoading ? (
+                  <View style={[styles.skeletonFieldInner, { flexDirection: "column", gap: 6 }]}>
+                    <SkeletonField width="90%" height={14} />
+                    <SkeletonField width="75%" height={14} />
+                  </View>
+                ) : (
+                  <Text style={styles.fieldValue}>{safeDisplay(userData.address)}</Text>
+                )}
+              </View>
+            </View>
+
+            {/* Buttons */}
+            <View style={styles.buttonContainer}>
+              {isEditing ? (
+                <View style={styles.editButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={handleCancelPress}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={handleSaveChanges}
+                    activeOpacity={0.8}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.saveButtonText}>Save</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.editProfileButton, isLoading && styles.editButtonDisabled]}
+                  onPress={handleEditPress}
+                  activeOpacity={0.8}
+                  disabled={isLoading}
+                >
+                  <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -581,7 +576,7 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 15,
-    backgroundColor: "#EEF8F0",
+    backgroundColor: "transparent",
   },
   barsIcon: {
     backgroundColor: COLORS.secondaryFontColor,

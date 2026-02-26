@@ -23,6 +23,7 @@ const CACHE_KEYS = {
   CONSUMER_DATA: 'cached_consumer_data',
   TICKET_STATS: 'cached_ticket_stats',
   TICKET_TABLE: 'cached_ticket_table',
+  BILLING_HISTORY: 'cached_billing_history',
   CACHE_TIMESTAMP: 'cache_timestamp',
   CONSUMER_IDENTIFIER: 'current_consumer_identifier'
 };
@@ -30,6 +31,22 @@ const CACHE_KEYS = {
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes (fresh threshold)
 const STALE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours (max age before eviction)
 const PRELOAD_CACHE_DURATION = 60 * 60 * 1000; // 1 hour for preloaded data
+
+// Cache hit/miss stats for validation (7.2)
+export const cacheStats = {
+  hits: 0,
+  misses: 0,
+  get hitRate() { const t = this.hits + this.misses; return t > 0 ? (this.hits / t * 100).toFixed(1) : 0; }
+};
+
+const logCacheEvent = (key, hit, identifier = null) => {
+  if (hit) cacheStats.hits++; else cacheStats.misses++;
+  if (__DEV__) {
+    const id = identifier ? ` [${identifier.slice?.(0, 8) || identifier}...]` : '';
+    // eslint-disable-next-line no-console
+    console.log(`[Cache] ${hit ? 'HIT' : 'MISS'} ${key}${id} (hitRate: ${cacheStats.hitRate}%)`);
+  }
+};
 
 class UnifiedCacheManager {
   constructor() {
@@ -70,17 +87,36 @@ class UnifiedCacheManager {
   }
 
   /**
-   * Get cached data instantly
+   * Get cached data instantly.
+   * For per-consumer keys (identifier present), lazy-loads from AsyncStorage on in-memory miss.
    */
   async getCachedData(key, identifier = null) {
     await this.initialize();
     
     const cacheKey = identifier ? `${key}_${identifier}` : key;
-    const cached = this.cache.get(cacheKey);
+    let cached = this.cache.get(cacheKey);
+    
+    // Lazy-load from AsyncStorage for per-consumer keys
+    if (!cached && identifier && (key === CACHE_KEYS.BILLING_HISTORY || key === CACHE_KEYS.CONSUMER_DATA)) {
+      try {
+        const stored = await AsyncStorage.getItem(cacheKey);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const cacheTime = parsed?.timestamp ?? 0;
+          const data = parsed?.data ?? parsed;
+          const age = Date.now() - cacheTime;
+          if (age < STALE_MAX_AGE) {
+            cached = { data, timestamp: cacheTime };
+            this.cache.set(cacheKey, cached);
+          }
+        }
+      } catch (_) {}
+    }
     
     if (cached) {
       const age = Date.now() - cached.timestamp;
       if (age < STALE_MAX_AGE) {
+        logCacheEvent(key, true, identifier);
         return {
           success: true,
           data: cached.data,
@@ -94,11 +130,13 @@ class UnifiedCacheManager {
       }
     }
     
+    logCacheEvent(key, false, identifier);
     return { success: false, fromCache: false, stale: false };
   }
 
   /**
-   * Store data in cache
+   * Store data in cache.
+   * For per-consumer keys, persists to AsyncStorage under cacheKey for offline.
    */
   async setCachedData(key, data, identifier = null) {
     await this.initialize();
@@ -110,10 +148,14 @@ class UnifiedCacheManager {
     this.cache.set(cacheKey, cacheEntry);
     
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(data));
-      await AsyncStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, timestamp.toString());
-      if (identifier) {
-        await AsyncStorage.setItem(CACHE_KEYS.CONSUMER_IDENTIFIER, identifier);
+      if (identifier && (key === CACHE_KEYS.BILLING_HISTORY || key === CACHE_KEYS.CONSUMER_DATA)) {
+        await AsyncStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
+      } else {
+        await AsyncStorage.setItem(key, JSON.stringify(data));
+        await AsyncStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, timestamp.toString());
+        if (identifier) {
+          await AsyncStorage.setItem(CACHE_KEYS.CONSUMER_IDENTIFIER, identifier);
+        }
       }
     } catch (error) {
       console.error('Error storing cache:', error);
@@ -231,6 +273,22 @@ class UnifiedCacheManager {
   }
 
   /**
+   * Background refresh for billing (custom fetcher, no single endpoint)
+   */
+  async backgroundRefreshBilling(identifier, fetchFn) {
+    try {
+      const result = await fetchFn(identifier);
+      if (result.success && result.data != null) {
+        await this.setCachedData(CACHE_KEYS.BILLING_HISTORY, result.data, identifier);
+      }
+      return result;
+    } catch (error) {
+      console.error('Billing background refresh failed:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Preload critical data on app start
    */
   async preloadCriticalData() {
@@ -259,6 +317,12 @@ class UnifiedCacheManager {
           API_ENDPOINTS.tickets.table(1, identifier, 1, 10),
           identifier
         );
+
+        // Preload billing history (7.3) — dynamic import to avoid circular dep
+        try {
+          const { fetchBillingHistory } = await import('../services/apiService');
+          await fetchBillingHistory(identifier);
+        } catch (e) { /* non-blocking */ }
         
         console.log('✅ Critical data preloaded successfully');
       }
@@ -282,7 +346,11 @@ class UnifiedCacheManager {
   async clearAllCache() {
     this.cache.clear();
     try {
-      await AsyncStorage.multiRemove(Object.values(CACHE_KEYS));
+      const keys = await AsyncStorage.getAllKeys();
+      const toRemove = keys.filter(
+        k => Object.values(CACHE_KEYS).includes(k) || k.startsWith(CACHE_KEYS.BILLING_HISTORY + '_')
+      );
+      if (toRemove.length) await AsyncStorage.multiRemove(toRemove);
     } catch (error) {
       console.error('Error clearing cache:', error);
     }
@@ -342,6 +410,31 @@ export const getCachedTicketStats = (identifier) =>
 
 export const getCachedTicketTable = (identifier) => 
   cacheManager.getCachedData(CACHE_KEYS.TICKET_TABLE, identifier);
+
+/** Get billing history with cache-first, background refresh when stale (7.3). */
+export const getBillingWithCache = async (identifier, forceRefresh = false, fetchFn) => {
+  if (!identifier || !fetchFn) return { success: false, fromCache: false };
+  if (forceRefresh) {
+    const result = await fetchFn(identifier);
+    if (result.success && result.data != null) {
+      await cacheManager.setCachedData(CACHE_KEYS.BILLING_HISTORY, result.data, identifier);
+    }
+    return result;
+  }
+  const cached = await cacheManager.getCachedData(CACHE_KEYS.BILLING_HISTORY, identifier);
+  if (cached.success) {
+    const age = Date.now() - cached.timestamp;
+    if (age > 5 * 60 * 1000) {
+      cacheManager.backgroundRefreshBilling(identifier, fetchFn).catch(() => {});
+    }
+    return { ...cached, data: cached.data };
+  }
+  const result = await fetchFn(identifier);
+  if (result.success && result.data != null) {
+    await cacheManager.setCachedData(CACHE_KEYS.BILLING_HISTORY, result.data, identifier);
+  }
+  return result;
+};
 
 export const clearAllCache = () => cacheManager.clearAllCache();
 export const hasValidCache = (identifier) => 

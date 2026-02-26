@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import MeterIcon from "../../../assets/icons/meterBolt.svg";
 import WalletIcon from "../../../assets/icons/walletCard.svg";
 import { Shimmer, SHIMMER_LIGHT, SHIMMER_DARK } from "../../utils/loadingManager";
+import { useScreenTiming } from "../../utils/useScreenTiming";
 
 // Fallback if loadingManager exports are missing (e.g. cached bundle)
 const SHIMMER_LIGHT_FALLBACK = { base: "#e0e0e0", gradient: ["#e0e0e0", "#f5f5f5", "#e0e0e0"] };
@@ -48,6 +49,10 @@ const Usage = ({ navigation }) => {
   // Bottom sheet state
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
+  const { onLayout: onScreenLayout } = useScreenTiming('Usage', {
+    isLoading,
+    dataReady: !isLoading,
+  });
 
   const fetchBillingData = useCallback(async (signal) => {
     try {
@@ -139,7 +144,7 @@ const Usage = ({ navigation }) => {
 
 
   return (
-    <View style={[styles.mainContainer, isDark && { backgroundColor: themeColors.screen }]}>
+    <View style={[styles.mainContainer, isDark && { backgroundColor: themeColors.screen }]} onLayout={onScreenLayout}>
       <ScrollView
         style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{ paddingBottom: 130 }}

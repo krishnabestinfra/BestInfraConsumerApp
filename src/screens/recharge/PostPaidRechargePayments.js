@@ -390,6 +390,7 @@ const PostPaidRechargePayments = ({ navigation }) => {
                         styles.amountInputText,
                         isOverdue && styles.amountInputOverdue,
                         isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
+                        { opacity: 1 },
                       ]}
                     />
                   </View>
@@ -768,13 +769,13 @@ const styles = StyleSheet.create({
   },
   amountInput: {
     backgroundColor: '#F8F8F8',
-    borderRadius: 6,
+    borderRadius: 5,
     borderWidth: 0,
   },
   amountInputText: {
     fontSize: 14,
     fontFamily: 'Manrope-Medium',
-    color: '#000',
+    color: COLORS.secondaryColor,
   },
   amountInputOverdue: {
     color: '#FF0000',
@@ -784,7 +785,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
     gap: 8,
   },
   loadingText: {

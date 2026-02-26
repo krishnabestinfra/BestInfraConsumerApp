@@ -11,6 +11,7 @@ import ConsumerDetailsBottomSheet from "../../components/ConsumerDetailsBottomSh
 import { useConsumer } from "../../context/ConsumerContext";
 import { formatFrontendDate, parseDueDate, getDueDaysText } from "../../utils/dateUtils";
 import { getConsumerDueDate } from "../../utils/billingUtils";
+import { useScreenTiming } from "../../utils/useScreenTiming";
 import {
   AmountSection,
   MeterCard,
@@ -56,6 +57,12 @@ const PostPaidDashboard = ({ navigation, route }) => {
   // ── Bottom sheet state ──
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
+
+  // ── Screen timing (7.1) ──
+  const { onLayout: onScreenLayout } = useScreenTiming('PostPaidDashboard', {
+    isLoading,
+    dataReady: !isLoading && !!consumerData,
+  });
 
   // ── Derived data from custom hook ──
   const {
@@ -122,7 +129,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const scrollContentStyle = useMemo(() => ({ paddingBottom: 130 }), []);
 
   return (
-    <View style={screenRootStyle}>
+    <View style={screenRootStyle} onLayout={onScreenLayout}>
       <ScrollView
         style={[styles.Container, darkOverlay.container]}
         contentContainerStyle={scrollContentStyle}

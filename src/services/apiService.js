@@ -14,7 +14,7 @@
 
 import { Platform } from 'react-native';
 import { API, API_ENDPOINTS, ENV_INFO } from '../constants/constants';
-import { cacheManager } from '../utils/cacheManager';
+import { cacheManager, getBillingWithCache } from '../utils/cacheManager';
 import { apiClient } from './apiClient';
 import { authService } from './authService';
 
@@ -126,11 +126,9 @@ export const fetchPostpaidBillingData = async (consumerId) => {
 };
 
 /**
- * Fetch billing history for a consumer
- * Tries multiple endpoint formats to handle different API structures
- * Uses apiClient for automatic token management and refresh
+ * Raw billing fetch (tries multiple endpoints). Used internally and by getBillingWithCache.
  */
-export const fetchBillingHistory = async (uid) => {
+const _fetchBillingHistoryFromNetwork = async (uid) => {
   if (!uid) {
     return { success: false, message: 'Missing consumer identifier' };
   }
@@ -233,6 +231,15 @@ export const fetchBillingHistory = async (uid) => {
     warning: true,
     empty: true
   };
+};
+
+/**
+ * Fetch billing history for a consumer with cache-first (7.3).
+ * Returns cached data immediately when valid; refreshes in background when stale.
+ */
+export const fetchBillingHistory = async (uid, forceRefresh = false) => {
+  if (!uid) return { success: false, message: 'Missing consumer identifier' };
+  return getBillingWithCache(uid, forceRefresh, _fetchBillingHistoryFromNetwork);
 };
 
 /**

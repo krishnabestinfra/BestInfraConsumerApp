@@ -1,4 +1,4 @@
-import { StyleSheet, View, ActivityIndicator, BackHandler, ToastAndroid, Platform, AppState } from "react-native";
+import { StyleSheet, View, BackHandler, ToastAndroid, Platform, AppState } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useState, useEffect, useRef, Suspense } from "react";
@@ -32,18 +32,12 @@ import { initializeMonitoring } from "./src/config/monitoring";
 import { reportColdStart } from "./src/utils/performanceMonitor";
 import NavigationBarController from "./src/core/system/NavigationBarController";
 
-// ── Lazy-loaded screens (deferred until first navigation) ──
-const LazyFallback = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
-    <ActivityIndicator size="large" color={COLORS.secondaryColor} />
-  </View>
-);
-
+// ── Lazy-loaded screens: no placeholder — screen renders directly when ready ──
 function lazyScreen(importFn) {
   const Lazy = React.lazy(importFn);
   return function LazyWrapper(props) {
     return (
-      <Suspense fallback={<LazyFallback />}>
+      <Suspense fallback={null}>
         <Lazy {...props} />
       </Suspense>
     );
