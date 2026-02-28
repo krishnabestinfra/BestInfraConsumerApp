@@ -111,6 +111,8 @@ const CreateNewTicketModal = ({ visible, onClose, onSubmit, isDark: isDarkProp }
             <ScrollView
               style={[styles.scrollContent, isDark && { backgroundColor: modalDarkBg }]}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
             >
               {/* Category Selection */}
               <SelectDropdown

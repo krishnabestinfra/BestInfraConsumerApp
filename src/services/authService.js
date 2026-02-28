@@ -31,7 +31,7 @@ class AuthService {
   constructor() {
     this.refreshPromise = null; // Prevent concurrent refresh requests
 
-    // Try to restore previously selected tenant (subdomain) from storage on app start
+    // Try to restore previously selected tenant (subdomain) from storage on app start (fire-and-forget)
     AsyncStorage.getItem(CLIENT_SUBDOMAIN_KEY)
       .then((storedSubdomain) => {
         if (storedSubdomain) {
@@ -42,6 +42,32 @@ class AuthService {
       .catch((error) => {
         console.error('❌ Error restoring tenant subdomain from storage:', error);
       });
+  }
+
+  /** Derive tenant from user identifier. BI26NTPA* = ntpl, else gmr. */
+  _deriveTenantFromIdentifier(identifier) {
+    const id = (identifier || '').toString().toUpperCase();
+    return id.startsWith('BI26NTPA') ? 'ntpl' : 'gmr';
+  }
+
+  /**
+   * Ensure tenant subdomain is set before any API fetch. Call from SplashScreen before refreshConsumer.
+   * Prioritizes identifier-based derivation so NTPL user (BI26NTPA*) always gets ntpl even if storage had gmr.
+   */
+  async restoreTenantBeforeFetch(user = null) {
+    try {
+      const u = user || (await this.getUser());
+      const identifier = u?.identifier || u?.username || '';
+      const tenant = identifier
+        ? this._deriveTenantFromIdentifier(identifier)
+        : ((await AsyncStorage.getItem(CLIENT_SUBDOMAIN_KEY)) || 'gmr');
+      setTenantSubdomain(tenant);
+      await AsyncStorage.setItem(CLIENT_SUBDOMAIN_KEY, tenant);
+      if (__DEV__) console.log('🔧 Tenant set:', identifier ? `${identifier} -> ${tenant}` : `from storage -> ${tenant}`);
+    } catch (e) {
+      console.error('❌ Error restoring tenant:', e);
+      setTenantSubdomain('gmr');
+    }
   }
 
   /**

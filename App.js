@@ -1,5 +1,5 @@
 import { StyleSheet, View, BackHandler, ToastAndroid, Platform, AppState } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import * as Font from "expo-font";
@@ -17,9 +17,17 @@ import OnBoarding from "./src/screens/OnBoarding";
 import Login from "./src/auth/Login";
 import OTPLogin from "./src/auth/OTPLogin";
 import PostPaidDashboard from "./src/screens/dashboard/PostPaidDashboard";
+// ── Eager: high-traffic screens for instant navigation (~50–100ms faster) ──
+import Invoices from "./src/screens/invoices/Invoices";
+import Usage from "./src/screens/usage/Usage";
+import SideMenu from "./src/screens/account/SideMenu";
+import Profile from "./src/screens/account/Profile";
+import Payments from "./src/screens/recharge/Payments";
+import Reports from "./src/screens/invoices/Reports";
+import Tickets from "./src/screens/tickets/Tickets";
 
 import { TabProvider } from "./src/context/TabContext";
-import { ThemeProvider } from "./src/context/ThemeContext";
+import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { AppProvider } from "./src/context/AppContext";
 import { NotificationsProvider } from "./src/context/NotificationsContext";
 import { NavigationProvider } from "./src/context/NavigationContext";
@@ -32,7 +40,7 @@ import { initializeMonitoring } from "./src/config/monitoring";
 import { reportColdStart } from "./src/utils/performanceMonitor";
 import NavigationBarController from "./src/core/system/NavigationBarController";
 
-// ── Lazy-loaded screens: no placeholder — screen renders directly when ready ──
+// ── Lazy-loaded screens: no fallback; Stack contentStyle provides background during load ──
 function lazyScreen(importFn) {
   const Lazy = React.lazy(importFn);
   return function LazyWrapper(props) {
@@ -48,17 +56,10 @@ const ForgotPassword = lazyScreen(() => import("./src/auth/ForgotPassword"));
 const ResetPassword = lazyScreen(() => import("./src/auth/ResetPassword"));
 const GuestLogin = lazyScreen(() => import("./src/auth/GuestLogin"));
 const Notifications = lazyScreen(() => import("./src/screens/account/Notifications"));
-const Profile = lazyScreen(() => import("./src/screens/account/Profile"));
-const SideMenu = lazyScreen(() => import("./src/screens/account/SideMenu"));
 const Settings = lazyScreen(() => import("./src/screens/account/Settings"));
-const Usage = lazyScreen(() => import("./src/screens/usage/Usage"));
-const Payments = lazyScreen(() => import("./src/screens/recharge/Payments"));
 const PostPaidRechargePayments = lazyScreen(() => import("./src/screens/recharge/PostPaidRechargePayments"));
 const PaymentStatus = lazyScreen(() => import("./src/screens/recharge/PaymentStatus"));
 const Transactions = lazyScreen(() => import("./src/screens/invoices/Transactions"));
-const Invoices = lazyScreen(() => import("./src/screens/invoices/Invoices"));
-const Reports = lazyScreen(() => import("./src/screens/invoices/Reports"));
-const Tickets = lazyScreen(() => import("./src/screens/tickets/Tickets"));
 const TicketDetails = lazyScreen(() => import("./src/screens/tickets/TicketDetails"));
 const ChatSupport = lazyScreen(() => import("./src/screens/tickets/ChatSupport"));
 const LsDataTable = lazyScreen(() => import("./src/screens/dashboard/LsDataTable"));
@@ -66,6 +67,63 @@ const TermsOfServicesScreen = lazyScreen(() => import("./src/screens/account/Ter
 const PrivacyPolicyScreen = lazyScreen(() => import("./src/screens/account/PrivacyPolicyScreen"));
 
 const Stack = createNativeStackNavigator();
+
+function AppNavigator({ navigationRef, linking }) {
+  const { isDark, colors } = useTheme();
+  const screenBg = colors?.screenSecondary || colors?.screen || "#eef8f0";
+  const navTheme = {
+    ...DefaultTheme,
+    dark: isDark,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: colors?.accent || COLORS.primaryColor,
+      background: screenBg,
+      card: screenBg,
+      text: colors?.textPrimary || COLORS.primaryFontColor,
+      border: colors?.cardBorder || "#E5E7EB",
+      notification: colors?.accent || COLORS.primaryColor,
+    },
+  };
+  return (
+    <NavigationContainer ref={navigationRef} linking={linking} theme={navTheme}>
+      <Stack.Navigator
+        initialRouteName="Splash"
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: screenBg },
+        }}
+      >
+        <Stack.Screen name="Splash" component={SplashScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="OnBoarding" component={OnBoarding} options={{ headerShown: false }} />
+        <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
+        <Stack.Screen name="Notifications" component={withScreenErrorBoundary(Notifications)} options={{ headerShown: false }} />
+        <Stack.Screen name="Profile" component={Profile} options={{ headerShown: false }} />
+        <Stack.Screen name="SideMenu" component={SideMenu} options={{ headerShown: false }} />
+        <Stack.Screen name="Usage" component={Usage} options={{ headerShown: false }} />
+        <Stack.Screen name="Payments" component={Payments} options={{ headerShown: false }} />
+        <Stack.Screen name="Transactions" component={withScreenErrorBoundary(Transactions)} options={{ headerShown: false }} />
+        <Stack.Screen name="Tickets" component={withScreenErrorBoundary(Tickets)} options={{ headerShown: false }} />
+        <Stack.Screen name="Settings" component={Settings} options={{ headerShown: false }} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPassword} options={{ headerShown: false }} />
+        <Stack.Screen name="OTPLogin" component={OTPLogin} options={{ headerShown: false }} />
+        <Stack.Screen name="ResetPassword" component={ResetPassword} options={{ headerShown: false }} />
+        <Stack.Screen name="GuestLogin" component={GuestLogin} options={{ headerShown: false }} />
+        <Stack.Screen name="TicketDetails" component={withScreenErrorBoundary(TicketDetails)} options={{ headerShown: false }} />
+        <Stack.Screen name="ChatSupport" component={withScreenErrorBoundary(ChatSupport)} options={{ headerShown: false }} />
+        <Stack.Screen name="PostPaidDashboard" component={withScreenErrorBoundary(PostPaidDashboard)} options={{ headerShown: false }} />
+        <Stack.Screen name="PostPaidRechargePayments" component={PostPaidRechargePayments} options={{ headerShown: false }} />
+        <Stack.Screen name="PaymentStatus" component={PaymentStatus} options={{ headerShown: false }} />
+        <Stack.Screen name="LsDataTable" component={LsDataTable} options={{ headerShown: false }} />
+        <Stack.Screen name="Invoices" component={withScreenErrorBoundary(Invoices)} options={{ headerShown: false }} />
+        <Stack.Screen name="Reports" component={withScreenErrorBoundary(Reports)} options={{ headerShown: false }} />
+        <Stack.Screen name="TermsOfServices" component={TermsOfServicesScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: false }} />
+      </Stack.Navigator>
+      <Toastify />
+      <PushNotificationHandler />
+    </NavigationContainer>
+  );
+}
 
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -108,24 +166,36 @@ export default function App() {
     },
   };
 
+  // Prefetch remaining lazy screens immediately (0ms = ~50–100ms head start)
   useEffect(() => {
-    initializeMonitoring();
-    loadFonts();
-    // Check for app updates after fonts are loaded
-    checkForAppUpdates();
-    
-    // Initialize push notifications (skipped in Expo Go — SDK 53 removed remote push there)
-    const initPushNotifications = async () => {
-      if (isRunningInExpoGo()) return;
-      try {
-        await initializePushNotifications();
-        console.log('✅ Push notifications initialized');
-      } catch (error) {
-        console.error('❌ Error initializing push notifications:', error);
-      }
+    const prefetch = () => {
+      import("./src/screens/invoices/Transactions");
+      import("./src/screens/recharge/PostPaidRechargePayments");
+      import("./src/screens/recharge/PaymentStatus");
+      import("./src/screens/tickets/TicketDetails");
+      import("./src/screens/tickets/ChatSupport");
+      import("./src/screens/dashboard/LsDataTable");
+      import("./src/screens/account/Settings");
+      import("./src/screens/account/Notifications");
+      import("./src/auth/ForgotPassword");
+      import("./src/auth/ResetPassword");
+      import("./src/auth/GuestLogin");
+      import("./src/screens/account/TermsOfServicesScreen");
+      import("./src/screens/account/PrivacyPolicyScreen");
     };
-    
-    initPushNotifications();
+    prefetch();
+    return () => {};
+  }, []);
+
+  useEffect(() => {
+    loadFonts();
+    initializeMonitoring();
+    // Defer non-critical work to keep startup ~50–100ms faster
+    setTimeout(() => checkForAppUpdates(), 1500);
+    setTimeout(() => {
+      if (isRunningInExpoGo()) return;
+      initializePushNotifications().then(() => console.log('✅ Push notifications initialized')).catch(() => {});
+    }, 800);
   }, []);
 
   // Poll for PUSH-channel notifications from API (backend sends data only; we show as push).
@@ -222,140 +292,7 @@ export default function App() {
           <NavigationProvider>
             <NotificationsProvider>
               <TabProvider>
-                <NavigationContainer ref={navigationRef} linking={linking}> 
-            <Stack.Navigator
-              initialRouteName="Splash"
-              screenOptions={{ headerShown: false }}
-            >
-          <Stack.Screen
-            name="Splash"
-            component={SplashScreen}
-            options={{ headerShown: false }}
-          /> 
-          <Stack.Screen
-            name="OnBoarding"
-            component={OnBoarding}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Login"
-            component={Login}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Notifications"
-            component={withScreenErrorBoundary(Notifications)}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Profile"
-            component={Profile}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="SideMenu"
-            component={SideMenu}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Usage"
-            component={Usage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Payments"
-            component={Payments}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Transactions"
-            component={withScreenErrorBoundary(Transactions)}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Tickets"
-            component={withScreenErrorBoundary(Tickets)}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Settings"
-            component={Settings}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ForgotPassword"
-            component={ForgotPassword}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OTPLogin"
-            component={OTPLogin}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ResetPassword"
-            component={ResetPassword}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="GuestLogin"
-            component={GuestLogin}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="TicketDetails"
-            component={withScreenErrorBoundary(TicketDetails)}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ChatSupport"
-            component={withScreenErrorBoundary(ChatSupport)}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="PostPaidDashboard"
-            component={withScreenErrorBoundary(PostPaidDashboard)}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="PostPaidRechargePayments"
-            component={PostPaidRechargePayments}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="PaymentStatus"
-            component={PaymentStatus}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="LsDataTable"
-            component={LsDataTable}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Invoices"
-            component={withScreenErrorBoundary(Invoices)}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Reports"
-            component={withScreenErrorBoundary(Reports)}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="TermsOfServices"
-            component={TermsOfServicesScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="PrivacyPolicy"
-            component={PrivacyPolicyScreen}
-            options={{ headerShown: false }}
-          />
-            </Stack.Navigator>
-             <Toastify />
-             <PushNotificationHandler />
-              </NavigationContainer>
+                <AppNavigator navigationRef={navigationRef} linking={linking} />
               </TabProvider>
             </NotificationsProvider>
           </NavigationProvider>

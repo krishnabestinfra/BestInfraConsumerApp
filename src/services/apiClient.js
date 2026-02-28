@@ -427,12 +427,12 @@ class ApiClient {
   }
 
   /**
-   * Get consumer data — above-the-fold, fail fast so cache or error shows sooner
+   * Get consumer data — above-the-fold. Uses 20s timeout as consumers endpoint can be slow.
    */
   async getConsumerData(consumerId) {
     const endpoint = API_ENDPOINTS.consumers.get(consumerId);
     return this.request(endpoint, {
-      timeout: 10000,
+      timeout: 20000,
       retries: 1,
     });
   }

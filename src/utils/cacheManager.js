@@ -14,6 +14,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API, API_ENDPOINTS } from '../constants/constants';
+import { getAppIdForTickets } from '../config/apiConfig';
 import { getUser } from './storage';
 import { apiClient } from '../services/apiClient';
 import { isDemoUser, getDemoDashboardConsumerData } from '../constants/demoData';
@@ -312,10 +313,11 @@ class UnifiedCacheManager {
         );
         
         // Preload ticket table (admin API: /admin/api/tickets/app/{appId}?consumerNumber=...&page=1&limit=10)
+        const appId = getAppIdForTickets();
         await this.getData(
           CACHE_KEYS.TICKET_TABLE,
-          API_ENDPOINTS.tickets.table(1, identifier, 1, 10),
-          identifier
+          API_ENDPOINTS.tickets.table(appId, identifier, 1, 10),
+          `${identifier}|app${appId}`
         );
 
         // Preload billing history (7.3) — dynamic import to avoid circular dep

@@ -224,7 +224,7 @@ const SideMenu = ({ navigation }) => {
         <View style={styles.profileContainer}>
           <View style={styles.profileImageWrapper}>
             <Image 
-              source={require("../../../assets/images/profile.jpg")} 
+              source={require("../../../assets/images/profileBlank.png")} 
               style={styles.gmrLogo}
             />
             <Image 

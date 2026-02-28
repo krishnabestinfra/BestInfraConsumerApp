@@ -4,6 +4,10 @@ import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 import DropdownIcon from '../../../assets/icons/dropDown.svg';
 
+// Helper: options can be string[] or {label, value}[]
+const getOptionLabel = (opt) => (typeof opt === 'object' && opt && 'label' in opt ? opt.label : String(opt));
+const getOptionValue = (opt) => (typeof opt === 'object' && opt && 'value' in opt ? opt.value : opt);
+
 const SelectDropdown = ({
   label,
   placeholder = 'Select an option',
@@ -25,9 +29,11 @@ const SelectDropdown = ({
   const s16 = getScaledFontSize(16);
   const [isOpen, setIsOpen] = useState(false);
   const handleSelect = (option) => {
-    onSelect(option);
+    onSelect(getOptionValue(option));
     setIsOpen(false);
   };
+  const found = options.find((o) => getOptionValue(o) === value);
+  const displayValue = found != null ? getOptionLabel(found) : value;
 
   const getContainerStyle = () => {
     const baseStyle = [styles.container, styles[`${variant}Container`], styles[size]];
@@ -85,34 +91,39 @@ const SelectDropdown = ({
           {...props}
         >
           <Text style={[getTextStyle(), { fontSize: size === 'small' ? s12 : size === 'large' ? s16 : s14 }]}>
-            {value || placeholder}
+            {displayValue || placeholder}
           </Text>
           <DropdownIcon width={16} height={16} fill={isDark ? "#FFFFFF" : undefined} />
         </TouchableOpacity>
 
         {isOpen && options.length > 0 && (
           <View style={dropdownListStyle}>
-            {options.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.dropdownItem,
-                  isDark && { borderBottomColor: themeColors?.cardBorder ?? "rgba(255,255,255,0.08)" },
-                  value === option && styles.selectedItem,
-                ]}
-                onPress={() => handleSelect(option)}
-                activeOpacity={0.7}
-              >
-                <Text style={[
-                  styles.dropdownItemText,
-                  { fontSize: s14 },
-                  value === option && styles.selectedItemText,
-                  isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
-                ]}>
-                  {option}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {options.map((option, index) => {
+              const optValue = getOptionValue(option);
+              const optLabel = getOptionLabel(option);
+              const isSelected = value === optValue;
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.dropdownItem,
+                    isDark && { borderBottomColor: themeColors?.cardBorder ?? "rgba(255,255,255,0.08)" },
+                    isSelected && styles.selectedItem,
+                  ]}
+                  onPress={() => handleSelect(option)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.dropdownItemText,
+                    { fontSize: s14 },
+                    isSelected && styles.selectedItemText,
+                    isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
+                  ]}>
+                    {optLabel}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </View>

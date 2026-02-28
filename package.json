@@ -15,7 +15,8 @@
     "metro-start": "npx react-native start --reset-cache",
     "bundle-android": "npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res --reset-cache",
     "clean": "npm cache clean --force && npx expo start --clear && cd android && ./gradlew clean && cd ..",
-    "setup": "npm install && npx expo install --fix"
+    "setup": "npm install && npx expo install --fix",
+    "gen:payment-icons": "node scripts/genPaymentIcons.js"
   },
   "dependencies": {
     "@gorhom/bottom-sheet": "^5.2.6",

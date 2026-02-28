@@ -6,12 +6,16 @@ import React, { useEffect, useRef, useState } from "react";
 import Button from "../../components/global/Button";
 import SuccessIcon from "../../../assets/icons/checkmark.svg";
 import { getPaymentStatus, formatAmount, formatPaymentDate } from "../../services/paymentService";
+import { handleViewBill } from "../../services/InvoicePDFService";
+import { useConsumer } from "../../context/ConsumerContext";
 
 const PaymentStatus = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
+  const { consumerData } = useConsumer();
   const { billId, paymentData: initialPaymentData, success } = route?.params || {};
   const [paymentDetails, setPaymentDetails] = useState(initialPaymentData || null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [error, setError] = useState(null);
 
  
@@ -50,13 +54,60 @@ const PaymentStatus = ({ navigation, route }) => {
     fetchPaymentDetails();
   }, [billId, initialPaymentData]);
 
-  // Handle invoice download
-  const handleInvoiceDownload = () => {
-    Alert.alert(
-      "Download Invoice",
-      "Invoice download feature will be available soon.",
-      [{ text: "OK" }]
-    );
+  // Build payment object for InvoicePDFService from paymentDetails
+  const buildPaymentForInvoice = () => {
+    const p = paymentDetails || {};
+    const amount = p.amount || p.total_amount || 0;
+    const amountNum = typeof amount === 'number' ? amount : parseInt(String(amount).replace(/[^0-9]/g, ''), 10) || 0;
+    return {
+      ...p,
+      amount: amountNum,
+      totalAmount: amountNum,
+      billNumber: p.transaction_id || p.razorpay_payment_id || p.payment_id || `INV-${p.bill_id || Date.now()}`,
+      invoiceNumber: p.transaction_id || p.razorpay_payment_id || p.bill_id,
+      transactionId: p.transaction_id || p.razorpay_payment_id,
+      billNo: p.bill_id,
+      bill_id: p.bill_id || billId,
+      billDate: p.created_at || p.payment_date || p.verified_at || new Date(),
+      fromDate: p.created_at || new Date(),
+      invoiceDate: p.created_at || new Date(),
+      dueDate: p.created_at || new Date(),
+      status: 'Paid',
+      paymentStatus: 'Paid',
+      isPaid: true,
+      payment_method: p.payment_method || 'UPI',
+      customerName: p.consumer_name || consumerData?.name || consumerData?.consumerName,
+      consumer_name: p.consumer_name || consumerData?.name,
+    };
+  };
+
+  // Handle invoice download - generate PDF and open for viewing/sharing
+  const handleInvoiceDownload = async () => {
+    if (!paymentDetails) {
+      Alert.alert("Error", "Payment details not available. Please try again later.", [{ text: "OK" }]);
+      return;
+    }
+    try {
+      setIsGeneratingPdf(true);
+      const paymentForInvoice = buildPaymentForInvoice();
+      const consumer = consumerData || {
+        name: paymentDetails.consumer_name || 'Consumer',
+        identifier: paymentDetails.consumer_id || paymentDetails.bill_id,
+        email: paymentDetails.email || 'customer@bestinfra.com',
+        contact: paymentDetails.contact || paymentDetails.phone || '',
+        address: paymentDetails.address || '',
+      };
+      await handleViewBill(paymentForInvoice, consumer);
+    } catch (err) {
+      console.error('Invoice download error:', err);
+      Alert.alert(
+        "Error",
+        err?.message || "Failed to generate invoice. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   // Handle navigation to dashboard
@@ -139,8 +190,19 @@ const PaymentStatus = ({ navigation, route }) => {
         </View>
       </ScrollView>
       <View style={styles.buttonContainer}>
-        <TouchableOpacity onPress={handleInvoiceDownload}>
-          <Text style={styles.getInvoiceText}>Get Invoice</Text>
+        <TouchableOpacity
+          onPress={handleInvoiceDownload}
+          disabled={isGeneratingPdf}
+          style={{ opacity: isGeneratingPdf ? 0.6 : 1 }}
+        >
+          {isGeneratingPdf ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <ActivityIndicator size="small" color="#2D5016" />
+              <Text style={styles.getInvoiceText}>Generating invoice…</Text>
+            </View>
+          ) : (
+            <Text style={styles.getInvoiceText}>Get Invoice</Text>
+          )}
         </TouchableOpacity>
         <Button title="Go to Dashboard" variant="primary" size="medium" onPress={handleGoToDashboard} />
       </View>

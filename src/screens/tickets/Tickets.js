@@ -14,7 +14,8 @@ import EyeIcon from "../../../assets/icons/eyeFill.svg";
 import DashboardHeader from "../../components/global/DashboardHeader";
 import BottomNavigation from "../../components/global/BottomNavigation";
 import { LinearGradient } from "expo-linear-gradient";
-import { fetchTicketStats, fetchTicketsTable, createTicket } from "../../services/apiService";
+import { fetchTicketStats, fetchTicketsTable, createTicket, invalidateTicketCache } from "../../services/apiService";
+import { getAppIdForTickets } from "../../config/apiConfig";
 import { getUser } from "../../utils/storage";
 import { useConsumer } from "../../context/ConsumerContext";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
@@ -65,7 +66,7 @@ import TicketSuccessModal from "../../components/global/TicketSuccessModal";
 import { isDemoUser, DEMO_TICKET_STATS, DEMO_TICKETS } from "../../constants/demoData";
 import { useScreenTiming } from "../../utils/useScreenTiming";
 
-const STALE_THRESHOLD = 120000; // 2 minutes
+const STALE_THRESHOLD = 30000; // 30 seconds — refetch when returning to screen if data is older than this
 
 const Tickets = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
@@ -90,9 +91,10 @@ const Tickets = ({ navigation }) => {
     }
   }, []);
 
+
   // const [showModal, setShowModal] = useState(false);
   const { consumerData, isConsumerLoading: isLoading, refreshConsumer } = useConsumer();
-  consumerNumberRef.current = consumerData?.consumerNumber ?? null;
+  consumerNumberRef.current = consumerData?.consumerNumber ?? consumerData?.uniqueIdentificationNo ?? null;
   const consumerDataRef = useRef(consumerData);
   consumerDataRef.current = consumerData;
   const [ticketStats, setTicketStats] = useState({
@@ -114,7 +116,7 @@ const Tickets = ({ navigation }) => {
     dataReady: !statsLoading && !tableLoading,
   });
 
-  const fetchData = useCallback(async (forceRefreshTickets = false, signal) => {
+  const fetchData = useCallback(async (forceRefreshTickets = false, signal, ensureTicketInList = null) => {
     try {
       const user = await getUser();
       if (!user?.identifier || signal?.aborted) return;
@@ -130,20 +132,30 @@ const Tickets = ({ navigation }) => {
       setStatsLoading(true);
       setTableLoading(true);
 
-      const consumerNumber = consumerNumberRef.current ?? user?.consumerNumber ?? user.identifier;
+      const consumerNumber = consumerNumberRef.current ?? user?.consumerNumber ?? user?.identifier;
+      const appId = getAppIdForTickets();
 
       const [statsResult, tableResult] = await Promise.all([
         fetchTicketStats(consumerNumber, forceRefreshTickets),
-        fetchTicketsTable(consumerNumber, forceRefreshTickets, { appId: 1, page: 1, limit: 10 }),
+        fetchTicketsTable(consumerNumber, forceRefreshTickets, { appId, page: 1, limit: 10 }),
       ]);
       if (signal?.aborted) return;
 
       if (statsResult.success) setTicketStats(statsResult.data);
       if (tableResult.success) {
-        const list = Array.isArray(tableResult.data) ? tableResult.data : tableResult.data?.data ?? [];
+        let list = Array.isArray(tableResult.data) ? tableResult.data : tableResult.data?.data ?? [];
+        // If we have a ticket that might be missing from API (backend delay), prepend it
+        if (ensureTicketInList?.ticketNumber || ensureTicketInList?.id) {
+          const hasMatch = list.some(
+            (t) =>
+              String(t?.id) === String(ensureTicketInList.id) ||
+              String(t?.ticketNumber) === String(ensureTicketInList.ticketNumber)
+          );
+          if (!hasMatch) list = [ensureTicketInList, ...list];
+        }
         setTableData(list);
       } else {
-        setTableData([]);
+        setTableData((prev) => (ensureTicketInList ? prev : []));
       }
 
       lastFetchedAtRef.current = Date.now();
@@ -161,9 +173,11 @@ const Tickets = ({ navigation }) => {
       const controller = new AbortController();
       abortRef.current = controller;
       refreshConsumer();
-      if (Date.now() - lastFetchedAtRef.current >= STALE_THRESHOLD) {
-        fetchData(false, controller.signal);
-      }
+      // Always fetch when screen gains focus so newly created tickets persist after navigating away and back.
+      // On remount lastFetchedAtRef=0, so we force refresh. Otherwise use cache if data is < 30s old.
+      const dataAge = Date.now() - lastFetchedAtRef.current;
+      const shouldForceRefresh = dataAge >= STALE_THRESHOLD;
+      fetchData(shouldForceRefresh, controller.signal);
       return () => controller.abort();
     }, [fetchData, refreshConsumer])
   );
@@ -184,9 +198,10 @@ const Tickets = ({ navigation }) => {
         return false;
       }
       // Use consumerNumber from consumers API (e.g. CON-1002 from /consumers/BI25GMRA0001)
-      const consumerNumber = consumerNumberRef.current || user?.consumerNumber || user.identifier;
-      console.log('🎫 Creating ticket for consumer:', consumerNumber, 'data:', ticketData);
-      const result = await createTicket(consumerNumber, ticketData, { consumerData: consumerDataRef.current, user });
+      const consumerNumber = consumerNumberRef.current ?? user?.consumerNumber ?? user?.identifier;
+      const appId = getAppIdForTickets();
+      console.log('🎫 Creating ticket for consumer:', consumerNumber, 'appId:', appId, 'data:', ticketData);
+      const result = await createTicket(consumerNumber, { ...ticketData, appId }, { consumerData: consumerDataRef.current, user });
       console.log('🎫 Create ticket result (Tickets screen):', result?.success, result);
       const isSuccess = result?.success === true || result?.status === "success" || (result?.data && !result?.error);
       if (isSuccess) {
@@ -194,9 +209,24 @@ const Tickets = ({ navigation }) => {
         const raw = result.data || result;
         const ticket = raw.ticket || raw.data || raw;
         const ticketNumber = ticket.ticketNumber ?? ticket.ticket_number ?? ticket.id ?? ticket.number ?? ticket.ticketId ?? raw.ticketNumber ?? raw.ticketId ?? raw.id;
-        setCreatedTicket({ ...ticket, ticketNumber: ticketNumber ?? ticket.ticketNumber });
-        // Force refresh ticket list and stats so the new ticket appears without manual reload
-        fetchData(true);
+        const created = { ...ticket, ticketNumber: ticketNumber ?? ticket.ticketNumber };
+        setCreatedTicket(created);
+
+        // Optimistic update: show new ticket in list immediately
+        const tableRow = {
+          ...created,
+          id: created.id ?? created.ticketId ?? ticketNumber,
+          ticketNumber: ticketNumber ?? created.ticketNumber,
+          type: created.type ?? ticketData?.category ?? 'TECHNICAL',
+          status: created.status ?? 'OPEN',
+          category: created.category ?? ticketData?.category ?? 'TECHNICAL',
+        };
+        setTableData((prev) => [tableRow, ...prev]);
+
+        // Invalidate cache and force refresh so stats + list stay in sync
+        await invalidateTicketCache(consumerNumber, appId);
+        await fetchData(true, undefined, tableRow);
+
         pendingSuccessModalRef.current = true;
         handleCloseBottomSheet();
         return true;
@@ -248,7 +278,7 @@ const Tickets = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onScreenLayout}>
-
+      <View style={styles.mainContentWrapper}>
       <ScrollView
         style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
         contentContainerStyle={{flexGrow: 1, paddingBottom: 130}}
@@ -369,8 +399,14 @@ const Tickets = ({ navigation }) => {
         onClose={() => setShowModal(false)}    /> */}
         </View>
       </ScrollView>
+
+      {/* Bottom Navigation - in background layer, visible behind modal blur */}
+      <BottomNavigation navigation={navigation} />
+      </View>
+
+      <View style={styles.sheetOverlayWrapper} pointerEvents="box-none">
         <BottomSheet
-        ref={bottomSheetRef}
+          ref={bottomSheetRef}
         snapPoints={snapPoints}
         index={-1} 
         handleComponent={null}
@@ -391,6 +427,7 @@ const Tickets = ({ navigation }) => {
           />
         </BottomSheetView>
       </BottomSheet>
+      </View>
 
       <TicketSuccessModal
         visible={showSuccessModal}
@@ -399,9 +436,6 @@ const Tickets = ({ navigation }) => {
         onViewDetails={handleViewTicketFromSuccess}
         onReturnHome={handleReturnToHome}
       />
-      
-      {/* Bottom Navigation */}
-      <BottomNavigation navigation={navigation} />
     </GestureHandlerRootView>
   );
 };
@@ -409,6 +443,14 @@ const Tickets = ({ navigation }) => {
 export default Tickets;
 
 const styles = StyleSheet.create({
+  mainContentWrapper: {
+    flex: 1,
+    zIndex: 0,
+  },
+  sheetOverlayWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+  },
   Container: {
     backgroundColor: COLORS.secondaryFontColor,
     borderTopLeftRadius: 30,

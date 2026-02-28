@@ -16,17 +16,21 @@ import {
   Alert,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
+import { UPI_ICON_BASE64, SHIELD_ICON_BASE64 } from '../utils/paymentIcons';
 
-const DirectRazorpayPayment = ({ 
-  visible, 
-  onClose, 
-  onSuccess, 
-  onError, 
-  orderData 
+const DirectRazorpayPayment = ({
+  visible,
+  onClose,
+  onSuccess,
+  onError,
+  orderData
 }) => {
   const { getScaledFontSize } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 24) + 16;
   const s18 = getScaledFontSize(18);
   const s16 = getScaledFontSize(16);
   const s24 = getScaledFontSize(24);
@@ -235,10 +239,11 @@ const DirectRazorpayPayment = ({
         <html>
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
           <title>Payment Error</title>
           <style>
-            body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f5f5f5; }
-            .container { max-width: 400px; margin: 0 auto; background: white; border-radius: 8px; padding: 20px; text-align: center; }
+            body { margin: 0; padding: 20px; font-family: 'Manrope', sans-serif; background-color: #f5f5f5; }
+            .container { max-width: 400px; margin: 0 auto; background: white; border-radius: 5px; padding: 20px; text-align: center; }
             .error { color: #e74c3c; font-size: 18px; margin-bottom: 20px; }
             .message { color: #7f8c8d; margin-bottom: 30px; }
             .retry-button { background-color: #3498db; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 5px; cursor: pointer; }
@@ -280,19 +285,32 @@ const DirectRazorpayPayment = ({
       <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
         <title>Payment</title>
         <style>
-          body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f5f5f5; }
-          .container { max-width: 400px; margin: 0 auto; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          body { margin: 0; padding: 24px 20px 48px; font-family: 'Manrope', sans-serif; background: transparent; }
+          .container { max-width: 100%; background: #FFFFFF; border-radius: 5px; padding: 24px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
           .loading { text-align: center; padding: 40px; }
           .error { color: #e74c3c; text-align: center; padding: 20px; }
-          .payment-form { text-align: center; padding: 20px; }
-          .amount { font-size: 24px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; }
-          .description { color: #7f8c8d; margin-bottom: 30px; }
-          .pay-button { background-color: #4CAF50; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 20px; }
-          .pay-button:hover { background-color: #45a049; }
+          .payment-form { padding: 0; text-align: center; }
+          .amount-section { margin-bottom: 20px; }
+          .amount-label { font-size: 15px; color: #424242; margin-bottom: 8px; font-weight: 400; }
+          .amount { font-size: 32px; font-weight: 900; color: #000; margin-bottom: 5px; }
+          .description { font-size: 14px; color: #757575; margin-bottom: 10px; line-height: 20px; }
+          .separator { border: none; border-top: 1px dashed #BDBDBD; margin: 0 0 24px 0; }
+          .upi-box { background: #FBFFFC; border-radius: 10px; padding: 16px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; text-align: left; }
+          .upi-logo { width: 50px; min-height: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-start; }
+          .upi-logo img { width: 41px; height: 14px; object-fit: contain; }
+          .upi-content { flex: 1; }
+          .upi-title { font-size: 15px; font-weight: 800; color: #55B56C; margin-bottom: 4px; }
+          .upi-subtitle { font-size: 13px; color: #9E9E9E; line-height: 18px; }
+          .pay-button { background-color: ${COLORS.secondaryColor}; color: white; border: none; padding: 16px 24px; font-size: 16px; font-weight: 600; border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 15px; }
+          .pay-button:hover { opacity: 0.9; }
           .pay-button:disabled { background-color: #cccccc; cursor: not-allowed; }
-          .test-info { background-color: #e8f5e8; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; color: #2e7d32; }
+          .security-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 1px; }
+          .security-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+          .security-icon img { width: 16px; height: 16px; }
+          .security-text { font-size: 13px; color: #9E9E9E; }
         </style>
       </head>
       <body>
@@ -306,14 +324,26 @@ const DirectRazorpayPayment = ({
             <p id="error-message">Unable to load payment gateway. Please try again.</p>
           </div>
           <div id="payment-form" class="payment-form" style="display: none;">
-            <div class="amount">₹${(amount / 100).toFixed(2)}</div>
-            <div class="description">${description}</div>
-            <div class="test-info">
-              <strong>UPI Payment:</strong> Pay using UPI apps like PhonePe, Google Pay, Paytm
+            <div class="amount-section">
+              <div class="amount-label">Amount to Pay</div>
+              <div class="amount">₹${(amount / 100).toFixed(2)}</div>
+              <div class="description">${description}</div>
+            </div>
+            <hr class="separator" />
+            <div class="upi-box">
+              <div class="upi-logo"><img src="data:image/svg+xml;base64,${UPI_ICON_BASE64}" alt="UPI" /></div>
+              <div class="upi-content">
+                <div class="upi-title">UPI Payment</div>
+                <div class="upi-subtitle">Pay using UPI apps like PhonePe, Google Pay, Paytm</div>
+              </div>
             </div>
             <button id="pay-button" class="pay-button" onclick="openRazorpay()">
               Pay Now
             </button>
+            <div class="security-row">
+              <span class="security-icon"><img src="data:image/svg+xml;base64,${SHIELD_ICON_BASE64}" alt="Secured" /></span>
+              <span class="security-text">Secured by BestInfra Payment Gateway</span>
+            </div>
           </div>
         </div>
         
@@ -512,26 +542,21 @@ const DirectRazorpayPayment = ({
               
               const rzp = new Razorpay(options);
               
-              // DEBUG: Log Razorpay instance creation
               console.log('✅ Razorpay instance created, opening payment modal...');
               
-              rzp.open().catch(function(error) {
-                console.error('❌ Razorpay error:', error);
-                console.error('❌ Error details:', {
-                  description: error.description,
-                  message: error.message,
-                  code: error.code,
-                  source: error.source,
-                  step: error.step,
-                  reason: error.reason,
-                  metadata: error.metadata
-                });
-                showError('Payment failed: ' + (error.description || error.message || 'Unknown error'));
-              });
+              var openResult = rzp.open();
+              if (openResult && typeof openResult.catch === 'function') {
+                openResult.catch(function() {});
+              }
               
             } catch (error) {
               console.error('Error in openRazorpay:', error);
-              showError('Failed to initialize payment: ' + error.message);
+              if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  status: 'error',
+                  message: error.message || 'Failed to initialize payment'
+                }));
+              }
             }
           }
           
@@ -596,7 +621,7 @@ const DirectRazorpayPayment = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingBottom: bottomPadding }]}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Text style={[styles.closeButtonText, { fontSize: s18 }]}>✕</Text>
@@ -635,7 +660,7 @@ const DirectRazorpayPayment = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F5F5F5',
   },
   header: {
     flexDirection: 'row',
@@ -659,11 +684,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#666',
     fontWeight: 'bold',
+    fontFamily: 'Manrope-Bold',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.primaryFontColor,
+    fontFamily: 'Manrope-SemiBold',
   },
   placeholder: {
     width: 32,
@@ -683,9 +710,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: COLORS.primaryFontColor,
+    fontFamily: 'Manrope-Regular',
   },
   webview: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   errorContainer: {
     flex: 1,
@@ -703,6 +732,7 @@ const styles = StyleSheet.create({
     color: '#e74c3c',
     marginBottom: 12,
     textAlign: 'center',
+    fontFamily: 'Manrope-Bold',
   },
   errorMessage: {
     fontSize: 16,
@@ -710,6 +740,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
     lineHeight: 24,
+    fontFamily: 'Manrope-Regular',
   },
   retryButton: {
     backgroundColor: '#3498db',
@@ -721,6 +752,7 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Manrope-SemiBold',
   },
 });
 

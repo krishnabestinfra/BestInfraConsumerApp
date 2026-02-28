@@ -25,6 +25,9 @@ export const setTenantSubdomain = (subdomain) => {
 
 export const getTenantSubdomain = () => currentTenantSubdomain;
 
+/** App ID for tickets API: GMR = 1, NTPL = 2. Used with GET /api/tickets/app/{appId} */
+export const getAppIdForTickets = () => (getTenantSubdomain() === 'ntpl' ? 2 : 1);
+
 const getApiHost = () => {
   const baseUrl = currentEnv.apiBaseUrl || API_BASE_URL;
   try {

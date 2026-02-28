@@ -227,6 +227,8 @@ const Table = ({
         <FlatList
           data={paginatedData}
           keyExtractor={keyExtractor}
+          style={styles.tableList}
+          contentContainerStyle={styles.tableListContent}
           renderItem={({ item, index }) => (
             <View
               style={[dataRowStyle, rowStyle, onRowPress && styles.pressableRow]}
@@ -499,11 +501,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     color: "#6E6E6E",
   },
+  tableList: {
+    flexGrow: 0,
+  },
+  tableListContent: {
+    paddingBottom: 10,
+  },
   paginationContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
+    gap: 12,
+    marginTop: 0,
     marginBottom: 4,
   },
   paginationButton: {

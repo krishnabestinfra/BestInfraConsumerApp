@@ -14,6 +14,7 @@
 
 import { Platform } from 'react-native';
 import { API, API_ENDPOINTS, ENV_INFO } from '../constants/constants';
+import { getAppIdForTickets } from '../config/apiConfig';
 import { cacheManager, getBillingWithCache } from '../utils/cacheManager';
 import { apiClient } from './apiClient';
 import { authService } from './authService';
@@ -261,22 +262,20 @@ export const fetchTicketStats = async (consumerNumber, forceRefresh = false) => 
   }
 };
 
-/** Default appId for tickets (override via options or env if needed) */
-const DEFAULT_APP_ID = 1;
-
 /**
  * Fetch tickets table data with caching (admin API: GET /admin/api/tickets/app/{appId}?consumerNumber=...&page=1&limit=10)
  * @param {string} consumerNumber - Consumer number (e.g. CON-1002) or identifier
  * @param {boolean} forceRefresh - If true, bypass cache and fetch fresh data (e.g. after creating a ticket)
- * @param {{ appId?: number, page?: number, limit?: number }} options - appId (default 1), page (default 1), limit (default 10)
+ * @param {{ appId?: number, page?: number, limit?: number }} options - appId (GMR=1, NTPL=2 by tenant), page (default 1), limit (default 10)
  */
 export const fetchTicketsTable = async (consumerNumber, forceRefresh = false, options = {}) => {
-  const { appId = DEFAULT_APP_ID, page = 1, limit = 10 } = options;
+  const { appId = getAppIdForTickets(), page = 1, limit = 10 } = options;
+  const cacheIdentifier = `${consumerNumber}|app${appId}`;
   try {
     const result = await cacheManager.getData(
       'ticket_table',
       API_ENDPOINTS.tickets.table(appId, consumerNumber, page, limit),
-      consumerNumber,
+      cacheIdentifier,
       forceRefresh
     );
     if (result.success && result.data != null && !Array.isArray(result.data)) {
@@ -289,19 +288,6 @@ export const fetchTicketsTable = async (consumerNumber, forceRefresh = false, op
   }
 };
 
-/** Map form category label to API category value (backend expects: BILLING, METER, CONNECTION, TECHNICAL, OTHER) */
-const TICKET_CATEGORY_MAP = {
-  'Technical Issue': 'TECHNICAL',
-  'Technical': 'TECHNICAL',
-  'Billing Issue': 'BILLING',
-  'Billing': 'BILLING',
-  'Connection Issue': 'CONNECTION',
-  'Connection': 'CONNECTION',
-  'Meter Issue': 'METER',
-  'Meter': 'METER',
-  'General Inquiry': 'OTHER',
-  'General': 'OTHER',
-};
 /** Map form priority to API value (backend expects: LOW, MEDIUM, HIGH, URGENT) */
 const TICKET_PRIORITY_MAP = {
   'Low': 'LOW',
@@ -309,18 +295,30 @@ const TICKET_PRIORITY_MAP = {
   'High': 'HIGH',
   'Urgent': 'URGENT',
 };
-/** Admin API: map form category to type (e.g. TECHNICAL_ISSUE) and category (e.g. TECHNICAL_SUPPORT) */
-const TICKET_TYPE_MAP = {
-  'Technical': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
-  'Technical Issue': { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' },
-  'Billing': { type: 'BILLING_ISSUE', category: 'BILLING_SUPPORT' },
-  'Billing Issue': { type: 'BILLING_ISSUE', category: 'BILLING_SUPPORT' },
-  'Connection': { type: 'CONNECTION_ISSUE', category: 'CONNECTION_SUPPORT' },
-  'Connection Issue': { type: 'CONNECTION_ISSUE', category: 'CONNECTION_SUPPORT' },
-  'Meter': { type: 'METER_ISSUE', category: 'METER_SUPPORT' },
-  'Meter Issue': { type: 'METER_ISSUE', category: 'METER_SUPPORT' },
-  'General Inquiry': { type: 'GENERAL_INQUIRY', category: 'OTHER' },
-  'General': { type: 'GENERAL_INQUIRY', category: 'OTHER' },
+
+/** API-style category values sent directly to backend as type and category */
+const TICKET_CATEGORY_VALUES = new Set([
+  'BUG_REPORT', 'FEATURE_REQUEST', 'TECHNICAL_ISSUE', 'BILLING_ISSUE',
+  'GENERAL_INQUIRY', 'COMPLAINT', 'SUGGESTION', 'OTHER',
+  'CONNECTION_ISSUE', 'METER_ISSUE',
+]);
+
+/** Map legacy label format to API value (for CreateNewTicketModal) */
+const LABEL_TO_API_CATEGORY = {
+  'Technical Issue': 'TECHNICAL_ISSUE', 'Technical': 'TECHNICAL_ISSUE',
+  'Billing Issue': 'BILLING_ISSUE', 'Billing': 'BILLING_ISSUE',
+  'Connection Issue': 'CONNECTION_ISSUE', 'Connection': 'CONNECTION_ISSUE',
+  'Meter Issue': 'METER_ISSUE', 'Meter': 'METER_ISSUE',
+  'General Inquiry': 'GENERAL_INQUIRY', 'General': 'GENERAL_INQUIRY',
+};
+
+/** Derive type and category for POST. Form sends API value (e.g. BUG_REPORT) or label; pass API value to backend. */
+const resolveTypeAndCategory = (categoryFromForm) => {
+  const str = typeof categoryFromForm === 'string' ? categoryFromForm.trim() : '';
+  const upper = str.toUpperCase().replace(/\s+/g, '_');
+  const apiValue = TICKET_CATEGORY_VALUES.has(upper) ? upper : LABEL_TO_API_CATEGORY[str];
+  if (apiValue) return { type: apiValue, category: apiValue };
+  return { type: 'GENERAL_INQUIRY', category: 'OTHER' };
 };
 
 /**
@@ -335,9 +333,7 @@ const TICKET_TYPE_MAP = {
 export const createTicket = async (consumerNumber, formData, context = {}) => {
   try {
     const { consumerData = {}, user = {} } = context;
-    const categoryLabel = formData.category || '';
-    const typeCategory = TICKET_TYPE_MAP[categoryLabel] || { type: 'TECHNICAL_ISSUE', category: 'TECHNICAL_SUPPORT' };
-    const category = TICKET_CATEGORY_MAP[categoryLabel] || (typeof categoryLabel === 'string' ? categoryLabel.toUpperCase().replace('GENERAL', 'OTHER') : 'OTHER') || 'OTHER';
+    const { type: ticketType, category: ticketCategory } = resolveTypeAndCategory(formData.category);
     const priority = TICKET_PRIORITY_MAP[formData.priority] || (typeof formData.priority === 'string' ? formData.priority.toUpperCase() : 'MEDIUM') || 'MEDIUM';
 
     const customerName =
@@ -350,11 +346,11 @@ export const createTicket = async (consumerNumber, formData, context = {}) => {
     const payload = {
       title: formData.subject || formData.title || 'No subject',
       description: formData.description || '',
-      type: typeCategory.type,
-      category: typeCategory.category,
+      type: ticketType,
+      category: ticketCategory,
       priority,
       consumerNumber: consumerNumber || consumerData?.consumerNumber || user?.consumerNumber || user?.identifier,
-      appId: typeof formData.appId === 'number' ? formData.appId : 1,
+      appId: typeof formData.appId === 'number' ? formData.appId : getAppIdForTickets(),
       customerName: customerName || 'Consumer',
       customerEmail: customerEmail || '',
       customerPhone: customerPhone || '',
@@ -400,6 +396,16 @@ export const getCachedTicketStats = async (identifier) => {
  */
 export const getCachedTicketTable = async (identifier) => {
   return await cacheManager.getCachedData('ticket_table', identifier);
+};
+
+/**
+ * Invalidate ticket cache for a consumer so next fetch gets fresh data.
+ * Call after creating a ticket to ensure list refresh returns new data.
+ */
+export const invalidateTicketCache = async (consumerNumber, appId) => {
+  const cacheIdentifier = `${consumerNumber}|app${appId ?? getAppIdForTickets()}`;
+  await cacheManager.clearCache('ticket_table', cacheIdentifier);
+  await cacheManager.clearCache('ticket_stats', consumerNumber);
 };
 
 /**

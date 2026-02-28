@@ -400,7 +400,7 @@ const Profile = ({ navigation }) => {
                 activeOpacity={0.8}
               >
                 <Image
-                  source={profileImage ? { uri: profileImage } : require("../../../assets/images/profile.jpg")}
+                  source={profileImage ? { uri: profileImage } : require("../../../assets/images/profileBlank.png")}
                   style={styles.profilePhoto}
                 />
                 <View style={styles.cameraIconWrapper}>
@@ -409,7 +409,7 @@ const Profile = ({ navigation }) => {
               </TouchableOpacity>
               {/* <Text style={styles.changePhotoText}>Tap to change photo</Text> */}
             </>) : (<><Image
-              source={profileImage ? { uri: profileImage } : require("../../../assets/images/profile.jpg")}
+              source={profileImage ? { uri: profileImage } : require("../../../assets/images/profileBlank.png")}
               style={styles.profilePhoto}
             /></>)}
 
@@ -660,6 +660,8 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 60,
+    borderWidth: 2,
+    borderColor: "#6E6E6E",
   },
   cameraIconWrapper: {
     position: "absolute",

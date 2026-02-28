@@ -165,6 +165,24 @@ const SideMenuNavigation = ({ navigation }) => {
           </Text>
         </Pressable>
 
+                {/* Payments */}
+                <Pressable
+          style={styles.flex}
+          onPress={() => {
+            setActiveItem("Payments");
+            navigation.navigate("PostPaidRechargePayments");
+          }}
+        >
+          {activeItem === "Payments" ? (
+            <ActivePayments width={18} height={18} style={[styles.iconStyle, styles.activeIcon]} />
+          ) : (
+            <PaymentsIcon width={18} height={18} style={styles.iconStyle} />
+          )}
+          <Text style={[styles.menuText, activeItem === "Payments" && styles.activeText, { fontSize: scaled.menu }]}>
+            Recharge
+          </Text>
+        </Pressable>
+
         {/* Usage */}
         <Pressable
           style={styles.flex}
@@ -183,21 +201,22 @@ const SideMenuNavigation = ({ navigation }) => {
           </Text>
         </Pressable>
 
-        {/* Payments */}
+
+        {/* Tickets */}
         <Pressable
           style={styles.flex}
           onPress={() => {
-            setActiveItem("Payments");
-            navigation.navigate("PostPaidRechargePayments");
+            setActiveItem("Tickets");
+            navigation.navigate("Tickets");
           }}
         >
-          {activeItem === "Payments" ? (
-            <ActivePayments width={18} height={18} style={[styles.iconStyle, styles.activeIcon]} />
+          {activeItem === "Tickets" ? (
+            <ActiveTickets width={18} height={18} style={[styles.iconStyle, styles.activeIcon]} />
           ) : (
-            <PaymentsIcon width={18} height={18} style={styles.iconStyle} />
+            <TicketsIcon width={18} height={18} style={styles.iconStyle} />
           )}
-          <Text style={[styles.menuText, activeItem === "Payments" && styles.activeText, { fontSize: scaled.menu }]}>
-            Payments
+          <Text style={[styles.menuText, { fontSize: scaled.menu }, activeItem === "Tickets" && styles.activeText]}>
+            Tickets
           </Text>
         </Pressable>
 
@@ -219,23 +238,7 @@ const SideMenuNavigation = ({ navigation }) => {
           </Text>
         </Pressable>
 
-        {/* Tickets */}
-        <Pressable
-          style={styles.flex}
-          onPress={() => {
-            setActiveItem("Tickets");
-            navigation.navigate("Tickets");
-          }}
-        >
-          {activeItem === "Tickets" ? (
-            <ActiveTickets width={18} height={18} style={[styles.iconStyle, styles.activeIcon]} />
-          ) : (
-            <TicketsIcon width={18} height={18} style={styles.iconStyle} />
-          )}
-          <Text style={[styles.menuText, { fontSize: scaled.menu }, activeItem === "Tickets" && styles.activeText]}>
-            Tickets
-          </Text>
-        </Pressable>
+
 
         {/* Alerts - Opens Modal */}
         <Pressable
