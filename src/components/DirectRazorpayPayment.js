@@ -1,10 +1,3 @@
-/**
- * Direct Razorpay Payment Component
- * 
- * Uses Razorpay's direct payment method without order creation
- * More reliable for WebView integration
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -14,6 +7,7 @@ import {
   Text,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
