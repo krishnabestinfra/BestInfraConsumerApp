@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Modal, Alert, ActivityIndicator, Share, FlatList } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Alert, ActivityIndicator, Share, FlatList } from "react-native";
 import React, { useState, useEffect } from "react";
 import { useIsFocused } from "@react-navigation/native";
 import * as FileSystem from "expo-file-system";
@@ -18,6 +18,7 @@ import DropDownIcon from "../../../assets/icons/dropdownArrow.svg";
 import ShareIcon from "../../../assets/icons/share.svg";
 import DatePicker from "../../components/global/DatePicker";
 import DocumentIcon from "../../../assets/icons/document.svg";
+import NoReportIcon from "../../../assets/icons/NoInvoice.svg"; // Reused for empty reports state
 import { getUser } from "../../utils/storage";
 import { apiClient } from "../../services/apiClient";
 import { formatDDMMYYYY, formatYYYYMMDD } from "../../utils/dateUtils";
@@ -365,50 +366,51 @@ const Reports = ({ navigation }) => {
         {/* Filter Card */}
         <View style={styles.filterCard}>
           {/* Select Type */}
-          <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Select Type</Text>
-            <Pressable 
-              style={styles.filterInput}
-              onPress={() => setShowTypeDropdown(!showTypeDropdown)}
-            >
-              <Text style={styles.filterInputText}>{filterType}</Text>
-              <DropDownIcon width={16} height={16} fill={COLORS.primaryFontColor} />
-            </Pressable>
-            
-            {/* Dropdown Modal */}
-            {showTypeDropdown && (
-              <Modal
-                visible={showTypeDropdown}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setShowTypeDropdown(false)}
+          <View style={[styles.filterSection, styles.dropdownSection]}>
+            <Text style={[styles.filterLabel, isDark && { color: themeColors.textPrimary }]}>Select Type</Text>
+            <View style={styles.dropdownWrapper}>
+              <Pressable 
+                style={[
+                  styles.filterInput,
+                  isDark && { backgroundColor: themeColors.card, borderColor: themeColors.cardBorder }
+                ]}
+                onPress={() => setShowTypeDropdown(!showTypeDropdown)}
               >
-                <Pressable 
-                  style={styles.dropdownOverlay}
-                  onPress={() => setShowTypeDropdown(false)}
-                >
-                  <View style={styles.dropdownContent}>
-                    {reportTypes.map((type) => (
-                      <Pressable
-                        key={type}
-                        style={styles.dropdownItem}
-                        onPress={() => {
-                          setFilterType(type);
-                          setShowTypeDropdown(false);
-                        }}
-                      >
-                        <Text style={[
-                          styles.dropdownItemText,
-                          filterType === type && styles.dropdownItemTextSelected
-                        ]}>
-                          {type}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </Pressable>
-              </Modal>
-            )}
+                <Text style={[styles.filterInputText, isDark && { color: themeColors.textPrimary }]}>{filterType}</Text>
+                <DropDownIcon width={16} height={16} fill={isDark ? themeColors.textPrimary : COLORS.primaryFontColor} />
+              </Pressable>
+              
+              {showTypeDropdown && (
+                <View style={[
+                  styles.dropdownList,
+                  isDark && { backgroundColor: themeColors.card, borderColor: themeColors.cardBorder }
+                ]}>
+                  {reportTypes.map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.dropdownItem,
+                        filterType === type && styles.dropdownItemSelected,
+                        isDark && { borderBottomColor: themeColors.cardBorder }
+                      ]}
+                      onPress={() => {
+                        setFilterType(type);
+                        setShowTypeDropdown(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        styles.dropdownItemText,
+                        filterType === type && styles.dropdownItemTextSelected,
+                        isDark && { color: themeColors.textPrimary }
+                      ]}>
+                        {type}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
           </View>
 
           {/* Select Date / Select Month (for Monthly Consumption) */}
@@ -463,30 +465,48 @@ const Reports = ({ navigation }) => {
         </View>
 
         {/* Recent Reports Card */}
-        <View style={styles.recentReportsCard}>
-          <Text style={styles.recentReportsTitle}>Recent Reports</Text>
-          <FlatList
-            data={recentReports}
-            scrollEnabled={false}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={({ item: report }) => (
-              <View style={styles.reportItem}>
-                <View style={styles.reportItemLeft}>
-                  <View style={styles.documentIcon}>
-                    <DocumentIcon width={18} height={18} fill={COLORS.primaryFontColor} />
-                  </View>
-                  <Text style={styles.reportItemText}>{report.name}</Text>
-                </View>
-                <Pressable
-                  style={styles.shareButton}
-                  onPress={() => handleShareReport(report)}
-                >
-                  <ShareIcon width={18} height={18} fill={COLORS.primaryFontColor} />
-                </Pressable>
+        <View style={[styles.recentReportsCard, isDark && { backgroundColor: themeColors.card }]}>
+          <Text style={[styles.recentReportsTitle, isDark && { color: themeColors.textPrimary }]}>Recent Reports</Text>
+          {recentReports.length === 0 ? (
+            <View style={[styles.emptyReportsContainer, isDark && { backgroundColor: themeColors.card }]}>
+              <View style={[styles.emptyReportsIconCircle, isDark && { backgroundColor: themeColors.screen }]}>
+                <NoReportIcon
+                  width={34}
+                  height={34}
+                  fill={isDark ? (themeColors?.textSecondary ?? "#9CA3AF") : "#BABECC"}
+                />
               </View>
-            )}
-            initialNumToRender={10}
-          />
+              <Text style={[styles.emptyReportsTitle, isDark && { color: themeColors.textPrimary }]}>
+                No Reports Generated Yet
+              </Text>
+              <Text style={[styles.emptyReportsSubtitle, isDark && { color: themeColors.textSecondary }]}>
+                Select a date range and tap "Get Report" to generate your first report. Your recent reports will appear here.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={recentReports}
+              scrollEnabled={false}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item: report }) => (
+                <View style={[styles.reportItem, isDark && { backgroundColor: themeColors.screen }]}>
+                  <View style={styles.reportItemLeft}>
+                    <View style={styles.documentIcon}>
+                      <DocumentIcon width={18} height={18} fill={isDark ? themeColors.textPrimary : COLORS.primaryFontColor} />
+                    </View>
+                    <Text style={[styles.reportItemText, isDark && { color: themeColors.textPrimary }]}>{report.name}</Text>
+                  </View>
+                  <Pressable
+                    style={styles.shareButton}
+                    onPress={() => handleShareReport(report)}
+                  >
+                    <ShareIcon width={18} height={18} fill={isDark ? themeColors.textPrimary : COLORS.primaryFontColor} />
+                  </Pressable>
+                </View>
+              )}
+              initialNumToRender={10}
+            />
+          )}
         </View>
       </ScrollView>
       
@@ -542,8 +562,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderWidth: 1,
     borderColor: "#fff",
-    zIndex: 10,
-    elevation: 6,
+    zIndex: 999,
+    elevation: 1,
   },
   badgeText: {
     color: "#fff",
@@ -672,6 +692,35 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope-Bold",
     color: COLORS.primaryFontColor,
   },
+  emptyReportsContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+  },
+  emptyReportsIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5F5F5",
+    marginBottom: 20,
+  },
+  emptyReportsTitle: {
+    fontSize: 18,
+    fontFamily: "Manrope-SemiBold",
+    color: COLORS.primaryFontColor,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  emptyReportsSubtitle: {
+    fontSize: 14,
+    fontFamily: "Manrope-Regular",
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 22,
+  },
   reportsList: {
     gap: 10,
   },
@@ -711,28 +760,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  dropdownOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+  dropdownSection: {
+    position: "relative",
+    zIndex: 10,
   },
-  dropdownContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 5,
-    minWidth: 200,
-    maxHeight: 300,
+  dropdownWrapper: {
+    position: "relative",
+  },
+  dropdownList: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    marginTop: 4,
+    backgroundColor: COLORS.secondaryFontColor,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 5,
+    zIndex: 1000,
   },
   dropdownItem: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
+  },
+  dropdownItemSelected: {
+    backgroundColor: "#F0F8FF",
   },
   dropdownItemText: {
     fontSize: 14,

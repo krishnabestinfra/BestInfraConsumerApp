@@ -39,6 +39,7 @@ const SplashScreen = () => {
 
       if (rememberMe && isAuthenticated && user) {
         console.log('✅ User authenticated with remember me enabled, navigating to dashboard');
+        await authService.restoreTenantBeforeFetch(user);
         refreshConsumer({ force: true });
         setTimeout(() => {
           setSplashComplete(true);

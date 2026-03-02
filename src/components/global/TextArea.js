@@ -1,5 +1,5 @@
-import React from 'react';
-import { TextInput, View, Text, StyleSheet, Platform } from 'react-native';
+import React, { useRef } from 'react';
+import { TextInput, View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -23,6 +23,7 @@ const TextArea = ({
   ...props
 }) => {
   const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
+  const inputRef = useRef(null);
   const s14 = getScaledFontSize(14);
   const s12 = getScaledFontSize(12);
   const s16 = getScaledFontSize(16);
@@ -62,9 +63,13 @@ const TextArea = ({
         </Text>
       )}
       
-      <View style={getInputContainerStyle()}>        
+      <Pressable
+        style={getInputContainerStyle()}
+        onPress={() => editable && inputRef.current?.focus()}
+      >
         <TextInput
-          style={[getInputStyle(), { fontSize: size === 'small' ? s12 : size === 'large' ? s16 : s14 }, inputStyle]}
+          ref={inputRef}
+          style={[getInputStyle(), { fontSize: size === 'small' ? s12 : size === 'large' ? s16 : s14 }, inputStyle, styles.textInputMinHeight]}
           placeholder={placeholder}
           placeholderTextColor={isDark ? (themeColors?.textSecondary ?? "rgba(255,255,255,0.6)") : "#6E6E6E"}
           value={value}
@@ -78,7 +83,7 @@ const TextArea = ({
           textAlignVertical="top"
           {...props}
         />
-      </View>
+      </Pressable>
       
       {maxLength && (
         <Text style={[styles.characterCount, { fontSize: s12 }]}>
@@ -164,6 +169,9 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     paddingTop: 0,
     paddingBottom: 0,
+  },
+  textInputMinHeight: {
+    minHeight: 84,
   },
   disabledInput: {
     opacity: 0.6,

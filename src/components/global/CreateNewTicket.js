@@ -40,8 +40,18 @@ const CreateNewTicket = ({
     priority !== "" &&
     description.trim() !== "";
 
+  // Display labels for dropdown; values are sent in the POST as ticket category/type
   const categories = useMemo(
-    () => ["Technical", "Billing", "Connection", "Meter", "General Inquiry"],
+    () => [
+      { label: "Bug Report", value: "BUG_REPORT" },
+      { label: "Feature Request", value: "FEATURE_REQUEST" },
+      { label: "Technical Issue", value: "TECHNICAL_ISSUE" },
+      { label: "Billing Issue", value: "BILLING_ISSUE" },
+      { label: "General Inquiry", value: "GENERAL_INQUIRY" },
+      { label: "Complaint", value: "COMPLAINT" },
+      { label: "Suggestion", value: "SUGGESTION" },
+      { label: "Other", value: "OTHER" },
+    ],
     []
   );
   const priorities = useMemo(() => ["Low", "Medium", "High"], []);
@@ -106,6 +116,8 @@ const CreateNewTicket = ({
         style={[styles.formContainer, isDark && { backgroundColor: modalDarkBg }]}
         contentContainerStyle={{ paddingBottom: 20 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <Input
           placeholder="Subject"
@@ -182,7 +194,7 @@ const styles = StyleSheet.create({
     marginTop: 100,
     flexDirection: "column",
     flex: 1,
-    justifyContent: "center", 
+    justifyContent: "center",
     marginHorizontal: 20
   },
   header: {

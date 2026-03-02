@@ -26,6 +26,22 @@ import { getSchemaForEndpoint } from '../schemas/apiSchemaMap';
 import { reportApiLatency } from '../utils/performanceMonitor';
 import { apiLogger } from '../utils/logger';
 
+/** Cache hit/miss stats for validation (7.2) */
+export const apiClientCacheStats = {
+  hits: 0,
+  misses: 0,
+  get hitRate() { const t = this.hits + this.misses; return t > 0 ? (this.hits / t * 100).toFixed(1) : 0; }
+};
+
+const logApiCacheEvent = (hit, endpoint) => {
+  if (hit) apiClientCacheStats.hits++; else apiClientCacheStats.misses++;
+  if (__DEV__) {
+    const path = typeof endpoint === 'string' ? endpoint.replace(/\?.*$/, '').slice(-50) : '';
+    // eslint-disable-next-line no-console
+    console.log(`[ApiCache] ${hit ? 'HIT' : 'MISS'} ${path} (hitRate: ${apiClientCacheStats.hitRate}%)`);
+  }
+};
+
 const REQUIRES_REAUTH_RESPONSE = {
   success: false,
   error: 'Session expired - please login again',
@@ -78,11 +94,13 @@ class ApiClient {
       const age = Date.now() - cached.timestamp;
 
       if (age < this.CACHE_FRESH) {
+        logApiCacheEvent(true, endpoint);
         apiLogger.info('Cache hit (fresh) for', endpoint);
         return cached.data;
       }
 
       if (age < this.CACHE_STALE) {
+        logApiCacheEvent(true, endpoint);
         apiLogger.info('Cache hit (stale) for', endpoint, '— background refresh');
         this._backgroundRefresh(endpoint, options, cacheKey);
         return cached.data;
@@ -94,6 +112,7 @@ class ApiClient {
       return this.pendingRequests.get(cacheKey);
     }
 
+    logApiCacheEvent(false, endpoint);
     const requestPromise = this._makeRequest(endpoint, options);
     this.pendingRequests.set(cacheKey, requestPromise);
 
@@ -408,12 +427,12 @@ class ApiClient {
   }
 
   /**
-   * Get consumer data — above-the-fold, fail fast so cache or error shows sooner
+   * Get consumer data — above-the-fold. Uses 20s timeout as consumers endpoint can be slow.
    */
   async getConsumerData(consumerId) {
     const endpoint = API_ENDPOINTS.consumers.get(consumerId);
     return this.request(endpoint, {
-      timeout: 10000,
+      timeout: 20000,
       retries: 1,
     });
   }
