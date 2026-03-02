@@ -1,10 +1,3 @@
-/**
- * Direct Razorpay Payment Component
- * 
- * Uses Razorpay's direct payment method without order creation
- * More reliable for WebView integration
- */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -14,6 +7,7 @@ import {
   Text,
   ActivityIndicator,
   Alert,
+  Image,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { COLORS } from '../constants/colors';
@@ -27,6 +21,8 @@ const DirectRazorpayPayment = ({
   orderData 
 }) => {
   const { getScaledFontSize } = useTheme();
+  const verifiedIconUri = Image.resolveAssetSource(require('../../assets/images/Verified.png')).uri;
+  const upiIconUri = Image.resolveAssetSource(require('../../assets/images/upi.png')).uri;
   const s18 = getScaledFontSize(18);
   const s16 = getScaledFontSize(16);
   const s24 = getScaledFontSize(24);
@@ -283,16 +279,24 @@ const DirectRazorpayPayment = ({
         <title>Payment</title>
         <style>
           body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f5f5f5; }
-          .container { max-width: 400px; margin: 0 auto; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          .container { max-width: 400px; margin: 0 auto; background: white; display: flex; flex-direction: column; gap: 16px;  border-radius: 5px; padding: 16px 18px; border: 1px solid rgba(0,0,0,0.08); }
           .loading { text-align: center; padding: 40px; }
           .error { color: #e74c3c; text-align: center; padding: 20px; }
-          .payment-form { text-align: center; padding: 20px; }
-          .amount { font-size: 24px; font-weight: bold; color: #2c3e50; margin-bottom: 20px; }
-          .description { color: #7f8c8d; margin-bottom: 30px; }
-          .pay-button { background-color: #4CAF50; color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 5px; cursor: pointer; width: 100%; margin-bottom: 20px; }
-          .pay-button:hover { background-color: #45a049; }
+          .payment-form { padding: 20px; }
+          .amount-label { font-size: 14px; color: #666; margin-bottom: 4px; text-align: center; }
+          .amount { font-size: 36px; font-weight: bold; color: #000; margin-bottom: 4px; text-align: center; }
+          .description { font-size: 12px; color: #666; margin-bottom: 16px; text-align: center;  }
+          .divider { border-top: 1px dashed #ddd; margin: 16px 0; }
+          .upi-box { background: #FBFFFC; border-radius: 4px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+          .upi-icon { width: 41px; height: 14px; display: block; object-fit: contain; }
+          .upi-title { font-weight: bold; color: #55b56c; font-size: 16px; }
+          .upi-text { display: flex; flex-direction: column; gap: 4px; }
+          .upi-sub { font-size: 10px; color: #666;  }
+          .pay-button { background-color: #55b56c; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; width: 100%; margin-bottom: 20px; }
+          .pay-button:hover { background-color: #4a9f5c; }
           .pay-button:disabled { background-color: #cccccc; cursor: not-allowed; }
-          .test-info { background-color: #e8f5e8; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; color: #2e7d32; }
+          .secure { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; color: #999; }
+          .secure-icon { width: 20px; height: 20px; display: block; }
         </style>
       </head>
       <body>
@@ -306,14 +310,22 @@ const DirectRazorpayPayment = ({
             <p id="error-message">Unable to load payment gateway. Please try again.</p>
           </div>
           <div id="payment-form" class="payment-form" style="display: none;">
+            <div class="amount-label">Amount to Pay</div>
             <div class="amount">₹${(amount / 100).toFixed(2)}</div>
             <div class="description">${description}</div>
-            <div class="test-info">
-              <strong>UPI Payment:</strong> Pay using UPI apps like PhonePe, Google Pay, Paytm
+            <div class="divider"></div>
+            <div class="upi-box">
+              <img class="upi-icon" src="${upiIconUri}" alt="UPI" />
+              <div class="upi-text">
+                <div class="upi-title">UPI Payment</div>
+                <div class="upi-sub">Pay using UPI apps like PhonePe, Google Pay, Paytm</div>
+              </div>
             </div>
-            <button id="pay-button" class="pay-button" onclick="openRazorpay()">
-              Pay Now
-            </button>
+            <button id="pay-button" class="pay-button" onclick="openRazorpay()">Pay Now</button>
+            <div class="secure">
+              <img class="secure-icon" src="${verifiedIconUri}" alt="" />
+              <span>Secured by BestInfra Payment Gateway</span>
+            </div>
           </div>
         </div>
         
@@ -636,6 +648,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    elevation: 0.2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   header: {
     flexDirection: 'row',

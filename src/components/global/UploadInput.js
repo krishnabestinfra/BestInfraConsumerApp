@@ -253,6 +253,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderStyle: 'dashed',
   },
+  
   defaultContainer: {
     borderWidth: Platform.OS === 'ios' ? 0.4 : 1,
     borderColor: '#F8F8F8',
