@@ -183,10 +183,8 @@ const SideMenu = ({ navigation }) => {
   return (
     <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
 
-      {/* ✅ Stable Android status bar control */}
       <StatusBar
         barStyle="light-content"
-        backgroundColor={COLORS.brandBlueColor}
       />
 
       <View style={styles.TopMenu}>

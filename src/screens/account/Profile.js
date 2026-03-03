@@ -417,13 +417,17 @@ const Profile = ({ navigation }) => {
 
           {/* Main Content Card */}
           <View style={styles.contentCard}>
-            {/* Account Information Section */}
 
             <View>
               <View style={styles.accountInfoSection}>
                 <Text style={styles.accountInfoTitle}>Account Information</Text>
               </View>
-              <View style={styles.accountInfoContent}>
+              <View
+                style={[
+                  styles.accountInfoContent,
+                  isDark && { backgroundColor: "#1A1F2E" }
+                ]}
+                >
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Consumer ID</Text>
                   {isLoading ? (
@@ -454,7 +458,12 @@ const Profile = ({ navigation }) => {
             {/* Editable Fields */}
             <View style={styles.fieldsContainer}>
               {/* Full Name - not editable (direct from API) */}
-              <View style={styles.fieldWrapper}>
+              <View
+                style={[
+                  styles.fieldWrapper,
+                  isDark && { backgroundColor: "#1F2E34" }
+                  ]}
+                >
                 {isLoading ? (
                   <View style={styles.skeletonFieldInner}>
                     <SkeletonField width="65%" height={14} />
@@ -465,7 +474,12 @@ const Profile = ({ navigation }) => {
               </View>
 
               {/* Mobile Number */}
-              <View style={styles.fieldWrapper}>
+              <View
+                  style={[
+                    styles.fieldWrapper,
+                    isDark && { backgroundColor: "#1F2E34" }
+                  ]}
+                >
                 {isLoading ? (
                   <View style={styles.skeletonFieldInner}>
                     <SkeletonField width="55%" height={14} />
@@ -486,7 +500,12 @@ const Profile = ({ navigation }) => {
               </View>
 
               {/* Email */}
-              <View style={styles.fieldWrapper}>
+              <View
+                style={[
+                  styles.fieldWrapper,
+                  isDark && { backgroundColor: "#1F2E34" }
+                ]}
+                >
                 {isLoading ? (
                   <View style={styles.skeletonFieldInner}>
                     <SkeletonField width="70%" height={14} />
@@ -508,7 +527,12 @@ const Profile = ({ navigation }) => {
               </View>
 
               {/* Address (read-only, not editable) */}
-              <View style={styles.fieldWrapper}>
+              <View
+                  style={[
+                    styles.fieldWrapper,
+                    isDark && { backgroundColor: "#1F2E34" }
+                  ]}
+                >
                 {isLoading ? (
                   <View style={[styles.skeletonFieldInner, { flexDirection: "column", gap: 6 }]}>
                     <SkeletonField width="90%" height={14} />
