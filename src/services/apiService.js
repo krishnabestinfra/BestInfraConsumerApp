@@ -1,9 +1,9 @@
 /**
  * Unified API Service
- * 
+ *
  * Handles all API communications, authentication, and data fetching.
  * Consolidates functionality from apiService.js and authHelper.js
- * 
+ *
  * Features:
  * - Centralized API endpoints
  * - Authentication handling
@@ -151,37 +151,37 @@ const _fetchBillingHistoryFromNetwork = async (uid) => {
   for (const endpoint of billingEndpoints) {
     try {
       console.log(`🔄 Trying billing endpoint: ${endpoint}`);
-      
+
       // Use apiClient for better token handling and automatic refresh
       const result = await apiClient.request(endpoint, {
         method: 'GET',
         showLogs: false, // Reduce logging for multiple attempts
       });
-      
+
       if (result.success && result.data) {
         // Check if data is actually present
         const data = result.data;
-        const hasData = Array.isArray(data) ? data.length > 0 : 
+        const hasData = Array.isArray(data) ? data.length > 0 :
                        (data && typeof data === 'object' && Object.keys(data).length > 0);
-        
+
         if (hasData) {
           console.log(`✅ Billing history fetched successfully from: ${endpoint}`);
           return result;
         }
       }
-      
+
       // If we get a 404, try next endpoint
       if (result.status === 404 || (result.error && result.error.includes('404'))) {
         console.log(`⚠️ Endpoint returned 404, trying next...`);
         continue;
       }
-      
+
       // If we get success but no data, still try other endpoints first
       if (result.success && (!result.data || (Array.isArray(result.data) && result.data.length === 0))) {
         console.log(`⚠️ Endpoint responded but no data found, trying next...`);
         continue;
       }
-      
+
       // If we get success with data (even if empty), return it
       if (result.success) {
         console.log(`✅ Endpoint responded successfully`);
@@ -201,16 +201,16 @@ const _fetchBillingHistoryFromNetwork = async (uid) => {
       method: 'GET',
       showLogs: false,
     });
-    
+
     if (consumerResult.success && consumerResult.data) {
       // Check if consumer data contains billing history
       const consumerData = consumerResult.data;
-      const billingData = consumerData.billingHistory || 
-                         consumerData.bills || 
+      const billingData = consumerData.billingHistory ||
+                         consumerData.bills ||
                          consumerData.invoices ||
                          consumerData.billing ||
                          consumerData.paymentHistory; // Sometimes billing is in payment history
-      
+
       if (billingData) {
         console.log('✅ Found billing data in consumer response');
         return {
@@ -225,8 +225,8 @@ const _fetchBillingHistoryFromNetwork = async (uid) => {
 
   // All attempts failed - return empty result gracefully
   console.warn('⚠️ All billing endpoint attempts failed - returning empty result');
-  return { 
-    success: true, 
+  return {
+    success: true,
     data: [],
     message: 'No billing history found. The billing endpoint may not be available for this consumer.',
     warning: true,
@@ -297,30 +297,42 @@ const TICKET_PRIORITY_MAP = {
 };
 
 /** API-style category values sent directly to backend as type and category */
-const TICKET_CATEGORY_VALUES = new Set([
-  'BUG_REPORT', 'FEATURE_REQUEST', 'TECHNICAL_ISSUE', 'BILLING_ISSUE',
-  'GENERAL_INQUIRY', 'COMPLAINT', 'SUGGESTION', 'OTHER',
-  'CONNECTION_ISSUE', 'METER_ISSUE',
+const VALID_TICKET_TYPES = new Set([
+  'BUG_REPORT',
+  'FEATURE_REQUEST',
+  'TECHNICAL_ISSUE',
+  'BILLING_ISSUE',
+  'GENERAL_INQUIRY',
+  'COMPLAINT',
+  'SUGGESTION',
+  'OTHER',
 ]);
 
-/** Map legacy label format to API value (for CreateNewTicketModal) */
-const LABEL_TO_API_CATEGORY = {
-  'Technical Issue': 'TECHNICAL_ISSUE', 'Technical': 'TECHNICAL_ISSUE',
-  'Billing Issue': 'BILLING_ISSUE', 'Billing': 'BILLING_ISSUE',
-  'Connection Issue': 'CONNECTION_ISSUE', 'Connection': 'CONNECTION_ISSUE',
-  'Meter Issue': 'METER_ISSUE', 'Meter': 'METER_ISSUE',
-  'General Inquiry': 'GENERAL_INQUIRY', 'General': 'GENERAL_INQUIRY',
-};
+const resolveTypeAndCategory = (valueFromForm) => {
+   console.log("🔎 valueFromForm:", valueFromForm);
+   console.log("🔎 typeof:", typeof valueFromForm);
+  if (!valueFromForm) {
+    return {
+      type: 'GENERAL_INQUIRY',
+      category: 'TECHNICAL_SUPPORT',
+    };
+  }
 
-/** Derive type and category for POST. Form sends API value (e.g. BUG_REPORT) or label; pass API value to backend. */
-const resolveTypeAndCategory = (categoryFromForm) => {
-  const str = typeof categoryFromForm === 'string' ? categoryFromForm.trim() : '';
-  const upper = str.toUpperCase().replace(/\s+/g, '_');
-  const apiValue = TICKET_CATEGORY_VALUES.has(upper) ? upper : LABEL_TO_API_CATEGORY[str];
-  if (apiValue) return { type: apiValue, category: apiValue };
-  return { type: 'GENERAL_INQUIRY', category: 'OTHER' };
-};
+  const raw = valueFromForm.toString().trim();
 
+
+  // Convert label to API format if needed
+  const normalized = raw.toUpperCase().replace(/\s+/g, '_');
+
+  const type = VALID_TICKET_TYPES.has(normalized)
+    ? normalized
+    : 'GENERAL_INQUIRY';
+
+  return {
+    type,
+    category: 'TECHNICAL_SUPPORT', // Always constant
+  };
+};
 /**
  * Create new ticket via admin API (POST https://api.bestinfra.app/admin/api/tickets).
  * Body: title, description, type, category, priority, consumerNumber, appId, customerName, customerEmail, customerPhone, tags.
@@ -333,7 +345,7 @@ const resolveTypeAndCategory = (categoryFromForm) => {
 export const createTicket = async (consumerNumber, formData, context = {}) => {
   try {
     const { consumerData = {}, user = {} } = context;
-    const { type: ticketType, category: ticketCategory } = resolveTypeAndCategory(formData.category);
+    const { type: ticketType, category: ticketCategory } =  resolveTypeAndCategory(formData.type);
     const priority = TICKET_PRIORITY_MAP[formData.priority] || (typeof formData.priority === 'string' ? formData.priority.toUpperCase() : 'MEDIUM') || 'MEDIUM';
 
     const customerName =
@@ -440,10 +452,10 @@ export const fetchNotifications = async (uid, page = 1, limit = 10) => {
       // Try to get existing token as fallback
       token = await authService.getAccessToken();
     }
-    
+
     if (!token) {
       console.warn('⚠️ No access token available for notifications - returning empty list');
-      return { 
+      return {
         success: true, // Return success with empty data instead of error
         data: { notifications: [], pagination: {} },
         message: 'Authentication required. Please login to see notifications.'
@@ -540,7 +552,7 @@ export const markAllNotificationsAsRead = async (uid) => {
  * Fetch payment transactions for a specific consumer
  * Shows all transactions made via nexusone mobile app
  * Uses bearer token from logged-in user
- * 
+ *
  * @param {string} consumerId - Consumer identifier (optional, will use logged-in user if not provided)
  * @returns {Promise<{success: boolean, data: Array, message?: string}>}
  */
@@ -554,10 +566,10 @@ export const fetchPaymentTransactions = async (consumerId = null) => {
       console.warn('⚠️ Error getting access token for transactions:', tokenError.message);
       token = await authService.getAccessToken();
     }
-    
+
     if (!token) {
       console.warn('⚠️ No access token available for transactions - returning empty list');
-      return { 
+      return {
         success: true,
         data: [],
         message: 'Authentication required. Please login to see transactions.'
@@ -612,7 +624,7 @@ export const fetchPaymentTransactions = async (consumerId = null) => {
 
     if (resultData.success && resultData.data && resultData.data.paymentHistory) {
       const paymentHistory = resultData.data.paymentHistory || [];
-      
+
       // Filter for mobile app payments (nexusone app)
       // Check if payment has source: 'react_native_app' or paymentMode indicates mobile
       const mobileAppPayments = paymentHistory.filter((payment) => {
@@ -624,22 +636,22 @@ export const fetchPaymentTransactions = async (consumerId = null) => {
         // 4. If no source field, include all payments (assume they're from mobile if in mobile app)
         const source = payment.source || payment.notes?.source || '';
         const paymentMode = (payment.paymentMode || '').toLowerCase();
-        const isMobileApp = 
+        const isMobileApp =
           source === 'react_native_app' ||
           source === 'nexusone_app' ||
           paymentMode.includes('mobile') ||
           paymentMode.includes('app') ||
           paymentMode.includes('upi') || // UPI payments are typically from mobile
           !source; // If no source specified, assume mobile app (since we're in mobile app)
-        
+
         return isMobileApp;
       });
 
       // Transform payment history data for the table (matching Transactions.js format)
       const transformedData = mobileAppPayments.map((payment, index) => {
         // Extract transaction ID from various possible fields
-        const transactionId = 
-          payment.transactionId || 
+        const transactionId =
+          payment.transactionId ||
           payment.transaction_id ||
           payment.paymentId ||
           payment.payment_id ||
@@ -649,8 +661,8 @@ export const fetchPaymentTransactions = async (consumerId = null) => {
           `TXN-${Date.now()}-${index}`;
 
         // Extract payment date
-        const paymentDate = 
-          payment.paymentDate || 
+        const paymentDate =
+          payment.paymentDate ||
           payment.payment_date ||
           payment.createdAt ||
           payment.created_at ||
@@ -665,8 +677,8 @@ export const fetchPaymentTransactions = async (consumerId = null) => {
         }
 
         // Extract payment mode
-        const paymentMode = 
-          payment.paymentMode || 
+        const paymentMode =
+          payment.paymentMode ||
           payment.payment_mode ||
           payment.method ||
           'UPI';
@@ -724,8 +736,8 @@ export const fetchPaymentTransactions = async (consumerId = null) => {
         transformedCount: transformedData.length
       });
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         data: transformedData,
         total: transformedData.length,
         message: `Found ${transformedData.length} mobile app transaction(s)`
@@ -733,8 +745,8 @@ export const fetchPaymentTransactions = async (consumerId = null) => {
     }
 
     // If no payment history found
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: [],
       message: 'No payment history found for this consumer'
     };

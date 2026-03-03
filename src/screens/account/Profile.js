@@ -429,27 +429,58 @@ const Profile = ({ navigation }) => {
                 ]}
                 >
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Consumer ID</Text>
+                  <Text
+                    style={[
+                      styles.infoLabel,
+                      isDark && { color: "#FFFFFF" }
+                    ]}
+                  >Consumer ID</Text>
                   {isLoading ? (
                     <SkeletonField width="55%" height={14} />
                   ) : (
-                    <Text style={styles.infoValue}>{safeDisplay(userData.consumerId)}</Text>
+                    <Text
+                      style={[
+                        styles.infoValue,
+                        isDark && { color: "#FFFFFF" }
+                      ]}
+                    >{safeDisplay(userData.consumerId)}</Text>
                   )}
                 </View>
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Meter Number</Text>
+                  <Text
+                    style={[
+                      styles.infoLabel,
+                      isDark && { color: "#FFFFFF" }
+                    ]}
+                  >Meter Number</Text>
                   {isLoading ? (
                     <SkeletonField width="50%" height={14} />
                   ) : (
-                    <Text style={styles.infoValue}>{safeDisplay(userData.meterNumber)}</Text>
+                    <Text
+                      style={[
+                        styles.infoValue,
+                        isDark && { color: "#FFFFFF" }
+                      ]}
+                    >{safeDisplay(userData.meterNumber)}</Text>
                   )}
                 </View>
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Connection Type</Text>
+                  <Text
+                    style={[
+                      styles.infoLabel,
+                      isDark && { color: "#FFFFFF" }
+                    ]}
+                  >Connection Type
+                  </Text>
                   {isLoading ? (
                     <SkeletonField width="45%" height={14} />
                   ) : (
-                    <Text style={styles.infoValue}>{safeDisplay(userData.connectionType)}</Text>
+                    <Text
+                      style={[
+                        styles.infoValue,
+                        isDark && { color: "#FFFFFF" }
+                      ]}
+                    >{safeDisplay(userData.connectionType)}</Text>
                   )}
                 </View>
               </View>
@@ -469,7 +500,12 @@ const Profile = ({ navigation }) => {
                     <SkeletonField width="65%" height={14} />
                   </View>
                 ) : (
-                  <Text style={styles.fieldValue}>{safeDisplay(userData.name)}</Text>
+                  <Text
+                    style={[
+                      styles.fieldValue,
+                      isDark && { color: "#99A1AF" }
+                    ]}
+                  >{safeDisplay(userData.name)}</Text>
                 )}
               </View>
 
@@ -495,7 +531,12 @@ const Profile = ({ navigation }) => {
                     onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)}
                   />
                 ) : (
-                  <Text style={styles.fieldValue}>{safeDisplay(userData.mobile)}</Text>
+                  <Text
+                    style={[
+                      styles.fieldValue,
+                      isDark && { color: "#99A1AF" }
+                    ]}
+                  >{safeDisplay(userData.mobile)}</Text>
                 )}
               </View>
 
@@ -522,7 +563,12 @@ const Profile = ({ navigation }) => {
                     onFocus={() => setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)}
                   />
                 ) : (
-                  <Text style={styles.fieldValue}>{safeDisplay(userData.email)}</Text>
+                  <Text
+                    style={[
+                      styles.fieldValue,
+                      isDark && { color: "#99A1AF" }
+                    ]}
+                  >{safeDisplay(userData.email)}</Text>
                 )}
               </View>
 
@@ -539,7 +585,12 @@ const Profile = ({ navigation }) => {
                     <SkeletonField width="75%" height={14} />
                   </View>
                 ) : (
-                  <Text style={styles.fieldValue}>{safeDisplay(userData.address)}</Text>
+                  <Text
+                    style={[
+                      styles.fieldValue,
+                      isDark && { color: "#99A1AF" }
+                    ]}
+                  >{safeDisplay(userData.address)}</Text>
                 )}
               </View>
             </View>
