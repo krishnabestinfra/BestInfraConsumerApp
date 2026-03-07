@@ -22,7 +22,7 @@ const GuestLogin = () => {
     // This ensures pressing back on Dashboard will exit the app
     navigation.reset({
       index: 0,
-      routes: [{ name: "PostPaidDashboard", params: { isGuest: true } }],
+      routes: [{ name: "Dashboard", params: { isGuest: true } }],
     });
   };
 

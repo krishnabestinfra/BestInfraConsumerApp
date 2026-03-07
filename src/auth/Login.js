@@ -33,7 +33,7 @@ const LOGO_CIRCLE_GRADIENT = ["#163b7c", "#1f3d6d", "#2a6f65", "#55b56c"];
 
 const Login = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
-  const { refreshConsumer } = useConsumer();
+  const { refreshConsumer, clearConsumer } = useConsumer();
   const s24 = getScaledFontSize(24);
   const s14 = getScaledFontSize(14);
   const [identifier, setIdentifier] = useState("");
@@ -104,6 +104,7 @@ const Login = ({ navigation }) => {
           totalOutstanding: 1500.00
         };
 
+        clearConsumer();
         await storeUser(dummyUserData);
         await authService.storeAccessToken("demo-token-" + Date.now());
         await authService.setRememberMe(checked);
@@ -120,7 +121,7 @@ const Login = ({ navigation }) => {
                 refreshConsumer({ force: true });
                 navigation.reset({
                   index: 0,
-                  routes: [{ name: "PostPaidDashboard" }],
+                  routes: [{ name: "Dashboard" }],
                 });
               }
             }
@@ -194,6 +195,7 @@ const Login = ({ navigation }) => {
           accessToken: tokens.accessToken
         };
 
+        clearConsumer();
         await storeUser(userData);
         await authService.setRememberMe(checked);
 
@@ -225,7 +227,7 @@ const Login = ({ navigation }) => {
         refreshConsumer({ force: true });
         navigation.reset({
           index: 0,
-          routes: [{ name: "PostPaidDashboard" }],
+          routes: [{ name: "Dashboard" }],
         });
       } else {
         throw new Error(rawBody.message || "Invalid response from server");

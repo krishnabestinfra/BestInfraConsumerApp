@@ -41,11 +41,12 @@ export const getUser = async () => {
 };
 
 // Logout function - now uses authService
+// Note: Call clearConsumer() from your component before logoutUser() to clear in-memory consumer data
 export const logoutUser = async () => {
   try {
     // Use authService logout which handles server-side token revocation
     await authService.logout();
-    // Clear all cached consumer data on logout
+    // Clear all cached consumer data on logout (AsyncStorage + in-memory cache)
     await clearAllCache();
   } catch (e) {
     // Silent error handling for production

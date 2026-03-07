@@ -30,7 +30,7 @@ const USAGE_CARD_LABELS = {
   "1Y": { title: "This Year's Usage:", comparisonLabel: "vs. Last Year." },
 };
 
-const PostPaidDashboard = ({ navigation, route }) => {
+const Dashboard = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
   const darkOverlay = useDarkOverlay(isDark, themeColors);
 
@@ -59,7 +59,7 @@ const PostPaidDashboard = ({ navigation, route }) => {
   const [selectedConsumerUid, setSelectedConsumerUid] = useState(null);
 
   // ── Screen timing (7.1) ──
-  const { onLayout: onScreenLayout } = useScreenTiming('PostPaidDashboard', {
+  const { onLayout: onScreenLayout } = useScreenTiming('Dashboard', {
     isLoading,
     dataReady: !isLoading && !!consumerData,
   });
@@ -211,4 +211,4 @@ const PostPaidDashboard = ({ navigation, route }) => {
   );
 };
 
-export default PostPaidDashboard;
+export default Dashboard;

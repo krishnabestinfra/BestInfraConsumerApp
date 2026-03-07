@@ -427,7 +427,7 @@ const PostPaidRechargePayments = ({ navigation }) => {
       </ScrollView>
       <View style={styles.buttonContainer}>
         <Button 
-          title={isPaymentProcessing ? "Processing Payment..." : "Proceed to Recharge"} 
+          title={isPaymentProcessing ? "Processing Payment..." : "Proceed to Pay"} 
           variant="primary" 
           size="medium" 
           onPress={handlePayment}

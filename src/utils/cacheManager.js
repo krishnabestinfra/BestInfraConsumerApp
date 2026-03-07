@@ -343,15 +343,24 @@ class UnifiedCacheManager {
   }
 
   /**
-   * Clear all cached data
+   * Clear all cached data (in-memory + AsyncStorage).
+   * Removes base keys, per-consumer keys (cached_consumer_data_*, etc.), and legacy keys.
    */
   async clearAllCache() {
     this.cache.clear();
+    this.isInitialized = false;
     try {
       const keys = await AsyncStorage.getAllKeys();
-      const toRemove = keys.filter(
-        k => Object.values(CACHE_KEYS).includes(k) || k.startsWith(CACHE_KEYS.BILLING_HISTORY + '_')
-      );
+      const prefixes = [
+        CACHE_KEYS.CONSUMER_DATA,
+        CACHE_KEYS.TICKET_STATS,
+        CACHE_KEYS.TICKET_TABLE,
+        CACHE_KEYS.BILLING_HISTORY,
+      ];
+      const toRemove = keys.filter((k) => {
+        if (Object.values(CACHE_KEYS).includes(k)) return true;
+        return prefixes.some((p) => k === p || k.startsWith(p + '_'));
+      });
       if (toRemove.length) await AsyncStorage.multiRemove(toRemove);
     } catch (error) {
       console.error('Error clearing cache:', error);

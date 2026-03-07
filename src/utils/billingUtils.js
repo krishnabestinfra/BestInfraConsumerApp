@@ -2,9 +2,36 @@
  * Billing and invoice date helpers
  *
  * Shared utilities for consumer due dates and billing list date resolution.
- * Use from PostPaidDashboard, Invoices, Payments, etc.
+ * Use from Dashboard, Invoices, Payments, etc.
  */
 
+/** Values that indicate prepaid (case-insensitive) */
+const PREPAID_VALUES = ['prepaid', 'pre-paid', 'pre paid'];
+
+const normalizeToPrepaid = (val) => {
+  if (val == null || typeof val !== 'string') return false;
+  return PREPAID_VALUES.includes(String(val).trim().toLowerCase());
+};
+
+/**
+ * Determine if consumer is prepaid. Checks multiple API field names.
+ * @param {Object} consumerData - Consumer object from API or demo data
+ * @returns {boolean}
+ */
+export const isPrepaidConsumer = (consumerData) => {
+  if (!consumerData || typeof consumerData !== 'object') return false;
+  const val =
+    consumerData.meterType ??
+    consumerData.meter_type ??
+    consumerData.billType ??
+    consumerData.bill_type ??
+    consumerData.statementFor ??
+    consumerData.statement_for ??
+    consumerData.accountType ??
+    consumerData.account_type ??
+    consumerData.connectionType; // some APIs use connectionType for prepaid/postpaid
+  return normalizeToPrepaid(val);
+};
 
 export const getConsumerDueDate = (consumerData) => {
   if (!consumerData || typeof consumerData !== 'object') return null;
@@ -16,6 +43,11 @@ export const getConsumerDueDate = (consumerData) => {
     consumerData.outstandingDueDate ??
     consumerData.lastBillDueDate ??
     consumerData.billDueDate ??
+    // Prepaid: balance expiry / estimated exhaustion
+    consumerData.balanceExpiryDate ??
+    consumerData.balance_expiry_date ??
+    consumerData.estimatedExhaustionDate ??
+    consumerData.estimated_exhaustion_date ??
     null
   );
 };

@@ -137,9 +137,9 @@ Screens / Context
 
 ## 12. Dashboards & screens
 
-- **Current:** PostPaidDashboard (main), LsDataTable, and shared components (UltraFastScreen, OptimizedScreen) exist. Feature flags (`config/featureFlags.js`) allow toggling; navigation still points to PostPaidDashboard as primary.
+- **Current:** Dashboard (main), LsDataTable, and shared components (UltraFastScreen, OptimizedScreen) exist. Feature flags (`config/featureFlags.js`) allow toggling; navigation still points to Dashboard as primary.
 - **Intended:** Prefer one config-driven or role-based dashboard long-term; legacy variants can be deprecated or hidden via feature flags when consolidation is done.
-- **Screen-level ErrorBoundary:** Key screens (Invoices, Notifications, PostPaidDashboard, Transactions, Tickets, TicketDetails, ChatSupport, Reports) are wrapped with `withScreenErrorBoundary` so one broken screen does not crash the whole app.
+- **Screen-level ErrorBoundary:** Key screens (Invoices, Notifications, Dashboard, Transactions, Tickets, TicketDetails, ChatSupport, Reports) are wrapped with `withScreenErrorBoundary` so one broken screen does not crash the whole app.
 
 --------------------------------------------------------------------------------
 # Performance Improvements – Priority List (Paste into Cursor)
@@ -155,7 +155,7 @@ Use this list in order. Each item has a clear priority number and a detailed des
 **What:** Today, Dashboard and Tickets (and some other screens) run several API calls one after another (await first, then await second). Total wait time is the sum of all calls. Change this so independent calls run at the same time and you await them together; total wait becomes roughly the slowest single call.
 
 **Where and how:**
-- **Dashboard (PostPaidDashboard.js):** In `fetchConsumerData`, do not await consumer data and then await billing. Instead: start both `apiClient.getConsumerData(user.identifier)` and `fetchBillingHistory(user.identifier)` (store the promises), then `await Promise.all([consumerPromise, billingPromise])`. From the two results, set `consumerData` and `latestInvoiceDates` in one go. Keep error handling (e.g. if one fails, still set the other if it succeeded).
+- **Dashboard (Dashboard.js):** In `fetchConsumerData`, do not await consumer data and then await billing. Instead: start both `apiClient.getConsumerData(user.identifier)` and `fetchBillingHistory(user.identifier)` (store the promises), then `await Promise.all([consumerPromise, billingPromise])`. From the two results, set `consumerData` and `latestInvoiceDates` in one go. Keep error handling (e.g. if one fails, still set the other if it succeeded).
 - **Tickets (Tickets.js):** In `fetchData`, after you have `consumerNumber` (from the consumer result or cache), do not await stats and then await table. Start both `fetchTicketStats(consumerNumber, forceRefreshTickets)` and `fetchTicketsTable(consumerNumber, forceRefreshTickets, { appId: 1, page: 1, limit: 10 })`, then `await Promise.all([statsPromise, tablePromise])`. Set `ticketStats` and `tableData` from the results. Consumer fetch can stay as is, or run in parallel with stats/table if you already have consumerNumber from cache.
 - **Invoices / Usage / Recharge:** If any screen does two or more independent API calls in sequence (e.g. consumer then billing), run those in parallel with `Promise.all` and set all state from the combined result.
 
@@ -190,14 +190,14 @@ Use this list in order. Each item has a clear priority number and a detailed des
 
 ## Priority 2 – High Impact (More Work)
 
-### 2.1 Split PostPaidDashboard into smaller, memoized components
+### 2.1 Split Dashboard into smaller, memoized components
 
-**What:** PostPaidDashboard.js is a very large single component. Any state change (e.g. `isLoading`, `consumerData`, `pickedDateRange`) can cause the whole tree to re-render. Split the main content into smaller sections, each a separate component wrapped in `React.memo`, so only the section that actually needs to re-render does.
+**What:** Dashboard.js is a very large single component. Any state change (e.g. `isLoading`, `consumerData`, `pickedDateRange`) can cause the whole tree to re-render. Split the main content into smaller sections, each a separate component wrapped in `React.memo`, so only the section that actually needs to re-render does.
 
 **Where and how:**
 - Create separate components (in the same file or separate files): e.g. `AmountSection` (due amount + green “Pay” box), `MeterCard` (consumer name, last communication, meter number, tap for details), `EnergySummary` (Energy Summary header, Pick a Date, usage row, time period buttons, chart or table), `UsageStatsRow` (Average Daily and Peak Usage cards), `ComparisonCard` (comparison header, this month/last month, progress bar, savings message), `AlertsTableSection` (Alerts title + horizontal table).
 - Each component receives only the props it needs (e.g. `consumerData`, `isLoading`, `timePeriod`, `displayMode`, `pickedDateRange`, handlers, theme props). Wrap each in `React.memo`.
-- In PostPaidDashboard, render these components instead of one big block of JSX. Keep all state and callbacks in the parent; pass them down so that when e.g. only `consumerData` changes, only components that use `consumerData` re-render.
+- In Dashboard, render these components instead of one big block of JSX. Keep all state and callbacks in the parent; pass them down so that when e.g. only `consumerData` changes, only components that use `consumerData` re-render.
 
 **Why:** Reduces render cost and keeps the file maintainable; avoids unnecessary work on every keystroke or loading toggle.
 
@@ -208,8 +208,8 @@ Use this list in order. Each item has a clear priority number and a detailed des
 **What:** The dashboard skeleton uses many Shimmer blocks, and several screens use 20 animated rings (Dashboard header, ChatSupport, AnimatedRings, RippleEffect). Each Shimmer runs an `Animated.loop` and each ring runs animation work. Too many simultaneous animations can make scrolling and touch feel laggy.
 
 **Where and how:**
-- **Dashboard skeleton (PostPaidDashboardSkeleton):** Replace many small Shimmer placeholders per section with one or two Shimmer blocks per section (e.g. one for the amount area, one for the meter card, one for the chart area). Reuse the same Shimmer component with different sizes.
-- **Rings:** In PostPaidDashboard (header), ChatSupport.js, AnimatedRings.js, and RippleEffect.js, change the constant that defines the number of rings (e.g. `RING_COUNT`) from 20 to 8 or 10. Ensure the layout still looks acceptable.
+- **Dashboard skeleton (DashboardSkeleton):** Replace many small Shimmer placeholders per section with one or two Shimmer blocks per section (e.g. one for the amount area, one for the meter card, one for the chart area). Reuse the same Shimmer component with different sizes.
+- **Rings:** In Dashboard (header), ChatSupport.js, AnimatedRings.js, and RippleEffect.js, change the constant that defines the number of rings (e.g. `RING_COUNT`) from 20 to 8 or 10. Ensure the layout still looks acceptable.
 
 **Why:** Fewer animations mean less work on the JS/UI thread and smoother interaction.
 
@@ -270,7 +270,7 @@ Use this list in order. Each item has a clear priority number and a detailed des
 **What:** The Alerts section uses a horizontal ScrollView that renders the full table (all rows). If the list grows, every row is mounted and the tree is large. Use a virtualized list so only visible rows are mounted.
 
 **Where and how:**
-- In PostPaidDashboard, replace the structure that renders the Alerts table (the horizontal ScrollView wrapping the table content) with a FlatList (horizontal if the design is horizontal). Use data={tableData}, renderItem to render each row, keyExtractor, and set initialNumToRender (e.g. 5–10), maxToRenderPerBatch, and windowSize so only a small set of rows is mounted. Keep the same row UI and columns; only the list mechanism changes.
+- In Dashboard, replace the structure that renders the Alerts table (the horizontal ScrollView wrapping the table content) with a FlatList (horizontal if the design is horizontal). Use data={tableData}, renderItem to render each row, keyExtractor, and set initialNumToRender (e.g. 5–10), maxToRenderPerBatch, and windowSize so only a small set of rows is mounted. Keep the same row UI and columns; only the list mechanism changes.
 - If the table has a fixed row height, implement getItemLayout so FlatList doesn’t have to measure every item; that improves scroll performance.
 
 **Why:** Long alert lists no longer block the UI or cause jank; only visible rows are in the tree.

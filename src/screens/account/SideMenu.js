@@ -16,6 +16,7 @@ import Menu from "../../../assets/icons/barsWhite.svg";
 import Notification from "../../../assets/icons/notification.svg";
 import Usage from "../usage/Usage";
 import PostPaidRechargePayments from "../recharge/PostPaidRechargePayments";
+import PrePaidRechargePayments from "../recharge/PrePaidRechargePayments";
 import Transactions from "../invoices/Transactions";
 import Settings from "./Settings";
 import { BlurView } from "expo-blur";
@@ -28,7 +29,7 @@ import { apiClient } from "../../services/apiClient";
 import { API_ENDPOINTS } from "../../constants/constants";
 import { useConsumer } from "../../context/ConsumerContext";
 import { getTenantSubdomain } from "../../config/apiConfig";
-import PostPaidDashboard from "../dashboard/PostPaidDashboard";
+import Dashboard from "../dashboard/Dashboard";
 
 /* ---------------- Skeleton ---------------- */
 
@@ -163,18 +164,20 @@ const SideMenu = ({ navigation }) => {
 
   const renderContent = () => {
     switch (activeItem) {
-      case "PostPaidDashboard":
-        return <PostPaidDashboard />;
+      case "Dashboard":
+        return <Dashboard />;
       case "Usage":
         return <Usage />;
       case "PostPaidRechargePayments":
         return <PostPaidRechargePayments />;
+      case "PrePaidRechargePayments":
+        return <PrePaidRechargePayments />;
       case "Transactions":
         return <Transactions />;
       case "Settings":
         return <Settings />;
       default:
-        return <PostPaidDashboard />;
+        return <Dashboard />;
     }
   };
 
@@ -190,15 +193,15 @@ const SideMenu = ({ navigation }) => {
       <View style={styles.TopMenu}>
         <Pressable
           style={styles.barsIcon}
-          onPress={() => navigation.navigate("PostPaidDashboard")}
+          onPress={() => navigation.navigate("Dashboard")}
         >
           <Menu width={18} height={18} fill="#ffffff" />
         </Pressable>
 
         <Pressable
           onPress={() => {
-            setActiveItem("PostPaidDashboard");
-            navigation.navigate("PostPaidDashboard");
+            setActiveItem("Dashboard");
+            navigation.navigate("Dashboard");
           }}
         >
           <Logo variant="white" size="medium" />

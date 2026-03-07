@@ -17,6 +17,8 @@ import { getUser } from "../../utils/storage";
 import { API, API_ENDPOINTS } from "../../constants/constants";
 import { apiClient } from "../../services/apiClient";
 import { formatFrontendDate } from "../../utils/dateUtils";
+import { isPrepaidConsumer } from "../../utils/billingUtils";
+import { useConsumer } from "../../context/ConsumerContext";
 import { info, warn, error as logError } from "../../utils/logger";
 
 
@@ -25,6 +27,8 @@ const STALE_THRESHOLD = 120000; // 2 minutes
 const Transactions = ({ navigation }) => {
   const { isDark, colors: themeColors } = useTheme();
   const { unreadCount } = useNotifications();
+  const { consumerData } = useConsumer();
+  const isPrepaid = isPrepaidConsumer(consumerData);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [tableData, setTableData] = useState([]);
@@ -172,7 +176,7 @@ const Transactions = ({ navigation }) => {
               <Menu width={18} height={18} fill="#202d59" />
             )}
           </Pressable>
-          <Pressable onPress={() => navigation.navigate("PostPaidDashboard")}>
+          <Pressable onPress={() => navigation.navigate("Dashboard")}>
             <BiLogo width={45} height={45} />
           </Pressable>
           <Pressable
@@ -196,7 +200,7 @@ const Transactions = ({ navigation }) => {
       </View>
 
       <View style={[styles.TransactionsContainer, isDark && { backgroundColor: themeColors.screen }]}>
-        <Text style={styles.ViewText}>View Transactions</Text>
+        <Text style={styles.ViewText}>{isPrepaid ? "Recharge History" : "View Transactions"}</Text>
         <TouchableOpacity>
           <Text style={styles.CreateText}>Pick Date</Text>
         </TouchableOpacity>
@@ -220,7 +224,7 @@ const Transactions = ({ navigation }) => {
           data={tableData}
           loading={isLoading}
           skeletonLines={tableData.length > 0 ? tableData.length : 5}
-          emptyMessage="No transaction data available"
+          emptyMessage={isPrepaid ? "No recharge history available" : "No transaction data available"}
           showSerial={true}
           showPriority={false}
           columns={[

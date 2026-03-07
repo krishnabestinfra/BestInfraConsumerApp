@@ -144,6 +144,11 @@ export const getDemoConsumerCore = (identifier) => {
       ? `GMR Consumer ${trimmed.slice(-3)}`
       : "Best Infra Consumer";
 
+  // BI25GMRA001 = prepaid (for testing Recharge flow); others = postpaid
+  const isPrepaidDemo = trimmed === "BI25GMRA001";
+  const balanceExpiry = new Date();
+  balanceExpiry.setDate(balanceExpiry.getDate() + 5);
+
   return {
     name: friendlyName,
     consumerName: friendlyName,
@@ -153,8 +158,11 @@ export const getDemoConsumerCore = (identifier) => {
     meterSerialNumber: DEMO_CANONICAL.meterSerialNumber,
     meterNumber: DEMO_CANONICAL.meterSerialNumber,
     meterId: DEMO_CANONICAL.meterId,
+    meterType: isPrepaidDemo ? "PREPAID" : "POSTPAID",
     readingDate: new Date().toISOString(),
     totalOutstanding: DEMO_CANONICAL.totalOutstanding,
+    // Prepaid: estimated balance exhaustion (for "Estimated Days Remaining")
+    ...(isPrepaidDemo && { balanceExpiryDate: balanceExpiry.toISOString() }),
   };
 };
 
@@ -192,7 +200,7 @@ export const getDemoDashboardConsumerData = (identifier) => {
         xAxisData: DEMO_MONTHLY_LABELS,
       },
     },
-    // Summary statistics used by the PostPaidDashboard "Usage Stats" cards
+    // Summary statistics used by the Dashboard "Usage Stats" cards
     dashboardStats: {
       averageDailyKwh: averageDaily,
       peakUsageKwh: peakUsage,
@@ -231,11 +239,12 @@ export const getDemoDashboardConsumerData = (identifier) => {
     yPhasePowerFactor: 0.95,
     bPhasePowerFactor: 0.97,
     kW: 145.3,
-    dueDate: DEMO_CANONICAL.dueDate,
-    paymentDueDate: DEMO_CANONICAL.dueDate,
-    outstandingDueDate: DEMO_CANONICAL.dueDate,
+    // Prepaid: use balance expiry for "Estimated Days Remaining"; postpaid: use bill due date
+    dueDate: core.meterType === "PREPAID" && core.balanceExpiryDate ? core.balanceExpiryDate : DEMO_CANONICAL.dueDate,
+    paymentDueDate: core.meterType === "PREPAID" && core.balanceExpiryDate ? core.balanceExpiryDate : DEMO_CANONICAL.dueDate,
+    outstandingDueDate: core.meterType === "PREPAID" && core.balanceExpiryDate ? core.balanceExpiryDate : DEMO_CANONICAL.dueDate,
     lastBillDueDate: DEMO_CANONICAL.lastBillDueDate,
-    billDueDate: DEMO_CANONICAL.dueDate,
+    billDueDate: core.meterType === "PREPAID" && core.balanceExpiryDate ? core.balanceExpiryDate : DEMO_CANONICAL.dueDate,
     email: `${core.identifier}@${DEMO_CANONICAL.emailDomain}`,
     contact: DEMO_CANONICAL.phone,
     billId: DEMO_CANONICAL.billId,

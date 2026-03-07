@@ -25,9 +25,13 @@ import { TabContext } from "../context/TabContext";
 import { useTheme } from "../context/ThemeContext";
 import { useNavigationState } from "@react-navigation/native";
 import { getAlertPreferences, setAlertPreferences } from "../services/pushNotificationService";
+import { useConsumer } from "../context/ConsumerContext";
+import { isPrepaidConsumer } from "../utils/billingUtils";
 
 const SideMenuNavigation = ({ navigation }) => {
   const { activeItem, setActiveItem } = useContext(TabContext);
+  const { consumerData, clearConsumer } = useConsumer();
+  const isPrepaid = isPrepaidConsumer(consumerData);
   const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const scaled = {
     menu: getScaledFontSize(16),
@@ -56,18 +60,20 @@ const SideMenuNavigation = ({ navigation }) => {
   const [emailNotifications, setEmailNotifications] = useState(true);
 
 
-  const currentRoute = useNavigationState(state => 
+  const currentRoute = useNavigationState(state =>
     state?.routes[state?.index]?.name
   );
 
   useEffect(() => {
     if (currentRoute) {
-      if (currentRoute === "PostPaidDashboard") {
-        setActiveItem("PostPaidDashboard");
+      if (currentRoute === "Dashboard") {
+        setActiveItem("Dashboard");
       } else if (currentRoute === "Usage") {
         setActiveItem("Usage");
       } else if (currentRoute === "PostPaidRechargePayments" || currentRoute === "Payments") {
         setActiveItem("Payments");
+      } else if (currentRoute === "PrePaidRechargePayments") {
+        setActiveItem("PrePaidRechargePayments");
       } else if (currentRoute === "Invoices") {
         setActiveItem("Invoices");
       } else if (currentRoute === "Tickets") {
@@ -81,6 +87,7 @@ const SideMenuNavigation = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       console.log('🔄 User initiated logout from side menu...');
+      clearConsumer();
       await logoutUser();
       navigation.reset({
         index: 0,
@@ -89,6 +96,7 @@ const SideMenuNavigation = ({ navigation }) => {
       console.log('✅ Logout complete - navigated to Splash');
     } catch (error) {
       console.error('❌ Error during logout:', error);
+      clearConsumer();
       navigation.reset({
         index: 0,
         routes: [{ name: "Splash" }],
@@ -152,7 +160,7 @@ const SideMenuNavigation = ({ navigation }) => {
           style={styles.flex}
           onPress={() => {
             setActiveItem("Dashboard");
-            navigation.navigate("PostPaidDashboard");
+            navigation.navigate("Dashboard");
           }}
         >
           {activeItem === "Dashboard" ? (
@@ -165,21 +173,30 @@ const SideMenuNavigation = ({ navigation }) => {
           </Text>
         </Pressable>
 
-                {/* Payments */}
-                <Pressable
+        {/* Payments: Pay Bill (postpaid) or Recharge (prepaid) */}
+        <Pressable
           style={styles.flex}
           onPress={() => {
-            setActiveItem("Payments");
-            navigation.navigate("PostPaidRechargePayments");
+            if (isPrepaid) {
+              setActiveItem("PrePaidRechargePayments");
+              navigation.navigate("PrePaidRechargePayments");
+            } else {
+              setActiveItem("Payments");
+              navigation.navigate("PostPaidRechargePayments");
+            }
           }}
         >
-          {activeItem === "Payments" ? (
+          {(activeItem === "Payments" && !isPrepaid) || (activeItem === "PrePaidRechargePayments" && isPrepaid) ? (
             <ActivePayments width={18} height={18} style={[styles.iconStyle, styles.activeIcon]} />
           ) : (
             <PaymentsIcon width={18} height={18} style={styles.iconStyle} />
           )}
-          <Text style={[styles.menuText, activeItem === "Payments" && styles.activeText, { fontSize: scaled.menu }]}>
-            Recharge
+          <Text style={[
+            styles.menuText,
+            ((activeItem === "Payments" && !isPrepaid) || (activeItem === "PrePaidRechargePayments" && isPrepaid)) && styles.activeText,
+            { fontSize: scaled.menu }
+          ]}>
+            {isPrepaid ? "Recharge" : "Pay Bill"}
           </Text>
         </Pressable>
 
@@ -304,7 +321,7 @@ const SideMenuNavigation = ({ navigation }) => {
             {/* Header */}
             <View style={styles.alertsModalHeader}>
               <Text style={[styles.alertsModalTitle, { fontSize: scaled.modalTitle }, isDark && { color: themeColors.textPrimary }]}>Alerts</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowAlertsModal(false)}
                 style={styles.closeButton}
               >
@@ -365,11 +382,15 @@ const SideMenuNavigation = ({ navigation }) => {
 
             {/* Toggle Settings */}
             <View style={styles.toggleSection}>
-              {/* Bill Due Reminders */}
+              {/* Bill Due Reminders (postpaid) / Balance Low Reminders (prepaid) */}
               <View style={[styles.toggleRow, isDark && { backgroundColor: "#1F2E34" }]}>
                 <View style={styles.toggleInfo}>
-                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>Bill Due Reminders</Text>
-                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>3 days before due date</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>
+                    {isPrepaid ? "Balance Low Reminders" : "Bill Due Reminders"}
+                  </Text>
+                  <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>
+                    {isPrepaid ? "When balance is running low" : "3 days before due date"}
+                  </Text>
                 </View>
                 <Switch
                   value={billDueReminders}
@@ -380,10 +401,12 @@ const SideMenuNavigation = ({ navigation }) => {
                 />
               </View>
 
-              {/* Payment Confirmations */}
+              {/* Payment Confirmations (postpaid) / Recharge Confirmations (prepaid) */}
               <View style={[styles.toggleRow, isDark && { backgroundColor: "#1F2E34" }]}>
                 <View style={styles.toggleInfo}>
-                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>Payment Confirmations</Text>
+                  <Text style={[styles.toggleTitle, { fontSize: scaled.toggleTitle }, isDark && { color: themeColors.textPrimary }]}>
+                    {isPrepaid ? "Recharge Confirmations" : "Payment Confirmations"}
+                  </Text>
                   <Text style={[styles.toggleSubtitle, { fontSize: scaled.toggleSub }, isDark && { color: themeColors.textSecondary }]}>Instant notification</Text>
                 </View>
                 <Switch
@@ -463,10 +486,10 @@ const SideMenuNavigation = ({ navigation }) => {
       >
         <View style={[styles.logoutModalOverlay, isDark && styles.logoutModalOverlayDark]}>
           <View style={[styles.logoutModalCard, isDark && { backgroundColor: themeColors.card }]}>
-          <View style={styles.logoutModalIconWrap}>
-            <View style={styles.logoutModalIconWrap2}>
-              <LogoutButton width={28} height={28} color="#FADCDC" />
-            </View>
+            <View style={styles.logoutModalIconWrap}>
+              <View style={styles.logoutModalIconWrap2}>
+                <LogoutButton width={28} height={28} color="#FADCDC" />
+              </View>
             </View>
             <Text style={[styles.logoutModalTitle, { fontSize: scaled.logoutModalTitle }, isDark && { color: themeColors.textPrimary }]}>Logout</Text>
             <Text style={[styles.logoutModalMessage, { fontSize: scaled.modalMessage }, isDark && { color: themeColors.textSecondary }]}>
@@ -739,7 +762,7 @@ const styles = StyleSheet.create({
     color: "#4A5568",
     textAlign: "center",
     lineHeight: 22,
-    fontSize:18,
+    fontSize: 18,
   },
   logoutModalButtonsRow: {
     flexDirection: "row",

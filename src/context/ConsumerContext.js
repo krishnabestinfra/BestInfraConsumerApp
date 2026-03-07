@@ -32,6 +32,13 @@ export function ConsumerProvider({ children }) {
         const user = await getUser();
         if (!user?.identifier) { setIsLoading(false); return; }
 
+        // Stale data guard: if we have consumerData for a different user, clear it immediately
+        const currentId = consumerDataRef.current?.uniqueIdentificationNo || consumerDataRef.current?.identifier || consumerDataRef.current?.consumerNumber;
+        if (currentId && currentId !== user.identifier) {
+          setConsumerData(null);
+          setLatestInvoiceDates({ issueDate: null, dueDate: null });
+        }
+
         // Demo mode
         if (isDemoUser(user.identifier)) {
           setConsumerData(getDemoDashboardConsumerData(user.identifier));

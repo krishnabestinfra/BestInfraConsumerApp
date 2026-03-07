@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -46,54 +46,177 @@ import PiggybankIcon from "../../../assets/icons/piggybank.svg";
 import ConsumerGroupedBarChart from "../../components/ConsumerGroupedBarChart";
 import Table from "../../components/global/Table";
 import CalendarDatePicker from "../../components/global/CalendarDatePicker";
+import { isPrepaidConsumer } from "../../utils/billingUtils";
 
 const VIEW_OPTIONS = ["Chart", "Table"];
 const TIME_PERIODS = ["7D", "30D", "90D", "1Y"];
 
 // ─── AmountSection ──────────────────────────────────────────────────────────
+// export const AmountSection = React.memo(({
+//   styles, darkOverlay, isLoading, consumerData, latestInvoiceDates,
+//   formatAmount, getConsumerDueDate, parseDueDate, formatFrontendDate,
+//   getDueDaysText, themeColors, navigation,
+// }) => (
+//   <View style={[styles.amountSection, darkOverlay.amountSection]}>
+//     <View style={[styles.amountContainer, darkOverlay.amountContainer]}>
+//       {/* postpaid logic */}
+//       {/* <Text style={[styles.dueText, darkOverlay.dueText]}>
+//         Due Amount: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
+//       </Text> */}
+//       {/* prepaid logic */}
+//       <Text style={[styles.dueText, darkOverlay.dueText]}>
+//       Balance: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
+//       </Text>
+//       <Text style={[styles.dateText, darkOverlay.dateText]}>
+//         Due on {isLoading ? "Loading..." : (() => {
+//           const dueDateValue = latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData);
+//           const d = parseDueDate(dueDateValue);
+//           return d ? formatFrontendDate(d) : "N/A";
+//         })()}
+//       </Text>
+//     </View>
+//     <View style={[styles.greenBox, darkOverlay.greenBox]}>
+//       <View style={styles.payInfoContainer}>
+//         <GlobeShield width={28} height={28} fill={themeColors.textOnPrimary} style={styles.shieldIcon} />
+//         <View>
+//           <Text style={styles.payText}>Pay securely</Text>
+//           <Text style={styles.tostayText}>to stay on track.</Text>
+//           <Text style={styles.avoidText}>Avoid service disruption.</Text>
+//         </View>
+//       </View>
+//       <View style={styles.paynowboxContainer}>
+//         {/* postpaid logic */}
+//         <Pressable style={[styles.paynowbox, darkOverlay.paynowbox]} onPress={() => navigation.navigate("PostPaidRechargePayments")}>
+//           <Text style={[styles.paynowText, darkOverlay.paynowText]}>Pay Now</Text>
+//         </Pressable>
+//         {/* prepaid logic */}
+//         {/* <Pressable style={[styles.paynowbox, darkOverlay.paynowbox]} onPress={() => navigation.navigate("PrePaidRechargePayments")}>
+//           <Text style={[styles.paynowText, darkOverlay.paynowText]}>Recharge</Text>
+//         </Pressable> */}
+//         <Text style={[styles.dueDaysText, darkOverlay.dueDaysText]}>
+//           {isLoading ? "Loading..." : getDueDaysText(latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData))}
+//         </Text>
+//       </View>
+//     </View>
+//   </View>
+// ));
 export const AmountSection = React.memo(({
-  styles, darkOverlay, isLoading, consumerData, latestInvoiceDates,
-  formatAmount, getConsumerDueDate, parseDueDate, formatFrontendDate,
-  getDueDaysText, themeColors, navigation,
-}) => (
-  <View style={[styles.amountSection, darkOverlay.amountSection]}>
-    <View style={[styles.amountContainer, darkOverlay.amountContainer]}>
-      <Text style={[styles.dueText, darkOverlay.dueText]}>
-        Due Amount: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
-      </Text>
-      <Text style={[styles.dateText, darkOverlay.dateText]}>
-        Due on {isLoading ? "Loading..." : (() => {
-          const dueDateValue = latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData);
-          const d = parseDueDate(dueDateValue);
-          return d ? formatFrontendDate(d) : "N/A";
-        })()}
-      </Text>
-    </View>
-    <View style={[styles.greenBox, darkOverlay.greenBox]}>
-      <View style={styles.payInfoContainer}>
-        <GlobeShield width={28} height={28} fill={themeColors.textOnPrimary} style={styles.shieldIcon} />
-        <View>
-          <Text style={styles.payText}>Pay securely</Text>
-          <Text style={styles.tostayText}>to stay on track.</Text>
-          <Text style={styles.avoidText}>Avoid service disruption.</Text>
+  styles,
+  darkOverlay,
+  isLoading,
+  consumerData,
+  latestInvoiceDates,
+  formatAmount,
+  getConsumerDueDate,
+  parseDueDate,
+  formatFrontendDate,
+  getDueDaysText,
+  themeColors,
+  navigation,
+}) => {
+
+  const isPrepaid = isPrepaidConsumer(consumerData);
+
+  // Prepaid: prefer consumer balance expiry; postpaid: prefer invoice due date
+  const dueDateValue = isPrepaid
+    ? (getConsumerDueDate(consumerData) ?? latestInvoiceDates?.dueDate)
+    : (latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData));
+  const d = parseDueDate(dueDateValue);
+
+  return (
+    <View style={[styles.amountSection, darkOverlay.amountSection]}>
+
+      {/* Amount Section */}
+      <View style={[styles.amountContainer, darkOverlay.amountContainer]}>
+
+        {isPrepaid ? (
+          <>
+            <Text style={[styles.dueText, darkOverlay.dueText]}>
+              Balance: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
+            </Text>
+
+            <Text style={[styles.dateText, darkOverlay.dateText]}>
+              {isLoading
+                ? "Loading..."
+                : getDueDaysText(dueDateValue, true)}
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={[styles.dueText, darkOverlay.dueText]}>
+              Due Amount: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
+            </Text>
+
+            <Text style={[styles.dateText, darkOverlay.dateText]}>
+              Due on {isLoading ? "Loading..." : d ? formatFrontendDate(d) : "N/A"}
+            </Text>
+          </>
+        )}
+
+      </View>
+
+      {/* Payment Section */}
+      <View style={[styles.greenBox, darkOverlay.greenBox]}>
+        <View style={styles.payInfoContainer}>
+          <GlobeShield
+            width={28}
+            height={28}
+            fill={themeColors.textOnPrimary}
+            style={styles.shieldIcon}
+          />
+
+          <View>
+            <Text style={styles.payText}>Pay securely</Text>
+            <Text style={styles.tostayText}>to stay on track.</Text>
+            <Text style={styles.avoidText}>Avoid service disruption.</Text>
+          </View>
+        </View>
+
+        <View style={styles.paynowboxContainer}>
+
+          {isPrepaid ? (
+            <Pressable
+              style={[styles.paynowbox, darkOverlay.paynowbox]}
+              onPress={() => navigation.navigate("PrePaidRechargePayments")}
+            >
+              <Text style={[styles.paynowText, darkOverlay.paynowText]}>
+                Recharge
+              </Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[styles.paynowbox, darkOverlay.paynowbox]}
+              onPress={() => navigation.navigate("PostPaidRechargePayments")}
+            >
+              <Text style={[styles.paynowText, darkOverlay.paynowText]}>
+                Pay Now
+              </Text>
+            </Pressable>
+          )}
+
+          <Text style={[styles.dueDaysText, darkOverlay.dueDaysText]}>
+            {isLoading
+              ? "Loading..."
+              : getDueDaysText(dueDateValue, isPrepaid)}
+          </Text>
+
         </View>
       </View>
-      <View style={styles.paynowboxContainer}>
-        <Pressable style={[styles.paynowbox, darkOverlay.paynowbox]} onPress={() => navigation.navigate("PostPaidRechargePayments")}>
-          <Text style={[styles.paynowText, darkOverlay.paynowText]}>Pay Now</Text>
-        </Pressable>
-        <Text style={[styles.dueDaysText, darkOverlay.dueDaysText]}>
-          {isLoading ? "Loading..." : getDueDaysText(latestInvoiceDates?.dueDate ?? getConsumerDueDate(consumerData))}
-        </Text>
-      </View>
     </View>
-  </View>
-));
+  );
+});
 
 // ─── MeterCard ──────────────────────────────────────────────────────────────
 export const MeterCard = React.memo(({
   styles, darkOverlay, consumerData, handleConsumerPress, formatReadingDate,
-}) => (
+}) => {
+  const name = consumerData?.name || consumerData?.consumerName || "Loading...";
+  const wordCount = name.trim().split(/\s+/).filter(Boolean).length;
+  const nameLines = wordCount <= 1 ? 1 : Math.min(wordCount, 3);
+  const [isSingleLine, setIsSingleLine] = useState(true);
+  useEffect(() => setIsSingleLine(true), [name]);
+
+  return (
   <View style={[styles.meterContainer, darkOverlay.meterContainer]}>
     <TouchableOpacity
       style={[styles.meterInfoContainer, darkOverlay.meterInfoContainer]}
@@ -102,9 +225,17 @@ export const MeterCard = React.memo(({
       <View style={styles.leftContainer}>
         <View style={styles.meterInfoRow}>
           <Meter width={30} height={30} style={{ marginTop: 5 }} />
-          <View style={styles.meterConsumerRow}>
-            <Text style={[styles.meterConsumerText, darkOverlay.meterConsumerText]}>
-              {consumerData?.name || consumerData?.consumerName || "Loading..."}
+          <View style={[
+            styles.meterConsumerRow,
+            isSingleLine && styles.meterConsumerRowCentered,
+          ]}>
+            <Text
+              style={[styles.meterConsumerText, darkOverlay.meterConsumerText]}
+              numberOfLines={nameLines}
+              ellipsizeMode="tail"
+              onTextLayout={(e) => setIsSingleLine(e.nativeEvent.lines.length <= 1)}
+            >
+              {name}
             </Text>
           </View>
         </View>
@@ -132,7 +263,8 @@ export const MeterCard = React.memo(({
       </View>
     </TouchableOpacity>
   </View>
-));
+  );
+});
 
 // ─── EnergySummary ──────────────────────────────────────────────────────────
 export const EnergySummary = React.memo(({

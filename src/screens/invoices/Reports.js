@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Alert, ActivityIndicator, Share, FlatList } from "react-native";
 import React, { useState, useEffect } from "react";
 import { useIsFocused } from "@react-navigation/native";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
-import { COLORS } from "../../constants/colors";
+import { COLORS, colors } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
 import { useNotifications } from "../../context/NotificationsContext";
 import BottomNavigation from "../../components/global/BottomNavigation";
@@ -314,7 +314,7 @@ const Reports = ({ navigation }) => {
 
   return (
     <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
-      <StatusBar style={isDark ? "dark" : "dark"} />
+      <StatusBar style="dark" backgroundColor={colors.color_danger} />
       
       {/* Header */}
       <View style={styles.header}>

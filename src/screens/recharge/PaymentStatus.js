@@ -112,7 +112,7 @@ const PaymentStatus = ({ navigation, route }) => {
 
   // Handle navigation to dashboard
   const handleGoToDashboard = () => {
-    navigation.navigate("PostPaidDashboard");
+    navigation.navigate("Dashboard");
   };
 
   // Render loading state

@@ -15,7 +15,7 @@ import { apiClient } from "../../services/apiClient";
 import { isDemoUser, DEMO_INVOICES } from "../../constants/demoData";
 import { useConsumer } from "../../context/ConsumerContext";
 import { formatFrontendDate } from "../../utils/dateUtils";
-import { getInvoiceDateValue } from "../../utils/billingUtils";
+import { getInvoiceDateValue, isPrepaidConsumer } from "../../utils/billingUtils";
 import EyeIcon from "../../../assets/icons/eyeFill.svg";
 import Logo from "../../components/global/Logo";
 import { StatusBar } from "expo-status-bar";
@@ -431,8 +431,10 @@ const getPDFViewerHTML = (base64) => {
 `;
 };
 
-const InvoiceCardItem = React.memo(({ item, isDark, themeColors, onView, onShare, onPayNow, styles }) => {
+const InvoiceCardItem = React.memo(({ item, isDark, themeColors, onView, onShare, onPayNow, styles, isPrepaid }) => {
   const isPaid = item.isPaid;
+  const amountLabel = isPrepaid ? "Amount" : "Amount Due";
+  const primaryButtonText = isPaid ? "Share" : (isPrepaid ? "Recharge" : "Pay Now");
   return (
     <View style={[styles.invoiceCard, isDark && { backgroundColor: "#1A1F2E" }]}>
       <View style={styles.cardHeader}>
@@ -462,13 +464,13 @@ const InvoiceCardItem = React.memo(({ item, isDark, themeColors, onView, onShare
           <Text style={[styles.detailValue, isDark && { color: "#FFFFFF" }]}>{item.unitsConsumed} kWh</Text>
         </View>
         <View style={styles.detailItem}>
-          <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>Amount Due</Text>
+          <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>{amountLabel}</Text>
           <Text style={[styles.detailValue, isDark && { color: "#FFFFFF" }]}>{item.amountDue}</Text>
         </View>
       </View>
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.primaryButton} onPress={() => isPaid ? onShare(item) : onPayNow(item)} activeOpacity={0.7}>
-          <Text style={styles.primaryButtonText}>{isPaid ? "Share" : "Pay Now"}</Text>
+          <Text style={styles.primaryButtonText}>{primaryButtonText}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.secondaryButton, isDark && { backgroundColor: "#1A1F2E", borderColor: COLORS.secondaryColor }]}
@@ -489,6 +491,7 @@ const Invoices = ({ navigation }) => {
   const [filteredInvoiceCards, setFilteredInvoiceCards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { consumerData, refreshConsumer } = useConsumer();
+  const isPrepaid = isPrepaidConsumer(consumerData);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const filter = useInvoiceFilter();
   const { statusFilter, pendingStatusFilter, setPendingStatusFilter, isFilterModalVisible, applyFilter, openFilterModal, closeFilterModal, filterOptions: INVOICE_FILTERS } = filter;
@@ -609,10 +612,10 @@ const Invoices = ({ navigation }) => {
   }, [consumerData, fetchInvoiceData]);
 
   const handlePayNow = useCallback((invoiceCard) => {
-    navigation.navigate('PostPaidRechargePayments', {
+    navigation.navigate(isPrepaid ? 'PrePaidRechargePayments' : 'PostPaidRechargePayments', {
       invoiceData: invoiceCard._originalData
     });
-  }, [navigation]);
+  }, [navigation, isPrepaid]);
 
   // Handle invoice Share — opens share sheet (not viewer)
   const handleShare = useCallback(async (invoiceCard) => {
@@ -641,8 +644,9 @@ const Invoices = ({ navigation }) => {
     <InvoiceCardItem
       item={item} isDark={isDark} themeColors={themeColors} styles={styles}
       onView={handleViewInvoice} onShare={handleShare} onPayNow={handlePayNow}
+      isPrepaid={isPrepaid}
     />
-  ), [isDark, themeColors, handleViewInvoice, handleShare, handlePayNow]);
+  ), [isDark, themeColors, handleViewInvoice, handleShare, handlePayNow, isPrepaid]);
 
   const invoiceKeyExtractor = useCallback(
     (item, index) => item.id || item.invoiceId || `inv-${index}`,
@@ -663,7 +667,7 @@ const Invoices = ({ navigation }) => {
             styles.pageTitle,
             isDark && { color: themeColors.textPrimary ?? "#FFFFFF" },
           ]}>
-            My Invoices
+            {isPrepaid ? "Recharge History" : "My Invoices"}
           </Text>
           <Pressable style={styles.filterButton} onPress={handleFilterPress}>
             <FilterIcon
@@ -696,13 +700,13 @@ const Invoices = ({ navigation }) => {
         styles.emptyTitle,
         isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
       ]}>
-        No Invoices Yet
+        {isPrepaid ? "No Recharges Yet" : "No Invoices Yet"}
       </Text>
       <Text style={[
         styles.emptySubtitle,
         isDark && { color: themeColors?.textSecondary ?? "#9CA3AF" },
       ]}>
-        Your invoices will appear here once they are generated. Check back soon!
+        {isPrepaid ? "Your recharge history will appear here once you recharge. Check back soon!" : "Your invoices will appear here once they are generated. Check back soon!"}
       </Text>
     </View>
   );
