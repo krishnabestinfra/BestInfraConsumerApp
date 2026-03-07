@@ -31,8 +31,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.bestinfra.app",
-      "versionCode": 6,
-      "useNextNotificationsApi": true
+      "versionCode": 6
     },
     "updates": {
       "enabled": true,
