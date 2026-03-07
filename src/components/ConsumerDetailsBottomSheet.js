@@ -1,6 +1,6 @@
 /**
  * ConsumerDetailsBottomSheet Component
- * 
+ *
  * Fixed: static headers/sections always visible, only values use SkeletonLoader while loading
  */
 
@@ -25,12 +25,12 @@ import { SkeletonLoader } from '../utils/loadingManager';
 import { useTheme } from '../context/ThemeContext';
 import { formatFrontendDateTime } from '../utils/dateUtils';
 
-const ConsumerDetailsBottomSheet = ({ 
+const ConsumerDetailsBottomSheet = ({
   visible,
-  consumerUid, 
-  onClose 
+  consumerUid,
+  onClose
 }) => {
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const s12 = getScaledFontSize(12);
   const s14 = getScaledFontSize(14);
   const s16 = getScaledFontSize(16);
@@ -187,28 +187,29 @@ const ConsumerDetailsBottomSheet = ({
       onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
-        <TouchableOpacity 
-          style={styles.backdrop} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
           onPress={handleClose}
         />
-        <Animated.View 
+        <Animated.View
           style={[
-            styles.bottomSheet, 
+            styles.bottomSheet,
+            isDark && { backgroundColor: "#1A1F2E" },
             { transform: [{ translateY }] }
           ]}
         >
           <View style={styles.handle} />
           <View style={styles.header}>
             <View style={styles.headerContent}>
-              <Text style={styles.headerTitle}>Consumer Details</Text>
+              <Text style={[styles.headerTitle, isDark && { color: "#FFFFFF" }]}>Consumer Details</Text>
             </View>
             <TouchableOpacity onPress={handleClose}>
               <CloseIcon width={18} height={18} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView 
+          <ScrollView
             style={styles.content}
             showsVerticalScrollIndicator={false}
           >
@@ -222,7 +223,7 @@ const ConsumerDetailsBottomSheet = ({
             ) : (
               <>
                 <View style={styles.section}>
-                  <View style={styles.infoContainer}>
+                  <View style={[styles.infoContainer, isDark && { backgroundColor: "#1F2E34" } ]}>
                     <InfoRow
                       label="Consumer Name"
                       value={
@@ -288,11 +289,11 @@ const ConsumerDetailsBottomSheet = ({
 
                 <View style={[styles.section, { marginTop: 24 }]}>
                   <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Instantaneous Meter Readings</Text>
+                    <Text style={[styles.sectionTitle, isDark && { color: "#FFFFFF" }]}>Instantaneous Meter Readings</Text>
 
                     {/* Reading Time - always visible */}
-                    <View style={styles.timestampContainer}>
-                      <Text style={styles.timestampLabel}>Reading Time:</Text>
+                    <View style= {[styles.timestampContainer, isDark && { backgroundColor: "#1F2E34" } ]}>
+                      <Text style={[styles.timestampLabel, isDark && { color: "#9CA3AF" }]}>Reading Time:</Text>
                       {isLoading || !consumerData?.readingDate ? (
                         <SkeletonLoader
                           variant="text"
@@ -300,7 +301,7 @@ const ConsumerDetailsBottomSheet = ({
                           style={{ height: 14, width: 120 }}
                         />
                       ) : (
-                        <Text style={styles.timestampValue}>
+                        <Text style={[styles.timestampValue, isDark && { color: "#FFFFFF" }]}>
                           {formatReadingDate(consumerData.readingDate)}
                         </Text>
                       )}
@@ -308,32 +309,32 @@ const ConsumerDetailsBottomSheet = ({
                   </View>
                   {/* Voltage Readings */}
                 <View style={styles.readingsContainer}>
-                  <Text style={[styles.readingsSubtitle, { marginBottom: 15 }]}>Voltage Readings</Text>
+                  <Text style={[styles.readingsSubtitle, { marginBottom: 15 }, , isDark && { color: "#FFFFFF" }]}>Voltage Readings</Text>
                   <View style={styles.readingsGrid}>
-                    <ReadingCard 
-                      phase="R-Phase" 
-                      value={formatVoltage(consumerData?.rPhaseVoltage)} 
-                      unit="V" 
+                    <ReadingCard
+                      phase="R-Phase"
+                      value={formatVoltage(consumerData?.rPhaseVoltage)}
+                      unit="V"
                       color="#E70000"
                       loading={isLoading}
                       scaledPhase={s14}
                       scaledValue={s16}
                       scaledUnit={s12}
                     />
-                    <ReadingCard 
-                      phase="Y-Phase" 
-                      value={formatVoltage(consumerData?.yPhaseVoltage)} 
-                      unit="V" 
+                    <ReadingCard
+                      phase="Y-Phase"
+                      value={formatVoltage(consumerData?.yPhaseVoltage)}
+                      unit="V"
                       color="#FFC107"
                       loading={isLoading}
                       scaledPhase={s14}
                       scaledValue={s16}
                       scaledUnit={s12}
                     />
-                    <ReadingCard 
-                      phase="B-Phase" 
-                      value={formatVoltage(consumerData?.bPhaseVoltage)} 
-                      unit="V" 
+                    <ReadingCard
+                      phase="B-Phase"
+                      value={formatVoltage(consumerData?.bPhaseVoltage)}
+                      unit="V"
                       color="#007AFF"
                       loading={isLoading}
                       scaledPhase={s14}
@@ -343,32 +344,32 @@ const ConsumerDetailsBottomSheet = ({
                   </View>
 
                   {/* Current Readings */}
-                  <Text style={[styles.readingsSubtitle, { marginTop: 15, marginBottom: 15 }]}>Current Readings</Text>
+                  <Text style={[styles.readingsSubtitle, { marginTop: 15, marginBottom: 15 }, , isDark && { color: "#FFFFFF" }]}>Current Readings</Text>
                   <View style={styles.readingsGrid}>
-                    <ReadingCard 
-                      phase="R-Phase" 
-                      value={formatValue(consumerData?.rPhaseCurrent)} 
-                      unit="A" 
+                    <ReadingCard
+                      phase="R-Phase"
+                      value={formatValue(consumerData?.rPhaseCurrent)}
+                      unit="A"
                       color="#E70000"
                       loading={isLoading}
                       scaledPhase={s14}
                       scaledValue={s16}
                       scaledUnit={s12}
                     />
-                    <ReadingCard 
-                      phase="Y-Phase" 
-                      value={formatValue(consumerData?.yPhaseCurrent)} 
-                      unit="A" 
+                    <ReadingCard
+                      phase="Y-Phase"
+                      value={formatValue(consumerData?.yPhaseCurrent)}
+                      unit="A"
                       color="#FFC107"
                       loading={isLoading}
                       scaledPhase={s14}
                       scaledValue={s16}
                       scaledUnit={s12}
                     />
-                    <ReadingCard 
-                      phase="B-Phase" 
-                      value={formatValue(consumerData?.bPhaseCurrent)} 
-                      unit="A" 
+                    <ReadingCard
+                      phase="B-Phase"
+                      value={formatValue(consumerData?.bPhaseCurrent)}
+                      unit="A"
                       color="#007AFF"
                       loading={isLoading}
                       scaledPhase={s14}
@@ -378,32 +379,32 @@ const ConsumerDetailsBottomSheet = ({
                   </View>
 
                   {/* Power Readings */}
-                  <Text style={[styles.readingsSubtitle, { marginTop: 15, marginBottom: 15 }]}>Power Readings</Text>
+                  <Text style={[styles.readingsSubtitle, { marginTop: 15, marginBottom: 15 }, , isDark && { color: "#FFFFFF" }]}>Power Readings</Text>
                   <View style={styles.readingsGrid}>
-                    <ReadingCard 
-                      phase="R-Phase" 
-                      value={formatValue(calculatePower(consumerData?.rPhaseVoltage, consumerData?.rPhaseCurrent))} 
-                      unit="W" 
+                    <ReadingCard
+                      phase="R-Phase"
+                      value={formatValue(calculatePower(consumerData?.rPhaseVoltage, consumerData?.rPhaseCurrent))}
+                      unit="W"
                       color="#E70000"
                       loading={isLoading}
                       scaledPhase={s14}
                       scaledValue={s16}
                       scaledUnit={s12}
                     />
-                    <ReadingCard 
-                      phase="Y-Phase" 
-                      value={formatValue(calculatePower(consumerData?.yPhaseVoltage, consumerData?.yPhaseCurrent))} 
-                      unit="W" 
+                    <ReadingCard
+                      phase="Y-Phase"
+                      value={formatValue(calculatePower(consumerData?.yPhaseVoltage, consumerData?.yPhaseCurrent))}
+                      unit="W"
                       color="#FFC107"
                       loading={isLoading}
                       scaledPhase={s14}
                       scaledValue={s16}
                       scaledUnit={s12}
                     />
-                    <ReadingCard 
-                      phase="B-Phase" 
-                      value={formatValue(calculatePower(consumerData?.bPhaseVoltage, consumerData?.bPhaseCurrent))} 
-                      unit="W" 
+                    <ReadingCard
+                      phase="B-Phase"
+                      value={formatValue(calculatePower(consumerData?.bPhaseVoltage, consumerData?.bPhaseCurrent))}
+                      unit="W"
                       color="#007AFF"
                       loading={isLoading}
                       scaledPhase={s14}
@@ -422,40 +423,65 @@ const ConsumerDetailsBottomSheet = ({
   );
 };
 
-const InfoRow = ({ label, value }) => (
-  <View style={styles.infoRow}>
-    <Text style={styles.infoLabel}>{label}</Text>
-    <View style={{ flex: 1, alignItems: 'flex-end' }}>
-      {typeof value === 'string' || typeof value === 'number' ? (
-        <Text style={styles.infoValue}>{value}</Text>
+const InfoRow = ({ label, value }) => {
+  const { isDark } = useTheme();
+
+  return (
+    <View style={styles.infoRow}>
+      <Text style={[styles.infoLabel, isDark && { color: "#9CA3AF" }]}>
+        {label}
+      </Text>
+
+      <View style={{ flex: 1, alignItems: 'flex-end' }}>
+        {typeof value === 'string' || typeof value === 'number' ? (
+          <Text style={[styles.infoValue, isDark && { color: "#FFFFFF" }]}>
+            {value}
+          </Text>
+        ) : (
+          value
+        )}
+      </View>
+    </View>
+  );
+};
+
+const ReadingCard = ({ phase, value, unit, color, loading }) => {
+  const { isDark } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.readingCard,
+        isDark && { backgroundColor: "#1F2E34" },
+        {
+          borderLeftColor: color,
+          borderTopColor: isDark ? "#2D3B40" : "#E2E8F0",
+          borderRightColor: isDark ? "#2D3B40" : "#E2E8F0",
+          borderBottomColor: isDark ? "#2D3B40" : "#E2E8F0",
+        }
+      ]}
+    >
+      <Text style={[styles.readingPhase, isDark && { color: "#9CA3AF" }]}>
+        {phase}
+      </Text>
+
+      {loading ? (
+        <SkeletonLoader
+          variant="lines"
+          lines={1}
+          style={{ height: 18, width: 80, marginTop: 6 }}
+        />
       ) : (
-        value
+        <Text style={[styles.readingValue, isDark && { color: "#FFFFFF" }]}>
+          {value === 'N/A' || value === undefined || value === null ? 'N/A' : value}
+          <Text style={[styles.readingUnit, isDark && { color: "#9CA3AF" }]}>
+            {" "}{unit}
+          </Text>
+        </Text>
       )}
     </View>
-  </View>
-);
-
-const ReadingCard = ({ phase, value, unit, color, loading }) => (
-  <View style={[
-    styles.readingCard, 
-    { 
-      borderLeftColor: color,
-      borderTopColor: '#E2E8F0',
-      borderRightColor: '#E2E8F0',
-      borderBottomColor: '#E2E8F0'
-    }
-  ]}>
-    <Text style={styles.readingPhase}>{phase}</Text>
-    {loading ? (
-      <SkeletonLoader variant="lines" lines={1} style={{ height: 18, width: 80, marginTop: 6 }} />
-    ) : (
-      <Text style={styles.readingValue}>
-        {value === 'N/A' || value === undefined || value === null ? 'N/A' : value} <Text style={styles.readingUnit}>{unit}</Text>
-      </Text>
-    )}
-  </View>
-);
-
+  );
+};
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,

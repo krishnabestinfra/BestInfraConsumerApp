@@ -143,18 +143,37 @@ const Tickets = ({ navigation }) => {
 
       if (statsResult.success) setTicketStats(statsResult.data);
       if (tableResult.success) {
-        let list = Array.isArray(tableResult.data) ? tableResult.data : tableResult.data?.data ?? [];
-        // If we have a ticket that might be missing from API (backend delay), prepend it
-        if (ensureTicketInList?.ticketNumber || ensureTicketInList?.id) {
-          const hasMatch = list.some(
+        let list = Array.isArray(tableResult.data)
+          ? tableResult.data
+          : tableResult.data?.data ?? [];
+
+        if (ensureTicketInList?.ticketNumber) {
+          const exists = list.some(
             (t) =>
-              String(t?.id) === String(ensureTicketInList.id) ||
               String(t?.ticketNumber) === String(ensureTicketInList.ticketNumber)
           );
-          if (!hasMatch) list = [ensureTicketInList, ...list];
+
+          // If backend still doesn't return it, KEEP optimistic row
+          if (!exists) {
+            list = [ensureTicketInList, ...list];
+          }
         }
-        setTableData(list);
-      } else {
+
+        // 🔥 Merge instead of overwrite
+        setTableData((prev) => {
+          const merged = [...list];
+
+          prev.forEach((item) => {
+            const already = merged.some(
+              (m) => String(m.ticketNumber) === String(item.ticketNumber)
+            );
+            if (!already) merged.push(item);
+          });
+
+          return merged;
+        });
+      }
+      else {
         setTableData((prev) => (ensureTicketInList ? prev : []));
       }
 
@@ -225,6 +244,9 @@ const Tickets = ({ navigation }) => {
 
         // Invalidate cache and force refresh so stats + list stay in sync
         await invalidateTicketCache(consumerNumber, appId);
+        setTimeout(() => {
+          fetchData(true, undefined, tableRow);
+        }, 800);
         await fetchData(true, undefined, tableRow);
 
         pendingSuccessModalRef.current = true;
@@ -294,9 +316,9 @@ const Tickets = ({ navigation }) => {
         nestedScrollEnabled={true}
       >
 
-        <DashboardHeader 
-          navigation={navigation} 
-          variant="tickets" 
+        <DashboardHeader
+          navigation={navigation}
+          variant="tickets"
           showBalance={false}
           consumerData={consumerData}
           isLoading={isLoading}
@@ -377,9 +399,9 @@ const Tickets = ({ navigation }) => {
               { key: 'ticketNumber', title: 'Ticket ID', flex: 1.2 },
               { key: 'type', title: 'Category', flex: 1.5 },
               { key: 'status', title: 'Status', flex: 1 },
-              { 
-                key: 'view', 
-                title: 'View', 
+              {
+                key: 'view',
+                title: 'View',
                 flex: 0.7,
                 render: (ticket) => (
                   <TouchableOpacity
@@ -394,7 +416,7 @@ const Tickets = ({ navigation }) => {
             ], [handleViewTicket])}
           />
         </View>
-        {/* <CreateNewTicket 
+        {/* <CreateNewTicket
         onSubmit={handleCreateTicket}
         onClose={() => setShowModal(false)}    /> */}
         </View>
@@ -408,19 +430,19 @@ const Tickets = ({ navigation }) => {
         <BottomSheet
           ref={bottomSheetRef}
         snapPoints={snapPoints}
-        index={-1} 
+        index={-1}
         handleComponent={null}
         enablePanDownToClose={false}
         backgroundStyle={styles.bottomSheetBackground}
         handleIndicatorStyle={styles.bottomSheetIndicator}
-        enableHandlePanningGesture={false} 
+        enableHandlePanningGesture={false}
         enableContentPanningGesture={false}
         enableOverDrag={false}
         animateOnMount={false}
         onClose={handleBottomSheetClosed}
       >
         <BottomSheetView style={styles.bottomSheetContent}>
-          <CreateNewTicket 
+          <CreateNewTicket
             onSubmit={handleCreateTicket}
             onClose={handleCloseBottomSheet}
             title="Create New Ticket"
