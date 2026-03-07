@@ -333,7 +333,7 @@ const LsDataTable = ({ navigation, route }) => {
               <Menu width={18} height={18} fill="#202d59" />
             )}
           </Pressable>
-          <Pressable onPress={() => navigation.navigate("PostPaidDashboard")}>
+          <Pressable onPress={() => navigation.navigate("Dashboard")}>
             <BiLogo width={45} height={45} />
           </Pressable>
           <Pressable

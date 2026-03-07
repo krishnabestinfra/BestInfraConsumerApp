@@ -239,11 +239,11 @@ const Notifications = ({ navigation, route }) => {
         >
           <Menu width={18} height={18} fill="#202d59" />
         </Pressable>
-        <Pressable onPress={() => navigation.replace("PostPaidDashboard")}>
+        <Pressable onPress={() => navigation.replace("Dashboard")}>
           {/* <Image icon={BiLogo} size={45} /> */}
           <Logo variant="white" size="medium" />
         </Pressable>
-        <Pressable style={styles.bellIcon} onPress={() => navigation.replace("PostPaidDashboard")}>
+        <Pressable style={styles.bellIcon} onPress={() => navigation.replace("Dashboard")}>
           <Notification width={18} height={18} fill="#ffffff" />
         </Pressable>
       </View>

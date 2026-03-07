@@ -8,6 +8,7 @@ import Button from "../../components/global/Button";
 import RechargeRadioButton from "../../components/global/RechargeRadioButton";
 import DashboardHeader from "../../components/global/DashboardHeader";
 import { useConsumer } from "../../context/ConsumerContext";
+import { isPrepaidConsumer } from "../../utils/billingUtils";
 
 
 const Payments = React.memo(({ navigation }) => {
@@ -15,6 +16,7 @@ const Payments = React.memo(({ navigation }) => {
   const [selectedOption, setSelectedOption] = useState("option3");
   const [customAmount, setCustomAmount] = useState("");
   const { consumerData, isConsumerLoading: isLoading, refreshConsumer } = useConsumer();
+  const isPrepaid = isPrepaidConsumer(consumerData);
 
   useEffect(() => {
     refreshConsumer();
@@ -100,7 +102,12 @@ const Payments = React.memo(({ navigation }) => {
 
       </ScrollView>
       <View style={[styles.buttonContainer, isDark && { backgroundColor: themeColors.screen }]}>
-        <Button title="Proceed to Recharge" variant="primary" size="medium" onPress={() => navigation.navigate("PostPaidRechargePayments")} />
+        <Button
+          title={isPrepaid ? "Proceed to Recharge" : "Proceed to Pay Bill"}
+          variant="primary"
+          size="medium"
+          onPress={() => navigation.navigate(isPrepaid ? "PrePaidRechargePayments" : "PostPaidRechargePayments")}
+        />
       </View>
     </View>
   );

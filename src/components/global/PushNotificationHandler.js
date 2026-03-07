@@ -36,7 +36,7 @@ function navigateFromNotificationData(navigation, data) {
       return true;
     }
     if (url.includes('/dashboard')) {
-      navigation.navigate('PostPaidDashboard');
+      navigation.navigate('Dashboard');
       return true;
     }
   }

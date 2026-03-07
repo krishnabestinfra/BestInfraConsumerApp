@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
+import { useConsumer } from '../../context/ConsumerContext';
+import { isPrepaidConsumer } from '../../utils/billingUtils';
 import HomeIcon from '../../../assets/icons/HomeIcon.svg';
 import HomeIconWhite from '../../../assets/icons/HomeIconWhite.svg';
 import RechargeIcon from '../../../assets/icons/recharge.svg';
@@ -17,21 +19,23 @@ import ActiveUsageIcon from '../../../assets/icons/activeUsageIcon.svg';
 const BottomNavigation = ({ navigation }) => {
   const route = useRoute();
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
+  const { consumerData } = useConsumer();
+  const isPrepaid = isPrepaidConsumer(consumerData);
   const s10 = getScaledFontSize(10);
 
   const navigationItems = useMemo(() => [
     {
       key: 'home',
       label: 'Home',
-      route: 'PostPaidDashboard',
+      route: 'Dashboard',
       icon: HomeIcon,
       activeIcon: HomeIconWhite,
       iconSize: { width: 20, height: 20 }
     },
     {
       key: 'payments',
-      label: 'Recharge',
-      route: 'PostPaidRechargePayments',
+      label: isPrepaid ? 'Recharge' : 'Pay Bill',
+      route: isPrepaid ? 'PrePaidRechargePayments' : 'PostPaidRechargePayments',
       icon: RechargeIcon,
       activeIcon: WalletActive,
       iconSize: { width: 20, height: 20 }
@@ -55,22 +59,22 @@ const BottomNavigation = ({ navigation }) => {
     
     {
       key: 'invoices',
-      label: 'Invoices',
+      label: isPrepaid ? 'Recharge History' : 'Invoices',
       route: 'Invoices',
       icon: InvoicesIcon,
       activeIcon: ActiveUsageIcon,
       iconSize: { width: 20, height: 20 }
     }
-  ], []);
+  ], [isPrepaid]);
 
   const getActiveKey = useCallback(() => {
     const routeName = route.name;
     
 
-    if (routeName === 'PostPaidDashboard') {
+    if (routeName === 'Dashboard') {
       return 'home';
     }
-    if (routeName === 'PostPaidRechargePayments' || routeName === 'Payments') {
+    if (routeName === 'PostPaidRechargePayments' || routeName === 'Payments' || routeName === 'PrePaidRechargePayments') {
       return 'payments';
     }
     if (routeName === 'Invoices') {

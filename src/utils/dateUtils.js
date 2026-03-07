@@ -108,20 +108,54 @@ export const parseDueDate = (value) => {
 };
 
 
-export const getDueDaysText = (dueDateValue) => {
+// export const getDueDaysText = (dueDateValue) => {
+//   const due = parseDueDate(dueDateValue);
+//   if (!due) return '—';
+//   const today = new Date();
+//   today.setHours(0, 0, 0, 0);
+//   due.setHours(0, 0, 0, 0);
+//   const diffMs = due.getTime() - today.getTime();
+//   const diffDays = Math.floor(diffMs / 86400000);
+//   if (diffDays < 0) {
+//     const daysOverdue = Math.abs(diffDays);
+//     return daysOverdue === 1 ? '1 day Overdue' : `${daysOverdue} days Overdue`;
+//   }
+//   if (diffDays === 0) return 'Due today';
+//   return diffDays === 1 ? '1 day left' : `${diffDays} days left`;
+// };
+
+export const getDueDaysText = (dueDateValue, isPrepaid = false) => {
   const due = parseDueDate(dueDateValue);
   if (!due) return '—';
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   due.setHours(0, 0, 0, 0);
+
   const diffMs = due.getTime() - today.getTime();
   const diffDays = Math.floor(diffMs / 86400000);
+
+  // PREPAID LOGIC
+  if (isPrepaid) {
+    if (diffDays <= 0) return 'Balance exhausted';
+    return diffDays === 1
+      ? 'Estimated Days Remaining\n1 Day'
+      : `Estimated Days Remaining\n${diffDays} Days`;
+  }
+
+  // POSTPAID LOGIC
   if (diffDays < 0) {
     const daysOverdue = Math.abs(diffDays);
-    return daysOverdue === 1 ? '1 day Overdue' : `${daysOverdue} days Overdue`;
+    return daysOverdue === 1
+      ? '1 day Overdue'
+      : `${daysOverdue} days Overdue`;
   }
+
   if (diffDays === 0) return 'Due today';
-  return diffDays === 1 ? '1 day left' : `${diffDays} days left`;
+
+  return diffDays === 1
+    ? '1 day left'
+    : `${diffDays} days left`;
 };
 
 

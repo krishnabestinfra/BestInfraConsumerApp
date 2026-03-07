@@ -362,15 +362,19 @@ export const styles = StyleSheet.create({
   meterInfoRow: {
     flexDirection: "row",
     justifyContent: "flex-start",
-    gap: 10,
+    gap: 6,
   },
   meterConsumerRow: {
+    flex: 1,
     flexDirection: "column",
     justifyContent: "flex-start",
-    gap: 13,
+    minWidth: 0,
+  },
+  meterConsumerRowCentered: {
+    justifyContent: "center",
   },
   lastCommunicationLabelWrap: {
-    marginLeft: 40,
+    marginLeft: 36,
   },
   LastCommunicationRow: {
     flexDirection: "column",
@@ -379,9 +383,9 @@ export const styles = StyleSheet.create({
   },
   meterConsumerText: {
     color: COLORS.secondaryFontColor,
-    width: "70%",
     fontSize: 14,
     fontFamily: "Manrope-Bold",
+    lineHeight: 20,
   },
   meterNumberText: {
     color: COLORS.secondaryFontColor,

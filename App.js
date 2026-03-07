@@ -16,7 +16,7 @@ import SplashScreen from "./src/splashScreen/SplashScreen";
 import OnBoarding from "./src/screens/OnBoarding";
 import Login from "./src/auth/Login";
 import OTPLogin from "./src/auth/OTPLogin";
-import PostPaidDashboard from "./src/screens/dashboard/PostPaidDashboard";
+import Dashboard from "./src/screens/dashboard/Dashboard";
 // ── Eager: high-traffic screens for instant navigation (~50–100ms faster) ──
 import Invoices from "./src/screens/invoices/Invoices";
 import Usage from "./src/screens/usage/Usage";
@@ -39,6 +39,7 @@ import { withScreenErrorBoundary } from "./src/components/global/withScreenError
 import { initializeMonitoring } from "./src/config/monitoring";
 import { reportColdStart } from "./src/utils/performanceMonitor";
 import NavigationBarController from "./src/core/system/NavigationBarController";
+import PrePaidRechargePayments from "./src/screens/recharge/PrePaidRechargePayments";
 
 // ── Lazy-loaded screens: no fallback; Stack contentStyle provides background during load ──
 function lazyScreen(importFn) {
@@ -110,9 +111,10 @@ function AppNavigator({ navigationRef, linking }) {
         <Stack.Screen name="GuestLogin" component={GuestLogin} options={{ headerShown: false }} />
         <Stack.Screen name="TicketDetails" component={withScreenErrorBoundary(TicketDetails)} options={{ headerShown: false }} />
         <Stack.Screen name="ChatSupport" component={withScreenErrorBoundary(ChatSupport)} options={{ headerShown: false }} />
-        <Stack.Screen name="PostPaidDashboard" component={withScreenErrorBoundary(PostPaidDashboard)} options={{ headerShown: false }} />
+        <Stack.Screen name="Dashboard" component={withScreenErrorBoundary(Dashboard)} options={{ headerShown: false }} />
         <Stack.Screen name="PostPaidRechargePayments" component={PostPaidRechargePayments} options={{ headerShown: false }} />
         <Stack.Screen name="PaymentStatus" component={PaymentStatus} options={{ headerShown: false }} />
+        <Stack.Screen name="PrePaidRechargePayments" component={PrePaidRechargePayments} options={{ headerShown: false }} />
         <Stack.Screen name="LsDataTable" component={LsDataTable} options={{ headerShown: false }} />
         <Stack.Screen name="Invoices" component={withScreenErrorBoundary(Invoices)} options={{ headerShown: false }} />
         <Stack.Screen name="Reports" component={withScreenErrorBoundary(Reports)} options={{ headerShown: false }} />
@@ -236,7 +238,7 @@ export default function App() {
       }
 
       // Define dashboard screens
-      const dashboardScreens = ['PostPaidDashboard'];
+      const dashboardScreens = ['Dashboard'];
       
       if (dashboardScreens.includes(routeName)) {
         // On Dashboard - press back to exit
@@ -259,13 +261,13 @@ export default function App() {
       try {
         navigationRef.current.reset({
           index: 0,
-          routes: [{ name: 'PostPaidDashboard' }],
+          routes: [{ name: 'Dashboard' }],
         });
         showToast('Returned to Dashboard');
       } catch (error) {
         console.error('Navigation error:', error);
         // Fallback navigation
-        navigationRef.current.navigate('PostPaidDashboard');
+        navigationRef.current.navigate('Dashboard');
       }
 
       return true; // Prevent default back behavior

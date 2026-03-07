@@ -119,7 +119,7 @@ const Settings = ({ navigation }) => {
           )}
         </Pressable>
 
-        <Pressable onPress={() => navigation.navigate("PostPaidDashboard")}>
+        <Pressable onPress={() => navigation.navigate("Dashboard")}>
           <Logo variant="white" size="medium" />
         </Pressable>
 
@@ -168,7 +168,7 @@ const Settings = ({ navigation }) => {
           />
 
           {/* Test push notification - visible at top (commented out) */}
-          <PreferenceItem
+          {/* <PreferenceItem
             icon={
               <View style={styles.iconPlaceholder}>
                 <TermsIcon width={24} height={24} />
@@ -178,7 +178,7 @@ const Settings = ({ navigation }) => {
             onPress={() => {
               sendTestPushNotification();
             }}
-          />
+          /> */}
 
           {/* Font size card with inline chips */}
           <Pressable

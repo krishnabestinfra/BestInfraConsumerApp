@@ -61,7 +61,7 @@ function resolveTenantFromIdentifier(identifier) {
 
 const OTPLogin = ({ navigation }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
-  const { refreshConsumer } = useConsumer();
+  const { refreshConsumer, clearConsumer } = useConsumer();
   const s24 = getScaledFontSize(24);
   const s14 = getScaledFontSize(14);
   const s12 = getScaledFontSize(12);
@@ -221,6 +221,7 @@ const OTPLogin = ({ navigation }) => {
             uniqueIdentificationNo: consumerInfo.uniqueIdentificationNo,
             accessToken: accessToken || undefined,
           };
+          clearConsumer();
           await storeUser(userData);
           await authService.setRememberMe(remember);
           if (__DEV__) {
@@ -242,7 +243,7 @@ const OTPLogin = ({ navigation }) => {
           refreshConsumer({ force: true });
           navigation.reset({
             index: 0,
-            routes: [{ name: "PostPaidDashboard" }],
+            routes: [{ name: "Dashboard" }],
           });
         } catch (storeErr) {
           if (__DEV__) console.warn("[OTPLogin] Store user/tokens:", storeErr?.message ?? storeErr);

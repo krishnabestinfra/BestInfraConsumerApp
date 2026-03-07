@@ -250,7 +250,7 @@ const Tickets = ({ navigation }) => {
   const handleReturnToHome = useCallback(() => {
     setShowSuccessModal(false);
     setCreatedTicket(null);
-    navigation.navigate("PostPaidDashboard");
+    navigation.navigate("Dashboard");
   }, [navigation]);
 
   const handleViewTicketFromSuccess = useCallback(() => {

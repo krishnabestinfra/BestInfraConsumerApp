@@ -355,7 +355,7 @@ const Profile = ({ navigation }) => {
           style={({ pressed }) => [
             styles.logoWrapper,
           ]}
-          onPress={() => navigation.navigate("PostPaidDashboard")}
+          onPress={() => navigation.navigate("Dashboard")}
         >
           <Logo variant={isDark ? "white" : "blue"} size="medium" />
         </Pressable>

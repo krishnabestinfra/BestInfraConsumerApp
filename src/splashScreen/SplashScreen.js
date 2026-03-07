@@ -45,7 +45,7 @@ const SplashScreen = () => {
           setSplashComplete(true);
           navigation.reset({
             index: 0,
-            routes: [{ name: "PostPaidDashboard" }],
+            routes: [{ name: "Dashboard" }],
           });
         }, 500);
       } else {

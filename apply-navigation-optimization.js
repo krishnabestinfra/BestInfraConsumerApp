@@ -10,7 +10,7 @@ const path = require('path');
 // Files to update with optimized versions
 const screenUpdates = [
   {
-    file: 'src/screens/PostPaidDashboard.js',
+    file: 'src/screens/dashboard/Dashboard.js',
     optimizations: [
       'Replace useState/useEffect with useOptimizedData',
       'Add OptimizedScreen wrapper',
@@ -28,7 +28,7 @@ const screenUpdates = [
     ]
   },
   {
-    file: 'src/screens/PostPaidDashboard.js',
+    file: 'src/screens/dashboard/Dashboard.js',
     optimizations: [
       'Replace data loading with useOptimizedData',
       'Add OptimizedScreen wrapper',

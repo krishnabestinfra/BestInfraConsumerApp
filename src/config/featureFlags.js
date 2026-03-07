@@ -3,7 +3,7 @@
  * Use for plan-based or A/B features; keeps flow scalable as features grow.
  */
 export const featureFlags = {
-  /** Dashboard: use unified PostPaidDashboard when true */
+  /** Dashboard: use unified Dashboard when true */
   useUnifiedDashboard: true,
   /** Notifications screen */
   notifications: true,

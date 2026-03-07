@@ -12,6 +12,7 @@ import NotificationWhite from '../../../assets/icons/NotificationWhite.svg';
 import BackIcon from '../../../assets/icons/Back.svg';
 import BackIconWhite from '../../../assets/icons/BackWhite.svg';
 import { getUser, getConsumerDisplayName, cleanupStoredUserData } from '../../utils/storage';
+import { isPrepaidConsumer } from '../../utils/billingUtils';
 import { getCachedConsumerData, backgroundSyncConsumerData } from '../../utils/cacheManager';
 import { cacheManager } from '../../utils/cacheManager';
 import { useLoading } from '../../utils/loadingManager';
@@ -147,7 +148,7 @@ const DashboardHeader = React.memo(({
           <MenuIcon width={18} height={18} fill={isDark ? undefined : iconFill} />
         </Pressable>
         
-        <Pressable style={styles.logoWrapper} onPress={() => navigation.navigate('PostPaidDashboard')}>
+        <Pressable style={styles.logoWrapper} onPress={() => navigation.navigate('Dashboard')}>
           {showRings && <AnimatedRings paused={!isFocused} />}
           <View style={styles.logoOnTop}>
             <Logo variant={isDark ? 'white' : 'blue'} size="medium" />
@@ -191,7 +192,9 @@ const DashboardHeader = React.memo(({
 
         {showBalance && (
           <View>
-            <Text style={balanceStyle}>Balance</Text>
+            <Text style={balanceStyle}>
+              {isPrepaidConsumer(cachedConsumerData || consumerData) ? 'Balance' : 'Due Amount'}
+            </Text>
             <View style={styles.balanceContainer}>
               <Text style={amountStyle}>
                 {isLoading ? "Loading..." : formatAmount((cachedConsumerData || consumerData)?.totalOutstanding)}

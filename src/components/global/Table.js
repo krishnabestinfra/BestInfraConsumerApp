@@ -382,13 +382,15 @@ const styles = StyleSheet.create({
   dataText: {
     color: COLORS.primaryFontColor,
     fontFamily: "Manrope-Medium",
-    fontSize: 10,
+    fontSize: 9,
     textAlign: "left",
     lineHeight: 14,
   },
   multiLineText: {
     flexWrap: 'wrap',
     flexShrink: 1,
+    fontSize:screenWidth < 400 ? 9 : 10,
+    fontFamily: "Manrope-Medium",
   },
   statusText: {
     fontFamily: "Manrope-Medium",
