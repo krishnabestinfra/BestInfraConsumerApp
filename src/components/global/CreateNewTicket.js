@@ -56,8 +56,8 @@ const CreateNewTicket = ({ onSubmit, onClose, title = 'Create New Ticket' }) => 
 
     const ticketData = {
       subject,
-      type: selectedCategory,          // 🔥 backend expects this as type
-      category: 'TECHNICAL_SUPPORT',   // constant backend category
+      type: selectedCategory,
+      category: 'TECHNICAL_SUPPORT',   
       description,
       priority: normalizedPriority,
       files: uploadedFiles,
