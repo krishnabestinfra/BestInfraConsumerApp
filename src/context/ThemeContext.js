@@ -68,8 +68,9 @@ export const ThemeProvider = ({ children }) => {
           AsyncStorage.getItem(STORAGE_KEY),
           AsyncStorage.getItem(FONT_SIZE_STORAGE_KEY),
         ]);
-        // Default to light mode for production; only use dark when user explicitly enabled it
-        setIsDarkModeState(storedTheme === 'true');
+        // Default to light mode on fresh install; only use dark when user explicitly enabled it from Settings
+        const isDark = storedTheme === 'true';
+        setIsDarkModeState(isDark);
         if (storedFont !== null) {
           if (storedFont === 'default' || ['14', '15', '16'].includes(storedFont)) {
             setFontSizePreferenceState(storedFont === 'default' ? 'default' : parseInt(storedFont, 10));

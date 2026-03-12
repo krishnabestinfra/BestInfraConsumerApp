@@ -59,7 +59,7 @@ const Login = ({ navigation }) => {
         setTenantSubdomain("ntpl");
       } else if (upperId.startsWith("BI25SEC")) {
         setTenantSubdomain("sec");
-      } else if (upperId.startsWith("BI26LECA")) {
+      } else if (upperId.startsWith("BI26LECA") || upperId.startsWith("BI26POCA")) {
         setTenantSubdomain("demo");
       } else {
         setTenantSubdomain("gmr");
@@ -144,17 +144,18 @@ const Login = ({ navigation }) => {
       try {
         const credentialTest = await testConsumerCredentials(identifier, password);
         console.log("🔍 Credential test result:", credentialTest);
-        if (credentialTest.hasValidCredentials === false && 
-            credentialTest.status !== 0 && 
+        if (credentialTest.hasValidCredentials === false &&
+            credentialTest.status !== 0 &&
             (credentialTest.status === 401 || credentialTest.status === 403)) {
-          throw new Error(`Consumer ${identifier} does not have valid credentials in the authentication system. Please contact support to add this consumer to the system.`);
+          // Use backend's actual error message when available (e.g. "Invalid username/email or password")
+          const backendMsg = credentialTest.data?.message || credentialTest.error;
+          const displayMsg = backendMsg && typeof backendMsg === 'string' && backendMsg.length > 0
+            ? backendMsg
+            : `Consumer ${identifier} is not registered in the authentication system. Please contact support to add this consumer.`;
+          throw new Error(displayMsg);
         }
       } catch (testError) {
-        if (testError.message && !testError.message.includes('does not have valid credentials')) {
-          console.warn("⚠️ Credential test failed, but proceeding with login:", testError.message);
-        } else {
-          throw testError;
-        }
+        throw testError;
       }
 
       const result = await apiClient.request(API_ENDPOINTS.auth.login(), {
