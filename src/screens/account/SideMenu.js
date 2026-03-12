@@ -14,6 +14,7 @@ import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
 import Menu from "../../../assets/icons/barsWhite.svg";
 import Notification from "../../../assets/icons/notification.svg";
+import NotificationWhite from "../../../assets/icons/NotificationWhite.svg";
 import Usage from "../usage/Usage";
 import PostPaidRechargePayments from "../recharge/PostPaidRechargePayments";
 import PrePaidRechargePayments from "../recharge/PrePaidRechargePayments";
@@ -192,7 +193,7 @@ const SideMenu = ({ navigation }) => {
 
       <View style={styles.TopMenu}>
         <Pressable
-          style={styles.barsIcon}
+          style={[styles.barsIcon, isDark && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.navigate("Dashboard")}
         >
           <Menu width={18} height={18} fill="#ffffff" />
@@ -211,8 +212,12 @@ const SideMenu = ({ navigation }) => {
           style={styles.bellWrapper}
           onPress={() => navigation.navigate("Notifications")}
         >
-          <View style={styles.bellIcon}>
-            <Notification width={18} height={18} fill={COLORS.brandBlueColor} />
+          <View style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}>
+            {isDark ? (
+              <NotificationWhite width={18} height={18} />
+            ) : (
+              <Notification width={18} height={18} fill={COLORS.brandBlueColor} />
+            )}
           </View>
 
           {unreadCount > 0 && (
@@ -230,7 +235,7 @@ const SideMenu = ({ navigation }) => {
         style={styles.profileSection}
         onPress={() => navigation.navigate("Profile")}
       >
-        <View style={styles.profileContainer}>
+        <View style={[styles.profileContainer, isDark && { backgroundColor: '#1A1F2E' }]}>
           <View style={styles.profileImageWrapper}>
             <Image
               source={require("../../../assets/images/profileBlank.png")}
