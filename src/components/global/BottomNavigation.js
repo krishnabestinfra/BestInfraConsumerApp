@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
@@ -18,6 +19,7 @@ import ActiveUsageIcon from '../../../assets/icons/activeUsageIcon.svg';
 
 const BottomNavigation = ({ navigation }) => {
   const route = useRoute();
+  const insets = useSafeAreaInsets();
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
   const { consumerData } = useConsumer();
   const isPrepaid = isPrepaidConsumer(consumerData);
@@ -145,11 +147,14 @@ const BottomNavigation = ({ navigation }) => {
 
   const containerBg = isDark ? themeColors.card : COLORS.secondaryFontColor;
   const borderColor = isDark ? themeColors.cardBorder : '#E5E7EB';
-  const spacerBg = isDark ? themeColors.card : '#fff';
+  const bottomPadding = Math.max(insets.bottom, 16);
 
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.container, { backgroundColor: containerBg, borderTopColor: borderColor }]}>
+      <View style={[
+        styles.container,
+        { backgroundColor: containerBg, borderTopColor: borderColor, paddingBottom: bottomPadding },
+      ]}>
         <View style={styles.iconsContainer}>
           {navigationItems.map(renderNavigationItem)}
         </View>
@@ -170,11 +175,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondaryFontColor,
     borderTopWidth: 0.2,
     borderTopColor: '#ddd',
-    height: 70,
+    minHeight: 70,
     justifyContent: 'center',
     alignItems: 'center',
-    // paddingTop: 4,
-    // paddingBottom: 0,
+    paddingTop: 8,
   },
   graySpacer: {
     height: Platform.OS === 'ios' ? 24 : 20,

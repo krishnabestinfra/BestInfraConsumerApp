@@ -68,6 +68,7 @@ export const ThemeProvider = ({ children }) => {
           AsyncStorage.getItem(STORAGE_KEY),
           AsyncStorage.getItem(FONT_SIZE_STORAGE_KEY),
         ]);
+        // Default to light mode for production; only use dark when user explicitly enabled it
         setIsDarkModeState(storedTheme === 'true');
         if (storedFont !== null) {
           if (storedFont === 'default' || ['14', '15', '16'].includes(storedFont)) {

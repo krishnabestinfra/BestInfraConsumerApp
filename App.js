@@ -1,4 +1,5 @@
 import { StyleSheet, View, BackHandler, ToastAndroid, Platform, AppState } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useState, useEffect, useRef, Suspense } from "react";
@@ -286,6 +287,7 @@ export default function App() {
   // Don't block first paint on fonts: show app immediately (system fonts), then re-render when fonts load for smoother UX.
   return (
     <ErrorBoundary>
+      <SafeAreaProvider>
       <ThemeProvider>
       <NavigationBarController />
         <AppProvider>
@@ -302,6 +304,7 @@ export default function App() {
           </DataProvider>
         </AppProvider>
       </ThemeProvider>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 }
