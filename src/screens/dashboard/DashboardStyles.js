@@ -597,12 +597,13 @@ export const styles = StyleSheet.create({
   },
   consumptionValue: {
     color: COLORS.secondaryColor,
-    fontFamily: "Manrope-SemiBold",
-    fontSize: 12,
+    fontFamily: "Manrope-Medium",
+    fontSize: 10,
   },
   cumulativeValue: {
     color: COLORS.primaryFontColor,
     fontFamily: "Manrope-Medium",
+    fontSize: 10,
   },
   usageStatsContainer: {
     paddingHorizontal: 16,

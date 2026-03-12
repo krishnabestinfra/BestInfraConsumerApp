@@ -36,6 +36,7 @@ const Table = ({
   skeletonLines = 4,
   minTableWidth,
   rowsPerPage = 5,
+  compactColumns = false,
 }) => {
   const { isDark, colors: themeColors, getScaledFontSize } = useTheme();
   const s10 = getScaledFontSize(10);
@@ -140,6 +141,7 @@ const Table = ({
     }
   };
 
+  const columnPadding = compactColumns ? 6 : 12;
   const getColumnWrapperStyle = (column, isLastColumn = false) => {
     const dimensionStyle = column.width
       ? { width: column.width, flex: undefined }
@@ -147,6 +149,7 @@ const Table = ({
 
     return [
       styles.columnContainer,
+      { paddingRight: isLastColumn ? 0 : columnPadding },
       dimensionStyle,
       isLastColumn ? styles.lastColumn : null,
       getColumnAlignmentStyles(column.align),
@@ -177,7 +180,7 @@ const Table = ({
       {/* Header Row */}
       <View style={[headerRowStyle, headerStyle]}>
         {showSerial && (
-          <View style={[styles.columnContainer, styles.serialColumn]}>
+          <View style={[styles.columnContainer, styles.serialColumn, { paddingRight: columnPadding }]}>
             <Text style={headerTextStyle}>S.No</Text>
           </View>
         )}
@@ -235,7 +238,7 @@ const Table = ({
               onTouchEnd={() => handleRowPress(item)}
             >
               {showSerial && (
-                <View style={[styles.columnContainer, styles.serialColumn]}>
+                <View style={[styles.columnContainer, styles.serialColumn, { paddingRight: columnPadding }]}>
                   <Text style={[dataTextStyle, styles.serialText, textStyle]}>
                     {(currentPage - 1) * rowsPerPage + index + 1}
                   </Text>
@@ -411,7 +414,6 @@ const styles = StyleSheet.create({
     flex: 0,
     alignItems: "center",
     justifyContent: "center",
-    paddingRight: 12,
   },
   serialText: {
     textAlign: "center",
