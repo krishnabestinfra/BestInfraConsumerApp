@@ -11,6 +11,8 @@ import { COLORS, colors } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 import CalendarArrowLeft from '../../../assets/icons/Calender arrowleft.svg';
 import CalendarArrowRight from '../../../assets/icons/CalenderarrowRight.svg';
+import CalendarArrowLeftDark from '../../../assets/icons/CalenderArrowLeftWhite.svg';
+import CalendarArrowRightDark from '../../../assets/icons/CalendarArrowRightWhite.svg';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -30,7 +32,7 @@ const CalendarDatePicker = ({
   onChange,
   allowRangeSelection = false,
 }) => {
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const s18 = getScaledFontSize(18);
   const s16 = getScaledFontSize(16);
   const s12 = getScaledFontSize(12);
@@ -218,32 +220,46 @@ const CalendarDatePicker = ({
       onRequestClose={onClose}
     >
       <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.modal} onPress={(e) => e.stopPropagation()}>
-          <Text style={[styles.title, { fontSize: s18 }]}>Select Date</Text>
+        <Pressable
+            style={[
+              styles.modal,
+              isDark && { backgroundColor: "#1A1F2E" }
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+          <Text style={[styles.title, { fontSize: s18 }, isDark && { color: "#FFFFFF" }]}>Select Date</Text>
 
           <View style={styles.monthNav}>
             <TouchableOpacity
-              style={styles.navButton}
+              style={[styles.navButton, isDark && { backgroundColor: "#2C3A3F" }] }
               onPress={handlePrevMonth}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <CalendarArrowLeft width={16} height={16} fill={colors.color_text_secondary} />
+              {isDark ? (
+                <CalendarArrowLeftDark width={16} height={16} />
+              ) : (
+                <CalendarArrowLeft width={16} height={16} fill={colors.color_text_secondary} />
+              )}
             </TouchableOpacity>
-            <Text style={[styles.monthYear, { fontSize: s16 }]}>
+            <Text style={[styles.monthYear, { fontSize: s16 }, isDark && { color: "#FFFFFF" }]}>
               {MONTH_NAMES[viewMonth]} {viewYear}
             </Text>
             <TouchableOpacity
-              style={styles.navButton}
+              style={[styles.navButton, isDark && { backgroundColor: "#2C3A3F" }]}
               onPress={handleNextMonth}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <CalendarArrowRight width={16} height={16} fill={colors.color_text_secondary} />
+              {isDark ? (
+                <CalendarArrowRightDark width={16} height={16} />
+              ) : (
+                <CalendarArrowRight width={16} height={16} fill={colors.color_text_secondary} />
+              )}
             </TouchableOpacity>
           </View>
 
           <View style={styles.dayHeaders}>
             {DAY_HEADERS.map((d) => (
-              <Text key={d} style={[styles.dayHeaderText, { fontSize: s12 }]}>{d}</Text>
+              <Text key={d} style={[styles.dayHeaderText, { fontSize: s12 }, isDark && { color: "#FFFFFF" }]}>{d}</Text>
             ))}
           </View>
 
@@ -269,6 +285,7 @@ const CalendarDatePicker = ({
                     style={[
                       styles.dayText,
                       { fontSize: s14 },
+                      isDark && { color: "#FFFFFF" },
                       !isCurrentMonth && styles.dayTextOtherMonth,
                       selected && !disabled && (inRangeMiddle ? styles.dayTextRangeMiddle : styles.dayTextSelected),
                       isCurrentMonth && !selected && weekend && styles.dayTextWeekend,
