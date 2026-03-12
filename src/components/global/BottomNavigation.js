@@ -59,7 +59,7 @@ const BottomNavigation = ({ navigation }) => {
     
     {
       key: 'invoices',
-      label: isPrepaid ? 'Recharge History' : 'Invoices',
+      label: isPrepaid ? 'Transactions' : 'My Invoices',
       route: 'Invoices',
       icon: InvoicesIcon,
       activeIcon: ActiveUsageIcon,

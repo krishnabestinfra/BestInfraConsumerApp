@@ -14,12 +14,16 @@ const normalizeToPrepaid = (val) => {
 };
 
 /**
- * Determine if consumer is prepaid. Checks multiple API field names.
+ * Determine if consumer is prepaid. Checks multiple API field names and prepaidTransactions.
  * @param {Object} consumerData - Consumer object from API or demo data
  * @returns {boolean}
  */
 export const isPrepaidConsumer = (consumerData) => {
   if (!consumerData || typeof consumerData !== 'object') return false;
+  // Dynamic: presence of prepaidTransactions indicates prepaid (e.g. TGNPDCL API)
+  if (consumerData.prepaidTransactions != null && typeof consumerData.prepaidTransactions === 'object') {
+    return true;
+  }
   const val =
     consumerData.meterType ??
     consumerData.meter_type ??
@@ -31,6 +35,31 @@ export const isPrepaidConsumer = (consumerData) => {
     consumerData.account_type ??
     consumerData.connectionType; // some APIs use connectionType for prepaid/postpaid
   return normalizeToPrepaid(val);
+};
+
+/**
+ * Get prepaid balance from consumer data. Returns null if not prepaid or no balance.
+ * @param {Object} consumerData - Consumer object from API
+ * @returns {number|null}
+ */
+export const getPrepaidBalance = (consumerData) => {
+  if (!consumerData || typeof consumerData !== 'object') return null;
+  const bal = consumerData.prepaidTransactions?.balance;
+  if (typeof bal === 'number' && !Number.isNaN(bal)) return bal;
+  return null;
+};
+
+/**
+ * Get display amount for dashboard/header: prepaid = balance, postpaid = totalOutstanding.
+ * @param {Object} consumerData - Consumer object from API
+ * @returns {number|null}
+ */
+export const getDisplayAmount = (consumerData) => {
+  if (!consumerData) return null;
+  if (isPrepaidConsumer(consumerData)) {
+    return getPrepaidBalance(consumerData) ?? consumerData.totalOutstanding ?? null;
+  }
+  return consumerData.totalOutstanding ?? null;
 };
 
 export const getConsumerDueDate = (consumerData) => {

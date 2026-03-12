@@ -35,6 +35,8 @@ const OTP_RESEND_SECONDS = 30;
 const IDENTIFIER_PREFIX_TO_TENANT = [
   { prefix: "BI25GMRA", tenant: "gmr" },
   { prefix: "BI26NTPA", tenant: "ntpl" },
+  { prefix: "BI25SEC", tenant: "sec" },
+  { prefix: "BI26LECA", tenant: "demo" },
 ];
 const DEFAULT_TENANT = "gmr";
 

@@ -301,9 +301,12 @@ class ApiClient {
    */
   async handleErrorResponse(response, endpoint, retries, originalOptions) {
     let errorDetails = '';
+    let errorBody = null;
     try {
       const errorResponse = await response.json();
-      errorDetails = errorResponse.message || errorResponse.error || '';
+      errorBody = errorResponse;
+      const raw = errorResponse.message || errorResponse.error || errorResponse.details || '';
+      errorDetails = typeof raw === 'string' ? raw : (typeof raw === 'object' ? JSON.stringify(raw) : String(raw));
       if (__DEV__) apiLogger.debug('Error response', response.status, errorDetails);
     } catch (e) {}
 
@@ -393,12 +396,20 @@ class ApiClient {
     }
 
     if (response.status === 403) {
-      // Access denied - don't retry
+      // Access denied - surface backend message when available
+      const backendMsg = errorDetails || (errorBody?.error?.message ?? errorBody?.message ?? '');
+      const displayError = backendMsg
+        ? `Access denied: ${typeof backendMsg === 'string' ? backendMsg : JSON.stringify(backendMsg)}`
+        : 'Access denied - contact support';
+      if (__DEV__ && errorBody) {
+        apiLogger.debug('403 response body:', JSON.stringify(errorBody, null, 2));
+      }
       return {
         success: false,
-        error: 'Access denied - contact support',
+        error: displayError,
         status: 403,
-        isAccessDenied: true
+        isAccessDenied: true,
+        rawBody: errorBody,
       };
     }
 
@@ -422,7 +433,8 @@ class ApiClient {
     return {
       success: false,
       error: errorMessage,
-      status: response.status
+      status: response.status,
+      rawBody: errorBody,
     };
   }
 

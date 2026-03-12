@@ -57,6 +57,10 @@ const Login = ({ navigation }) => {
         setTenantSubdomain("gmr");
       } else if (upperId.startsWith("BI26NTPA")) {
         setTenantSubdomain("ntpl");
+      } else if (upperId.startsWith("BI25SEC")) {
+        setTenantSubdomain("sec");
+      } else if (upperId.startsWith("BI26LECA")) {
+        setTenantSubdomain("demo");
       } else {
         setTenantSubdomain("gmr");
       }
@@ -158,6 +162,7 @@ const Login = ({ navigation }) => {
         body: {
           identifier: identifier.trim(),
           password: password.trim(),
+          rememberMe: checked,
         },
         skipAuth: true,
         showLogs: !!__DEV__,

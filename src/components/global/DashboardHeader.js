@@ -12,7 +12,7 @@ import NotificationWhite from '../../../assets/icons/NotificationWhite.svg';
 import BackIcon from '../../../assets/icons/Back.svg';
 import BackIconWhite from '../../../assets/icons/BackWhite.svg';
 import { getUser, getConsumerDisplayName, cleanupStoredUserData } from '../../utils/storage';
-import { isPrepaidConsumer } from '../../utils/billingUtils';
+import { isPrepaidConsumer, getDisplayAmount } from '../../utils/billingUtils';
 import { getCachedConsumerData, backgroundSyncConsumerData } from '../../utils/cacheManager';
 import { cacheManager } from '../../utils/cacheManager';
 import { useLoading } from '../../utils/loadingManager';
@@ -197,7 +197,7 @@ const DashboardHeader = React.memo(({
             </Text>
             <View style={styles.balanceContainer}>
               <Text style={amountStyle}>
-                {isLoading ? "Loading..." : formatAmount((cachedConsumerData || consumerData)?.totalOutstanding)}
+                {isLoading ? "Loading..." : formatAmount(getDisplayAmount(cachedConsumerData || consumerData))}
               </Text>
               <View style={styles.plusBox}>
                 <Plus width={20} height={20} fill={plusFill} />
