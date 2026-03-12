@@ -28,6 +28,7 @@ import {
 } from "./invoiceConstants";
 import { useInvoiceFilter } from "./useInvoiceFilter";
 import { useScreenTiming } from "../../utils/useScreenTiming";
+import { useTransactionHistory } from "../../hooks/useTransactionHistory";
 
 /** Stable separator for FlatList so the list does not re-create it every render. */
 const InvoiceListSeparator = () => <View style={{ height: INVOICE_LIST_SEPARATOR_HEIGHT }} />;
@@ -431,6 +432,57 @@ const getPDFViewerHTML = (base64) => {
 `;
 };
 
+/** Transaction card for prepaid recharge history */
+const TransactionCardItem = React.memo(({ item, isDark, themeColors, onView, styles }) => {
+  const isPaid = (item.status || "").toLowerCase() === "completed" || (item.status || "").toLowerCase() === "success";
+  const shortId = item.transactionId ? String(item.transactionId).slice(-8).toUpperCase() : "—";
+  return (
+    <View style={[styles.invoiceCard, isDark && { backgroundColor: "#1A1F2E" }]}>
+      <View style={styles.cardHeader}>
+        <Text style={[styles.invoiceIdText, isDark && { color: "#FFFFFF" }]}>TXN {shortId}</Text>
+        <View style={[
+          styles.statusBadge,
+          isPaid ? styles.paidBadge : styles.unpaidBadge,
+          isDark && !isPaid && { backgroundColor: "rgba(255, 180, 0, 0.15)" },
+          isDark && isPaid && { backgroundColor: "rgba(85, 181, 108, 0.15)" },
+        ]}>
+          <Text style={[styles.statusText, isDark && { color: isPaid ? "#55B56C" : "#FFB400" }]}>
+            {isPaid ? "Completed" : (item.status || "Pending")}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.datesContainer}>
+        <Text style={[styles.dateLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
+          Date: {item.date}
+        </Text>
+        <Text style={[styles.dateLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>
+          {item.paymentMode}
+        </Text>
+      </View>
+      <View style={[styles.detailsSection, isDark && { backgroundColor: "#1F2E34" }]}>
+        <View style={styles.detailItem}>
+          <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>Amount</Text>
+          <Text style={[styles.detailValue, isDark && { color: "#FFFFFF" }]}>{item.amountFormatted}</Text>
+        </View>
+        <View style={styles.detailItem}>
+          <Text style={[styles.detailLabel, isDark && { color: themeColors?.textSecondary ?? "rgba(255,255,255,0.6)" }]}>Transaction ID</Text>
+          <Text style={[styles.detailValue, isDark && { color: "#FFFFFF" }]} numberOfLines={1}>{shortId}</Text>
+        </View>
+      </View>
+      <View style={styles.actionButtons}>
+        <TouchableOpacity
+          style={[styles.secondaryButton, isDark && { backgroundColor: "#1A1F2E", borderColor: COLORS.secondaryColor }]}
+          onPress={() => onView(item)}
+          activeOpacity={0.7}
+        >
+          <EyeIcon width={16} height={16} fill={isDark ? "#FFFFFF" : COLORS.secondaryColor} />
+          <Text style={[styles.secondaryButtonText, isDark && { color: "#FFFFFF" }]}>View Details</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
 const InvoiceCardItem = React.memo(({ item, isDark, themeColors, onView, onShare, onPayNow, styles, isPrepaid }) => {
   const isPaid = item.isPaid;
   const amountLabel = isPrepaid ? "Amount" : "Amount Due";
@@ -492,14 +544,16 @@ const Invoices = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { consumerData, refreshConsumer } = useConsumer();
   const isPrepaid = isPrepaidConsumer(consumerData);
+  const { transactions, isLoading: isTxLoading, fetchTransactions } = useTransactionHistory(consumerData);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const filter = useInvoiceFilter();
   const { statusFilter, pendingStatusFilter, setPendingStatusFilter, isFilterModalVisible, applyFilter, openFilterModal, closeFilterModal, filterOptions: INVOICE_FILTERS } = filter;
   const [pdfViewerBase64, setPdfViewerBase64] = useState(null);
   const [pdfViewerBillNumber, setPdfViewerBillNumber] = useState("");
+  const effectiveLoading = isPrepaid ? isTxLoading : isLoading;
   const { onLayout: onScreenLayout } = useScreenTiming('Invoices', {
-    isLoading,
-    dataReady: !isLoading,
+    isLoading: effectiveLoading,
+    dataReady: !effectiveLoading,
   });
 
   const fetchInvoices = useCallback(async (signal) => {
@@ -548,30 +602,46 @@ const Invoices = ({ navigation }) => {
   useEffect(() => {
     refreshConsumer();
     const controller = new AbortController();
-    fetchInvoices(controller.signal);
+    if (isPrepaid) {
+      fetchTransactions();
+    } else {
+      fetchInvoices(controller.signal);
+    }
     return () => controller.abort();
-  }, [fetchInvoices, refreshConsumer]);
+  }, [fetchInvoices, fetchTransactions, refreshConsumer, isPrepaid]);
 
-  // Re-compute filtered cards whenever invoices or filter change
+  // Re-compute filtered cards whenever invoices/transactions or filter change
   useEffect(() => {
-    let next = invoiceCards;
+    let next = isPrepaid
+      ? [...transactions]
+      : [...invoiceCards];
 
     if (statusFilter !== "all") {
-      next = invoiceCards.filter((card) => {
-        const status = card.isPaid ? "paid" : "unpaid";
-        return status === statusFilter;
-      });
+      if (isPrepaid) {
+        next = transactions.filter((tx) => {
+          const isPaid = (tx.status || "").toLowerCase() === "completed" || (tx.status || "").toLowerCase() === "success";
+          const status = isPaid ? "paid" : "unpaid";
+          return status === statusFilter;
+        });
+      } else {
+        next = invoiceCards.filter((card) => {
+          const status = card.isPaid ? "paid" : "unpaid";
+          return status === statusFilter;
+        });
+      }
     }
 
-    // Just to be safe, keep newest invoices first even after filtering.
-    const sorted = [...next].sort((a, b) => {
-      const aTime = getInvoiceDateValue(a._originalData);
-      const bTime = getInvoiceDateValue(b._originalData);
-      return bTime - aTime;
-    });
-
-    setFilteredInvoiceCards(sorted);
-  }, [statusFilter, invoiceCards]);
+    if (!isPrepaid) {
+      const sorted = [...next].sort((a, b) => {
+        const aTime = getInvoiceDateValue(a._originalData);
+        const bTime = getInvoiceDateValue(b._originalData);
+        return bTime - aTime;
+      });
+      setFilteredInvoiceCards(sorted);
+    } else {
+      setFilteredInvoiceCards(next);
+    }
+  }, [statusFilter, invoiceCards, transactions, isPrepaid]);
 
   // Fetch invoice data from API for a given invoice card (shared by View and Share)
   const fetchInvoiceData = useCallback(async (invoiceCard) => {
@@ -640,16 +710,42 @@ const Invoices = ({ navigation }) => {
 
   const handleFilterPress = openFilterModal;
 
-  const renderInvoiceItem = useCallback(({ item }) => (
-    <InvoiceCardItem
-      item={item} isDark={isDark} themeColors={themeColors} styles={styles}
-      onView={handleViewInvoice} onShare={handleShare} onPayNow={handlePayNow}
-      isPrepaid={isPrepaid}
-    />
-  ), [isDark, themeColors, handleViewInvoice, handleShare, handlePayNow, isPrepaid]);
+  const handleViewTransaction = useCallback((tx) => {
+    Alert.alert(
+      "Transaction Details",
+      `Transaction ID: ${tx.transactionId || "—"}\nDate: ${tx.date}\nAmount: ${tx.amountFormatted}\nStatus: ${tx.status}\nMode: ${tx.paymentMode}${tx.description ? `\n\n${tx.description}` : ""}`,
+      [{ text: "OK" }]
+    );
+  }, []);
+
+  const renderInvoiceItem = useCallback(({ item }) => {
+    if (isPrepaid) {
+      return (
+        <TransactionCardItem
+          item={item}
+          isDark={isDark}
+          themeColors={themeColors}
+          styles={styles}
+          onView={handleViewTransaction}
+        />
+      );
+    }
+    return (
+      <InvoiceCardItem
+        item={item}
+        isDark={isDark}
+        themeColors={themeColors}
+        styles={styles}
+        onView={handleViewInvoice}
+        onShare={handleShare}
+        onPayNow={handlePayNow}
+        isPrepaid={isPrepaid}
+      />
+    );
+  }, [isDark, themeColors, handleViewInvoice, handleShare, handlePayNow, handleViewTransaction, isPrepaid]);
 
   const invoiceKeyExtractor = useCallback(
-    (item, index) => item.id || item.invoiceId || `inv-${index}`,
+    (item, index) => item.id || item.invoiceId || item.transactionId || `item-${index}`,
     []
   );
 
@@ -719,10 +815,10 @@ const Invoices = ({ navigation }) => {
     </View>
   );
 
-  const listEmptyComponent = isLoading ? skeletonListEmpty : emptyComponent;
+  const listEmptyComponent = effectiveLoading ? skeletonListEmpty : emptyComponent;
   const containerStyle = useMemo(() => [styles.container, isDark && { backgroundColor: themeColors.screen }], [isDark, themeColors.screen]);
   const scrollStyle = useMemo(() => [styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }], [isDark, themeColors.screen]);
-  const isListEmpty = isLoading || filteredInvoiceCards.length === 0;
+  const isListEmpty = effectiveLoading || filteredInvoiceCards.length === 0;
   const contentStyle = useMemo(() => isListEmpty ? [{ flexGrow: 1 }] : undefined, [isListEmpty]);
 
   return (
@@ -730,7 +826,7 @@ const Invoices = ({ navigation }) => {
       <StatusBar style={isDark ? "light" : "dark"} />
 
       <FlatList
-        data={isLoading ? [] : filteredInvoiceCards}
+        data={effectiveLoading ? [] : filteredInvoiceCards}
         keyExtractor={invoiceKeyExtractor}
         renderItem={renderInvoiceItem}
         ListHeaderComponent={listHeader}
@@ -743,14 +839,21 @@ const Invoices = ({ navigation }) => {
         maxToRenderPerBatch={10}
         windowSize={5}
         removeClippedSubviews={true}
-        // refreshControl={
-        //   <RefreshControl
-        //     refreshing={isLoading}
-        //     onRefresh={fetchInvoices}
-        //     colors={[COLORS.secondaryColor]}
-        //     tintColor={COLORS.secondaryColor}
-        //   />
-        // }
+        refreshControl={
+          <RefreshControl
+            refreshing={effectiveLoading}
+            onRefresh={async () => {
+              if (isPrepaid) {
+                await refreshConsumer({ force: true });
+                fetchTransactions(true);
+              } else {
+                await fetchInvoices();
+              }
+            }}
+            colors={[COLORS.secondaryColor]}
+            tintColor={COLORS.secondaryColor}
+          />
+        }
       />
 
       {/* PDF Generation Overlay */}

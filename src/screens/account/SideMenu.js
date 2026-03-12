@@ -175,7 +175,7 @@ const SideMenu = ({ navigation }) => {
       case "PrePaidRechargePayments":
         return <PrePaidRechargePayments />;
       case "Transactions":
-        return <Transactions />;
+        return <Transactions navigation={navigation} />;
       case "Settings":
         return <Settings />;
       default:

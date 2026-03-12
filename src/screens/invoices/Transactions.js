@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
 import { useNotifications } from "../../context/NotificationsContext";
@@ -13,141 +13,38 @@ import DatePicker from "../../components/global/DatePicker";
 import Table from "../../components/global/Table";
 import Button from "../../components/global/Button";
 import DownloadButton from "../../components/global/DownloadButton";
-import { getUser } from "../../utils/storage";
-import { API, API_ENDPOINTS } from "../../constants/constants";
-import { apiClient } from "../../services/apiClient";
-import { formatFrontendDate } from "../../utils/dateUtils";
-import { isPrepaidConsumer } from "../../utils/billingUtils";
 import { useConsumer } from "../../context/ConsumerContext";
-import { info, warn, error as logError } from "../../utils/logger";
+import { useTransactionHistory } from "../../hooks/useTransactionHistory";
 
 
 const STALE_THRESHOLD = 120000; // 2 minutes
 
-const Transactions = ({ navigation }) => {
+const Transactions = ({ navigation: navigationProp }) => {
+  const navigationFromHook = useNavigation();
+  const navigation = navigationProp ?? navigationFromHook;
   const { isDark, colors: themeColors } = useTheme();
   const { unreadCount } = useNotifications();
-  const { consumerData } = useConsumer();
-  const isPrepaid = isPrepaidConsumer(consumerData);
+  const { consumerData, refreshConsumer } = useConsumer();
+  const { transactions: tableData, isLoading, fetchTransactions, isPrepaid } = useTransactionHistory(consumerData);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
-  const [tableData, setTableData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const lastFetchedAtRef = useRef(0);
 
-  const fetchPaymentHistory = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const user = await getUser();
-
-      if (!user || !user.identifier) {
-        setTableData([]);
-        setIsLoading(false);
-        return;
-      }
-
-      let paymentHistory = [];
-
-      try {
-        const paymentHistoryUrl = API_ENDPOINTS.payment.history(user.identifier);
-        info('Transactions', 'Fetching payment history');
-        const paymentResult = await apiClient.request(paymentHistoryUrl, { method: 'GET' });
-        if (paymentResult.success) {
-          const paymentData = paymentResult.data ?? paymentResult.rawBody ?? paymentResult;
-          if (__DEV__) info('Transactions', 'Payment history received');
-          if (paymentData?.success && paymentData?.data) {
-            if (Array.isArray(paymentData.data)) {
-              paymentHistory = paymentData.data;
-            } else if (Array.isArray(paymentData.data.payments)) {
-              paymentHistory = paymentData.data.payments;
-            } else if (Array.isArray(paymentData.data.paymentHistory)) {
-              paymentHistory = paymentData.data.paymentHistory;
-            } else if (Array.isArray(paymentData.data.transactions)) {
-              paymentHistory = paymentData.data.transactions;
-            }
-          } else if (Array.isArray(paymentData)) {
-            paymentHistory = paymentData;
-          }
-        }
-      } catch (paymentError) {
-        warn('Transactions', 'Payment history endpoint failed, trying consumer endpoint', paymentError?.message);
-      }
-
-      if (paymentHistory.length === 0) {
-        try {
-          const consumerResult = await apiClient.request(API_ENDPOINTS.consumers.get(user.identifier), { method: 'GET' });
-          if (consumerResult.success) {
-            const consumerData = consumerResult.data ?? consumerResult.rawBody ?? consumerResult;
-            if (__DEV__) info('Transactions', 'Consumer data received');
-            if (consumerData?.success && consumerData?.data) {
-              if (Array.isArray(consumerData.data.paymentHistory)) {
-                paymentHistory = consumerData.data.paymentHistory;
-              } else if (Array.isArray(consumerData.data.payments)) {
-                paymentHistory = consumerData.data.payments;
-              } else if (Array.isArray(consumerData.data.transactions)) {
-                paymentHistory = consumerData.data.transactions;
-              } else if (consumerData.data.billing && Array.isArray(consumerData.data.billing.paymentHistory)) {
-                paymentHistory = consumerData.data.billing.paymentHistory;
-              }
-            }
-          }
-        } catch (consumerError) {
-          logError('Transactions', 'Error fetching from consumer endpoint', consumerError?.message);
-        }
-      }
-      
-      // Transform payment history data for the table
-      if (paymentHistory.length > 0) {
-        const transformedData = paymentHistory.map((payment, index) => {
-          // Handle different payment data structures
-          const amount = payment.amount || payment.creditAmount || payment.paymentAmount || payment.totalAmount || 0;
-          const date = payment.paymentDate || payment.date || payment.createdAt || payment.transactionDate || 'N/A';
-          const transactionId = payment.transactionId || payment.paymentId || payment.razorpay_payment_id || payment.id || `TXN${index + 1}`;
-          const paymentMode = payment.paymentMode || payment.payment_method || payment.method || 'UPI';
-          const status = payment.status || (amount > 0 ? 'Success' : 'Failed');
-          
-          // Format date if it's a valid date string
-          const formattedDate = (date !== 'N/A' && date) ? (formatFrontendDate(date) || date) : date;
-          
-          return {
-            id: index + 1,
-            transactionId: transactionId,
-            date: formattedDate,
-            amount: amount ? `₹${parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹0.00',
-            paymentMode: paymentMode,
-            status: status
-          };
-        });
-        
-        // Sort by date (newest first)
-        transformedData.sort((a, b) => {
-          const dateA = new Date(a.date);
-          const dateB = new Date(b.date);
-          return dateB - dateA;
-        });
-        
-        setTableData(transformedData);
-        console.log('✅ Loaded', transformedData.length, 'transactions');
-      } else {
-        setTableData([]);
-        console.log('ℹ️ No payment history found');
-      }
-    } catch (error) {
-      console.error('❌ Error fetching payment history:', error);
-      setTableData([]);
-    } finally {
-      setIsLoading(false);
-      lastFetchedAtRef.current = Date.now();
-    }
-  }, []);
+  // Map hook's transaction format to table columns (date, amount, status, paymentMode)
+  const tableRows = tableData.map((t) => ({
+    ...t,
+    amount: t.amountFormatted,
+  }));
 
   // Only refetch on focus if data is stale (older than 2 minutes)
   useFocusEffect(
     useCallback(() => {
       if (Date.now() - lastFetchedAtRef.current >= STALE_THRESHOLD) {
-        fetchPaymentHistory();
+        fetchTransactions().then(() => {
+          lastFetchedAtRef.current = Date.now();
+        });
       }
-    }, [fetchPaymentHistory])
+    }, [fetchTransactions])
   );
   return (
     <>
@@ -158,7 +55,10 @@ const Transactions = ({ navigation }) => {
       refreshControl={
         <RefreshControl
           refreshing={isLoading}
-          onRefresh={fetchPaymentHistory}
+          onRefresh={async () => {
+            if (isPrepaid && refreshConsumer) await refreshConsumer({ force: true });
+            fetchTransactions(true);
+          }}
           colors={[COLORS.secondaryColor]}
           tintColor={COLORS.secondaryColor}
         />
@@ -221,9 +121,9 @@ const Transactions = ({ navigation }) => {
 
       <View>
         <Table
-          data={tableData}
+          data={tableRows}
           loading={isLoading}
-          skeletonLines={tableData.length > 0 ? tableData.length : 5}
+          skeletonLines={tableRows.length > 0 ? tableRows.length : 5}
           emptyMessage={isPrepaid ? "No recharge history available" : "No transaction data available"}
           showSerial={true}
           showPriority={false}

@@ -19,7 +19,6 @@ import {
   import DirectRazorpayPayment from "../../components/DirectRazorpayPayment";
   import { authService } from "../../services/authService";
   import { API, API_ENDPOINTS } from "../../constants/constants";
-  import { getTenantSubdomain } from "../../config/apiConfig";
   import { fetchBillingHistory } from "../../services/apiService";
   import { useConsumer } from "../../context/ConsumerContext";
   import {
@@ -134,18 +133,13 @@ import {
           throw new Error('Invalid payment amount. Amount must be a positive number.');
         }
 
-        // accountId: use demo account (1) for demo tenant; otherwise from API or fallback to 1
-        const FALLBACK_ACCOUNT_ID = 1;
-        const tenant = getTenantSubdomain();
-        const isDemoTenant = tenant === 'demo';
-        const accountId = isDemoTenant
-          ? FALLBACK_ACCOUNT_ID
-          : (consumerData?.accountId ?? consumerData?.id ?? consumerData?.account_id ?? FALLBACK_ACCOUNT_ID);
-        const accountIdNum = Number(accountId);
+        // accountId: use prepaidAccountId from consumer API (required for prepaid recharge)
+        const accountId = consumerData?.prepaidAccountId ?? consumerData?.accountId ?? consumerData?.id ?? consumerData?.account_id;
+        const accountIdNum = accountId != null ? Number(accountId) : NaN;
         if (isNaN(accountIdNum) || accountIdNum <= 0) {
           Alert.alert(
             "Account Not Found",
-            "Unable to load your account. Please ensure you're logged in with a valid prepaid account and try again.",
+            "Unable to load your prepaid account. Please ensure you're logged in with a valid prepaid account and try again.",
             [{ text: "OK" }]
           );
           return;
@@ -252,7 +246,7 @@ import {
     return (
       <KeyboardAvoidingView 
         style={[styles.keyboardAvoidingView, isDark && { backgroundColor: themeColors.screen }]} 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -261,7 +255,7 @@ import {
           contentContainerStyle={styles.scrollContentContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
+          keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         >
           <DashboardHeader 
             navigation={navigation} 
@@ -569,7 +563,7 @@ import {
     },
     buttonContainer: {
       position: 'absolute',
-      bottom: 100,
+      bottom: 120,
       left: 0,
       right: 0,
       paddingHorizontal: 20,
