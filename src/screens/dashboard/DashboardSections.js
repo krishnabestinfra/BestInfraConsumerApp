@@ -46,7 +46,7 @@ import PiggybankIcon from "../../../assets/icons/piggybank.svg";
 import ConsumerGroupedBarChart from "../../components/ConsumerGroupedBarChart";
 import Table from "../../components/global/Table";
 import CalendarDatePicker from "../../components/global/CalendarDatePicker";
-import { isPrepaidConsumer } from "../../utils/billingUtils";
+import { isPrepaidConsumer, getDisplayAmount } from "../../utils/billingUtils";
 
 const VIEW_OPTIONS = ["Chart", "Table"];
 const TIME_PERIODS = ["7D", "30D", "90D", "1Y"];
@@ -132,7 +132,7 @@ export const AmountSection = React.memo(({
         {isPrepaid ? (
           <>
             <Text style={[styles.dueText, darkOverlay.dueText]}>
-              Balance: {isLoading ? "Loading..." : formatAmount(consumerData?.totalOutstanding)}
+              Balance: {isLoading ? "Loading..." : formatAmount(getDisplayAmount(consumerData))}
             </Text>
 
             <Text style={[styles.dateText, darkOverlay.dateText]}>

@@ -19,15 +19,16 @@ import {
   import DirectRazorpayPayment from "../../components/DirectRazorpayPayment";
   import { authService } from "../../services/authService";
   import { API, API_ENDPOINTS } from "../../constants/constants";
+  import { getTenantSubdomain } from "../../config/apiConfig";
   import { fetchBillingHistory } from "../../services/apiService";
   import { useConsumer } from "../../context/ConsumerContext";
   import {
-    processRazorpayPayment,
-    handlePaymentSuccess,
+    processPrepaidRazorpayPayment,
+    handlePrepaidPaymentSuccess,
     handlePaymentError,
     formatAmount
   } from "../../services/paymentService";
-  import { getConsumerDueDate } from "../../utils/billingUtils";
+  import { getConsumerDueDate, getPrepaidBalance } from "../../utils/billingUtils";
   import { parseDueDate } from "../../utils/dateUtils";
   import { Shimmer, SHIMMER_LIGHT, SHIMMER_DARK } from "../../utils/loadingManager";
   
@@ -53,13 +54,11 @@ import {
     );
   };
   
-  const IS_TESTING_MODE = true; // Change to false when ready for production
-  const TEST_PAYMENT_AMOUNT = 100; // ₹1 in paise (100 paise = 1 rupee)
-  // ============================================================================
+// ============================================================================
   
   const PrePaidRechargePayments = ({ navigation }) => {
     const { isDark, colors: themeColors } = useTheme();
-    const [selectedOption, setSelectedOption] = useState("option1");
+    const [selectedOption, setSelectedOption] = useState("customAmount");
     const [customAmount, setCustomAmount] = useState("");
     const [outstandingAmount, setOutstandingAmount] = useState("NA");
     const { consumerData, isConsumerLoading, refreshConsumer } = useConsumer();
@@ -88,27 +87,11 @@ import {
       return due < today;
     }, [consumerData]);
   
-    // Get the payment amount based on selected option
+    // Get the payment amount - prepaid always uses custom recharge amount
     const getPaymentAmount = () => {
-      if (selectedOption === "option1") {
-        // TESTING MODE: For Razorpay integration testing, charge only ₹1
-        // Change IS_TESTING_MODE to false at the top of file for production
-        if (IS_TESTING_MODE) {
-          console.log('🧪 TESTING MODE: Charging only ₹1 for Razorpay integration testing');
-          return TEST_PAYMENT_AMOUNT; // ₹1 in paise (100 paise)
-        }
-        
-        // PRODUCTION MODE: Charge full outstanding amount
-        const outstanding = consumerData?.totalOutstanding || 0;
-        // If outstanding is already in paise (large number), use as is
-        // If outstanding is in rupees (small number), convert to paise
-        const amountInPaise = outstanding > 1000 ? outstanding : Math.floor(outstanding * 100);
-        return Math.floor(amountInPaise); // Ensure integer
-      } else {
-        // Custom amount - convert to paise and ensure integer
-        const amount = parseFloat(customAmount) || 0;
-        return Math.floor(amount * 100); // Convert to paise and ensure integer
-      }
+      // Prepaid: only custom amount (recharge)
+      const amount = parseFloat(customAmount) || 0;
+      return Math.floor(amount * 100); // Convert to paise and ensure integer
     };
   
     // Validate payment amount
@@ -150,108 +133,43 @@ import {
         if (isNaN(amountInPaise) || amountInPaise <= 0) {
           throw new Error('Invalid payment amount. Amount must be a positive number.');
         }
-        
-        // Extract bill_id from consumerData for outstanding payments
-        // Check multiple possible fields where bill_id might be stored
-        let billId = null;
-        if (selectedOption === "option1") {
-          // For outstanding payments, try to get bill_id from consumerData first
-          billId = consumerData?.billId || 
-                   consumerData?.bill_id || 
-                   consumerData?.latestBillId ||
-                   consumerData?.currentBillId ||
-                   consumerData?.lastBillId ||
-                   consumerData?.bill?.id ||
-                   consumerData?.bill?.billId ||
-                   consumerData?.latestBill?.id ||
-                   consumerData?.latestBill?.billId ||
-                   null;
-          
-          // CRITICAL: If bill_id is not found in consumerData, MUST fetch from billing history
-          // bill_id is REQUIRED for order creation - without it, order_id cannot be generated
-          if (!billId && consumerData?.uniqueIdentificationNo) {
-            console.log('🔍 bill_id not found in consumerData, fetching from billing history (REQUIRED for order creation)...');
-            try {
-              const billingHistoryResult = await fetchBillingHistory(consumerData.uniqueIdentificationNo || consumerData.identifier);
-              if (billingHistoryResult.success && billingHistoryResult.data) {
-                const billingData = Array.isArray(billingHistoryResult.data) 
-                  ? billingHistoryResult.data 
-                  : [billingHistoryResult.data];
-                
-                // Get the latest bill (first item in array, or most recent)
-                const latestBill = billingData.length > 0 ? billingData[0] : null;
-                if (latestBill) {
-                  billId = latestBill.bill_id || 
-                          latestBill.billId || 
-                          latestBill.id ||
-                          latestBill.bill_no ||
-                          latestBill.billNumber ||
-                          null;
-                  
-                  if (billId) {
-                    console.log('✅ Found bill_id from billing history:', billId);
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('❌ Could not fetch bill_id from billing history:', error.message);
-            }
-          }
-          
-          // CRITICAL: bill_id is REQUIRED for order creation
-          // Without bill_id, order_id cannot be generated properly
-          if (!billId) {
-            const errorMsg = 'bill_id is required for payment order creation. Unable to find bill_id in consumer data or billing history.';
-            console.error('❌ CRITICAL:', errorMsg);
-            throw new Error(errorMsg);
-          }
-          
-          console.log('✅ bill_id found and ready for order creation:', {
-            'bill_id': billId,
-            'bill_id_type': typeof billId,
-            'billId_source': consumerData?.billId ? 'consumerData' : 'billingHistory',
-            'note': 'bill_id is REQUIRED - order_id cannot be generated without it'
-          });
+
+        // accountId: use demo account (1) for demo tenant; otherwise from API or fallback to 1
+        const FALLBACK_ACCOUNT_ID = 1;
+        const tenant = getTenantSubdomain();
+        const isDemoTenant = tenant === 'demo';
+        const accountId = isDemoTenant
+          ? FALLBACK_ACCOUNT_ID
+          : (consumerData?.accountId ?? consumerData?.id ?? consumerData?.account_id ?? FALLBACK_ACCOUNT_ID);
+        const accountIdNum = Number(accountId);
+        if (isNaN(accountIdNum) || accountIdNum <= 0) {
+          Alert.alert(
+            "Account Not Found",
+            "Unable to load your account. Please ensure you're logged in with a valid prepaid account and try again.",
+            [{ text: "OK" }]
+          );
+          return;
         }
-        // For custom payments, bill_id will be created by backend during verification
         
-        // TESTING MODE: Update description for test payments
-        const isTestPayment = IS_TESTING_MODE && selectedOption === "option1";
-        const paymentDescription = isTestPayment 
-          ? `Energy Bill Payment - Test Payment (₹1)` 
-          : `Energy Bill Payment - ${selectedOption === "option1" ? "Outstanding Amount" : "Custom Amount"}`;
+        const paymentDescription = `Prepaid Recharge - ₹${(amountInPaise / 100).toFixed(2)}`;
         
+        // Payload for create-order: only accountId and amount (from API or fallback)
         const paymentData = {
-          amount: amountInPaise, // CRITICAL: Must be integer in paise
-          currency: 'INR',
+          amount: amountInPaise,
+          accountId: accountIdNum,
           description: paymentDescription,
-          consumer_id: consumerData?.uniqueIdentificationNo || consumerData?.identifier,
-          consumer_name: consumerData?.name || consumerData?.consumerName,
-          email: consumerData?.email || 'customer@bestinfra.com',
-          contact: consumerData?.contact || '9876543210',
-          bill_type: selectedOption === "option1" ? "outstanding" : "custom",
-          // CRITICAL: Include bill_id for outstanding payments (main input)
-          bill_id: billId,
-          billId: billId, // Include both formats for compatibility
-          custom_amount: selectedOption === "customAmount" ? (customAmount ? String(customAmount) : null) : null,
-          // Include outstanding amount for bill generation (actual outstanding, not test amount)
-          outstanding_amount: selectedOption === "option1" ? (consumerData?.totalOutstanding || 0) : null,
-          // Flag to indicate this is a test payment
-          is_test_payment: isTestPayment,
+          consumer_name: consumerData?.name || consumerData?.consumerName || 'Customer',
+          email: consumerData?.emailId || consumerData?.email || 'customer@bestinfra.com',
+          contact: consumerData?.mobileNo || consumerData?.contact || '9876543210',
         };
         
-        console.log('✅ Payment data prepared:', {
+        console.log('✅ Prepaid recharge data prepared:', {
+          accountId: paymentData.accountId,
           amount: paymentData.amount,
-          amount_type: typeof paymentData.amount,
           amount_in_rupees: (paymentData.amount / 100).toFixed(2),
-          is_test_payment: isTestPayment,
-          bill_id: paymentData.bill_id || '(will be created by backend)',
-          bill_type: paymentData.bill_type,
-          consumer_id: paymentData.consumer_id,
-          actual_outstanding: consumerData?.totalOutstanding || 0
         });
   
-        await processRazorpayPayment(paymentData, navigation, setShowPaymentModal, setOrderData);
+        await processPrepaidRazorpayPayment(paymentData, navigation, setShowPaymentModal, setOrderData);
   
       } catch (error) {
         console.error('❌ Payment error:', error);
@@ -274,11 +192,11 @@ import {
       }
     };
   
-    // Handle payment success
+    // Handle payment success - verify via prepaid endpoint and refresh balance
     const onPaymentSuccess = async (paymentResponse) => {
       try {
-        console.log('✅ Payment successful, verifying and storing in database...');
-        const result = await handlePaymentSuccess(paymentResponse, navigation, setShowPaymentModal);
+        console.log('✅ Prepaid recharge successful, verifying...');
+        const result = await handlePrepaidPaymentSuccess(paymentResponse, navigation, setShowPaymentModal, refreshConsumer);
         
         if (result?.sessionExpired) {
           Alert.alert(
@@ -289,13 +207,13 @@ import {
           return;
         }
         if (result?.verificationSuccess === true && __DEV__) {
-          console.log('✅ Payment verified and stored in database');
+          console.log('✅ Prepaid recharge verified, balance will be updated');
         }
       } catch (error) {
-        console.error('❌ Payment success handling error:', error);
+        console.error('❌ Prepaid payment success handling error:', error);
         Alert.alert(
-          "Payment Verification Failed", 
-          error.message || "Payment was successful but verification failed. Please contact support if the transaction is not reflected.",
+          "Recharge Verification Failed", 
+          error.message || "Recharge was successful but verification failed. Your balance will update shortly.",
           [{ text: "OK" }]
         );
       }
@@ -312,23 +230,24 @@ import {
       }
     };
   
-    // Fetch consumer data and outstanding amount with caching
+    // Fetch consumer data from API only (skipDemo=true) - no demo data for prepaid recharge
     useEffect(() => {
-      refreshConsumer({ force: true });
+      refreshConsumer({ force: true, skipDemo: true });
     }, [refreshConsumer]);
   
-    // Derive outstanding amount from context's consumerData
-    useEffect(() => {
-      if (consumerData?.totalOutstanding !== undefined) {
-        const formattedAmount = consumerData.totalOutstanding.toLocaleString('en-IN', {
-          maximumFractionDigits: 2,
-        });
-        setOutstandingAmount(formattedAmount);
-      } else {
-        setOutstandingAmount("NA");
-      }
-      if (!isConsumerLoading) setIsLoading(false);
-    }, [consumerData, isConsumerLoading]);
+  // Derive balance from context's consumerData (prepaid: prepaidTransactions.balance)
+  useEffect(() => {
+    const balance = getPrepaidBalance(consumerData);
+    if (balance !== null && balance !== undefined) {
+      const formattedAmount = Number(balance).toLocaleString('en-IN', {
+        maximumFractionDigits: 2,
+      });
+      setOutstandingAmount(formattedAmount);
+    } else {
+      setOutstandingAmount("NA");
+    }
+    if (!isConsumerLoading) setIsLoading(false);
+  }, [consumerData, isConsumerLoading]);
   
     return (
       <KeyboardAvoidingView 
@@ -356,27 +275,23 @@ import {
           <View style={styles.contentSection}>
             {/* Input Boxes Section – skeleton when loading (same shimmer as Tickets/Invoices/Usage) */}
             <View style={styles.inputSection}>
-              {/* {isLoading ? (
+              {isLoading ? (
                 <SkeletonRechargeCard isDark={isDark} styles={styles} />
               ) : (
-                <> */}
-                  {/* Outstanding Amount */}
-                  {/* <View style={[
+                <>
+                  {/* Balance (prepaid) */}
+                  <View style={[
                     styles.amountCard1,
-                    selectedOption === "option1" && styles.amountCardSelected1,
                     isDark && { backgroundColor: '#1A1F2E' }
                   ]}>
                     <View style={styles.amountCardHeader}>
-                      <Text style={[styles.amountCardTitle, isDark && { color: '#FFFFFF' }]}>Outstanding Amount</Text>
-                      <View style={[
-                        styles.statusDot,
-                        selectedOption === "option1" && styles.statusDotSelected
-                      ]} />
+                      <Text style={[styles.amountCardTitle, isDark && { color: '#FFFFFF' }]}>Balance</Text>
+                      <View style={styles.statusDot} />
                     </View>
                     <View style={styles.amountInputContainer}>
                       <Input
                         placeholder={outstandingAmount}
-                        value={selectedOption === "option1" ? outstandingAmount : ""}
+                        value={outstandingAmount}
                         editable={false}
                         style={styles.amountInput}
                         containerStyle={[
@@ -385,19 +300,18 @@ import {
                             backgroundColor: "#1F2E34",
                           },
                         ]}
-                        onChangeText={handleCustomAmountChange}
                         inputStyle={[
                           styles.amountInputText,
-                          isOverdue && styles.amountInputOverdue,
                           isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
                           { opacity: 1 },
                         ]}
                       />
                     </View>
-                  </View> */}
-                {/* </>  )} */}
-  
-              {/* Overdue Amount */}
+                  </View>
+                </>
+              )}
+
+              {/* Custom Amount */}
                <View style={[
                 styles.amountCard2,
                 selectedOption === "customAmount" && styles.amountCardSelected2

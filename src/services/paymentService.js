@@ -8,6 +8,7 @@
 import { getRazorpayKeyId, getRazorpaySecretKey } from '../config/config';
 import { API, API_ENDPOINTS } from '../constants/constants';
 import { getUser } from '../utils/storage';
+import { getConsumerDataWithCache } from '../utils/cacheManager';
 import { apiClient } from './apiClient';
 import { authService } from './authService';
 
@@ -711,6 +712,184 @@ const createDirectPaymentWithoutOrder = (paymentData, orderPayload, razorpayKeyI
     },
     fallback: true,
   };
+};
+
+/**
+ * Create prepaid recharge order - calls prepaid/recharge/create-order
+ * No bill_id required; payload: amount, consumer_id, etc.
+ */
+export const createPrepaidRechargeOrder = async (paymentData) => {
+  try {
+    const user = await getUser();
+    const token = await authService.getValidAccessToken();
+    if (!user || !user.identifier) {
+      return { success: false, error: SESSION_EXPIRED_ERROR, message: SESSION_EXPIRED_MESSAGE };
+    }
+    if (!token) {
+      return { success: false, error: SESSION_EXPIRED_ERROR, message: SESSION_EXPIRED_MESSAGE };
+    }
+
+    const amountInPaise = Math.floor(Number(paymentData.amount));
+    if (isNaN(amountInPaise) || amountInPaise <= 0) {
+      throw new Error('Invalid recharge amount. Amount must be a positive number.');
+    }
+    const amountInRupees = amountInPaise / 100;
+
+    // accountId: required by backend (numeric). From consumerData: accountId, id, or account_id
+    const accountId = paymentData.accountId ?? paymentData.account_id ?? user.accountId ?? user.account_id;
+    const accountIdNum = accountId != null ? Number(accountId) : NaN;
+    if (isNaN(accountIdNum) || accountIdNum <= 0) {
+      return {
+        success: false,
+        error: 'MISSING_ACCOUNT_ID',
+        message: 'accountId is required for prepaid recharge. Ensure consumer data includes accountId.',
+      };
+    }
+
+    // Backend contract: { accountId, amount } - amount in rupees
+    const orderPayload = {
+      accountId: accountIdNum,
+      amount: amountInRupees,
+    };
+
+    const endpoint = API_ENDPOINTS.prepaid?.createOrder?.() || `${API.BASE_URL}/prepaid/recharge/create-order`;
+    console.log('🔄 Creating prepaid recharge order:', endpoint, orderPayload);
+
+    const apiResult = await apiClient.request(endpoint, { method: 'POST', body: orderPayload, showLogs: false });
+
+    if (!apiResult.success) {
+      const rawBody = apiResult.rawBody ?? apiResult.data;
+      if (__DEV__ && rawBody) {
+        console.log('❌ Prepaid create-order API error:', apiResult.status, JSON.stringify(rawBody, null, 2));
+      }
+      // Fallback: when backend returns 403/400 (access denied), create Razorpay order directly
+      const isAccessDenied = apiResult.status === 403 || apiResult.isAccessDenied;
+      const isBadRequest = apiResult.status === 400;
+      if ((isAccessDenied || isBadRequest) && getRazorpaySecretKey()) {
+        console.warn('⚠️ Prepaid create-order rejected by backend, creating Razorpay order directly...');
+        const directResult = await createDirectPaymentOrder(
+          {
+            amount: amountInPaise,
+            currency: paymentData.currency || 'INR',
+            description: paymentData.description || 'Prepaid Recharge',
+            consumer_name: paymentData.consumer_name || user.name || 'Customer',
+            email: paymentData.email || user.email || 'customer@bestinfra.com',
+            contact: paymentData.contact || user.contact || '9876543210',
+          },
+          {
+            receipt: `recharge_${Date.now()}_${user.identifier}`,
+            consumerName: paymentData.consumer_name || user.name || 'Customer',
+            email: paymentData.email || user.email || 'customer@bestinfra.com',
+            contact: paymentData.contact || user.contact || '9876543210',
+            notes: { accountId: accountIdNum, bill_type: 'recharge', source: 'react_native_app' },
+          }
+        );
+        if (directResult.success && directResult.data?.order_id) {
+          return {
+            success: true,
+            data: {
+              ...directResult.data,
+              description: paymentData.description || 'Prepaid Recharge',
+              consumer_name: paymentData.consumer_name || user.name || 'Customer',
+              email: paymentData.email || user.email || 'customer@bestinfra.com',
+              contact: paymentData.contact || user.contact || '9876543210',
+              notes: { ...(directResult.data.notes || {}), accountId: accountIdNum },
+            },
+          };
+        }
+      }
+      const errMsg = apiResult.error || 'Failed to create recharge order';
+      return { success: false, error: errMsg, message: errMsg };
+    }
+
+    const result = apiResult.rawBody ?? apiResult.data ?? {};
+    const orderData = result.data ?? result.order ?? result;
+
+    let orderId = orderData?.order_id ?? orderData?.id ?? orderData?.orderId ?? result?.order_id ?? result?.id;
+    const razorpayKeyId = getRazorpayKeyId();
+
+    if (!orderId) {
+      return { success: false, error: 'No order_id', message: 'Backend did not return order_id for recharge' };
+    }
+
+    return {
+      success: true,
+      data: {
+        id: orderId,
+        order_id: orderId,
+        amount: amountInPaise,
+        currency: orderData.currency || 'INR',
+        key_id: razorpayKeyId,
+        key: razorpayKeyId,
+        description: paymentData.description || 'Prepaid Recharge',
+        consumer_name: paymentData.consumer_name || user.name || 'Customer',
+        email: paymentData.email || user.email || 'customer@bestinfra.com',
+        contact: paymentData.contact || user.contact || '9876543210',
+        notes: {
+          accountId: accountIdNum,
+        },
+      },
+    };
+  } catch (error) {
+    console.error('❌ createPrepaidRechargeOrder error:', error);
+    return { success: false, error: error.message, message: error.message };
+  }
+};
+
+/**
+ * Verify prepaid recharge - calls prepaid/recharge/verify
+ */
+export const verifyPrepaidRecharge = async (paymentResponse) => {
+  try {
+    const token = await authService.getValidAccessToken();
+    const user = await getUser();
+    if (!token || !user?.identifier) {
+      return { success: false, error: SESSION_EXPIRED_ERROR, message: SESSION_EXPIRED_MESSAGE };
+    }
+
+    const razorpay_payment_id = paymentResponse.razorpay_payment_id || paymentResponse.payment_id;
+    const razorpay_order_id = paymentResponse.razorpay_order_id || paymentResponse.order_id || paymentResponse.notes?.order_id;
+    const razorpay_signature = paymentResponse.razorpay_signature || paymentResponse.signature;
+
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+      return { success: false, message: 'Missing payment verification data' };
+    }
+
+    // Backend contract: { razorpay_order_id, razorpay_payment_id, razorpay_signature, accountId }
+    const FALLBACK_ACCOUNT_ID = 1;
+    let accountId = paymentResponse.notes?.accountId ?? paymentResponse.accountId ?? user.accountId ?? user.account_id;
+    if (accountId == null) {
+      const consumerResult = await getConsumerDataWithCache(user.identifier, true);
+      const consumerData = consumerResult?.data ?? consumerResult;
+      accountId = consumerData?.accountId ?? consumerData?.id ?? consumerData?.account_id;
+    }
+    accountId = accountId ?? FALLBACK_ACCOUNT_ID;
+    const accountIdNum = Number(accountId);
+    if (isNaN(accountIdNum) || accountIdNum <= 0) {
+      return { success: false, message: 'accountId is required for verification.' };
+    }
+
+    const verifyPayload = {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      accountId: accountIdNum,
+    };
+
+    const endpoint = API_ENDPOINTS.prepaid?.verify?.() || `${API.BASE_URL}/prepaid/recharge/verify`;
+    console.log('🔄 Verifying prepaid recharge:', endpoint);
+
+    const apiResult = await apiClient.request(endpoint, { method: 'POST', body: verifyPayload, showLogs: false });
+    const result = apiResult.rawBody ?? apiResult.data ?? {};
+
+    if (apiResult.success && result.success) {
+      return { success: true, stored_in_database: true, data: result.data ?? result, message: result.message || 'Recharge verified' };
+    }
+    return { success: false, message: result.message || apiResult.error || 'Verification failed' };
+  } catch (error) {
+    console.error('❌ verifyPrepaidRecharge error:', error);
+    return { success: false, message: error.message };
+  }
 };
 
 /**
@@ -1477,6 +1656,102 @@ export const processRazorpayPayment = async (paymentData, navigation, setShowPay
   } catch (error) {
     console.error('❌ Payment processing failed:', error);
     throw new Error(error.message || 'Payment failed. Please try again.');
+  }
+};
+
+/**
+ * Process prepaid recharge via Razorpay - uses prepaid create-order and verify endpoints
+ */
+export const processPrepaidRazorpayPayment = async (paymentData, navigation, setShowPaymentModal, setOrderData) => {
+  try {
+    const orderResult = await createPrepaidRechargeOrder(paymentData);
+
+    if (!orderResult.success) {
+      const msg = orderResult.message || orderResult.error || 'Failed to create recharge order';
+      const err = new Error(msg);
+      if (orderResult.error === SESSION_EXPIRED_ERROR) err.code = 'SESSION_EXPIRED';
+      throw err;
+    }
+
+    const orderData = orderResult.data;
+    if (!orderData || !orderData.order_id) {
+      throw new Error('No order data received from server');
+    }
+
+    const razorpayOptions = {
+      key: orderData.key_id || orderData.key,
+      amount: orderData.amount,
+      currency: orderData.currency || 'INR',
+      order_id: orderData.order_id,
+      id: orderData.order_id,
+      name: 'BestInfra Energy',
+      description: orderData.description || paymentData.description || 'Prepaid Recharge',
+      prefill: {
+        name: orderData.consumer_name || paymentData.consumer_name || 'Customer',
+        email: orderData.email || paymentData.email || 'customer@bestinfra.com',
+        contact: orderData.contact || paymentData.contact || '9876543210',
+      },
+      theme: { color: '#4CAF50' },
+      notes: {
+        ...(orderData.notes || {}),
+        accountId: paymentData.accountId ?? paymentData.account_id,
+      },
+      capture: true,
+      method: { netbanking: false, wallet: false, upi: true, card: false, emi: false },
+    };
+
+    setOrderData(razorpayOptions);
+    setShowPaymentModal(true);
+
+    return { success: true, data: razorpayOptions };
+  } catch (error) {
+    console.error('❌ Prepaid recharge processing failed:', error);
+    throw new Error(error.message || 'Recharge failed. Please try again.');
+  }
+};
+
+/**
+ * Handle prepaid payment success - verifies via prepaid endpoint and refreshes consumer balance
+ */
+export const handlePrepaidPaymentSuccess = async (paymentResponse, navigation, setShowPaymentModal, onRefreshConsumer) => {
+  try {
+    setShowPaymentModal(false);
+
+    let verifyResult;
+    try {
+      verifyResult = await verifyPrepaidRecharge(paymentResponse);
+      if (verifyResult.error === SESSION_EXPIRED_ERROR) {
+        if (navigation?.replace) navigation.replace('Login', { message: SESSION_EXPIRED_MESSAGE });
+        return { success: false, sessionExpired: true };
+      }
+    } catch (e) {
+      verifyResult = { success: false, message: e.message };
+    }
+
+    if (onRefreshConsumer && typeof onRefreshConsumer === 'function') {
+      onRefreshConsumer({ force: true });
+    }
+
+    navigation.navigate('PaymentStatus', {
+      billId: `recharge_${paymentResponse.razorpay_payment_id || Date.now()}`,
+      paymentData: {
+        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+        razorpay_order_id: paymentResponse.razorpay_order_id,
+        amount: paymentResponse.amount,
+        currency: paymentResponse.currency || 'INR',
+        status: 'success',
+      },
+      success: true,
+      verificationSuccess: verifyResult.success,
+      verificationMessage: verifyResult.message,
+      isPrepaid: true,
+    });
+
+    return { success: true, verificationSuccess: verifyResult.success };
+  } catch (error) {
+    console.error('❌ Prepaid payment success handling failed:', error);
+    setShowPaymentModal(false);
+    throw error;
   }
 };
 

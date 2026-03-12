@@ -83,7 +83,9 @@ const SideMenu = ({ navigation }) => {
   const tenantLogoSource =
     tenantSubdomain === "ntpl"
       ? require("../../../assets/images/ntpl.png")
-      : require("../../../assets/images/gmr.png");
+      : tenantSubdomain === "demo"
+        ? require("../../../assets/clients/tgnpdcl_logo.png")
+        : require("../../../assets/images/gmr.png");
 
   /* ---------------- Profile Fetch ---------------- */
 

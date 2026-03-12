@@ -19,7 +19,7 @@ export function ConsumerProvider({ children }) {
   const consumerDataRef = useRef(consumerData);
   consumerDataRef.current = consumerData;
 
-  const refreshConsumer = useCallback(async ({ force = false } = {}) => {
+  const refreshConsumer = useCallback(async ({ force = false, skipDemo = false } = {}) => {
     if (!force && Date.now() - lastFetchedAtRef.current < STALE_THRESHOLD) {
       return;
     }
@@ -39,8 +39,8 @@ export function ConsumerProvider({ children }) {
           setLatestInvoiceDates({ issueDate: null, dueDate: null });
         }
 
-        // Demo mode
-        if (isDemoUser(user.identifier)) {
+        // Demo mode - skip when skipDemo=true (e.g. prepaid recharge needs real API data)
+        if (!skipDemo && isDemoUser(user.identifier)) {
           setConsumerData(getDemoDashboardConsumerData(user.identifier));
           setLatestInvoiceDates(getLatestInvoiceDates(DEMO_INVOICES));
           setIsLoading(false);

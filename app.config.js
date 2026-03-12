@@ -81,6 +81,11 @@ module.exports = () => {
   const resolvedEnv = ENV_NAMES.includes(envName) ? envName : 'production';
   return {
     ...appJson.expo,
+    userInterfaceStyle: 'light',
+    android: {
+      ...appJson.expo.android,
+      userInterfaceStyle: 'light',
+    },
     extra: {
       ...appJson.expo.extra,
       apiBaseUrl,

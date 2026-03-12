@@ -129,6 +129,12 @@ export const API_ENDPOINTS = {
     verify: () => `${API.BASE_URL}/billing/payment/verify`,
     history: (uid) => `${API.PAYMENT_URL}/history?uid=${uid}`,
   },
+
+  // Prepaid recharge endpoints (dynamic per tenant)
+  prepaid: {
+    createOrder: () => `${API.BASE_URL}/prepaid/recharge/create-order`,
+    verify: () => `${API.BASE_URL}/prepaid/recharge/verify`,
+  },
   
   // Billing endpoints
   billing: {

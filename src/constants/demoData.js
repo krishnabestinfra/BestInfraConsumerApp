@@ -163,6 +163,10 @@ export const getDemoConsumerCore = (identifier) => {
     totalOutstanding: DEMO_CANONICAL.totalOutstanding,
     // Prepaid: estimated balance exhaustion (for "Estimated Days Remaining")
     ...(isPrepaidDemo && { balanceExpiryDate: balanceExpiry.toISOString() }),
+    // Prepaid: balance for display (matches API prepaidTransactions.balance)
+    ...(isPrepaidDemo && { prepaidTransactions: { balance: 5000 } }),
+    // Prepaid: accountId for prepaid recharge API (create-order, verify)
+    ...(isPrepaidDemo && { accountId: 1 }),
   };
 };
 

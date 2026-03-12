@@ -12,7 +12,7 @@ import { useConsumer } from "../../context/ConsumerContext";
 const PaymentStatus = ({ navigation, route }) => {
   const { isDark, colors: themeColors } = useTheme();
   const { consumerData } = useConsumer();
-  const { billId, paymentData: initialPaymentData, success } = route?.params || {};
+  const { billId, paymentData: initialPaymentData, success, isPrepaid } = route?.params || {};
   const [paymentDetails, setPaymentDetails] = useState(initialPaymentData || null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -29,7 +29,10 @@ const PaymentStatus = ({ navigation, route }) => {
         console.log('🔍 PaymentStatus - Bill ID:', billId);
         console.log('🔍 PaymentStatus - Initial payment data:', initialPaymentData);
 
-        if (billId) {
+        if (isPrepaid && initialPaymentData) {
+          console.log('🔍 PaymentStatus - Prepaid recharge, using payment data:', initialPaymentData);
+          setPaymentDetails(initialPaymentData);
+        } else if (billId && !isPrepaid) {
           const result = await getPaymentStatus(billId);
           if (result.success) {
             console.log('🔍 PaymentStatus - Fetched payment data:', result.data);
@@ -152,14 +155,16 @@ const PaymentStatus = ({ navigation, route }) => {
           <StatusBar style={isDark ? "light" : "dark"} />
           <View style={styles.successContainer}>
             <SuccessIcon width={60} height={60} style={styles.successIcon} />
-            <Text style={styles.successText}>Payment Confirmation</Text>
+            <Text style={styles.successText}>{isPrepaid ? "Recharge Successful" : "Payment Confirmation"}</Text>
             <Text style={styles.successDescription}>
-              {success !== false ? "Transaction is successfully completed." : "Payment details loaded."}
+              {success !== false
+                ? (isPrepaid ? "Your recharge was successful. Balance has been updated." : "Transaction is successfully completed.")
+                : "Payment details loaded."}
             </Text>
           </View>
           <View style={styles.amountContainer}>
             <View style={styles.amountSubContainer}>
-              <Text style={styles.amountText}>Amount Paid</Text>
+              <Text style={styles.amountText}>{isPrepaid ? "Amount Recharged" : "Amount Paid"}</Text>
               <Text style={styles.amountValueText}>
                 {paymentDetails ? formatAmount(paymentDetails.amount || paymentDetails.total_amount) : "Rs. 0"}
               </Text>
@@ -190,20 +195,22 @@ const PaymentStatus = ({ navigation, route }) => {
         </View>
       </ScrollView>
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          onPress={handleInvoiceDownload}
-          disabled={isGeneratingPdf}
-          style={{ opacity: isGeneratingPdf ? 0.6 : 1 }}
-        >
-          {isGeneratingPdf ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <ActivityIndicator size="small" color="#2D5016" />
-              <Text style={styles.getInvoiceText}>Generating invoice…</Text>
-            </View>
-          ) : (
-            <Text style={styles.getInvoiceText}>Get Invoice</Text>
-          )}
-        </TouchableOpacity>
+        {!isPrepaid && (
+          <TouchableOpacity
+            onPress={handleInvoiceDownload}
+            disabled={isGeneratingPdf}
+            style={{ opacity: isGeneratingPdf ? 0.6 : 1 }}
+          >
+            {isGeneratingPdf ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <ActivityIndicator size="small" color="#2D5016" />
+                <Text style={styles.getInvoiceText}>Generating invoice…</Text>
+              </View>
+            ) : (
+              <Text style={styles.getInvoiceText}>Get Invoice</Text>
+            )}
+          </TouchableOpacity>
+        )}
         <Button title="Go to Dashboard" variant="primary" size="medium" onPress={handleGoToDashboard} />
       </View>
     </>

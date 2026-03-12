@@ -44,10 +44,13 @@ class AuthService {
       });
   }
 
-  /** Derive tenant from user identifier. BI26NTPA* = ntpl, else gmr. */
+  /** Derive tenant from user identifier. BI26NTPA* = ntpl, BI25SEC* = sec, BI26LECA* = demo (TGNPDCL), else gmr. */
   _deriveTenantFromIdentifier(identifier) {
     const id = (identifier || '').toString().toUpperCase();
-    return id.startsWith('BI26NTPA') ? 'ntpl' : 'gmr';
+    if (id.startsWith('BI26NTPA')) return 'ntpl';
+    if (id.startsWith('BI25SEC')) return 'sec';
+    if (id.startsWith('BI26LECA')) return 'demo';
+    return 'gmr';
   }
 
   /**

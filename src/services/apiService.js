@@ -59,7 +59,7 @@ export const testConsumerCredentials = async (identifier, password) => {
     console.log(`🧪 Testing credentials for consumer: ${identifier}`);
     const result = await apiClient.request(API_ENDPOINTS.auth.login(), {
       method: 'POST',
-      body: { identifier: identifier.trim(), password: password.trim() },
+      body: { identifier: identifier.trim(), password: password.trim(), rememberMe: false },
       skipAuth: true,
     });
     const data = result.rawBody ?? result.data ?? result;
