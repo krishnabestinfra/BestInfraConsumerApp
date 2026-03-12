@@ -86,6 +86,10 @@ module.exports = () => {
       ...appJson.expo.android,
       userInterfaceStyle: 'light',
     },
+    ios: {
+      ...appJson.expo.ios,
+      userInterfaceStyle: 'light',
+    },
     extra: {
       ...appJson.expo.extra,
       apiBaseUrl,

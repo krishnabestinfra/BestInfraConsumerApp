@@ -856,17 +856,15 @@ export const verifyPrepaidRecharge = async (paymentResponse) => {
     }
 
     // Backend contract: { razorpay_order_id, razorpay_payment_id, razorpay_signature, accountId }
-    const FALLBACK_ACCOUNT_ID = 1;
-    let accountId = paymentResponse.notes?.accountId ?? paymentResponse.accountId ?? user.accountId ?? user.account_id;
+    let accountId = paymentResponse.notes?.accountId ?? paymentResponse.accountId ?? user.accountId ?? user.account_id ?? user.prepaidAccountId;
     if (accountId == null) {
       const consumerResult = await getConsumerDataWithCache(user.identifier, true);
       const consumerData = consumerResult?.data ?? consumerResult;
-      accountId = consumerData?.accountId ?? consumerData?.id ?? consumerData?.account_id;
+      accountId = consumerData?.prepaidAccountId ?? consumerData?.accountId ?? consumerData?.id ?? consumerData?.account_id;
     }
-    accountId = accountId ?? FALLBACK_ACCOUNT_ID;
-    const accountIdNum = Number(accountId);
+    const accountIdNum = accountId != null ? Number(accountId) : NaN;
     if (isNaN(accountIdNum) || accountIdNum <= 0) {
-      return { success: false, message: 'accountId is required for verification.' };
+      return { success: false, message: 'accountId (prepaidAccountId) is required for verification. Ensure consumer data includes prepaidAccountId.' };
     }
 
     const verifyPayload = {

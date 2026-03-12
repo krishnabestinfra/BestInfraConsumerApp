@@ -311,13 +311,17 @@ class ApiClient {
     } catch (e) {}
 
     const errorMessage = `HTTP ${response.status}: ${response.statusText}${errorDetails ? ` - ${errorDetails}` : ''}`;
-    const isTokenExpired = response.status === 401 ||
+    const loginEndpoint = API_ENDPOINTS.auth?.login?.() ?? '';
+    const isLoginRequest = loginEndpoint && endpoint === loginEndpoint;
+    const isTokenExpired = !isLoginRequest && (
+      response.status === 401 ||
       (typeof errorDetails === 'string' && (
         errorDetails.toLowerCase().includes('token_expired') ||
         errorDetails.toLowerCase().includes('token expired') ||
         errorDetails.toLowerCase().includes('invalid token') ||
         errorDetails.toLowerCase().includes('unauthorized')
-      ));
+      ))
+    );
 
     if (isTokenExpired) {
       const refreshEndpoint = API_ENDPOINTS.auth?.refresh?.() ?? '';

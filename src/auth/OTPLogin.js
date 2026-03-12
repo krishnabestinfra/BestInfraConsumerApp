@@ -37,6 +37,7 @@ const IDENTIFIER_PREFIX_TO_TENANT = [
   { prefix: "BI26NTPA", tenant: "ntpl" },
   { prefix: "BI25SEC", tenant: "sec" },
   { prefix: "BI26LECA", tenant: "demo" },
+  { prefix: "BI26POCA", tenant: "demo" },
 ];
 const DEFAULT_TENANT = "gmr";
 

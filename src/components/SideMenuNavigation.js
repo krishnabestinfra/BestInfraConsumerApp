@@ -78,6 +78,10 @@ const SideMenuNavigation = ({ navigation }) => {
         setActiveItem("Invoices");
       } else if (currentRoute === "Tickets") {
         setActiveItem("Tickets");
+      } else if (currentRoute === "Transactions") {
+        setActiveItem("Transactions");
+      } else if (currentRoute === "Reports") {
+        setActiveItem("Reports");
       } else if (currentRoute === "Settings") {
         setActiveItem("Settings");
       }
@@ -237,21 +241,30 @@ const SideMenuNavigation = ({ navigation }) => {
           </Text>
         </Pressable>
 
-        {/* Reports */}
+        {/* Transactions (prepaid) / Reports (postpaid) */}
         <Pressable
           style={styles.flex}
           onPress={() => {
-            setActiveItem("Reports");
-            navigation.navigate("Reports");
+            if (isPrepaid) {
+              setActiveItem("Transactions");
+              navigation.navigate("Transactions");
+            } else {
+              setActiveItem("Reports");
+              navigation.navigate("Reports");
+            }
           }}
         >
-          {activeItem === "Reports" ? (
+          {(activeItem === "Transactions" && isPrepaid) || (activeItem === "Reports" && !isPrepaid) ? (
             <ActiveReports width={18} height={18} style={[styles.iconStyle, styles.activeIcon]} />
           ) : (
             <ReportsIcon width={18} height={18} style={styles.iconStyle} />
           )}
-          <Text style={[styles.menuText, activeItem === "Reports" && styles.activeText, { fontSize: scaled.menu }]}>
-            Reports
+          <Text style={[
+            styles.menuText,
+            ((activeItem === "Transactions" && isPrepaid) || (activeItem === "Reports" && !isPrepaid)) && styles.activeText,
+            { fontSize: scaled.menu }
+          ]}>
+            {isPrepaid ? "Transactions" : "Reports"}
           </Text>
         </Pressable>
 
