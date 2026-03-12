@@ -58,7 +58,7 @@ const Settings = ({ navigation }) => {
     chevronDirection = "right",
   }) => (
     <Pressable
-      style={styles.settingItem}
+      style={[styles.settingItem, isDarkMode && { backgroundColor: '#1A1F2E' }]}
       onPress={onPress}
       android_ripple={{ color: 'rgba(255,255,255,0.1)' }}
     >
@@ -182,7 +182,7 @@ const Settings = ({ navigation }) => {
 
           {/* Font size card with inline chips */}
           <Pressable
-            style={styles.settingItem}
+            style={[styles.settingItem, isDarkMode && { backgroundColor: '#1A1F2E' }]}
             onPress={() => setIsFontDropdownOpen((prev) => !prev)}
             android_ripple={{ color: "rgba(255,255,255,0.1)" }}
           >

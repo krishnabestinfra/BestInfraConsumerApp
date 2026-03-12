@@ -419,7 +419,7 @@ export const EnergySummary = React.memo(({
                 onBarPress={handleBarPress} pickedDateRange={pickedDateRange}
               />
             )}
-          </View>
+          </View>    
         ) : (
           <View style={{ marginTop: 10 }}>
             {isLoading || (pickedDateRange && pickedRangeReportLoading) ? (
@@ -430,11 +430,12 @@ export const EnergySummary = React.memo(({
                 emptyMessage={`No ${effectiveViewForTable} consumption data available`}
                 showSerial={true} showPriority={false}
                 containerStyle={styles.consumptionTable}
+                compactColumns={true}
                 columns={[
-                  { key: "period", title: effectiveViewForTable === "daily" ? "Date" : "Month", flex: 1.5, align: "left" },
-                  { key: "consumption", title: "Consumption (kWh)", flex: 1.5, align: "right",
+                  { key: "period", title: effectiveViewForTable === "daily" ? "Date" : "Month", flex: 1, align: "left" },
+                  { key: "consumption", title: "Consumption (kWh)", flex: 2, align: "left",
                     render: (item) => <Text style={[styles.consumptionValue, darkOverlay.consumptionValue]}>{item.consumption.toFixed(2)}</Text> },
-                  { key: "cumulative", title: "Cumulative (kWh)", flex: 1.5, align: "right",
+                  { key: "cumulative", title: "Cumulative (kWh)", flex: 1.5, align: "left",
                     render: (item) => <Text style={[styles.cumulativeValue, darkOverlay.cumulativeValue]}>{item.cumulative.toFixed(2)}</Text> },
                 ]}
               />

@@ -11,6 +11,7 @@ import AppFlatList from "../../components/global/AppFlatList";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import Menu from "../../../assets/icons/bars.svg";
+import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
 import Notification from "../../../assets/icons/notificationsWhite.svg";
 import NotificationIcon from "../../../assets/icons/notificationDark.svg";
 import BiLogo from "../../../assets/icons/LogoWhite.svg";
@@ -234,16 +235,19 @@ const Notifications = ({ navigation, route }) => {
       <StatusBar style="light" />
       <View style={styles.TopMenu}>
         <Pressable
-          style={styles.barsIcon}
+          style={[styles.barsIcon, isDark && { backgroundColor: '#1A1F2E' }]}
           onPress={() => navigation.navigate("SideMenu")}
         >
-          <Menu width={18} height={18} fill="#202d59" />
+          {isDark ? (
+            <MenuWhite width={18} height={18} />
+          ) : (
+            <Menu width={18} height={18} fill="#202d59" />
+          )}
         </Pressable>
         <Pressable onPress={() => navigation.replace("Dashboard")}>
-          {/* <Image icon={BiLogo} size={45} /> */}
           <Logo variant="white" size="medium" />
         </Pressable>
-        <Pressable style={styles.bellIcon} onPress={() => navigation.replace("Dashboard")}>
+        <Pressable style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]} onPress={() => navigation.replace("Dashboard")}>
           <Notification width={18} height={18} fill="#ffffff" />
         </Pressable>
       </View>
