@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, Pressable, ScrollView, Switch, TouchableOpacity } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, Switch, TouchableOpacity } from "react-native";
+import { Text } from "@components/global/Text";
 import React, { useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../../constants/colors";

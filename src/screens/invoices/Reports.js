@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Pressable, Alert, ActivityIndicator, Share, FlatList } from "react-native";
+import { StyleSheet, View, ScrollView, TouchableOpacity, Pressable, Alert, ActivityIndicator, Share, FlatList } from "react-native";
+import { Text } from "@components/global/Text";
 import React, { useState, useEffect } from "react";
 import { useIsFocused } from "@react-navigation/native";
 import * as FileSystem from "expo-file-system/legacy";

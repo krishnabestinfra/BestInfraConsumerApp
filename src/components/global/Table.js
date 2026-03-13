@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, FlatList, Dimensions } from "react-native";
+import { StyleSheet, View, FlatList, Dimensions } from "react-native";
+import { Text } from "@components/global/Text";
 import React, { useState } from "react";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";

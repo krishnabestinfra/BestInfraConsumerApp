@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import {
   Modal,
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Dimensions,
   ScrollView,
 } from 'react-native';
+import { Text } from '@components/global/Text';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 import CloseIcon from "../../../assets/icons/cross.svg";

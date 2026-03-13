@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View, Modal, TouchableOpacity, Switch, Animated } from "react-native";
+import { Pressable, StyleSheet, View, Modal, TouchableOpacity, Switch, Animated } from "react-native";
+import { Text } from "@components/global/Text";
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { COLORS } from "../constants/colors";
 import Button from "./global/Button";

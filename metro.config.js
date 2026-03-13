@@ -1,7 +1,20 @@
 // metro.config.js
+const path = require("path");
 const { getDefaultConfig } = require("expo/metro-config");
 
 const config = getDefaultConfig(__dirname);
+
+// Alias for ScaledText - enables font scaling across the app
+const scaledTextPath = path.resolve(__dirname, "src/components/global/ScaledText.js");
+const originalResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === "@components/global/Text" || moduleName === "@components/global/ScaledText") {
+    return { filePath: scaledTextPath, type: "sourceFile" };
+  }
+  return originalResolveRequest
+    ? originalResolveRequest(context, moduleName, platform)
+    : context.resolveRequest(context, moduleName, platform);
+};
 
 // Configure SVG support
 config.resolver.assetExts = config.resolver.assetExts.filter(

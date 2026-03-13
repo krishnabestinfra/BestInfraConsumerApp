@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback} from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Pressable,
   FlatList,
@@ -11,6 +10,7 @@ import {
   Platform,
   Keyboard,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { StatusBar } from "expo-status-bar";
 import Animated, {
   useSharedValue,

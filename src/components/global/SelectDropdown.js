@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { Text } from '@components/global/Text';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 import DropdownIcon from '../../../assets/icons/dropDown.svg';

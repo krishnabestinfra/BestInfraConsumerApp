@@ -4,11 +4,11 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  Text,
   ActivityIndicator,
   Alert,
   Image,
 } from 'react-native';
+import { Text } from '@components/global/Text';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/colors';

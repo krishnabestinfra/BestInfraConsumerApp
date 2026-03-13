@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Pressable,
   ScrollView,
@@ -14,6 +13,7 @@ import {
   Platform,
   Animated,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { StatusBar } from "expo-status-bar";
 import * as ImagePicker from 'expo-image-picker';
 import Menu from "../../../assets/icons/bars.svg";
