@@ -24,7 +24,7 @@ const NotificationCard = ({
   showTimestamp = true, // New prop to control timestamp display
   ...props
 }) => {
-  const { getScaledFontSize } = useTheme();
+  const { getScaledFontSize, isDark, colors: themeColors } = useTheme();
   const s14 = getScaledFontSize(14);
   const s12 = getScaledFontSize(12);
   const s10 = getScaledFontSize(10);
@@ -58,6 +58,12 @@ const NotificationCard = ({
 
   const getVariantStyles = () => {
     switch (variant) {
+      case 'alert':
+        return {
+          titleColor: COLORS.primaryFontColor,
+          iconBgColor: '#E9EAEE',
+          borderColor: '#E9EAEE',
+        };
       case 'warning':
         return {
           titleColor: '#FF7C5C',
@@ -92,17 +98,18 @@ const NotificationCard = ({
 
   const cardElement = (
     <View style={[
-      styles.container, 
-      containerStyle, 
-      style, 
-      !isRead && styles.unreadContainer
+      styles.container,
+      isDark && { backgroundColor: '#1A1F2E' },
+      containerStyle,
+      style,
+      !isRead && (isDark ? styles.unreadContainerDark : styles.unreadContainer)
     ]} {...props}>
       <View style={styles.contentContainer}>
         <View style={styles.textContainer}>
           <View style={styles.titleRow}>
             <Text style={[
               styles.title,
-              { fontSize: s14, color: variantStyles.titleColor },
+              { fontSize: s14, color: variant === 'alert' && isDark ? themeColors.textPrimary : variantStyles.titleColor },
               titleStyle,
               !isRead && styles.unreadTitle
             ]}>
@@ -111,12 +118,22 @@ const NotificationCard = ({
             {/* {!isRead && <View style={styles.unreadDot} />} */}
           </View>
           {displayDescription && (
-            <Text style={[styles.description, { fontSize: s14 }, descriptionStyle]}>
+            <Text style={[
+              styles.description,
+              { fontSize: s14 },
+              isDark && { color: themeColors.textPrimary },
+              descriptionStyle
+            ]}>
               {displayDescription}
             </Text>
           )}
           {subDescription && (
-            <Text style={[styles.description, { fontSize: s14 }, subDescriptionStyle]}>
+            <Text style={[
+              styles.description,
+              { fontSize: s14 },
+              isDark && { color: themeColors.textPrimary },
+              subDescriptionStyle
+            ]}>
               {subDescription}
             </Text>
           )}
@@ -190,6 +207,10 @@ const styles = StyleSheet.create({
   },
   unreadContainer: {
     backgroundColor: '#F8F9FF',
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primaryColor,
+  },
+  unreadContainerDark: {
     borderLeftWidth: 3,
     borderLeftColor: COLORS.primaryColor,
   },
