@@ -7,7 +7,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Alert,
   TouchableOpacity,
@@ -16,6 +15,7 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
+import { Text } from '@components/global/Text';
 import { COLORS } from '../constants/colors';
 import { API_ENDPOINTS } from '../constants/constants';
 import { apiClient } from '../services/apiClient';

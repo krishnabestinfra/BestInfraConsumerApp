@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
-import { Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { Text } from '@components/global/Text';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 

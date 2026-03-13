@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Modal,
   ScrollView,
 } from 'react-native';
+import { Text } from '@components/global/Text';
 import Icon from 'react-native-vector-icons/AntDesign';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';

@@ -3,11 +3,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   Animated,
   StatusBar,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import React, { useState, useCallback, useEffect, useContext, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../../constants/colors";

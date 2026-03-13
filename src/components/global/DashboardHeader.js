@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions, Image } from 'react-native';
+import { View, StyleSheet, Pressable, Dimensions, Image } from 'react-native';
+import { Text } from '@components/global/Text';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 import Hand from '../../../assets/icons/hand.svg';

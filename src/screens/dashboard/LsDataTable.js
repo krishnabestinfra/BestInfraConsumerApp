@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Pressable,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";

@@ -1,11 +1,11 @@
 import {
   StyleSheet,
-  Text,
   View,
   ScrollView,
   TouchableOpacity,
   FlatList,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";

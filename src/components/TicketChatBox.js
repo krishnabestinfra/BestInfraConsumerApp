@@ -1,7 +1,6 @@
 import React from "react";
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -11,6 +10,7 @@ import {
   ScrollView,
   Dimensions, 
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";
 import Input from "./global/Input";

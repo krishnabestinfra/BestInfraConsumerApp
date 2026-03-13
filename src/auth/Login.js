@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Dimensions,
   Platform,
@@ -10,6 +9,7 @@ import {
   Alert,
   Pressable,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useTheme } from "../context/ThemeContext";

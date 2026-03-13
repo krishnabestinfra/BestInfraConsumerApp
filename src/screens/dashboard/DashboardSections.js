@@ -1,13 +1,13 @@
 import React, { useRef, useEffect, useState } from "react";
 import {
   View,
-  Text,
   TouchableOpacity,
   Pressable,
   ScrollView,
   Modal,
   Animated,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { COLORS } from "../../constants/colors";
 import { SkeletonLoader } from "../../utils/loadingManager";
 

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { Text } from '@components/global/Text';
 import { useTheme } from '../../context/ThemeContext';
 import { forceCheckForUpdates, getAppVersionInfo, isRunningLatestUpdate } from '../../utils/updateChecker';
 

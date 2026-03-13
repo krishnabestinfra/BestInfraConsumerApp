@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, ScrollView, Dimensions, TouchableOpacity, RefreshControl, Alert, Animated } from "react-native";
+import { StyleSheet, View, ScrollView, Dimensions, TouchableOpacity, RefreshControl, Alert, Animated } from "react-native";
+import { Text } from "@components/global/Text";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";

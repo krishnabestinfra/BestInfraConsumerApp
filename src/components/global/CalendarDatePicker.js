@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Modal,
   Pressable,
 } from 'react-native';
+import { Text } from '@components/global/Text';
 import { COLORS, colors } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 import CalendarArrowLeft from '../../../assets/icons/Calender arrowleft.svg';

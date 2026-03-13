@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Pressable,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import AppFlatList from "../../components/global/AppFlatList";
 import { StatusBar } from "expo-status-bar";
 import Menu from "../../../assets/icons/bars.svg";

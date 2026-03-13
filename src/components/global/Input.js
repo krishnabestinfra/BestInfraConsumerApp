@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
-import { TextInput, View, Text, StyleSheet, Platform } from 'react-native';
+import { TextInput, View, StyleSheet, Platform } from 'react-native';
+import { Text } from '@components/global/Text';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 import User from '../../../assets/icons/user.svg';

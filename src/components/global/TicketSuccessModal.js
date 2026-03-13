@@ -1,12 +1,12 @@
 import React from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Modal,
   TouchableOpacity,
   Pressable,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
 import CheckmarkIcon from "../../../assets/icons/checkmark.svg";

@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   TextInput,
   View,
-  Text,
   StyleSheet,
   Platform,
   Pressable,
   Alert,
 } from 'react-native';
+import { Text } from '@components/global/Text';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 
