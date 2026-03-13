@@ -185,27 +185,30 @@ const ChatSupport = ({ navigation, route }) => {
           style={[
             styles.messageBubble,
             isSupport ? styles.supportBubble : styles.userBubble,
+            isDark && { backgroundColor: "#1F2E34" },
           ]}
         >
           {isSupport && msg.senderName && (
-            <Text style={styles.senderName}>{msg.senderName}</Text>
+            <Text style={[styles.senderName, isDark && { color: themeColors.textPrimary }]}>{msg.senderName}</Text>
           )}
           <Text style={[
             styles.messageText,
             isSupport ? styles.supportMessageText : styles.userMessageText,
+            isDark && { color: themeColors.textPrimary },
           ]}>
             {msg.text}
           </Text>
           <Text style={[
             styles.messageTime,
             isSupport ? styles.supportMessageTime : styles.userMessageTime,
+            isDark && { color: themeColors.textSecondary },
           ]}>
             {msg.time}
           </Text>
         </View>
       </View>
     );
-  }, []);
+  }, [isDark, themeColors]);
 
   const scrollToEnd = useCallback(() => {
     setTimeout(() => {
@@ -283,7 +286,7 @@ const ChatSupport = ({ navigation, route }) => {
       </View>
 
       <View style={styles.chatAreaWrap}>
-        <View style={[styles.whiteContainer, isDark && { backgroundColor: themeColors.screen }]}>
+        <View style={[styles.whiteContainer, isDark && { backgroundColor: '#1A1F2E' }]}>
           <FlatList
             ref={scrollViewRef}
             data={messages}
@@ -304,10 +307,11 @@ const ChatSupport = ({ navigation, route }) => {
           <View style={[
             styles.inputContainer,
             keyboardVisible && styles.inputContainerKeyboardVisible,
+            isDark && { backgroundColor: '#1A1F2E' },
           ]}>
-            <View style={styles.inputWrapper}>
+            <View style={[styles.inputWrapper, isDark && { backgroundColor: '#1F2E34' }]}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, isDark && { color: themeColors.textPrimary }]}
                 placeholder="Your Message"
                 placeholderTextColor="#9CA3AF"
                 value={message}
