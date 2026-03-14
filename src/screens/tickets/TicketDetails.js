@@ -1,11 +1,11 @@
 import {
   StyleSheet,
-  Text,
   View,
   ScrollView,
   TouchableOpacity,
   FlatList,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { StatusBar } from "expo-status-bar";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   timelineCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 5,
-    padding: 20,
+    padding: 15,
   },
   timelineItem: {
     flexDirection: "row",
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   },
   timelineLeft: {
     alignItems: "center",
-    width: 40,
+    width: 20,
     gap: 4,
   },
   timelineIcon: {

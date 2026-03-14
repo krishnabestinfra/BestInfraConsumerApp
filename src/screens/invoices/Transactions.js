@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, Pressable, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
+import { StyleSheet, View, Pressable, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
+import { Text } from "@components/global/Text";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { COLORS } from "../../constants/colors";

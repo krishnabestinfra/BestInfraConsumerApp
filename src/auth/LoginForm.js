@@ -1,10 +1,10 @@
 import {
   View,
-  Text,
   StyleSheet,
   Pressable,
   Platform,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { useTheme } from "../context/ThemeContext";
 import Tick from "../../assets/icons/tick.svg";
 import Button from "../components/global/Button";

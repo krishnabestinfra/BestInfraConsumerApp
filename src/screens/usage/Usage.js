@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, ScrollView, RefreshControl } from "react-native";
+import { StyleSheet, View, ScrollView, RefreshControl } from "react-native";
+import { Text } from "@components/global/Text";
 import React, { useState, useEffect, useCallback } from "react";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";

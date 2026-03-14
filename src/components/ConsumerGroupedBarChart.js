@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Dimensions, Text, ActivityIndicator, ScrollView } from "react-native";
+import { View, Dimensions, ActivityIndicator, ScrollView } from "react-native";
+import { Text } from "@components/global/Text";
 import { BarChart as GiftedBarChart } from "react-native-gifted-charts";
 import { SkeletonLoader } from "../utils/loadingManager";
 import { useTheme } from "../context/ThemeContext";

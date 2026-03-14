@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, ScrollView} from "react-native";
+import { StyleSheet, View, ScrollView} from "react-native";
+import { Text } from "@components/global/Text";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
 import { StatusBar } from "expo-status-bar";

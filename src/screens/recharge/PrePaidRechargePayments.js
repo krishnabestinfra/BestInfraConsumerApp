@@ -1,6 +1,5 @@
 import { 
     StyleSheet, 
-    Text, 
     View, 
     ScrollView, 
     Alert, 
@@ -8,6 +7,7 @@ import {
     KeyboardAvoidingView, 
     Platform 
   } from "react-native";
+  import { Text } from "@components/global/Text";
   import { COLORS } from "../../constants/colors";
   import { useTheme } from "../../context/ThemeContext";
   import React, { useState, useEffect, useMemo } from "react";

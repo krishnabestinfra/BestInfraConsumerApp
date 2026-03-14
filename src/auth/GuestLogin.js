@@ -1,10 +1,10 @@
 import React from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Dimensions,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../context/ThemeContext";
 import Button from "../components/global/Button";

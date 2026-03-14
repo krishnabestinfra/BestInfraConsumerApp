@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
-import { TextInput, View, Text, StyleSheet, Platform, Pressable } from 'react-native';
+import { TextInput, View, StyleSheet, Platform, Pressable } from 'react-native';
+import { Text } from '@components/global/Text';
 import { COLORS } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';
 

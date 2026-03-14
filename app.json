@@ -41,14 +41,14 @@
     "web": {
       "favicon": "./assets/images/icon_old.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "4023ecc1-2e83-440b-85d7-dd31682d6465"
-      }
-    },
     "androidNavigationBar": {
       "backgroundColor": "#ffffff",
       "barStyle": "dark-content"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b2cbe5d2-b7cd-4c42-8b8a-788e3fb0170b"
+      }
     }
   }
 }

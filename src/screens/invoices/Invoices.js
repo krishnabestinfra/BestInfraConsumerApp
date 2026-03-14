@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, ScrollView, FlatList, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated, Modal, Button } from "react-native";
+import { StyleSheet, View, ScrollView, FlatList, ActivityIndicator, RefreshControl, Alert, TouchableOpacity, Pressable, Animated, Modal, Button } from "react-native";
+import { Text } from "@components/global/Text";
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../../constants/colors";

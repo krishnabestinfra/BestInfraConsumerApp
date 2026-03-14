@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
-import { View, Dimensions, Text, ActivityIndicator } from "react-native";
+import { View, Dimensions, ActivityIndicator } from "react-native";
+import { Text } from "@components/global/Text";
 import { WebView } from "react-native-webview";
 import { COLORS } from "../constants/colors";
 import { useTheme } from "../context/ThemeContext";

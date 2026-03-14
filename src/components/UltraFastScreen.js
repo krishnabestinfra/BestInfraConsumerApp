@@ -9,7 +9,8 @@
  */
 
 import React, { memo, useMemo, useCallback, useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Text } from '@components/global/Text';
 import { useUltraFastData } from '../hooks/useUltraFastData';
 import { COLORS } from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';

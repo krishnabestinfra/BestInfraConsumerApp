@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text } from '@components/global/Text';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS, colors } from '../../constants/colors';
 import { useTheme } from '../../context/ThemeContext';

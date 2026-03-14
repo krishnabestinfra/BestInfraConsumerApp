@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Pressable,
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import AppFlatList from "../../components/global/AppFlatList";
-import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import Menu from "../../../assets/icons/bars.svg";
 import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
@@ -17,7 +16,7 @@ import NotificationIcon from "../../../assets/icons/notificationDark.svg";
 import BiLogo from "../../../assets/icons/LogoWhite.svg";
 import HandBill from "../../../assets/icons/handBill.svg";
 import Calendar from "../../../assets/icons/calendar.svg";
-import CheapDollar from "../../../assets/icons/cheapDollar.svg";
+import BalanceAlertIcon from "../../../assets/icons/balanceAlertIcon.svg";
 import NotificationCard from "../../components/global/NotificationCard";
 import Logo from "../../components/global/Logo";
 import { COLORS } from "../../constants/colors";
@@ -101,7 +100,7 @@ const Notifications = ({ navigation, route }) => {
     }
   }, [consumerUid, currentConsumerUid, setConsumerUid]);
 
-  // Display all notifications
+
   const displayNotifications = notifications;
 
 
@@ -110,13 +109,13 @@ const Notifications = ({ navigation, route }) => {
       case 'payment':
       case 'success':
         return HandBill;
-      case 'warning':
-      case 'alert':
       case 'due':
         return Calendar;
       case 'balance':
+      case 'alert':
+      case 'warning':
       case 'info':
-        return CheapDollar;
+        return BalanceAlertIcon;
       default:
         return NotificationIcon;
     }
@@ -125,15 +124,16 @@ const Notifications = ({ navigation, route }) => {
 
   const getNotificationVariant = (type) => {
     switch (type?.toLowerCase()) {
-      case 'warning':
-      case 'alert':
+      case 'due':
         return 'warning';
       case 'success':
       case 'payment':
         return 'success';
-      case 'info':
       case 'balance':
-        return 'info';
+      case 'alert':
+      case 'warning':
+      case 'info':
+        return 'alert';
       default:
         return 'default';
     }

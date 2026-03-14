@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useRef } from "react";
 import {
   View,
-  Text,
   StyleSheet,
   Dimensions,
   Alert,
@@ -11,6 +10,7 @@ import {
   Platform,
   Pressable,
 } from "react-native";
+import { Text } from "@components/global/Text";
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useRoute, useNavigation, useFocusEffect } from "@react-navigation/native";
