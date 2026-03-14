@@ -499,7 +499,7 @@ const SideMenuNavigation = ({ navigation }) => {
         onRequestClose={handleCancelLogout}
       >
         <View style={[styles.logoutModalOverlay, isDark && styles.logoutModalOverlayDark]}>
-          <View style={[styles.logoutModalCard, isDark && { backgroundColor: themeColors.card }]}>
+          <View style={[styles.logoutModalCard, isDark && { backgroundColor: '#1A1F2E' }]}>
             <View style={styles.logoutModalIconWrap}>
               <View style={styles.logoutModalIconWrap2}>
                 <LogoutButton width={28} height={28} color="#FADCDC" />
@@ -512,11 +512,11 @@ const SideMenuNavigation = ({ navigation }) => {
 
             <View style={styles.logoutModalButtonsRow}>
               <TouchableOpacity
-                style={[styles.logoutModalCancelButton, isDark && { backgroundColor: themeColors.card, borderColor: themeColors.cardBorder }]}
+                style={[styles.logoutModalCancelButton, isDark && { backgroundColor: '#1A1F2E', borderColor: themeColors.accent }]}
                 activeOpacity={0.8}
                 onPress={handleCancelLogout}
               >
-                <Text style={[styles.logoutModalCancelText, { fontSize: scaled.modalButton }, isDark && { color: themeColors.textPrimary }]}>Cancel</Text>
+                <Text style={[styles.logoutModalCancelText, { fontSize: scaled.modalButton }, isDark && { color: themeColors.accent }]}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
