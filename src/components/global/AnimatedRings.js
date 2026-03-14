@@ -10,9 +10,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Easing } from 'react-native-reanimated';
 
-const RING_COUNT = 8;
-const RING_DELAY = 600;
-const ANIMATION_DURATION = 4000;
+const RING_COUNT = 5;
+const RING_DELAY = 350;
+const ANIMATION_DURATION = 1800;
+const RING_SIZE = 100;
 
 const Ring = ({ index, progress }) => {
   const ringStyle = useAnimatedStyle(() => {
@@ -22,10 +23,10 @@ const Ring = ({ index, progress }) => {
     const clamped = Math.min(localProgress, 1);
 
     return {
-      opacity: interpolate(clamped, [0, 0.1, 1], [0, 0.6, 0]),
+      opacity: interpolate(clamped, [0, 0.1, 1], [0, 0.5, 0]),
       transform: [
         {
-          scale: interpolate(clamped, [0, 1], [0.4, 4]),
+          scale: interpolate(clamped, [0, 1], [0.5, 3]),
         },
       ],
     };
@@ -75,13 +76,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    width: RING_SIZE * 4,
+    height: RING_SIZE * 4,
     zIndex: 0,
+    overflow: 'visible',
   },
   ring: {
     position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: RING_SIZE,
+    height: RING_SIZE,
+    borderRadius: RING_SIZE / 2,
     borderWidth: 1,
     borderColor: '#BABECC66',
     opacity: 0.2,

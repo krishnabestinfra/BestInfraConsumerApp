@@ -334,7 +334,7 @@ const Profile = ({ navigation }) => {
 
   return (
     <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
       <View style={styles.TopMenu}>
@@ -402,6 +402,7 @@ const Profile = ({ navigation }) => {
                 <Image
                   source={profileImage ? { uri: profileImage } : require("../../../assets/images/profileBlank.png")}
                   style={styles.profilePhoto}
+                  resizeMode="cover"
                 />
                 <View style={styles.cameraIconWrapper}>
                   <CameraIcon width={14} height={14} fill="#FFFFFF" />
@@ -411,6 +412,7 @@ const Profile = ({ navigation }) => {
             </>) : (<><Image
               source={profileImage ? { uri: profileImage } : require("../../../assets/images/profileBlank.png")}
               style={styles.profilePhoto}
+              resizeMode="cover"
             /></>)}
 
           </View>

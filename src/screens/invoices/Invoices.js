@@ -444,7 +444,7 @@ const TransactionCardItem = React.memo(({ item, isDark, themeColors, onView, sty
           styles.statusBadge,
           isPaid ? styles.paidBadge : styles.unpaidBadge,
           isDark && !isPaid && { backgroundColor: "rgba(255, 180, 0, 0.15)" },
-          isDark && isPaid && { backgroundColor: "rgba(85, 181, 108, 0.15)" },
+          isDark && isPaid && { backgroundColor: "rgba(85, 181, 107, 0)" },
         ]}>
           <Text style={[styles.statusText, isDark && { color: isPaid ? "#55B56C" : "#FFB400" }]}>
             {isPaid ? "Completed" : (item.status || "Pending")}
@@ -546,8 +546,8 @@ const Invoices = ({ navigation }) => {
   const isPrepaid = isPrepaidConsumer(consumerData);
   const { transactions, isLoading: isTxLoading, fetchTransactions } = useTransactionHistory(consumerData);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const filter = useInvoiceFilter();
-  const { statusFilter, pendingStatusFilter, setPendingStatusFilter, isFilterModalVisible, applyFilter, openFilterModal, closeFilterModal, filterOptions: INVOICE_FILTERS } = filter;
+  const filter = useInvoiceFilter(isPrepaid);
+  const { statusFilter, pendingStatusFilter, setPendingStatusFilter, isFilterModalVisible, applyFilter, openFilterModal, closeFilterModal, filterOptions } = filter;
   const [pdfViewerBase64, setPdfViewerBase64] = useState(null);
   const [pdfViewerBillNumber, setPdfViewerBillNumber] = useState("");
   const effectiveLoading = isPrepaid ? isTxLoading : isLoading;
@@ -642,6 +642,15 @@ const Invoices = ({ navigation }) => {
       setFilteredInvoiceCards(next);
     }
   }, [statusFilter, invoiceCards, transactions, isPrepaid]);
+
+  const handleRefresh = useCallback(async () => {
+    if (isPrepaid) {
+      await refreshConsumer({ force: true });
+      fetchTransactions(true);
+    } else {
+      await fetchInvoices();
+    }
+  }, [isPrepaid, refreshConsumer, fetchTransactions]);
 
   // Fetch invoice data from API for a given invoice card (shared by View and Share)
   const fetchInvoiceData = useCallback(async (invoiceCard) => {
@@ -819,7 +828,10 @@ const Invoices = ({ navigation }) => {
   const containerStyle = useMemo(() => [styles.container, isDark && { backgroundColor: themeColors.screen }], [isDark, themeColors.screen]);
   const scrollStyle = useMemo(() => [styles.scrollContainer, isDark && { backgroundColor: themeColors.screen }], [isDark, themeColors.screen]);
   const isListEmpty = effectiveLoading || filteredInvoiceCards.length === 0;
-  const contentStyle = useMemo(() => isListEmpty ? [{ flexGrow: 1 }] : undefined, [isListEmpty]);
+  const contentStyle = useMemo(
+    () => (isListEmpty ? [{ flexGrow: 1 }, { paddingBottom: 120 }] : { paddingBottom: 120 }),
+    [isListEmpty]
+  );
 
   return (
     <View style={containerStyle} onLayout={onScreenLayout}>
@@ -842,14 +854,7 @@ const Invoices = ({ navigation }) => {
         refreshControl={
           <RefreshControl
             refreshing={effectiveLoading}
-            onRefresh={async () => {
-              if (isPrepaid) {
-                await refreshConsumer({ force: true });
-                fetchTransactions(true);
-              } else {
-                await fetchInvoices();
-              }
-            }}
+            onRefresh={handleRefresh}
             colors={[COLORS.secondaryColor]}
             tintColor={COLORS.secondaryColor}
           />
@@ -913,10 +918,10 @@ const Invoices = ({ navigation }) => {
             onPress={closeFilterModal}
           />
           <View style={styles.filterCard}>
-            <Text style={styles.filterTitle}>Filter invoices</Text>
-            <Text style={styles.filterSubtitle}>Show bills by status</Text>
+            <Text style={styles.filterTitle}>{isPrepaid ? "Filter recharges" : "Filter invoices"}</Text>
+            <Text style={styles.filterSubtitle}>{isPrepaid ? "Show by status" : "Show bills by status"}</Text>
             <View style={styles.filterChipsRow}>
-              {INVOICE_FILTERS.map((option) => {
+              {filterOptions.map((option) => {
                 const isActive = pendingStatusFilter === option.key;
                 return (
                   <TouchableOpacity

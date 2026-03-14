@@ -158,7 +158,7 @@ const Usage = ({ navigation }) => {
         //   />
         // }
       >
-        <StatusBar style="dark" />
+        <StatusBar style={isDark ? "light" : "dark"} />
         <DashboardHeader
           navigation={navigation}
           variant="usage"

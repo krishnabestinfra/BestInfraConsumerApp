@@ -8,6 +8,13 @@ export const INVOICE_FILTERS = [
   { key: "unpaid", label: "Unpaid" },
 ];
 
+/** Filter options for prepaid (recharge history): Successful/Failed instead of Paid/Unpaid */
+export const PREPAID_INVOICE_FILTERS = [
+  { key: "all", label: "All" },
+  { key: "paid", label: "Successful" },
+  { key: "unpaid", label: "Failed" },
+];
+
 export const INVOICE_LIST_SEPARATOR_HEIGHT = 16;
 
 export const SHIMMER_LIGHT = {

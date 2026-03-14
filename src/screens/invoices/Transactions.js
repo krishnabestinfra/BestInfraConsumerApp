@@ -15,6 +15,7 @@ import Button from "../../components/global/Button";
 import DownloadButton from "../../components/global/DownloadButton";
 import { useConsumer } from "../../context/ConsumerContext";
 import { useTransactionHistory } from "../../hooks/useTransactionHistory";
+import { StatusBar } from "expo-status-bar";
 
 
 const STALE_THRESHOLD = 120000; // 2 minutes
@@ -48,97 +49,98 @@ const Transactions = ({ navigation: navigationProp }) => {
   );
   return (
     <>
-    <ScrollView
-      style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
-      contentContainerStyle={{ paddingBottom: 30 }}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={isLoading}
-          onRefresh={async () => {
-            if (isPrepaid && refreshConsumer) await refreshConsumer({ force: true });
-            fetchTransactions(true);
-          }}
-          colors={[COLORS.secondaryColor]}
-          tintColor={COLORS.secondaryColor}
-        />
-      }
-    >
-      <View style={[styles.bluecontainer, isDark && { backgroundColor: themeColors.screen }]}>
-        <View style={styles.TopMenu}>
-          <Pressable
-            style={[styles.barsIcon, isDark && { backgroundColor: '#1A1F2E' }]}
-            onPress={() => navigation.navigate("SideMenu")}
-          >
-            {isDark ? (
-              <MenuWhite width={18} height={18} />
-            ) : (
-              <Menu width={18} height={18} fill="#202d59" />
-            )}
-          </Pressable>
-          <Pressable onPress={() => navigation.navigate("Dashboard")}>
-            <BiLogo width={45} height={45} />
-          </Pressable>
-          <Pressable
-            style={styles.bellWrapper}
-            onPress={() => navigation.navigate("Notifications")}
-          >
-            <View style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}>
+      <ScrollView
+        style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
+        contentContainerStyle={{ paddingBottom: 30 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={async () => {
+              if (isPrepaid && refreshConsumer) await refreshConsumer({ force: true });
+              fetchTransactions(true);
+            }}
+            colors={[COLORS.secondaryColor]}
+            tintColor={COLORS.secondaryColor}
+          />
+        }
+      >
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <View style={[styles.bluecontainer, isDark && { backgroundColor: themeColors.screen }]}>
+          <View style={styles.TopMenu}>
+            <Pressable
+              style={[styles.barsIcon, isDark && { backgroundColor: '#1A1F2E' }]}
+              onPress={() => navigation.navigate("SideMenu")}
+            >
               {isDark ? (
-                <NotificationWhite width={18} height={18} />
+                <MenuWhite width={18} height={18} />
               ) : (
-                <Notification width={18} height={18} fill="#202d59" />
+                <Menu width={18} height={18} fill="#202d59" />
               )}
-            </View>
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            </Pressable>
+            <Pressable onPress={() => navigation.navigate("Dashboard")}>
+              <BiLogo width={45} height={45} />
+            </Pressable>
+            <Pressable
+              style={styles.bellWrapper}
+              onPress={() => navigation.navigate("Notifications")}
+            >
+              <View style={[styles.bellIcon, isDark && { backgroundColor: '#1A1F2E' }]}>
+                {isDark ? (
+                  <NotificationWhite width={18} height={18} />
+                ) : (
+                  <Notification width={18} height={18} fill="#202d59" />
+                )}
               </View>
-            )}
-          </Pressable>
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                </View>
+              )}
+            </Pressable>
+          </View>
         </View>
-      </View>
 
-      <View style={[styles.TransactionsContainer, isDark && { backgroundColor: themeColors.screen }]}>
-        <Text style={styles.ViewText}>{isPrepaid ? "Recharge History" : "View Transactions"}</Text>
-        <TouchableOpacity>
-          <Text style={styles.CreateText}>Pick Date</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={[styles.TransactionsContainer, isDark && { backgroundColor: themeColors.screen }]}>
+          <Text style={styles.ViewText}>{isPrepaid ? "Recharge History" : "View Transactions"}</Text>
+          <TouchableOpacity>
+            <Text style={styles.CreateText}>Pick Date</Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.datePickerSection}>
-        <DatePicker
-          placeholder="Start Date"
-          value={startDate}
-          onChange={setStartDate}
-        />
-        <DatePicker
-          placeholder="End Date"
-          value={endDate}
-          onChange={setEndDate}
-        />
-      </View>
+        <View style={styles.datePickerSection}>
+          <DatePicker
+            placeholder="Start Date"
+            value={startDate}
+            onChange={setStartDate}
+          />
+          <DatePicker
+            placeholder="End Date"
+            value={endDate}
+            onChange={setEndDate}
+          />
+        </View>
 
-      <View>
-        <Table
-          data={tableRows}
-          loading={isLoading}
-          skeletonLines={tableRows.length > 0 ? tableRows.length : 5}
-          emptyMessage={isPrepaid ? "No recharge history available" : "No transaction data available"}
-          showSerial={true}
-          showPriority={false}
-          columns={[
-            { key: 'date', title: 'Date', flex: 1.2 },
-            // { key: 'transactionId', title: 'Transaction ID', flex: 2 },
-            { key: 'amount', title: 'Amount', flex: 1 },
-            { key: 'status', title: 'Status', flex: 1 },
-            { key: 'paymentMode', title: 'Mode', flex: 1 },
-           
-          ]}
-        />
-      </View>
-    </ScrollView>
-    {/* {tableData.length > 0 && ( 
+        <View>
+          <Table
+            data={tableRows}
+            loading={isLoading}
+            skeletonLines={tableRows.length > 0 ? tableRows.length : 5}
+            emptyMessage={isPrepaid ? "No recharge history available" : "No transaction data available"}
+            showSerial={true}
+            showPriority={false}
+            columns={[
+              { key: 'date', title: 'Date', flex: 1.2 },
+              // { key: 'transactionId', title: 'Transaction ID', flex: 2 },
+              { key: 'amount', title: 'Amount', flex: 1 },
+              { key: 'status', title: 'Status', flex: 1 },
+              { key: 'paymentMode', title: 'Mode', flex: 1 },
+
+            ]}
+          />
+        </View>
+      </ScrollView>
+      {/* {tableData.length > 0 && ( 
      <View style={styles.buttonContainer}>
      <View style={styles.buttonContainerInner}>
        <Button title="View"
@@ -281,7 +283,7 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 20,
   },
-  buttonContainer:{
+  buttonContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -291,13 +293,13 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     backgroundColor: COLORS.secondaryFontColor
   },
-  buttonContainerInner:{
+  buttonContainerInner: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 12,
   },
-  button:{
+  button: {
     width: '48%',
   }
 });

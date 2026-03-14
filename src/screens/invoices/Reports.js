@@ -314,7 +314,7 @@ const Reports = ({ navigation }) => {
 
   return (
     <View style={[styles.container, isDark && { backgroundColor: themeColors.screen }]}>
-      <StatusBar style="dark" backgroundColor={colors.color_danger} />
+      <StatusBar style={isDark ? "light" : "dark"} />
       
       {/* Header */}
       <View style={styles.header}>
@@ -488,6 +488,10 @@ const Reports = ({ navigation }) => {
               data={recentReports}
               scrollEnabled={false}
               keyExtractor={(item) => String(item.id)}
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={true}
               renderItem={({ item: report }) => (
                 <View style={[styles.reportItem, isDark && { backgroundColor: themeColors.screen }]}>
                   <View style={styles.reportItemLeft}>
@@ -504,7 +508,6 @@ const Reports = ({ navigation }) => {
                   </Pressable>
                 </View>
               )}
-              initialNumToRender={10}
             />
           )}
         </View>
@@ -574,6 +577,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
+    overflow: "visible",
+    minWidth: 120,
+    minHeight: 120,
   },
   scrollContainer: {
     flex: 1,

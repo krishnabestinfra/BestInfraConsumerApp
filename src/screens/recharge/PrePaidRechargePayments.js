@@ -3,7 +3,6 @@ import {
     Text, 
     View, 
     ScrollView, 
-    StatusBar, 
     Alert, 
     ActivityIndicator, 
     KeyboardAvoidingView, 
@@ -30,6 +29,7 @@ import {
   import { getConsumerDueDate, getPrepaidBalance } from "../../utils/billingUtils";
   import { parseDueDate } from "../../utils/dateUtils";
   import { Shimmer, SHIMMER_LIGHT, SHIMMER_DARK } from "../../utils/loadingManager";
+import { StatusBar } from "expo-status-bar";
   
   // Fallback if loadingManager exports are missing
   const SHIMMER_LIGHT_FALLBACK = { base: "#e0e0e0", gradient: ["#e0e0e0", "#f5f5f5", "#e0e0e0"] };
@@ -249,8 +249,8 @@ import {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
-        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-        <ScrollView
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <ScrollView
           style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}
           contentContainerStyle={styles.scrollContentContainer}
           showsVerticalScrollIndicator={false}

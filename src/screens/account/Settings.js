@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, Pressable, ScrollView, Switch, TouchableOpacity } from "react-native";
-import React, { useState } from "react";
-import { StatusBar } from "expo-status-bar";
+import React, { useState, useCallback } from "react";
+import { StatusBar, setStatusBarStyle } from "expo-status-bar";
+import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../../constants/colors";
 import { useTheme } from "../../context/ThemeContext";
 import Menu from "../../../assets/icons/bars.svg";
@@ -47,6 +48,14 @@ const Settings = ({ navigation }) => {
   const scaledSubtitle = getScaledFontSize(12);
   const scaledSection = getScaledFontSize(14);
   const scaledChip = getScaledFontSize(12);
+
+  // Force light status bar when focused (dark header in both themes)
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle("light", false);
+      return () => {};
+    }, [])
+  );
 
   const PreferenceItem = ({
     icon,

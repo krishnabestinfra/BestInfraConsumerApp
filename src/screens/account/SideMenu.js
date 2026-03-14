@@ -6,7 +6,6 @@ import {
   Text,
   View,
   Animated,
-  StatusBar,
 } from "react-native";
 import React, { useState, useCallback, useEffect, useContext, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
@@ -31,6 +30,7 @@ import { API_ENDPOINTS } from "../../constants/constants";
 import { useConsumer } from "../../context/ConsumerContext";
 import { getTenantSubdomain } from "../../config/apiConfig";
 import Dashboard from "../dashboard/Dashboard";
+import { StatusBar, setStatusBarStyle } from "expo-status-bar";
 
 /* ---------------- Skeleton ---------------- */
 
@@ -151,10 +151,13 @@ const SideMenu = ({ navigation }) => {
 
   /* ---------------- Navigation ---------------- */
 
-  const handleMenuPress = (item) => {
-    setActiveItem(item);
-    navigation.navigate(item);
-  };
+  const handleMenuPress = useCallback(
+    (item) => {
+      setActiveItem(item);
+      navigation.navigate(item);
+    },
+    [setActiveItem, navigation]
+  );
 
   const handleLogout = async () => {
     await logoutUser();
@@ -184,15 +187,18 @@ const SideMenu = ({ navigation }) => {
     }
   };
 
+  /* ---------------- Status bar: set light icons when screen focused (not every render to avoid lag) ---------------- */
+  useFocusEffect(
+    useCallback(() => {
+      setStatusBarStyle("light", false);
+      return () => {};
+    }, [])
+  );
+
   /* ---------------- UI ---------------- */
 
   return (
     <View style={[styles.Container, isDark && { backgroundColor: themeColors.screen }]}>
-
-      <StatusBar
-        barStyle="light-content"
-      />
-
       <View style={styles.TopMenu}>
         <Pressable
           style={[styles.barsIcon, isDark && { backgroundColor: '#1A1F2E' }]}
@@ -242,8 +248,9 @@ const SideMenu = ({ navigation }) => {
             <Image
               source={require("../../../assets/images/profileBlank.png")}
               style={styles.gmrLogo}
+              resizeMode="cover"
             />
-            <Image source={tenantLogoSource} style={styles.profileImage} />
+            <Image source={tenantLogoSource} style={styles.profileImage} resizeMode="contain" />
           </View>
 
           <View style={styles.profileInfo}>
@@ -282,11 +289,13 @@ const SideMenu = ({ navigation }) => {
 
           <ScrollView scrollEnabled={false} style={styles.LoginComponentsbar}>
             <BlurView tint="dark" style={styles.blurContainer}>
-              <View>{renderContent()}</View>
+              <View style={styles.blurContainer} />
             </BlurView>
           </ScrollView>
         </View>
       </View>
+      {/* StatusBar last so it overrides child screens; always light for dark header */}
+      <StatusBar style="light" />
     </View>
   );
 };

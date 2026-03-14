@@ -10,7 +10,7 @@
  * - Caching and performance optimization
  */
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useRef, useMemo } from 'react';
 import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/apiService';
 import { getUser } from '../utils/storage';
 import { isDemoUser, getDemoNotifications } from '../constants/demoData';
@@ -335,16 +335,27 @@ export const NotificationsProvider = ({ children }) => {
     return () => { mounted = false; };
   }, [setConsumerUid]);
 
-  // Context value
-  const contextValue = {
-    ...state,
-    fetchNotifications: fetchNotificationsData,
-    setConsumerUid,
-    markAsRead,
-    markAllAsRead,
-    refreshNotifications,
-    clearConsumerData
-  };
+  // Context value - memoized to prevent cascading re-renders
+  const contextValue = useMemo(
+    () => ({
+      ...state,
+      fetchNotifications: fetchNotificationsData,
+      setConsumerUid,
+      markAsRead,
+      markAllAsRead,
+      refreshNotifications,
+      clearConsumerData,
+    }),
+    [
+      state,
+      fetchNotificationsData,
+      setConsumerUid,
+      markAsRead,
+      markAllAsRead,
+      refreshNotifications,
+      clearConsumerData,
+    ]
+  );
 
   return (
     <NotificationsContext.Provider value={contextValue}>

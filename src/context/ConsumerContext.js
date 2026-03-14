@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from "react";
 import { getUser } from "../utils/storage";
 import { apiClient } from "../services/apiClient";
 import { getCachedConsumerData } from "../utils/cacheManager";
@@ -120,16 +120,19 @@ export function ConsumerProvider({ children }) {
     lastFetchedAtRef.current = 0;
   }, []);
 
+  const value = useMemo(
+    () => ({
+      consumerData,
+      latestInvoiceDates,
+      isConsumerLoading: isLoading,
+      refreshConsumer,
+      clearConsumer,
+    }),
+    [consumerData, latestInvoiceDates, isLoading, refreshConsumer, clearConsumer]
+  );
+
   return (
-    <ConsumerContext.Provider
-      value={{
-        consumerData,
-        latestInvoiceDates,
-        isConsumerLoading: isLoading,
-        refreshConsumer,
-        clearConsumer,
-      }}
-    >
+    <ConsumerContext.Provider value={value}>
       {children}
     </ConsumerContext.Provider>
   );

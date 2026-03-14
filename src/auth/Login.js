@@ -121,8 +121,8 @@ const Login = ({ navigation }) => {
           [
             {
               text: "Continue",
-              onPress: () => {
-                refreshConsumer({ force: true });
+              onPress: async () => {
+                await refreshConsumer({ force: true });
                 navigation.reset({
                   index: 0,
                   routes: [{ name: "Dashboard" }],
@@ -230,7 +230,7 @@ const Login = ({ navigation }) => {
           console.warn("⚠️ Failed to register push token:", pushError);
         }
 
-        refreshConsumer({ force: true });
+        await refreshConsumer({ force: true });
         navigation.reset({
           index: 0,
           routes: [{ name: "Dashboard" }],

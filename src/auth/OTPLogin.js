@@ -243,7 +243,7 @@ const OTPLogin = ({ navigation }) => {
           } catch (pushErr) {
             if (__DEV__) console.warn("[OTPLogin] Push register skip:", pushErr?.message);
           }
-          refreshConsumer({ force: true });
+          await refreshConsumer({ force: true });
           navigation.reset({
             index: 0,
             routes: [{ name: "Dashboard" }],

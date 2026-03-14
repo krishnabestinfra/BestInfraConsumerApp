@@ -170,6 +170,10 @@ const ChatSupport = ({ navigation, route }) => {
     navigation.goBack();
   };
 
+  const scrollToEndDelayed = useCallback(() => {
+    setTimeout(scrollToEnd, 100);
+  }, [scrollToEnd]);
+
   const keyExtractor = useCallback((item) => String(item?.id ?? ""), []);
   const renderItem = useCallback(({ item: msg }) => {
     if (!msg) return null;
@@ -293,12 +297,12 @@ const ChatSupport = ({ navigation, route }) => {
             contentContainerStyle={styles.messagesContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            onLayout={() => {
-              setTimeout(() => {
-                scrollViewRef.current?.scrollToEnd({ animated: false });
-              }, 100);
-            }}
-            onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: false })}
+            initialNumToRender={15}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={true}
+            onLayout={scrollToEndDelayed}
+            onContentSizeChange={scrollToEnd}
           />
 
           <View style={[

@@ -135,11 +135,11 @@ export const AmountSection = React.memo(({
               Balance: {isLoading ? "Loading..." : formatAmount(getDisplayAmount(consumerData))}
             </Text>
 
-            <Text style={[styles.dateText, darkOverlay.dateText]}>
+            {/* <Text style={[styles.dateText, darkOverlay.dateText]}>
               {isLoading
                 ? "Loading..."
                 : getDueDaysText(dueDateValue, true)}
-            </Text>
+            </Text> */}
           </>
         ) : (
           <>
@@ -184,21 +184,24 @@ export const AmountSection = React.memo(({
               </Text>
             </Pressable>
           ) : (
-            <Pressable
-              style={[styles.paynowbox, darkOverlay.paynowbox]}
-              onPress={() => navigation.navigate("PostPaidRechargePayments")}
-            >
-              <Text style={[styles.paynowText, darkOverlay.paynowText]}>
-                Pay Now
+            <>
+              <Pressable
+                style={[styles.paynowbox, darkOverlay.paynowbox]}
+                onPress={() => navigation.navigate("PostPaidRechargePayments")}
+              >
+                <Text style={[styles.paynowText, darkOverlay.paynowText]}>
+                  Pay Now
+                </Text>
+              </Pressable>
+              <Text style={[styles.dueDaysText, darkOverlay.dueDaysText]}>
+                {isLoading
+                  ? "Loading..."
+                  : getDueDaysText(dueDateValue, isPrepaid)}
               </Text>
-            </Pressable>
+            </>
           )}
 
-          <Text style={[styles.dueDaysText, darkOverlay.dueDaysText]}>
-            {isLoading
-              ? "Loading..."
-              : getDueDaysText(dueDateValue, isPrepaid)}
-          </Text>
+
 
         </View>
       </View>
@@ -217,52 +220,52 @@ export const MeterCard = React.memo(({
   useEffect(() => setIsSingleLine(true), [name]);
 
   return (
-  <View style={[styles.meterContainer, darkOverlay.meterContainer]}>
-    <TouchableOpacity
-      style={[styles.meterInfoContainer, darkOverlay.meterInfoContainer]}
-      onPress={handleConsumerPress}
-    >
-      <View style={styles.leftContainer}>
-        <View style={styles.meterInfoRow}>
-          <Meter width={30} height={30} style={{ marginTop: 5 }} />
-          <View style={[
-            styles.meterConsumerRow,
-            isSingleLine && styles.meterConsumerRowCentered,
-          ]}>
-            <Text
-              style={[styles.meterConsumerText, darkOverlay.meterConsumerText]}
-              numberOfLines={nameLines}
-              ellipsizeMode="tail"
-              onTextLayout={(e) => setIsSingleLine(e.nativeEvent.lines.length <= 1)}
-            >
-              {name}
+    <View style={[styles.meterContainer, darkOverlay.meterContainer]}>
+      <TouchableOpacity
+        style={[styles.meterInfoContainer, darkOverlay.meterInfoContainer]}
+        onPress={handleConsumerPress}
+      >
+        <View style={styles.leftContainer}>
+          <View style={styles.meterInfoRow}>
+            <Meter width={30} height={30} style={{ marginTop: 5 }} />
+            <View style={[
+              styles.meterConsumerRow,
+              isSingleLine && styles.meterConsumerRowCentered,
+            ]}>
+              <Text
+                style={[styles.meterConsumerText, darkOverlay.meterConsumerText]}
+                numberOfLines={nameLines}
+                ellipsizeMode="tail"
+                onTextLayout={(e) => setIsSingleLine(e.nativeEvent.lines.length <= 1)}
+              >
+                {name}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.lastCommunicationLabelWrap}>
+            <Text style={[styles.LastCommunicationText, darkOverlay.LastCommunicationText]}>
+              Last Communication
             </Text>
           </View>
         </View>
-        <View style={styles.lastCommunicationLabelWrap}>
-          <Text style={[styles.LastCommunicationText, darkOverlay.LastCommunicationText]}>
-            Last Communication
-          </Text>
+        <View style={styles.rightContainer}>
+          <View style={[styles.tapIndicator, darkOverlay.tapIndicator, styles.rightBlockEnd]}>
+            <Text style={[styles.tapIndicatorText, darkOverlay.tapIndicatorText]}>Tap for details</Text>
+          </View>
+          <View style={[styles.lastCommunicationLeft, styles.rightBlockEnd]}>
+            <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
+            <Text style={[styles.meterNumberText, darkOverlay.meterNumberText]}>
+              {consumerData?.meterSerialNumber || "Loading..."}
+            </Text>
+          </View>
+          <View style={styles.rightBlockEnd}>
+            <Text style={[styles.lastCommunicationTimeText, darkOverlay.lastCommunicationTimeText]}>
+              {formatReadingDate(consumerData?.readingDate)}
+            </Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.rightContainer}>
-        <View style={[styles.tapIndicator, darkOverlay.tapIndicator, styles.rightBlockEnd]}>
-          <Text style={[styles.tapIndicatorText, darkOverlay.tapIndicatorText]}>Tap for details</Text>
-        </View>
-        <View style={[styles.lastCommunicationLeft, styles.rightBlockEnd]}>
-          <LastCommunicationIcon width={15} height={10} style={{ marginRight: 5 }} />
-          <Text style={[styles.meterNumberText, darkOverlay.meterNumberText]}>
-            {consumerData?.meterSerialNumber || "Loading..."}
-          </Text>
-        </View>
-        <View style={styles.rightBlockEnd}>
-          <Text style={[styles.lastCommunicationTimeText, darkOverlay.lastCommunicationTimeText]}>
-            {formatReadingDate(consumerData?.readingDate)}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  </View>
+      </TouchableOpacity>
+    </View>
   );
 });
 
@@ -356,7 +359,7 @@ export const EnergySummary = React.memo(({
                       styles.viewDropdownContent, darkOverlay.viewDropdownContent,
                       { position: "absolute", top: dropdownButtonLayout.y + dropdownButtonLayout.height + 4, left: dropdownButtonLayout.x, minWidth: dropdownButtonLayout.width },
                     ]}
-                    onPress={() => {}}
+                    onPress={() => { }}
                   >
                     {VIEW_OPTIONS.map((option) => (
                       <Pressable
@@ -419,7 +422,7 @@ export const EnergySummary = React.memo(({
                 onBarPress={handleBarPress} pickedDateRange={pickedDateRange}
               />
             )}
-          </View>    
+          </View>
         ) : (
           <View style={{ marginTop: 10 }}>
             {isLoading || (pickedDateRange && pickedRangeReportLoading) ? (
@@ -433,10 +436,14 @@ export const EnergySummary = React.memo(({
                 compactColumns={true}
                 columns={[
                   { key: "period", title: effectiveViewForTable === "daily" ? "Date" : "Month", flex: 1, align: "left" },
-                  { key: "consumption", title: "Consumption (kWh)", flex: 2, align: "left",
-                    render: (item) => <Text style={[styles.consumptionValue, darkOverlay.consumptionValue]}>{item.consumption.toFixed(2)}</Text> },
-                  { key: "cumulative", title: "Cumulative (kWh)", flex: 1.5, align: "left",
-                    render: (item) => <Text style={[styles.cumulativeValue, darkOverlay.cumulativeValue]}>{item.cumulative.toFixed(2)}</Text> },
+                  {
+                    key: "consumption", title: "Consumption (kWh)", flex: 2, align: "left",
+                    render: (item) => <Text style={[styles.consumptionValue, darkOverlay.consumptionValue]}>{item.consumption.toFixed(2)}</Text>
+                  },
+                  {
+                    key: "cumulative", title: "Cumulative (kWh)", flex: 1.5, align: "left",
+                    render: (item) => <Text style={[styles.cumulativeValue, darkOverlay.cumulativeValue]}>{item.cumulative.toFixed(2)}</Text>
+                  },
                 ]}
               />
             )}
@@ -571,7 +578,8 @@ export const AlertsTableSection = React.memo(({
             showSerial={true} showPriority={false}
             containerStyle={styles.alertsTable} minTableWidth={900}
             columns={[
-              { key: "meterSerialNumber", title: "Meter SI No", width: 110, align: "left",
+              {
+                key: "meterSerialNumber", title: "Meter SI No", width: 110, align: "left",
                 render: (item) => (
                   <View style={styles.meterSiCell}>
                     <StatusBlinkingDot status={item.status} styles={styles} />
@@ -582,7 +590,8 @@ export const AlertsTableSection = React.memo(({
               { key: "consumerName", title: "Consumer Name", width: 160, align: "left" },
               { key: "eventDateTime", title: "Event Date Time", width: 160, align: "left" },
               { key: "eventDescription", title: "Event Description", width: 140, align: "left" },
-              { key: "status", title: "Status", width: 120, align: "left",
+              {
+                key: "status", title: "Status", width: 120, align: "left",
                 render: (item) => (
                   <View style={[styles.statusBadge, item.status === "Resolved" ? styles.statusResolved : styles.statusActive]}>
                     <Text style={[styles.statusBadgeText, item.status === "Resolved" ? styles.statusResolvedText : styles.statusActiveText]}>
