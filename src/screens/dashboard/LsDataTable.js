@@ -15,7 +15,7 @@ import Menu from "../../../assets/icons/bars.svg";
 import MenuWhite from "../../../assets/icons/menuBarWhite.svg";
 import Notification from "../../../assets/icons/notification.svg";
 import NotificationWhite from "../../../assets/icons/NotificationWhite.svg";
-import BiLogo from "../../../assets/icons/Logo.svg";
+import Logo from "../../components/global/Logo";
 import DropdownIcon from "../../../assets/icons/dropDown.svg";
 import { API_ENDPOINTS } from "../../constants/constants";
 import { getUser } from "../../utils/storage";
@@ -334,7 +334,7 @@ const LsDataTable = ({ navigation, route }) => {
             )}
           </Pressable>
           <Pressable onPress={() => navigation.navigate("Dashboard")}>
-            <BiLogo width={45} height={45} />
+            <Logo variant={isDark ? 'white' : 'blue'} width={45} height={45} />
           </Pressable>
           <Pressable
             style={styles.bellWrapper}
@@ -357,20 +357,35 @@ const LsDataTable = ({ navigation, route }) => {
       </View>
 
       {/* Header Info */}
-      <View style={styles.headerInfo}>
-        <Text style={styles.headerTitle}>LS Data</Text>
+      <View style={[
+        styles.headerInfo,
+        isDark && {
+          backgroundColor: themeColors.screen,
+          borderBottomColor: themeColors.cardBorder,
+        },
+      ]}>
+        <Text style={[
+          styles.headerTitle,
+          isDark && { color: themeColors.textPrimary },
+        ]}>LS Data</Text>
         <View style={styles.metadataContainer}>
           {/* Row 1: Date (left) | Meter SL NO (right, green) */}
           <View style={styles.metadataRow}>
             <View style={styles.metadataLeft}>
               {date && (
-                <Text style={styles.metadataText}>
+                <Text style={[
+                  styles.metadataText,
+                  isDark && { color: themeColors.textSecondary },
+                ]}>
                   Date: {formatFrontendDate(date) || date}
                 </Text>
               )}
             </View>
               <View style={styles.metadataRight}>
-                <Text style={styles.meterSerialText}>
+                <Text style={[
+                  styles.meterSerialText,
+                  isDark && { color: themeColors.accent },
+                ]}>
                   Meter SL No: {meterSerialNumber || consumerData?.meterSerialNumber || metadata?.meterSerialNumber || meterId || 'N/A'}
                 </Text>
               </View>
@@ -380,12 +395,18 @@ const LsDataTable = ({ navigation, route }) => {
           {metadata && (
             <View style={styles.metadataRow}>
               <View style={styles.metadataLeft}>
-                <Text style={styles.metadataText}>
+                <Text style={[
+                  styles.metadataText,
+                  isDark && { color: themeColors.textSecondary },
+                ]}>
                   Total Records: {metadata.totalRecords || 0}
                 </Text>
               </View>
               <View style={styles.metadataRight}>
-                <Text style={styles.metadataText}>
+                <Text style={[
+                  styles.metadataText,
+                  isDark && { color: themeColors.textSecondary },
+                ]}>
                   Intervals: {metadata.dataInterval ? (() => {
                     // Extract number from "15min" or similar formats
                     const intervalValue = String(metadata.dataInterval).replace(/[^0-9]/g, '');
@@ -397,7 +418,10 @@ const LsDataTable = ({ navigation, route }) => {
           )}
           
           {!metadata && date && (
-            <Text style={styles.metadataText}>
+            <Text style={[
+              styles.metadataText,
+              isDark && { color: themeColors.textSecondary },
+            ]}>
               Loading data for selected date...
             </Text>
           )}

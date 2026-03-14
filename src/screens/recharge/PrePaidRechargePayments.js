@@ -308,10 +308,14 @@ import {
               {/* Custom Amount */}
                <View style={[
                 styles.amountCard2,
-                selectedOption === "customAmount" && styles.amountCardSelected2
+                selectedOption === "customAmount" && styles.amountCardSelected2,
+                isDark && {
+                  backgroundColor: "#1A1F2E",
+                  borderColor: "rgba(186, 190, 204, 0.4)",
+                },
               ]}>
                 <View style={styles.amountCardHeader}>
-                  <Text style={styles.amountCardTitle}>Custom Amount</Text>
+                  <Text style={[styles.amountCardTitle, isDark && { color: "#FFFFFF" }]}>Custom Amount</Text>
                   <View style={[
                     styles.statusDot,
                     selectedOption === "customAmount" && styles.statusDotSelected
@@ -323,6 +327,13 @@ import {
                     value={selectedOption === "customAmount" ? customAmount : ""}
                     onChangeText={handleCustomAmountChange}
                     style={styles.amountInput}
+                    containerStyle={[
+                      styles.amountInput,
+                      isDark && { backgroundColor: "#1F2E34" },
+                    ]}
+                    inputStyle={[
+                      isDark && { color: themeColors?.textPrimary ?? "#FFFFFF" },
+                    ]}
                     keyboardType="numeric"
                     returnKeyType="done"
                   />
