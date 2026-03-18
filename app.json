@@ -46,8 +46,13 @@
       "barStyle": "dark-content"
     },
     "extra": {
+      "apiBaseUrl": "https://api.bestinfra.app/gmr/api",
+      "env": "production",
+      "razorpayKeyId": "rzp_live_RtoHmSaBDCz4GS",
+      "razorpaySecretKey": "2R879akQcgqQdL7fRftYNWXR",
+      "sentryDsn": "",
       "eas": {
-        "projectId": "b2cbe5d2-b7cd-4c42-8b8a-788e3fb0170b"
+        "projectId": "4023ecc1-2e83-440b-85d7-dd31682d6465"
       }
     }
   }
