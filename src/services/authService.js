@@ -44,29 +44,31 @@ class AuthService {
       });
   }
 
-  /** Derive tenant from user identifier. BI26NTPA* = ntpl, BI25SEC* = sec, BI26LECA* = demo (TGNPDCL), else gmr. */
+  /** Derive tenant from user identifier as a fallback when auth response client is unavailable. */
   _deriveTenantFromIdentifier(identifier) {
     const id = (identifier || '').toString().toUpperCase();
     if (id.startsWith('BI26NTPA')) return 'ntpl';
     if (id.startsWith('BI25SEC')) return 'sec';
-    if (id.startsWith('BI26LECA')) return 'demo';
+    if (id.startsWith('BI26LECA') || id.startsWith('BI26POCA')) return 'demo';
     return 'gmr';
   }
 
   /**
    * Ensure tenant subdomain is set before any API fetch. Call from SplashScreen before refreshConsumer.
-   * Prioritizes identifier-based derivation so NTPL user (BI26NTPA*) always gets ntpl even if storage had gmr.
+   * Priority order:
+   * 1) persisted tenant from auth response (clients[].subdomain)
+   * 2) fallback derived from identifier prefix
+   * 3) default gmr
    */
   async restoreTenantBeforeFetch(user = null) {
     try {
       const u = user || (await this.getUser());
       const identifier = u?.identifier || u?.username || '';
-      const tenant = identifier
-        ? this._deriveTenantFromIdentifier(identifier)
-        : ((await AsyncStorage.getItem(CLIENT_SUBDOMAIN_KEY)) || 'gmr');
+      const storedTenant = await AsyncStorage.getItem(CLIENT_SUBDOMAIN_KEY);
+      const tenant = storedTenant || (identifier ? this._deriveTenantFromIdentifier(identifier) : 'gmr');
       setTenantSubdomain(tenant);
       await AsyncStorage.setItem(CLIENT_SUBDOMAIN_KEY, tenant);
-      if (__DEV__) console.log('🔧 Tenant set:', identifier ? `${identifier} -> ${tenant}` : `from storage -> ${tenant}`);
+      if (__DEV__) console.log('🔧 Tenant set:', storedTenant ? `from storage -> ${tenant}` : (identifier ? `${identifier} -> ${tenant}` : `default -> ${tenant}`));
     } catch (e) {
       console.error('❌ Error restoring tenant:', e);
       setTenantSubdomain('gmr');

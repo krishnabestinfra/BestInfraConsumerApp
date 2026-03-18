@@ -59,16 +59,41 @@ export const testConsumerCredentials = async (identifier, password) => {
     console.log(`🧪 Testing credentials for consumer: ${identifier}`);
     const result = await apiClient.request(API_ENDPOINTS.auth.login(), {
       method: 'POST',
-      body: { identifier: identifier.trim(), password: password.trim(), rememberMe: false },
+      body: {
+        username: identifier.trim(),
+        identifier: identifier.trim(),
+        password: password.trim(),
+        rememberMe: false,
+      },
       skipAuth: true,
     });
     const data = result.rawBody ?? result.data ?? result;
+    const hasAccessToken = Boolean(
+      data?.data?.accessToken ||
+      data?.data?.gmrAccessToken ||
+      data?.data?.gmrToken ||
+      data?.data?.ntplAccessToken ||
+      data?.data?.ntplToken ||
+      data?.data?.token ||
+      data?.accessToken ||
+      data?.gmrAccessToken ||
+      data?.gmrToken ||
+      data?.ntplAccessToken ||
+      data?.ntplToken ||
+      data?.token
+    );
+    const isCredentialSuccess = result.success && (
+      data?.success === true ||
+      data?.status === 'success' ||
+      hasAccessToken
+    );
+
     return {
-      success: result.success && (data?.success === true || data?.status === 'success'),
+      success: isCredentialSuccess,
       status: result.status || 0,
       data,
       error: result.success ? null : (result.error || data?.message || `HTTP ${result.status}`),
-      hasValidCredentials: result.success && (data?.success === true || data?.status === 'success'),
+      hasValidCredentials: isCredentialSuccess,
     };
   } catch (error) {
     return {
@@ -134,72 +159,46 @@ const _fetchBillingHistoryFromNetwork = async (uid) => {
     return { success: false, message: 'Missing consumer identifier' };
   }
 
-  // List of possible billing endpoint formats to try
+  const hasData = (payload) => {
+    if (Array.isArray(payload)) return payload.length > 0;
+    return !!(payload && typeof payload === 'object' && Object.keys(payload).length > 0);
+  };
+
+  // Keep the list small to avoid long startup delays when backend routes are unavailable.
   const billingEndpoints = [
-    // Primary endpoint
     API_ENDPOINTS.billing.history(uid),
-    // Alternative endpoints
     `${API.BASE_URL}/billing/postpaid/table?uid=${uid}`,
     `${API.BASE_URL}/billing/postpaid/history?uid=${uid}`,
-    `${API.BASE_URL}/consumers/${uid}/billing`,
-    `${API.BASE_URL}/consumers/${uid}/bills`,
-    `${API.BASE_URL}/bills?uid=${uid}`,
-    `${API.BASE_URL}/invoices?uid=${uid}`,
   ];
 
-  // Try each endpoint until one succeeds
-  for (const endpoint of billingEndpoints) {
-    try {
-      console.log(`🔄 Trying billing endpoint: ${endpoint}`);
-
-      // Use apiClient for better token handling and automatic refresh
+  // Probe candidates in parallel with an aggressive timeout.
+  const attempts = await Promise.allSettled(
+    billingEndpoints.map(async (endpoint) => {
       const result = await apiClient.request(endpoint, {
         method: 'GET',
-        showLogs: false, // Reduce logging for multiple attempts
+        showLogs: false,
+        timeout: 4500,
       });
+      return { endpoint, result };
+    })
+  );
 
-      if (result.success && result.data) {
-        // Check if data is actually present
-        const data = result.data;
-        const hasData = Array.isArray(data) ? data.length > 0 :
-                       (data && typeof data === 'object' && Object.keys(data).length > 0);
-
-        if (hasData) {
-          console.log(`✅ Billing history fetched successfully from: ${endpoint}`);
-          return result;
-        }
-      }
-
-      // If we get a 404, try next endpoint
-      if (result.status === 404 || (result.error && result.error.includes('404'))) {
-        console.log(`⚠️ Endpoint returned 404, trying next...`);
-        continue;
-      }
-
-      // If we get success but no data, still try other endpoints first
-      if (result.success && (!result.data || (Array.isArray(result.data) && result.data.length === 0))) {
-        console.log(`⚠️ Endpoint responded but no data found, trying next...`);
-        continue;
-      }
-
-      // If we get success with data (even if empty), return it
-      if (result.success) {
-        console.log(`✅ Endpoint responded successfully`);
-        return result;
-      }
-    } catch (error) {
-      console.log(`⚠️ Error with endpoint ${endpoint}:`, error.message);
-      // Continue to next endpoint
-      continue;
+  for (const attempt of attempts) {
+    if (attempt.status !== 'fulfilled') continue;
+    const { endpoint, result } = attempt.value;
+    if (result.success && hasData(result.data)) {
+      console.log(`✅ Billing history fetched successfully from: ${endpoint}`);
+      return result;
     }
   }
 
-  // If all endpoints failed, check if consumer data has billing info
+  // If dedicated billing routes fail, try extracting billing blocks from consumer data.
   try {
     console.log('🔄 Trying to get billing data from consumer endpoint...');
     const consumerResult = await apiClient.request(API_ENDPOINTS.consumers.get(uid), {
       method: 'GET',
       showLogs: false,
+      timeout: 4500,
     });
 
     if (consumerResult.success && consumerResult.data) {
@@ -223,7 +222,7 @@ const _fetchBillingHistoryFromNetwork = async (uid) => {
     console.log('⚠️ Could not get billing from consumer data:', error.message);
   }
 
-  // All attempts failed - return empty result gracefully
+  // Return empty dataset fast so UI remains responsive.
   console.warn('⚠️ All billing endpoint attempts failed - returning empty result');
   return {
     success: true,
