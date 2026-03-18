@@ -2,7 +2,7 @@
   "expo": {
     "name": "NexusOne",
     "slug": "NexusOne",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon_old.png",
     "userInterfaceStyle": "light",
@@ -31,7 +31,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.bestinfra.app",
-      "versionCode": 6
+      "versionCode": 11
     },
     "updates": {
       "enabled": true,
