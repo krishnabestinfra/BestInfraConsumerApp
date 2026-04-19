@@ -67,6 +67,16 @@ export const isUserLoggedIn = async () => {
   }
 };
 
+// Detect whether identifier likely maps to consumer endpoints.
+export const isLikelyConsumerIdentifier = (identifier) => {
+  if (!identifier || typeof identifier !== "string") return false;
+  const value = identifier.trim().toUpperCase();
+  return (
+    /^BI\d{2}[A-Z]{3,6}\d{3,}$/.test(value) ||
+    /^CON-\d+$/.test(value)
+  );
+};
+
 // Helper function to extract consumer info from API response (login or verify-otp)
 // Supports both password-login and OTP-login response shapes so dashboard gets same consumer data
 // OTP/auth response may use data.user.username (consumer UID) and firstName/lastName for name
@@ -85,7 +95,8 @@ export const extractConsumerInfo = (apiResponse, fallbackIdentifier) => {
   const consumerName =
     consumerInfo?.name ||
     consumerInfo?.consumerName ||
-    nameFromFirstLast;
+    nameFromFirstLast ||
+    consumerInfo?.username;
 
   const meterId =
     consumerInfo?.meterId ||
@@ -129,8 +140,22 @@ export const testConsumerAuth = async (identifier, password, apiUrl) => {
       skipAuth: true,
     });
     const data = result.rawBody ?? result.data ?? result;
+    const hasAccessToken = Boolean(
+      data?.data?.accessToken ||
+      data?.data?.gmrAccessToken ||
+      data?.data?.gmrToken ||
+      data?.data?.ntplAccessToken ||
+      data?.data?.ntplToken ||
+      data?.data?.token ||
+      data?.accessToken ||
+      data?.gmrAccessToken ||
+      data?.gmrToken ||
+      data?.ntplAccessToken ||
+      data?.ntplToken ||
+      data?.token
+    );
     return {
-      success: result.success && (data?.success === true || data?.status === 'success'),
+      success: result.success && (data?.success === true || data?.status === 'success' || hasAccessToken),
       status: result.status || 0,
       data,
       error: result.success ? null : (result.error || data?.message || `HTTP ${result.status}`),

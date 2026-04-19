@@ -245,7 +245,19 @@ class ApiClient {
       }
 
       if (showLogs) {
-        apiLogger.debug('Response received, success:', !!parsed?.data);
+        const looksSuccessful =
+          parsed?.success === true ||
+          parsed?.status === 'success' ||
+          !!(
+            parsed?.data ||
+            parsed?.accessToken ||
+            parsed?.gmrAccessToken ||
+            parsed?.gmrToken ||
+            parsed?.ntplAccessToken ||
+            parsed?.ntplToken ||
+            parsed?.token
+          );
+        apiLogger.debug('Response received, success:', looksSuccessful);
       }
 
       const responsePayload = {

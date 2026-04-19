@@ -15,9 +15,7 @@ import { StatusBar } from "expo-status-bar";
 import { useTheme } from "../context/ThemeContext";
 import LoginForm from "./LoginForm";
 import { storeUser, extractConsumerInfo } from "../utils/storage";
-import { testConsumerCredentials } from "../services/apiService";
-import { API, API_ENDPOINTS } from "../constants/constants";
-import { setTenantSubdomain } from "../config/apiConfig";
+import { API_ENDPOINTS } from "../constants/constants";
 import { authService } from "../services/authService";
 import { apiClient } from "../services/apiClient";
 import { useConsumer } from "../context/ConsumerContext";
@@ -50,19 +48,6 @@ const Login = ({ navigation }) => {
       if (!identifier.trim() || !password.trim()) {
         setLoginError("Invalid credentials. Please check your email/phone and password.");
         return;
-      }
-
-      const upperId = identifier.trim().toUpperCase();
-      if (upperId.startsWith("BI25GMRA")) {
-        setTenantSubdomain("gmr");
-      } else if (upperId.startsWith("BI26NTPA")) {
-        setTenantSubdomain("ntpl");
-      } else if (upperId.startsWith("BI25SEC")) {
-        setTenantSubdomain("sec");
-      } else if (upperId.startsWith("BI26LECA") || upperId.startsWith("BI26POCA")) {
-        setTenantSubdomain("demo");
-      } else {
-        setTenantSubdomain("gmr");
       }
 
       const dummyCredentials = {
@@ -137,30 +122,14 @@ const Login = ({ navigation }) => {
       console.log("🔄 Attempting login for consumer:", identifier);
       console.log("🔍 Login endpoint:", API_ENDPOINTS.auth.login());
       console.log("🔍 Request payload:", {
-        identifier: identifier.trim(),
+        username: identifier.trim(),
         password: password.trim()
       });
-
-      try {
-        const credentialTest = await testConsumerCredentials(identifier, password);
-        console.log("🔍 Credential test result:", credentialTest);
-        if (credentialTest.hasValidCredentials === false &&
-            credentialTest.status !== 0 &&
-            (credentialTest.status === 401 || credentialTest.status === 403)) {
-          // Use backend's actual error message when available (e.g. "Invalid username/email or password")
-          const backendMsg = credentialTest.data?.message || credentialTest.error;
-          const displayMsg = backendMsg && typeof backendMsg === 'string' && backendMsg.length > 0
-            ? backendMsg
-            : `Consumer ${identifier} is not registered in the authentication system. Please contact support to add this consumer.`;
-          throw new Error(displayMsg);
-        }
-      } catch (testError) {
-        throw testError;
-      }
 
       const result = await apiClient.request(API_ENDPOINTS.auth.login(), {
         method: 'POST',
         body: {
+          username: identifier.trim(),
           identifier: identifier.trim(),
           password: password.trim(),
           rememberMe: checked,
@@ -181,7 +150,27 @@ const Login = ({ navigation }) => {
       };
       console.log("✅ Login response:", rawBody);
 
-      if (rawBody.success && rawBody.data) {
+      const hasAccessToken = Boolean(
+        rawBody?.data?.accessToken ||
+        rawBody?.data?.gmrAccessToken ||
+        rawBody?.data?.gmrToken ||
+        rawBody?.data?.ntplAccessToken ||
+        rawBody?.data?.ntplToken ||
+        rawBody?.data?.token ||
+        rawBody?.accessToken ||
+        rawBody?.gmrAccessToken ||
+        rawBody?.gmrToken ||
+        rawBody?.ntplAccessToken ||
+        rawBody?.ntplToken ||
+        rawBody?.token
+      );
+      const isLoginSuccess = Boolean(
+        rawBody?.success === true ||
+        rawBody?.status === "success" ||
+        hasAccessToken
+      );
+
+      if (result.success && isLoginSuccess) {
         const tokens = await authService.handleLoginResponse(responseLike, rawBody);
         if (!tokens.accessToken) {
           throw new Error("No access token received from server");

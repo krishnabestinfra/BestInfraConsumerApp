@@ -78,6 +78,7 @@ const OTPLogin = ({ navigation }) => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [otpSent, setOtpSent] = useState(false);
+  const [otpUserId, setOtpUserId] = useState(null);
 
   useEffect(() => {
     if (resendSeconds <= 0) return;
@@ -98,6 +99,7 @@ const OTPLogin = ({ navigation }) => {
       setOtpSent(false);
       setOtp("");
       setResendSeconds(0);
+      setOtpUserId(null);
     }
   };
 
@@ -130,6 +132,8 @@ const OTPLogin = ({ navigation }) => {
       }
 
       if (result.success && (data.status === "success" || data.success === true)) {
+        const returnedUserId = data?.userId ?? data?.data?.userId ?? null;
+        setOtpUserId(returnedUserId);
         setOtpSent(true);
         setResendSeconds(OTP_RESEND_SECONDS);
         Alert.alert("OTP Sent", `A 6-digit code has been sent to ${trimmedEmail}. Only registered emails receive the OTP.`);
@@ -173,9 +177,16 @@ const OTPLogin = ({ navigation }) => {
     setIsVerifying(true);
     try {
       const url = API_ENDPOINTS.auth.verifyOtp();
+      const verifyBody = { otp: code };
+      if (otpUserId !== null && otpUserId !== undefined && otpUserId !== "") {
+        verifyBody.userId = otpUserId;
+      } else {
+        // Fallback for auth services that still use email in verify payload.
+        verifyBody.email = trimmedEmail;
+      }
       const result = await apiClient.request(url, {
         method: "POST",
-        body: { email: trimmedEmail, otp: code },
+        body: verifyBody,
         skipAuth: true,
       });
       const data = result.rawBody ?? result.data ?? result;

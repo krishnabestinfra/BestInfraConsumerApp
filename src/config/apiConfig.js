@@ -13,13 +13,31 @@ const currentEnv = getCurrentEnvironment();
 // -----------------------------
 let currentTenantSubdomain = 'gmr';
 
+const TENANT_ALIASES = {
+  v2gmr: 'gmr',
+  v2ntpl: 'ntpl',
+  v2sec: 'sec',
+  v2demo: 'demo',
+};
+
+const normalizeTenantSubdomain = (subdomain) => {
+  if (!subdomain || typeof subdomain !== 'string') return 'gmr';
+  const cleaned = subdomain.toLowerCase().trim();
+  return TENANT_ALIASES[cleaned] || cleaned;
+};
+
 export const setTenantSubdomain = (subdomain) => {
   if (!subdomain || typeof subdomain !== 'string') {
     return;
   }
-  currentTenantSubdomain = subdomain.toLowerCase();
+  const normalized = normalizeTenantSubdomain(subdomain);
+  currentTenantSubdomain = normalized;
   if (__DEV__) {
-    console.log('🔧 Tenant subdomain set to:', currentTenantSubdomain);
+    if (normalized !== subdomain.toLowerCase().trim()) {
+      console.log(`🔧 Tenant subdomain normalized: ${subdomain} -> ${normalized}`);
+    } else {
+      console.log('🔧 Tenant subdomain set to:', currentTenantSubdomain);
+    }
   }
 };
 
@@ -46,7 +64,8 @@ const getTenantTicketsBaseUrl = () => `${API_HOST}/${currentTenantSubdomain}/api
 const getAdminTicketsBaseUrl = () => `${API_HOST}/admin/api`;
 const getTenantHealthUrl = () => `${API_HOST}/${currentTenantSubdomain}/api/health`;
 const getTenantPaymentUrl = () => `${API_HOST}/${currentTenantSubdomain}/api/payment`;
-const getTenantAuthUrl = () => `${API_HOST}/${currentTenantSubdomain}/api/sub-app/auth`;
+// Central auth layer endpoint (shared across tenants).
+const getCentralAuthUrl = () => `${API_HOST}/auth`;
 
 const MIDDLEWARE_BASE_URL = API_CONFIG.middlewareBaseUrl;
 
@@ -62,7 +81,7 @@ export const API = {
     return getAdminTicketsBaseUrl();
   },
   get AUTH_URL() {
-    return getTenantAuthUrl();
+    return getCentralAuthUrl();
   },
   get RESET_PASSWORD_URL() {
     return currentEnv.resetPasswordUrl;
@@ -100,8 +119,7 @@ export const API_ENDPOINTS = {
   
   // Authentication endpoints
   auth: {
-    // Use the working sub-app auth base (e.g. https://api.bestinfra.app/gmr/api/sub-app/auth)
-    // so that login works for current backend deployment.
+    // Central auth layer handles tenant selection and returns clients[].subdomain.
     login: () => `${API.AUTH_URL}/login`,
     logout: () => `${API.AUTH_URL}/logout`,
     refresh: () => `${API.AUTH_URL}/refresh`,

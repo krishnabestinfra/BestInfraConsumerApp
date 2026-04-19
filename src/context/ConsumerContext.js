@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useMemo } from "react";
-import { getUser } from "../utils/storage";
+import { getUser, isLikelyConsumerIdentifier } from "../utils/storage";
 import { apiClient } from "../services/apiClient";
 import { getCachedConsumerData } from "../utils/cacheManager";
 import { fetchBillingHistory } from "../services/apiService";
@@ -32,6 +32,25 @@ export function ConsumerProvider({ children }) {
         const user = await getUser();
         if (!user?.identifier) { setIsLoading(false); return; }
 
+        // Admin/backoffice accounts (e.g., NTPL_Admin) are valid auth users
+        // but do not map to /consumers/{identifier} resources.
+        if (!isLikelyConsumerIdentifier(user.identifier)) {
+          setConsumerData({
+            name: user?.name || user?.identifier || "User",
+            meterSerialNumber: user?.meterSerialNumber || "N/A",
+            uniqueIdentificationNo: user?.identifier || "N/A",
+            consumerNumber: user?.consumerNumber || null,
+            readingDate: new Date().toLocaleString(),
+            totalOutstanding: 0,
+            dailyConsumption: 0,
+            monthlyConsumption: 0,
+          });
+          setLatestInvoiceDates({ issueDate: null, dueDate: null });
+          setIsLoading(false);
+          lastFetchedAtRef.current = Date.now();
+          return;
+        }
+
         // Stale data guard: if we have consumerData for a different user, clear it immediately
         const currentId = consumerDataRef.current?.uniqueIdentificationNo || consumerDataRef.current?.identifier || consumerDataRef.current?.consumerNumber;
         if (currentId && currentId !== user.identifier) {
@@ -57,11 +76,8 @@ export function ConsumerProvider({ children }) {
           setIsLoading(true);
         }
 
-        // Network refresh (always runs, silently updates when cache was shown)
-        const [result, billingResult] = await Promise.all([
-          apiClient.getConsumerData(user.identifier),
-          fetchBillingHistory(user.identifier),
-        ]);
+        // Fetch consumer first so dashboard can render quickly.
+        const result = await apiClient.getConsumerData(user.identifier);
 
         if (result.success) {
           setConsumerData(result.data);
@@ -78,13 +94,21 @@ export function ConsumerProvider({ children }) {
           });
         }
 
-        if (billingResult.success && billingResult.data) {
-          setLatestInvoiceDates(getLatestInvoiceDates(billingResult.data));
-        } else {
-          setLatestInvoiceDates({ issueDate: null, dueDate: null });
-        }
-
         lastFetchedAtRef.current = Date.now();
+        setIsLoading(false);
+
+        // Billing is not critical for first paint; fetch it in background.
+        fetchBillingHistory(user.identifier)
+          .then((billingResult) => {
+            if (billingResult.success && billingResult.data) {
+              setLatestInvoiceDates(getLatestInvoiceDates(billingResult.data));
+            } else {
+              setLatestInvoiceDates({ issueDate: null, dueDate: null });
+            }
+          })
+          .catch(() => {
+            setLatestInvoiceDates({ issueDate: null, dueDate: null });
+          });
       } catch (error) {
         console.error("ConsumerContext refresh error:", error);
         try {
