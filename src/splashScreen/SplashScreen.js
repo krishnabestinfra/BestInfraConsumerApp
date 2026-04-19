@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Image, Dimensions } from "react-native";
+import { View, StyleSheet, Image, Dimensions, InteractionManager } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useNavigation } from "@react-navigation/native";
 import { getUser, isUserLoggedIn } from "../utils/storage";
@@ -8,6 +8,7 @@ import { useConsumer } from "../context/ConsumerContext";
 import Logo from "../components/global/Logo";
 import RippleEffect from "../components/RippleEffect";
 import { COLORS } from "../constants/colors";
+import { checkForAppUpdates } from "../utils/updateChecker";
 
 const { width, height } = Dimensions.get("window");
 
@@ -25,6 +26,12 @@ const SplashScreen = () => {
         console.error('❌ Error during app initialization:', error);
         await proceedToMainApp();
       }
+    };
+
+    const scheduleUpdateCheckAfterSplash = () => {
+      InteractionManager.runAfterInteractions(() => {
+        checkForAppUpdates();
+      });
     };
 
     const proceedToMainApp = async () => {
@@ -47,6 +54,7 @@ const SplashScreen = () => {
             index: 0,
             routes: [{ name: "Dashboard" }],
           });
+          scheduleUpdateCheckAfterSplash();
         }, 500);
       } else {
         console.log(' No valid authentication or remember me disabled, navigating to onboarding');
@@ -56,6 +64,7 @@ const SplashScreen = () => {
             index: 0,
             routes: [{ name: "OnBoarding" }],
           });
+          scheduleUpdateCheckAfterSplash();
         }, 5000);
       }
     };

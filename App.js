@@ -4,7 +4,6 @@ import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import * as Font from "expo-font";
-import { checkForAppUpdates } from "./src/utils/updateChecker";
 import Toast from 'react-native-toast-message';
 import Logo from "./src/components/global/Logo";
 import { COLORS } from "./src/constants/colors";
@@ -193,8 +192,6 @@ export default function App() {
   useEffect(() => {
     loadFonts();
     initializeMonitoring();
-    // Defer non-critical work to keep startup ~50–100ms faster
-    setTimeout(() => checkForAppUpdates(), 1500);
     setTimeout(() => {
       if (isRunningInExpoGo()) return;
       initializePushNotifications().then(() => console.log('✅ Push notifications initialized')).catch(() => {});

@@ -2,6 +2,7 @@ import { Alert, Linking, Platform } from 'react-native';
 import * as Updates from 'expo-updates';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
+import { checkForBinaryUpdateWithAPI } from './versionChecker';
 
 /**
  * Check for app updates (both binary and OTA updates)
@@ -9,11 +10,9 @@ import Constants from 'expo-constants';
  */
 export const checkForAppUpdates = async () => {
   try {
-    // Only run in production builds
-    if (!__DEV__) {
-      await checkForOTAUpdate();
-      await checkForBinaryUpdate();
-    }
+    // OTA updates (expo-updates) are disabled in dev builds; binary checks can still run.
+    if (!__DEV__) await checkForOTAUpdate();
+    await checkForBinaryUpdate();
   } catch (error) {
     console.error('Error checking for updates:', error);
   }
@@ -67,23 +66,9 @@ const checkForOTAUpdate = async () => {
  */
 const checkForBinaryUpdate = async () => {
   try {
-    const currentVersion = Application.nativeApplicationVersion;
-    const packageName = Application.applicationId;
-    
-    // In a real implementation, you would:
-    // 1. Call your backend API to get the latest version from store
-    // 2. Compare with current version
-    // 3. Show update alert if newer version is available
-    
-    // For demonstration, we'll show how to redirect to store
-    // You should implement your own version checking logic here
-    
-    // Example: Check if update is needed (replace with your logic)
-    const needsUpdate = false; // Replace with actual version comparison
-    
-    if (needsUpdate) {
-      showBinaryUpdateAlert(packageName);
-    }
+    // Real version enforcement happens via backend (supports force update).
+    // This uses tenant-aware `API_ENDPOINTS.version()` from `src/config/apiConfig.js`.
+    await checkForBinaryUpdateWithAPI();
   } catch (error) {
     console.error('Error checking for binary update:', error);
   }
@@ -160,40 +145,34 @@ export const getAppVersionInfo = () => {
  */
 export const forceCheckForUpdates = async () => {
   try {
-    if (__DEV__) {
-      Alert.alert('Development Mode', 'Update checking is disabled in development mode.');
-      return;
+    // Always run binary version check (force update) even in dev builds.
+    // OTA updates can only be checked in non-dev / non-Expo-Go contexts.
+    if (!__DEV__) {
+      const update = await Updates.checkForUpdateAsync();
+      if (update.isAvailable) {
+        Alert.alert(
+          'Update Available',
+          'A new version is available. Would you like to download and install it now?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Update Now',
+              onPress: async () => {
+                try {
+                  await Updates.fetchUpdateAsync();
+                  await Updates.reloadAsync();
+                } catch (error) {
+                  console.error('Error applying update:', error);
+                  Alert.alert('Update Failed', 'Failed to apply the update. Please try again later.');
+                }
+              },
+            },
+          ]
+        );
+      }
     }
 
-    // Check for OTA updates
-    const update = await Updates.checkForUpdateAsync();
-    
-    if (update.isAvailable) {
-      Alert.alert(
-        'Update Available',
-        'A new version is available. Would you like to download and install it now?',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Update Now',
-            onPress: async () => {
-              try {
-                await Updates.fetchUpdateAsync();
-                await Updates.reloadAsync();
-              } catch (error) {
-                console.error('Error applying update:', error);
-                Alert.alert('Update Failed', 'Failed to apply the update. Please try again later.');
-              }
-            },
-          },
-        ]
-      );
-    } else {
-      Alert.alert('No Updates', 'You are using the latest version of the app.');
-    }
+    await checkForBinaryUpdateWithAPI();
   } catch (error) {
     console.error('Error force checking for updates:', error);
     Alert.alert('Error', 'Unable to check for updates. Please try again later.');

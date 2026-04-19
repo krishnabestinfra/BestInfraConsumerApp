@@ -1,12 +1,4 @@
-/**
- * Authentication Service
- * 
- * Handles complete authentication flow with access tokens and refresh tokens:
- * - Access token: Short-lived (15 minutes), stored in memory/AsyncStorage
- * - Refresh token: Long-lived (7-30 days), stored securely
- * - Automatic token refresh on expiration
- * - Logout with token revocation
- */
+
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getItem as secureGet, setItem as secureSet, removeItem as secureRemove, multiRemove as secureMultiRemove } from '../utils/secureStorage';
@@ -15,7 +7,6 @@ import { apiClient } from './apiClient';
 import { setTenantSubdomain } from '../config/apiConfig';
 import { isDemoUser } from '../constants/demoData';
 
-// Token storage keys (sensitive → stored via secureStorage when available)
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const TOKEN_EXPIRY_KEY = 'token_expiry';
@@ -23,15 +14,13 @@ const USER_KEY = 'user';
 const REMEMBER_ME_KEY = 'remember_me';
 const CLIENT_SUBDOMAIN_KEY = 'client_subdomain';
 
-// Token expiry times (in milliseconds)
-const ACCESS_TOKEN_EXPIRY = 15 * 60 * 1000; // 15 minutes
-const REFRESH_TOKEN_EXPIRY = 30 * 24 * 60 * 60 * 1000; // 30 days
+const ACCESS_TOKEN_EXPIRY = 15 * 60 * 1000; 
+const REFRESH_TOKEN_EXPIRY = 30 * 24 * 60 * 60 * 1000; 
 
 class AuthService {
   constructor() {
     this.refreshPromise = null; // Prevent concurrent refresh requests
 
-    // Try to restore previously selected tenant (subdomain) from storage on app start (fire-and-forget)
     AsyncStorage.getItem(CLIENT_SUBDOMAIN_KEY)
       .then((storedSubdomain) => {
         if (storedSubdomain) {
@@ -44,7 +33,6 @@ class AuthService {
       });
   }
 
-  /** Derive tenant from user identifier. BI26NTPA* = ntpl, BI25SEC* = sec, BI26LECA* = demo (TGNPDCL), else gmr. */
   _deriveTenantFromIdentifier(identifier) {
     const id = (identifier || '').toString().toUpperCase();
     if (id.startsWith('BI26NTPA')) return 'ntpl';
@@ -53,10 +41,7 @@ class AuthService {
     return 'gmr';
   }
 
-  /**
-   * Ensure tenant subdomain is set before any API fetch. Call from SplashScreen before refreshConsumer.
-   * Prioritizes identifier-based derivation so NTPL user (BI26NTPA*) always gets ntpl even if storage had gmr.
-   */
+
   async restoreTenantBeforeFetch(user = null) {
     try {
       const u = user || (await this.getUser());
@@ -73,9 +58,7 @@ class AuthService {
     }
   }
 
-  /**
-   * Store access token and its expiry time (secure storage when available)
-   */
+
   async storeAccessToken(token) {
     try {
       await secureSet(ACCESS_TOKEN_KEY, token);
@@ -88,9 +71,7 @@ class AuthService {
     }
   }
 
-  /**
-   * Get access token
-   */
+
   async getAccessToken() {
     try {
       return await secureGet(ACCESS_TOKEN_KEY);
@@ -100,9 +81,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Store refresh token (secure storage when available)
-   */
   async storeRefreshToken(token) {
     try {
       await secureSet(REFRESH_TOKEN_KEY, token);
@@ -144,12 +122,7 @@ class AuthService {
     }
   }
 
-  /**
-   * Extract refresh token from response cookies or headers
-   * Note: In React Native, httpOnly cookies aren't accessible via JS
-   * The server should send refresh token in response body for React Native apps
-   * This function tries to extract from Set-Cookie header as fallback
-   */
+
   extractRefreshTokenFromResponse(response) {
     try {
       // Try to get from Set-Cookie header (may not work for httpOnly cookies)
